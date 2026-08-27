@@ -870,10 +870,8 @@ func makeMux(
 		))
 	}
 
-	primaryFactory := cfg.Registries.GetPrimaryFactory()
-
 	frontendHandler := compress.Handler(
-		frontend.NewStaticHandler(7200, primaryFactory.GetUrl()),
+		frontend.NewStaticHandler(7200, &cfg.Registries),
 		gzip.BestCompression,
 	)
 

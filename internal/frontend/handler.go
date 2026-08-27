@@ -21,23 +21,24 @@ import (
 	"time"
 
 	"github.com/jxskiss/base62"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 const index = "/index.html"
 
 // StaticHandler serves embedded frontend files.
 type StaticHandler struct {
-	modTime             time.Time
-	imageFactoryBaseURL string
-	maxAgeSec           int
+	modTime    time.Time
+	registries *config.Registries
+	maxAgeSec  int
 }
 
 // NewStaticHandler creates new static handler.
-func NewStaticHandler(maxAgeSec int, imageFactoryBaseURL string) *StaticHandler {
+func NewStaticHandler(maxAgeSec int, registries *config.Registries) *StaticHandler {
 	return &StaticHandler{
-		modTime:             time.Now(),
-		imageFactoryBaseURL: imageFactoryBaseURL,
-		maxAgeSec:           maxAgeSec,
+		modTime:    time.Now(),
+		registries: registries,
+		maxAgeSec:  maxAgeSec,
 	}
 }
 
@@ -130,6 +131,13 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 
 			nonce := base62.EncodeToString(b)
 
+			allFactories := handler.registries.AllFactories()
+			factoryUrls := make([]string, 0, len(allFactories))
+
+			for _, factory := range allFactories {
+				factoryUrls = append(factoryUrls, factory.GetUrl())
+			}
+
 			// If at all possible, when updating the CSP, please also update it for the dev server.
 			// This can be done in frontend/vite.config.ts and will ensure CSP issues are reproducible
 			// on both dev and prod.
@@ -140,7 +148,7 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 					fmt.Sprintf(";script-src 'self' 'nonce-%s' https://*.userpilot.io https://*.posthog.com", nonce)+
 					";media-src 'self' https://js.userpilot.io"+
 					";img-src * data:"+
-					fmt.Sprintf(";connect-src 'self' %s https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io https://*.posthog.com", handler.imageFactoryBaseURL)+
+					fmt.Sprintf(";connect-src 'self' %s https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io https://*.posthog.com", strings.Join(factoryUrls, " "))+
 					";font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io"+
 					// We are forced to use unsafe-inline for style-src due to monaco-editor https://github.com/microsoft/monaco-editor/issues/271
 					";style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com"+
