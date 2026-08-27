@@ -448,6 +448,105 @@ func (x *VEXDocumentResponse) GetData() []byte {
 	return nil
 }
 
+type DownloadTokenRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// FactoryURL is the URL the factory to issue a token for.
+	FactoryUrl string `protobuf:"bytes,1,opt,name=factory_url,json=factoryUrl,proto3" json:"factory_url,omitempty"`
+	// Duration is the TTL in seconds for the token.
+	Duration      int32 `protobuf:"varint,2,opt,name=duration,proto3" json:"duration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadTokenRequest) Reset() {
+	*x = DownloadTokenRequest{}
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadTokenRequest) ProtoMessage() {}
+
+func (x *DownloadTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadTokenRequest.ProtoReflect.Descriptor instead.
+func (*DownloadTokenRequest) Descriptor() ([]byte, []int) {
+	return file_omni_imagefactory_imagefactory_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DownloadTokenRequest) GetFactoryUrl() string {
+	if x != nil {
+		return x.FactoryUrl
+	}
+	return ""
+}
+
+func (x *DownloadTokenRequest) GetDuration() int32 {
+	if x != nil {
+		return x.Duration
+	}
+	return 0
+}
+
+type DownloadTokenResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Token is the download token.
+	Token         string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DownloadTokenResponse) Reset() {
+	*x = DownloadTokenResponse{}
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DownloadTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DownloadTokenResponse) ProtoMessage() {}
+
+func (x *DownloadTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DownloadTokenResponse.ProtoReflect.Descriptor instead.
+func (*DownloadTokenResponse) Descriptor() ([]byte, []int) {
+	return file_omni_imagefactory_imagefactory_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DownloadTokenResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 var File_omni_imagefactory_imagefactory_proto protoreflect.FileDescriptor
 
 const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
@@ -469,7 +568,13 @@ const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
 	"\x12VEXDocumentRequest\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\")\n" +
 	"\x13VEXDocumentResponse\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data*.\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\"S\n" +
+	"\x14DownloadTokenRequest\x12\x1f\n" +
+	"\vfactory_url\x18\x01 \x01(\tR\n" +
+	"factoryUrl\x12\x1a\n" +
+	"\bduration\x18\x02 \x01(\x05R\bduration\"-\n" +
+	"\x15DownloadTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token*.\n" +
 	"\x04Arch\x12\x10\n" +
 	"\fUNKNOWN_ARCH\x10\x00\x12\t\n" +
 	"\x05AMD64\x10\x01\x12\t\n" +
@@ -479,11 +584,12 @@ const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
 	"\x04JSON\x10\x01\x12\t\n" +
 	"\x05SARIF\x10\x02\x12\r\n" +
 	"\tCYCLONEDX\x10\x03\x12\t\n" +
-	"\x05TABLE\x10\x042\x94\x02\n" +
+	"\x05TABLE\x10\x042\xee\x02\n" +
 	"\x13ImageFactoryService\x12j\n" +
 	"\x13VulnerabilityReport\x12(.imagefactory.VulnerabilityReportRequest\x1a).imagefactory.VulnerabilityReportResponse\x12=\n" +
 	"\x04SBOM\x12\x19.imagefactory.SBOMRequest\x1a\x1a.imagefactory.SBOMResponse\x12R\n" +
-	"\vVEXDocument\x12 .imagefactory.VEXDocumentRequest\x1a!.imagefactory.VEXDocumentResponseB9Z7github.com/siderolabs/omni/client/api/omni/imagefactoryb\x06proto3"
+	"\vVEXDocument\x12 .imagefactory.VEXDocumentRequest\x1a!.imagefactory.VEXDocumentResponse\x12X\n" +
+	"\rDownloadToken\x12\".imagefactory.DownloadTokenRequest\x1a#.imagefactory.DownloadTokenResponseB9Z7github.com/siderolabs/omni/client/api/omni/imagefactoryb\x06proto3"
 
 var (
 	file_omni_imagefactory_imagefactory_proto_rawDescOnce sync.Once
@@ -498,7 +604,7 @@ func file_omni_imagefactory_imagefactory_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_imagefactory_imagefactory_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_omni_imagefactory_imagefactory_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_omni_imagefactory_imagefactory_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_omni_imagefactory_imagefactory_proto_goTypes = []any{
 	(Arch)(0),                           // 0: imagefactory.Arch
 	(VulnerabilityReportFormat)(0),      // 1: imagefactory.VulnerabilityReportFormat
@@ -508,6 +614,8 @@ var file_omni_imagefactory_imagefactory_proto_goTypes = []any{
 	(*SBOMResponse)(nil),                // 5: imagefactory.SBOMResponse
 	(*VEXDocumentRequest)(nil),          // 6: imagefactory.VEXDocumentRequest
 	(*VEXDocumentResponse)(nil),         // 7: imagefactory.VEXDocumentResponse
+	(*DownloadTokenRequest)(nil),        // 8: imagefactory.DownloadTokenRequest
+	(*DownloadTokenResponse)(nil),       // 9: imagefactory.DownloadTokenResponse
 }
 var file_omni_imagefactory_imagefactory_proto_depIdxs = []int32{
 	0, // 0: imagefactory.VulnerabilityReportRequest.arch:type_name -> imagefactory.Arch
@@ -516,11 +624,13 @@ var file_omni_imagefactory_imagefactory_proto_depIdxs = []int32{
 	2, // 3: imagefactory.ImageFactoryService.VulnerabilityReport:input_type -> imagefactory.VulnerabilityReportRequest
 	4, // 4: imagefactory.ImageFactoryService.SBOM:input_type -> imagefactory.SBOMRequest
 	6, // 5: imagefactory.ImageFactoryService.VEXDocument:input_type -> imagefactory.VEXDocumentRequest
-	3, // 6: imagefactory.ImageFactoryService.VulnerabilityReport:output_type -> imagefactory.VulnerabilityReportResponse
-	5, // 7: imagefactory.ImageFactoryService.SBOM:output_type -> imagefactory.SBOMResponse
-	7, // 8: imagefactory.ImageFactoryService.VEXDocument:output_type -> imagefactory.VEXDocumentResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
+	8, // 6: imagefactory.ImageFactoryService.DownloadToken:input_type -> imagefactory.DownloadTokenRequest
+	3, // 7: imagefactory.ImageFactoryService.VulnerabilityReport:output_type -> imagefactory.VulnerabilityReportResponse
+	5, // 8: imagefactory.ImageFactoryService.SBOM:output_type -> imagefactory.SBOMResponse
+	7, // 9: imagefactory.ImageFactoryService.VEXDocument:output_type -> imagefactory.VEXDocumentResponse
+	9, // 10: imagefactory.ImageFactoryService.DownloadToken:output_type -> imagefactory.DownloadTokenResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
 	3, // [3:3] is the sub-list for extension extendee
 	0, // [0:3] is the sub-list for field type_name
@@ -537,7 +647,7 @@ func file_omni_imagefactory_imagefactory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_imagefactory_imagefactory_proto_rawDesc), len(file_omni_imagefactory_imagefactory_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

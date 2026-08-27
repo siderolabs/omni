@@ -79,6 +79,11 @@ func (f Factory) PXEBaseURL() (*url.URL, error) {
 	return u, nil
 }
 
+// RequiresAuth returns whether the factory requires auth.
+func (f Factory) RequiresAuth() bool {
+	return f.OAuth2.GetClientSecret() != "" || f.GetPassword() != ""
+}
+
 func firstNonEmpty(values ...string) string {
 	for _, v := range values {
 		if v != "" {

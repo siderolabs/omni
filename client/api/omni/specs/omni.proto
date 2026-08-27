@@ -1235,6 +1235,12 @@ message FeaturesConfigSpec {
 
   // SecondaryImageFactoryPxeBaseUrl is the base URL of the secondary image factory PXE server.
   string secondary_image_factory_pxe_base_url = 14;
+
+  // ImageFactoryRequiresAuth defines whether the primary image factory requires auth.
+  bool image_factory_requires_auth = 15;
+
+  // SecondaryImageFactoryRequiresAuth defines whether the secondary image factory requires auth.
+  bool secondary_image_factory_requires_auth = 16;
 }
 
 message UserPilotSettings {

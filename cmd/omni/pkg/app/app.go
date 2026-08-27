@@ -9,7 +9,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -84,8 +83,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 			return fmt.Errorf("failed to set up resource logger: %w", err)
 		}
 	}
-
-	primaryFactory := cfg.Registries.GetPrimaryFactory()
 
 	imageFactoryClients, err := setupImageFactoryClients(cfg, state)
 	if err != nil {
@@ -167,30 +164,32 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)
 	}
 
-	factoryURLs, err := resolveFactoryURLs(&cfg.Registries)
+	factoryURLs, err := resolveFactories(&cfg.Registries)
 	if err != nil {
 		return err
 	}
 
 	if err = features.UpdateResources(ctx, state.Default(), logger, features.Params{
-		WorkloadProxyEnabled:            cfg.Services.WorkloadProxy.GetEnabled(),
-		EmbeddedDiscoveryServiceEnabled: cfg.Services.EmbeddedDiscoveryService.GetEnabled(),
-		EtcdBackupTickInterval:          cfg.EtcdBackup.GetTickInterval(),
-		EtcdBackupMinInterval:           cfg.EtcdBackup.GetMinInterval(),
-		EtcdBackupMaxInterval:           cfg.EtcdBackup.GetMaxInterval(),
-		AuditLogEnabled:                 cfg.Logs.Audit.GetEnabled(),
-		ImageFactoryBaseURL:             primaryFactory.GetUrl(),
-		ImageFactoryPXEBaseURL:          factoryURLs.primaryPXE,
-		SecondaryImageFactoryBaseURL:    factoryURLs.secondaryBase,
-		SecondaryImageFactoryPXEBaseURL: factoryURLs.secondaryPXE,
-		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),
-		PosthogAPIKey:                   cfg.Account.Posthog.GetApiKey(),
-		PosthogAPIHost:                  cfg.Account.Posthog.GetApiHost(),
-		StripeEnabled:                   cfg.Logs.Stripe.GetEnabled(),
-		StripeMinCommit:                 cfg.Logs.Stripe.GetMinCommit(),
-		AccountID:                       cfg.Account.GetId(),
-		AccountName:                     cfg.Account.GetName(),
-		TalosPreReleaseVersionsEnabled:  cfg.Features.GetEnableTalosPreReleaseVersions(),
+		WorkloadProxyEnabled:              cfg.Services.WorkloadProxy.GetEnabled(),
+		EmbeddedDiscoveryServiceEnabled:   cfg.Services.EmbeddedDiscoveryService.GetEnabled(),
+		EtcdBackupTickInterval:            cfg.EtcdBackup.GetTickInterval(),
+		EtcdBackupMinInterval:             cfg.EtcdBackup.GetMinInterval(),
+		EtcdBackupMaxInterval:             cfg.EtcdBackup.GetMaxInterval(),
+		AuditLogEnabled:                   cfg.Logs.Audit.GetEnabled(),
+		ImageFactoryBaseURL:               factoryURLs.primaryBase,
+		ImageFactoryPXEBaseURL:            factoryURLs.primaryPXE,
+		ImageFactoryRequiresAuth:          factoryURLs.primaryRequiresAuth,
+		SecondaryImageFactoryBaseURL:      factoryURLs.secondaryBase,
+		SecondaryImageFactoryPXEBaseURL:   factoryURLs.secondaryPXE,
+		SecondaryImageFactoryRequiresAuth: factoryURLs.secondaryRequiresAuth,
+		UserPilotAppToken:                 cfg.Account.UserPilot.GetAppToken(),
+		PosthogAPIKey:                     cfg.Account.Posthog.GetApiKey(),
+		PosthogAPIHost:                    cfg.Account.Posthog.GetApiHost(),
+		StripeEnabled:                     cfg.Logs.Stripe.GetEnabled(),
+		StripeMinCommit:                   cfg.Logs.Stripe.GetMinCommit(),
+		AccountID:                         cfg.Account.GetId(),
+		AccountName:                       cfg.Account.GetName(),
+		TalosPreReleaseVersionsEnabled:    cfg.Features.GetEnableTalosPreReleaseVersions(),
 	}); err != nil {
 		return fmt.Errorf("failed to update features config resources: %w", err)
 	}
@@ -227,14 +226,17 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 // factoryURLs holds the image factory endpoints published to the frontend via FeaturesConfig.
 type factoryURLs struct {
-	primaryPXE    *url.URL
-	secondaryBase string
-	secondaryPXE  string
+	primaryBase           string
+	primaryPXE            string
+	secondaryBase         string
+	secondaryPXE          string
+	primaryRequiresAuth   bool
+	secondaryRequiresAuth bool
 }
 
-// resolveFactoryURLs derives the PXE endpoints of the configured image factories and validates that
+// resolveFactories derives the PXE endpoints of the configured image factories and validates that
 // the primary and the secondary factory are actually distinct.
-func resolveFactoryURLs(registries *config.Registries) (factoryURLs, error) {
+func resolveFactories(registries *config.Registries) (factoryURLs, error) {
 	primary := registries.GetPrimaryFactory()
 
 	primaryPXE, err := primary.PXEBaseURL()
@@ -242,7 +244,11 @@ func resolveFactoryURLs(registries *config.Registries) (factoryURLs, error) {
 		return factoryURLs{}, fmt.Errorf("failed to get image factory PXE base URL: %w", err)
 	}
 
-	res := factoryURLs{primaryPXE: primaryPXE}
+	res := factoryURLs{
+		primaryBase:         primary.GetUrl(),
+		primaryPXE:          primaryPXE.String(),
+		primaryRequiresAuth: primary.RequiresAuth(),
+	}
 
 	secondary, ok := registries.GetSecondaryFactory()
 	if !ok {
@@ -260,6 +266,7 @@ func resolveFactoryURLs(registries *config.Registries) (factoryURLs, error) {
 
 	res.secondaryBase = secondary.GetUrl()
 	res.secondaryPXE = secondaryPXE.String()
+	res.secondaryRequiresAuth = secondary.RequiresAuth()
 
 	return res, nil
 }

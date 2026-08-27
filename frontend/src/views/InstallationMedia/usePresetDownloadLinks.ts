@@ -2,9 +2,12 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import { computedAsync } from '@vueuse/core'
+import { milliseconds, millisecondsToSeconds } from 'date-fns'
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { ImageFactoryService } from '@/api/omni/imagefactory/imagefactory.pb'
 import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
@@ -19,7 +22,6 @@ import {
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
 import { useFeatures, useIsEnterprise } from '@/methods/features'
-import { withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 
@@ -71,22 +73,21 @@ export function usePresetDownloadLinks(
   })
 
   const {
-    url: factoryBaseURLRaw,
-    pxeUrl: factoryPxeBaseURLRaw,
-    credentials,
+    url: factoryBaseURL,
+    pxeUrl: factoryPxeBaseURL,
+    requiresAuth,
   } = useResolvedFactory(() => toValue(presetRef).image_factory_url)
 
-  const factoryBaseURL = computed(() =>
-    factoryBaseURLRaw.value
-      ? withImageFactoryAuth(factoryBaseURLRaw.value, credentials.value)
-      : undefined,
-  )
+  const downloadToken = computedAsync(async () => {
+    if (!requiresAuth.value) return
 
-  const factoryPxeBaseURL = computed(() =>
-    factoryPxeBaseURLRaw.value
-      ? withImageFactoryAuth(factoryPxeBaseURLRaw.value, credentials.value)
-      : undefined,
-  )
+    const { token } = await ImageFactoryService.DownloadToken({
+      factory_url: factoryBaseURL.value,
+      duration: millisecondsToSeconds(milliseconds({ minutes: 10 })),
+    })
+
+    return token
+  })
 
   // If the resolved factory is no longer configured in Omni, this preset is orphaned
   const orphaned = computed(() => !factoryBaseURL.value)
@@ -149,7 +150,13 @@ export function usePresetDownloadLinks(
     const talosVersion = toValue(presetRef).talos_version
     const imageName = imageUrl.split('/').at(-1)
 
-    return new URLSearchParams([['filename', `omni-${accountName}-${talosVersion}-${imageName}`]])
+    const params = new URLSearchParams([
+      ['filename', `omni-${accountName}-${talosVersion}-${imageName}`],
+    ])
+
+    if (downloadToken.value) params.set('token', downloadToken.value)
+
+    return params
   }
 
   function toDownloadLink({
@@ -186,6 +193,9 @@ export function usePresetDownloadLinks(
   }
 
   const links = computed<DownloadLink[]>(() => {
+    // Delay link generation until we have a token
+    if (requiresAuth.value && !downloadToken.value) return []
+
     const preset = toValue(presetRef)
 
     if (preset.sbc && sbcDiskImagePath.value) {

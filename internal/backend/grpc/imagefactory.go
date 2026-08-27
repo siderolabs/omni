@@ -202,6 +202,34 @@ func (s *imageFactoryServer) VEXDocument(ctx context.Context, req *imagefactoryp
 	return &imagefactorypb.VEXDocumentResponse{Data: data}, nil
 }
 
+func (s *imageFactoryServer) DownloadToken(ctx context.Context, req *imagefactorypb.DownloadTokenRequest) (*imagefactorypb.DownloadTokenResponse, error) {
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		return nil, err
+	}
+
+	if req.Duration <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "duration must be positive")
+	}
+
+	logger := s.logger.With(zap.String("factory_url", req.FactoryUrl), zap.Int32("duration", req.Duration))
+
+	client := s.clients.ForURL(req.FactoryUrl)
+	if client == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "no factory client found for %s", req.FactoryUrl)
+	}
+
+	token, err := client.DownloadToken(ctx, time.Duration(req.Duration)*time.Second)
+	if err != nil {
+		code := codeFromFactoryErr(err)
+
+		logger.Log(logLevelForCode(code), "failed to get download token", zap.Error(err), zap.Stringer("code", code))
+
+		return nil, status.Error(code, failureMessage("download token", code))
+	}
+
+	return &imagefactorypb.DownloadTokenResponse{Token: token}, nil
+}
+
 // fetch implements the shape every artifact method shares: resolve the image factory client for the
 // Talos version and fetch the artifact through it, reporting a factory failure as the code and
 // message Omni answers with. Checking the caller's role, validating the request and consulting the

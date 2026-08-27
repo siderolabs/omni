@@ -64,6 +64,19 @@ message VEXDocumentResponse {
   bytes data = 1;
 }
 
+message DownloadTokenRequest {
+  // FactoryURL is the URL the factory to issue a token for.
+  string factory_url = 1;
+  // Duration is the TTL in seconds for the token.
+  int32 duration = 2;
+}
+
+message DownloadTokenResponse {
+  // Token is the download token.
+  string token = 1;
+}
+
+
 // ImageFactoryService serves the image factory artifacts Omni proxies on the caller's behalf, so
 // the frontend never talks to the image factory directly.
 service ImageFactoryService {
@@ -75,4 +88,7 @@ service ImageFactoryService {
 
   // VEXDocument returns the VEX document of a Talos version.
   rpc VEXDocument(VEXDocumentRequest) returns (VEXDocumentResponse);
+
+  // DownloadToken returns a token to download images with.
+  rpc DownloadToken(DownloadTokenRequest) returns (DownloadTokenResponse);
 }

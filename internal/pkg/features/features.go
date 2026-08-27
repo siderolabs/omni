@@ -9,7 +9,6 @@ package features
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -23,24 +22,26 @@ import (
 
 // Params holds the values needed to update the features config resource.
 type Params struct {
-	ImageFactoryPXEBaseURL          *url.URL
-	ImageFactoryBaseURL             string
-	SecondaryImageFactoryBaseURL    string
-	SecondaryImageFactoryPXEBaseURL string
-	AccountName                     string
-	AccountID                       string
-	UserPilotAppToken               string
-	PosthogAPIKey                   string
-	PosthogAPIHost                  string
-	EtcdBackupMinInterval           time.Duration
-	EtcdBackupMaxInterval           time.Duration
-	EtcdBackupTickInterval          time.Duration
-	StripeMinCommit                 uint32
-	AuditLogEnabled                 bool
-	WorkloadProxyEnabled            bool
-	StripeEnabled                   bool
-	EmbeddedDiscoveryServiceEnabled bool
-	TalosPreReleaseVersionsEnabled  bool
+	AccountName                       string
+	ImageFactoryBaseURL               string
+	SecondaryImageFactoryBaseURL      string
+	SecondaryImageFactoryPXEBaseURL   string
+	ImageFactoryPXEBaseURL            string
+	AccountID                         string
+	UserPilotAppToken                 string
+	PosthogAPIKey                     string
+	PosthogAPIHost                    string
+	EtcdBackupTickInterval            time.Duration
+	EtcdBackupMinInterval             time.Duration
+	EtcdBackupMaxInterval             time.Duration
+	StripeMinCommit                   uint32
+	SecondaryImageFactoryRequiresAuth bool
+	ImageFactoryRequiresAuth          bool
+	AuditLogEnabled                   bool
+	WorkloadProxyEnabled              bool
+	StripeEnabled                     bool
+	EmbeddedDiscoveryServiceEnabled   bool
+	TalosPreReleaseVersionsEnabled    bool
 }
 
 // UpdateResources creates or updates the features omni.FeaturesConfig resource with the current feature flags.
@@ -57,10 +58,14 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger, pa
 		}
 
 		res.TypedSpec().Value.AuditLogEnabled = params.AuditLogEnabled
-		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = params.ImageFactoryPXEBaseURL.String()
+
 		res.TypedSpec().Value.ImageFactoryBaseUrl = params.ImageFactoryBaseURL
+		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = params.ImageFactoryPXEBaseURL
+		res.TypedSpec().Value.ImageFactoryRequiresAuth = params.ImageFactoryRequiresAuth
+
 		res.TypedSpec().Value.SecondaryImageFactoryBaseUrl = params.SecondaryImageFactoryBaseURL
 		res.TypedSpec().Value.SecondaryImageFactoryPxeBaseUrl = params.SecondaryImageFactoryPXEBaseURL
+		res.TypedSpec().Value.SecondaryImageFactoryRequiresAuth = params.SecondaryImageFactoryRequiresAuth
 
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: params.UserPilotAppToken,

@@ -805,6 +805,8 @@ export type FeaturesConfigSpec = {
   posthog_settings?: PosthogSettings
   secondary_image_factory_base_url?: string
   secondary_image_factory_pxe_base_url?: string
+  image_factory_requires_auth?: boolean
+  secondary_image_factory_requires_auth?: boolean
 }
 
 export type UserPilotSettings = {

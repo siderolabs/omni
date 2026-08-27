@@ -5,7 +5,6 @@
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import { useFeatures } from '@/methods/features'
-import { useImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 
 // useResolvedFactory resolves a factory URL (as recorded on the selected Talos version) to the
 // configured image factory that serves it. All assets of a given Talos version - image, PXE,
@@ -17,12 +16,17 @@ export function useResolvedFactory(factoryURL?: MaybeRefOrGetter<string | undefi
   // The factories Omni currently has configured, primary first.
   const configuredFactories = computed(() => {
     const spec = features.value?.spec
-    const list: { base: string; pxe?: string }[] = []
+    const list: {
+      base: string
+      pxe?: string
+      requiresAuth?: boolean
+    }[] = []
 
     if (spec?.image_factory_base_url) {
       list.push({
         base: spec.image_factory_base_url,
         pxe: spec.image_factory_pxe_base_url,
+        requiresAuth: spec.image_factory_requires_auth,
       })
     }
 
@@ -30,6 +34,7 @@ export function useResolvedFactory(factoryURL?: MaybeRefOrGetter<string | undefi
       list.push({
         base: spec.secondary_image_factory_base_url,
         pxe: spec.secondary_image_factory_pxe_base_url,
+        requiresAuth: spec.secondary_image_factory_requires_auth,
       })
     }
 
@@ -45,10 +50,9 @@ export function useResolvedFactory(factoryURL?: MaybeRefOrGetter<string | undefi
     return configuredFactories.value.find((factory) => factory.base === url)
   })
 
-  const credentials = useImageFactoryAuth(() => resolvedFactory.value?.base)
-
   const url = computed(() => resolvedFactory.value?.base)
   const pxeUrl = computed(() => resolvedFactory.value?.pxe)
+  const requiresAuth = computed(() => resolvedFactory.value?.requiresAuth)
 
-  return { url, pxeUrl, credentials }
+  return { url, pxeUrl, requiresAuth }
 }

@@ -49,6 +49,15 @@ export type VEXDocumentResponse = {
   data?: Uint8Array
 }
 
+export type DownloadTokenRequest = {
+  factory_url?: string
+  duration?: number
+}
+
+export type DownloadTokenResponse = {
+  token?: string
+}
+
 export class ImageFactoryService {
   static VulnerabilityReport(req: VulnerabilityReportRequest, ...options: fm.fetchOption[]): Promise<VulnerabilityReportResponse> {
     return fm.fetchReq<VulnerabilityReportRequest, VulnerabilityReportResponse>("POST", `/imagefactory.ImageFactoryService/VulnerabilityReport`, req, ...options)
@@ -58,5 +67,8 @@ export class ImageFactoryService {
   }
   static VEXDocument(req: VEXDocumentRequest, ...options: fm.fetchOption[]): Promise<VEXDocumentResponse> {
     return fm.fetchReq<VEXDocumentRequest, VEXDocumentResponse>("POST", `/imagefactory.ImageFactoryService/VEXDocument`, req, ...options)
+  }
+  static DownloadToken(req: DownloadTokenRequest, ...options: fm.fetchOption[]): Promise<DownloadTokenResponse> {
+    return fm.fetchReq<DownloadTokenRequest, DownloadTokenResponse>("POST", `/imagefactory.ImageFactoryService/DownloadToken`, req, ...options)
   }
 }

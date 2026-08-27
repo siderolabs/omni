@@ -5731,8 +5731,12 @@ type FeaturesConfigSpec struct {
 	SecondaryImageFactoryBaseUrl string `protobuf:"bytes,13,opt,name=secondary_image_factory_base_url,json=secondaryImageFactoryBaseUrl,proto3" json:"secondary_image_factory_base_url,omitempty"`
 	// SecondaryImageFactoryPxeBaseUrl is the base URL of the secondary image factory PXE server.
 	SecondaryImageFactoryPxeBaseUrl string `protobuf:"bytes,14,opt,name=secondary_image_factory_pxe_base_url,json=secondaryImageFactoryPxeBaseUrl,proto3" json:"secondary_image_factory_pxe_base_url,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	// ImageFactoryRequiresAuth defines whether the primary image factory requires auth.
+	ImageFactoryRequiresAuth bool `protobuf:"varint,15,opt,name=image_factory_requires_auth,json=imageFactoryRequiresAuth,proto3" json:"image_factory_requires_auth,omitempty"`
+	// SecondaryImageFactoryRequiresAuth defines whether the secondary image factory requires auth.
+	SecondaryImageFactoryRequiresAuth bool `protobuf:"varint,16,opt,name=secondary_image_factory_requires_auth,json=secondaryImageFactoryRequiresAuth,proto3" json:"secondary_image_factory_requires_auth,omitempty"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *FeaturesConfigSpec) Reset() {
@@ -5861,6 +5865,20 @@ func (x *FeaturesConfigSpec) GetSecondaryImageFactoryPxeBaseUrl() string {
 		return x.SecondaryImageFactoryPxeBaseUrl
 	}
 	return ""
+}
+
+func (x *FeaturesConfigSpec) GetImageFactoryRequiresAuth() bool {
+	if x != nil {
+		return x.ImageFactoryRequiresAuth
+	}
+	return false
+}
+
+func (x *FeaturesConfigSpec) GetSecondaryImageFactoryRequiresAuth() bool {
+	if x != nil {
+		return x.SecondaryImageFactoryRequiresAuth
+	}
+	return false
 }
 
 type UserPilotSettings struct {
@@ -12709,7 +12727,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12,\n" +
 	"\x12has_explicit_alias\x18\x06 \x01(\bR\x10hasExplicitAlias\"R\n" +
 	"\x1eClusterWorkloadProxyStatusSpec\x120\n" +
-	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\x8f\a\n" +
+	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\xa0\b\n" +
 	"\x12FeaturesConfigSpec\x128\n" +
 	"\x18enable_workload_proxying\x18\x01 \x01(\bR\x16enableWorkloadProxying\x12K\n" +
 	"\x14etcd_backup_settings\x18\x02 \x01(\v2\x19.specs.EtcdBackupSettingsR\x12etcdBackupSettings\x12<\n" +
@@ -12725,7 +12743,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1bis_enterprise_image_factory\x18\v \x01(\bR\x18isEnterpriseImageFactory\x12A\n" +
 	"\x10posthog_settings\x18\f \x01(\v2\x16.specs.PosthogSettingsR\x0fposthogSettings\x12F\n" +
 	" secondary_image_factory_base_url\x18\r \x01(\tR\x1csecondaryImageFactoryBaseUrl\x12M\n" +
-	"$secondary_image_factory_pxe_base_url\x18\x0e \x01(\tR\x1fsecondaryImageFactoryPxeBaseUrl\"0\n" +
+	"$secondary_image_factory_pxe_base_url\x18\x0e \x01(\tR\x1fsecondaryImageFactoryPxeBaseUrl\x12=\n" +
+	"\x1bimage_factory_requires_auth\x18\x0f \x01(\bR\x18imageFactoryRequiresAuth\x12P\n" +
+	"%secondary_image_factory_requires_auth\x18\x10 \x01(\bR!secondaryImageFactoryRequiresAuth\"0\n" +
 	"\x11UserPilotSettings\x12\x1b\n" +
 	"\tapp_token\x18\x01 \x01(\tR\bappToken\"E\n" +
 	"\x0fPosthogSettings\x12\x17\n" +

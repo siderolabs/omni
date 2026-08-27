@@ -17,11 +17,7 @@ import {
   type CreateSchematicResponse,
 } from '@/api/omni/management/management.pb'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
-import {
-  type FeaturesConfigSpec,
-  type ImageFactoryAuthSpec,
-  type TalosVersionSpec,
-} from '@/api/omni/specs/omni.pb'
+import { type FeaturesConfigSpec, type TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
@@ -34,7 +30,6 @@ import {
   DefaultNamespace,
   FeaturesConfigID,
   FeaturesConfigType,
-  ImageFactoryAuthType,
   LabelsMeta,
   MetalPlatformConfigType,
   PlatformMetalID,
@@ -60,6 +55,7 @@ export const handlers = (enterprise = true) => [
           ? {
               image_factory_base_url: 'https://factory-enterprise.talos.dev',
               image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
+              image_factory_requires_auth: true,
               secondary_image_factory_base_url: 'https://factory.talos.dev',
               secondary_image_factory_pxe_base_url: 'https://pxe.factory.talos.dev',
               is_enterprise_image_factory: true,
@@ -94,30 +90,6 @@ export const handlers = (enterprise = true) => [
             is_enterprise: enterprise,
           },
         } satisfies Resource<TalosVersionSpec>),
-      })
-    },
-  ),
-  http.post<never, GetRequest, GetResponse>(
-    '/omni.resources.ResourceService/Get',
-    async ({ request }) => {
-      const { id, type, namespace } = await request.clone().json()
-
-      if (type !== ImageFactoryAuthType || namespace !== DefaultNamespace) return
-
-      return HttpResponse.json({
-        body: JSON.stringify({
-          metadata: {
-            namespace,
-            type,
-            id,
-          },
-          spec: enterprise
-            ? {
-                username: 'admin',
-                password: '123',
-              }
-            : {},
-        } satisfies Resource<ImageFactoryAuthSpec>),
       })
     },
   ),
