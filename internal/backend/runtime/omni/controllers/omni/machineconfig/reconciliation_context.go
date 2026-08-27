@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
@@ -68,6 +69,25 @@ type ReconciliationContext struct {
 // hasPendingLifecycleOperation returns true when an upgrade/install action needs to run before config can be applied.
 func (rc *ReconciliationContext) hasPendingLifecycleOperation() bool {
 	return rc.lifecycleOp != lifecycle.OpNone
+}
+
+// upgradeBlockedByOwnHealth is true for a machine that has booted into the cluster but is not
+// ready in the sense the rollout controller subtracts from the upgrade quota. Only the booting and
+// running stages describe such a machine: a maintenance machine is not broken, just not installed
+// yet (or wiped back), so it keeps respecting the quota that holds updates back while the cluster
+// is unhealthy, and the transitional and unknown stages say nothing about health. Connectivity
+// needs no checking here: a disconnected machine never reconciles this far.
+func (rc *ReconciliationContext) upgradeBlockedByOwnHealth() bool {
+	machineStatus := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus()
+
+	switch machineStatus.GetStage() { //nolint:exhaustive
+	case machineapi.MachineStatusEvent_BOOTING:
+		return true
+	case machineapi.MachineStatusEvent_RUNNING:
+		return !machineStatus.GetStatus().GetReady()
+	default:
+		return false
+	}
 }
 
 func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) (bool, error) {

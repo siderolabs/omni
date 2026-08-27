@@ -583,6 +583,15 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		return false, err
 	}
 
+	// An unhealthy machine also gets a staged upgrade. The regular upgrade sequence on the node
+	// drains the node first, and the drain waits for the node to be cordoned through the Kubernetes
+	// API. An unhealthy machine may have no reachable Kubernetes API at all, e.g. a single control
+	// plane whose kubelet is crashlooping. The drain then times out, the whole upgrade sequence
+	// fails, and the machine reboots into the same broken image over and over. A staged upgrade
+	// skips the drain and applies the new image on the next boot instead.
+	recovering := rc.upgradeBlockedByOwnHealth()
+	stageUpgrade = stageUpgrade || recovering
+
 	nodeClient, err := ctrl.lifecycleManager.GetForMachine(upgradeCtx, rc.ID())
 	if err != nil {
 		return false, fmt.Errorf("failed to get talos client: %w", err)
@@ -600,6 +609,19 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 	// If upgrade is not implemented, it means that we run older Talos that doesn't support upgrades in maintenance mode.
 	if status.Code(err) == codes.Unimplemented {
 		return true, nil
+	}
+
+	if err == nil && recovering {
+		// A machine stuck mid-boot cannot run the staged upgrade sequence at all: the sequencer
+		// refuses to start it while the boot sequence is running, and only a reboot is allowed to
+		// take over a stuck boot. The staged image is already recorded on the machine at this
+		// point, so an explicit reboot applies it. Talos acknowledges the reboot request before
+		// running the sequence, so an error here only means the request did not reach the machine.
+		// The next reconcile then stages and reboots again.
+		if rebootErr := nodeClient.Reboot(upgradeCtx); rebootErr != nil {
+			logger.Warn("reboot request after staged upgrade failed, retrying on the next reconcile",
+				zap.String("machine", rc.ID()), zap.Error(rebootErr))
+		}
 	}
 
 	return false, err
@@ -724,8 +746,11 @@ func (ctrl *StatusController) runClusterLifecycle(
 		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine boot ID before upgrade: %s", machineID)
 	}
 
-	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_RUNNING {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not running (%s), skipping upgrade", machineID, stage)
+	// Booting machines are eligible too: a machine stuck in the booting stage may need this very
+	// upgrade to become healthy again (e.g. reverting a kernel args change that broke it), and the
+	// legacy upgrade path and the config apply path both accept booting machines already.
+	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_RUNNING && stage != machineapi.MachineStatusEvent_BOOTING {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not running or booting (%s), skipping upgrade", machineID, stage)
 	}
 
 	clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -771,7 +796,7 @@ func (ctrl *StatusController) runClusterLifecycle(
 		lifecycle.WithProgress(func(msg string) {
 			logger.Debug("upgrade progress", zap.String("machine", machineID), zap.String("message", msg))
 		}),
-		lifecycle.WithCordonDrain(clusterName, nodeName),
+		lifecycle.WithCordonDrain(clusterName, nodeName, rc.upgradeBlockedByOwnHealth()),
 	}
 
 	clusterMachines, err := ctrl.listClusterMachines(ctx, r, clusterName)
@@ -945,9 +970,9 @@ func (ctrl *StatusController) getNodeName(ctx context.Context, r controller.Read
 	return identity.TypedSpec().Value.Nodename, nil
 }
 
-// stageUpgrade decides if the upgrade should be staged.
+// stageUpgrade decides if the upgrade should be staged based on the Talos version.
 //
-// Currently, it is only required as a workaround for this bug affecting Talos 1.9.0-1.9.2:
+// It is required as a workaround for this bug affecting Talos 1.9.0-1.9.2:
 // https://github.com/siderolabs/talos/issues/10163.
 func (ctrl *StatusController) stageUpgrade(actualTalosVersion string) (bool, error) {
 	version, err := semver.ParseTolerant(actualTalosVersion)
@@ -1432,6 +1457,18 @@ func (ctrl *StatusController) acquireUpgradeLock(ctx context.Context, r controll
 	}
 
 	quota := rollout.TypedSpec().Value.MachineSetsUpgradeQuota[machineSetName]
+
+	// The published quota subtracts every not-ready machine in the cluster and disappears entirely
+	// while control planes are updating, both to protect healthy machines from a rollout that would
+	// degrade the cluster further. A machine that is itself not ready needs no such protection: the
+	// pending update is its recovery path (e.g. reverting a kernel args change that broke it), and
+	// blocking on its own unhealthiness would leave it stuck forever. Guarantee it one upgrade slot;
+	// the finalizer count below still bounds the concurrency cluster-wide, so broken machines
+	// recover one by one, and a recovery may also have to wait out an upgrade already in flight.
+	if quota < 1 && rc.upgradeBlockedByOwnHealth() {
+		quota = 1
+	}
+
 	if quota == 0 {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%w: waiting for free quota for upgrade", errAcquireUpgradeLock)
 	}

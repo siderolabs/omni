@@ -35,6 +35,14 @@ func (m *Manager) AcquireForTest(machineID string) bool {
 	return m.acquire(machineID)
 }
 
+// RunCordonAndDrainForTest exposes runCordonAndDrain to external tests.
+func (m *Manager) RunCordonAndDrainForTest(ctx context.Context, clusterName, nodeName string, bestEffort bool, progress func(string)) error {
+	return m.runCordonAndDrain(ctx, runConfig{
+		cordonDrain: &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort},
+		progress:    progress,
+	})
+}
+
 // ReleaseForTest exposes release to external tests.
 func (m *Manager) ReleaseForTest(machineID string) {
 	m.release(machineID)

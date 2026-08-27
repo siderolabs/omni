@@ -89,10 +89,11 @@ func (m *Manager) clientset(ctx context.Context, cluster string) (k8s.Interface,
 // PreRebootHook runs before the node is drained. An error aborts the Run.
 type PreRebootHook func(ctx context.Context, talosClient *talosclient.Client) error
 
-// nodeRef names a cluster node.
+// nodeRef names a cluster node. With bestEffort, cordon/drain failures do not abort the operation.
 type nodeRef struct {
 	clusterName string
 	nodeName    string
+	bestEffort  bool
 }
 
 // runConfig holds the per-call options resolved from Option values.
@@ -108,10 +109,18 @@ type runConfig struct {
 type Option func(*runConfig)
 
 // WithCordonDrain makes Run cordon and drain the node before reboot. Set for cluster members.
-func WithCordonDrain(clusterName, nodeName string) Option {
+//
+// With bestEffort, cordon and drain failures do not abort the operation. Set it when the operation
+// is the recovery path of a machine that is itself unhealthy: nothing may block its reboot then,
+// and the workload Kubernetes API may be served by the very machine being recovered. The drain is
+// still attempted, because an unhealthy machine does not imply an unhealthy node: a machine can
+// stay Talos-not-ready (e.g. an extension service missing its configuration) while its node keeps
+// serving pods, and those deserve an eviction before the reboot. On a node that cannot finish
+// evictions the attempt costs at most the drain timeout, acceptable for a recovery.
+func WithCordonDrain(clusterName, nodeName string, bestEffort bool) Option {
 	return func(cfg *runConfig) {
 		if clusterName != "" && nodeName != "" {
-			cfg.cordonDrain = &nodeRef{clusterName: clusterName, nodeName: nodeName}
+			cfg.cordonDrain = &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort}
 		}
 	}
 }
@@ -283,7 +292,15 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 
 	clientset, err := m.clientset(ctx, target.clusterName)
 	if err != nil {
-		return WrapErr(err, "failed to get kubernetes client to cordon/drain node")
+		err = WrapErr(err, "failed to get kubernetes client to cordon/drain node")
+
+		if target.bestEffort {
+			emitf(cfg.progress, "[omni] skipping cordon and drain of node %s: %s", target.nodeName, err)
+
+			return nil
+		}
+
+		return err
 	}
 
 	cordonCtx, cancel := context.WithTimeout(ctx, CordonTimeout)
@@ -292,19 +309,40 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 	emitf(cfg.progress, "[omni] cordoning node %s", target.nodeName)
 
 	if err = nodedrain.Cordon(cordonCtx, clientset, target.nodeName); err != nil {
+		if target.bestEffort {
+			emitf(cfg.progress, "[omni] failed to cordon node %s, proceeding to reboot: %s", target.nodeName, err)
+
+			return nil
+		}
+
 		return err
 	}
 
-	emitf(cfg.progress, "[omni] draining node %s", target.nodeName)
+	if err = drain(ctx, clientset, cfg, target.nodeName); err != nil {
+		// See WithCordonDrain for why a best-effort operation tolerates a failed drain.
+		if target.bestEffort {
+			emitf(cfg.progress, "[omni] failed to drain node %s, proceeding to reboot: %s", target.nodeName, err)
 
-	// Drain bounds itself with its own DefaultDrainTimeout.
-	if err = nodedrain.Drain(ctx, clientset, target.nodeName, nodedrain.DrainOptions{
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+// drain evicts the node's pods, bounding itself with nodedrain's own drain timeout.
+func drain(ctx context.Context, clientset k8s.Interface, cfg runConfig, nodeName string) error {
+	emitf(cfg.progress, "[omni] draining node %s", nodeName)
+
+	if err := nodedrain.Drain(ctx, clientset, nodeName, nodedrain.DrainOptions{
 		Progress: func(msg string) { cfg.progress("[omni] " + msg) },
 	}); err != nil {
 		return err
 	}
 
-	emitf(cfg.progress, "[omni] node %s drained", target.nodeName)
+	emitf(cfg.progress, "[omni] node %s drained", nodeName)
 
 	return nil
 }

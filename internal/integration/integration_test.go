@@ -251,6 +251,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("OmniUpgradeVerify", testOmniUpgradeVerify(testOptions))
 		t.Run("ClusterImport", func(t *testing.T) { testClusterImport(t, testOptions) })
 		t.Run("KernelArgsUpdate", func(t *testing.T) { testKernelArgsUpdate(t, testOptions) })
+		t.Run("KernelArgsBreakAndRevert", func(t *testing.T) { testKernelArgsBreakAndRevert(t, testOptions) })
 		t.Run("RotateCA", func(t *testing.T) { testRotateCA(t, testOptions) })
 		t.Run("DrainTerminationGracePeriod", func(t *testing.T) { testDrainTerminationGracePeriod(t, testOptions) })
 	})

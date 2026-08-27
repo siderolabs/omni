@@ -1726,7 +1726,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 					return nil
 				}))
 				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 					res.TypedSpec().Value.BootId = "boot-after-reboot"
 
 					return nil
@@ -2533,7 +2533,7 @@ func TestClusterLifecycleUpgrade(t *testing.T) {
 
 			// The machine is up and running with a known boot ID.
 			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 				res.TypedSpec().Value.BootId = bootID
 
 				return nil
@@ -2633,7 +2633,7 @@ func TestClusterLifecycleConvergesOnLiveVersion(t *testing.T) {
 			})
 
 			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 				res.TypedSpec().Value.BootId = "boot-converged"
 
 				return nil
@@ -2728,7 +2728,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 			}))
 
 			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 				res.TypedSpec().Value.BootId = "boot-before"
 
 				return nil
@@ -2776,7 +2776,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 			})
 
 			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 				res.TypedSpec().Value.BootId = "boot-after"
 
 				return nil
@@ -2801,7 +2801,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 // upgrade quota, so the controller runs the cluster-lifecycle upgrade for it.
 func triggerClusterUpgrade(ctx context.Context, t *testing.T, st state.State, clusterName, id, nodeName, targetVersion string) {
 	rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
-		res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+		res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING, Status: &machine.MachineStatusEvent_MachineStatus{Ready: true}}
 		res.TypedSpec().Value.BootId = "boot-" + id
 
 		return nil

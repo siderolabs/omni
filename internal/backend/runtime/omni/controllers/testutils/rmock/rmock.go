@@ -435,7 +435,8 @@ func init() {
 
 	addDefaults(func(ctx context.Context, st state.State, res *omni.MachineStatusSnapshot) error {
 		res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
-			Stage: machine.MachineStatusEvent_RUNNING,
+			Stage:  machine.MachineStatusEvent_RUNNING,
+			Status: &machine.MachineStatusEvent_MachineStatus{Ready: true},
 		}
 
 		return nil
