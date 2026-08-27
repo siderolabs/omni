@@ -62,7 +62,7 @@ func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime) {
 	logger := zaptest.NewLogger(t)
 	kubernetesRuntime := kubernetes.NewWithTTL(st, 0, logger, "", "", "")
 
-	require.NoError(t, rt.RegisterController(clusterctrl.NewController(kubernetesRuntime)))
+	require.NoError(t, rt.RegisterController(clusterctrl.NewCleanupController(kubernetesRuntime)))
 	require.NoError(t, rt.RegisterQController(clusterctrl.NewUUIDController()))
 	require.NoError(t, rt.RegisterQController(omnictrl.NewEtcdBackupEncryptionController()))
 	require.NoError(t, rt.RegisterQController(omnictrl.NewBackupDataController()))

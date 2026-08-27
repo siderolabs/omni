@@ -39,7 +39,7 @@ func NewUUIDController() *UUIDController {
 			},
 			TransformFunc: ctrl.transform,
 		},
-		qtransform.WithIgnoreTeardownWhile(ControllerName),
+		qtransform.WithIgnoreTeardownWhile(CleanupControllerName),
 	)
 
 	return ctrl

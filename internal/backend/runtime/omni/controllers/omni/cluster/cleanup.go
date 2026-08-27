@@ -18,13 +18,13 @@ import (
 	customcleanup "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/cleanup"
 )
 
-// Controller manages Cluster resource lifecycle.
-//
-// Controller plays the role of machine discovery.
-type Controller = cleanup.Controller[*omni.Cluster]
+// CleanupController removes the resources associated with a cluster when the cluster is destroyed.
+type CleanupController = cleanup.Controller[*omni.Cluster]
 
-// ControllerName is the name of the cluster controller.
-const ControllerName = "ClusterController"
+// CleanupControllerName is the name of the cluster cleanup controller.
+//
+// The value keeps the old name of the controller, as it is persisted in the state, e.g., in the finalizers.
+const CleanupControllerName = "ClusterController"
 
 // KubernetesRuntime is the subset of the Kubernetes runtime the cluster cleanup needs.
 type KubernetesRuntime interface {
@@ -56,14 +56,14 @@ func (c handler) Outputs() []controller.Output {
 	return c.handler.Outputs()
 }
 
-// NewController creates new cluster Controller.
-func NewController(kubernetesRuntime KubernetesRuntime) *Controller {
+// NewCleanupController creates a new cluster cleanup controller.
+func NewCleanupController(kubernetesRuntime KubernetesRuntime) *CleanupController {
 	return cleanup.NewController(
 		cleanup.Settings[*omni.Cluster]{
-			Name: ControllerName,
+			Name: CleanupControllerName,
 			Handler: handler{
 				kubernetesRuntime: kubernetesRuntime,
-				finalizer:         ControllerName,
+				finalizer:         CleanupControllerName,
 				handler: cleanup.Combine(
 					cleanup.RemoveOutputs[*omni.MachineSet](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(

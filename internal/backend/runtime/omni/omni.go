@@ -157,7 +157,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	controllers := []controller.Controller{
 		&metricsctrl.UserMetricsController{},
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
-		cluster.NewController(kubernetesRuntime),
+		cluster.NewCleanupController(kubernetesRuntime),
 		omnictrl.NewMachineSetController(),
 		&omnictrl.ClusterMachineIdentityController{},
 		&metricsctrl.ClusterMachineStatusMetricsController{},

@@ -57,8 +57,8 @@ func registerClusterMachineConfigControllers(t *testing.T) testutils.TestFunc {
 
 // createConfigTestCluster creates everything the ClusterMachineConfigController reads for a cluster
 // of one control plane and the requested number of workers. The control plane comes first in the
-// returned machines.
-func createConfigTestCluster(ctx context.Context, t *testing.T, st state.State, clusterName string, workers int, talosVersion string) (
+// returned machines. The extra machine options are applied to every created ClusterMachine.
+func createConfigTestCluster(ctx context.Context, t *testing.T, st state.State, clusterName string, workers int, talosVersion string, machineOptions ...options.MockOption) (
 	*omni.Cluster, []*omni.ClusterMachine,
 ) {
 	const controlPlanes = 1
@@ -117,11 +117,13 @@ func createConfigTestCluster(ctx context.Context, t *testing.T, st state.State, 
 		ctx, t, st,
 		options.IDs(ids),
 		options.ItemOptions(
-			options.Modify(func(res *omni.ClusterMachine) error {
-				res.TypedSpec().Value.KubernetesVersion = cluster.TypedSpec().Value.KubernetesVersion
+			append([]options.MockOption{
+				options.Modify(func(res *omni.ClusterMachine) error {
+					res.TypedSpec().Value.KubernetesVersion = cluster.TypedSpec().Value.KubernetesVersion
 
-				return nil
-			}),
+					return nil
+				}),
+			}, machineOptions...)...,
 		),
 	)
 
@@ -269,15 +271,19 @@ func TestClusterMachineConfigGeneratePreserveFeatures(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
 		func(ctx context.Context, tc testutils.TestContext) {
-			_, machines := createConfigTestCluster(ctx, t, tc.State, "talos-default-old", 1, "1.2.0")
+			// The annotations are set when the machines are created. If they were set with a
+			// later update, they would sporadically be missed: the controller does not
+			// re-generate the config when the cluster machine itself is updated, because in
+			// production, it is never updated in place after it is created.
+			_, machines := createConfigTestCluster(
+				ctx, t, tc.State, "talos-default-old", 1, "1.2.0",
+				options.Modify(func(res *omni.ClusterMachine) error {
+					res.Metadata().Annotations().Set(omni.PreserveApidCheckExtKeyUsage, "")
+					res.Metadata().Annotations().Set(omni.PreserveDiskQuotaSupport, "")
 
-			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, machines[0].Metadata(), func(res *omni.ClusterMachine) error {
-				res.Metadata().Annotations().Set(omni.PreserveApidCheckExtKeyUsage, "")
-				res.Metadata().Annotations().Set(omni.PreserveDiskQuotaSupport, "")
-
-				return nil
-			}, state.WithUpdateOwner(rmock.GetOwner[*omni.ClusterMachine]()))
-			require.NoError(t, err)
+					return nil
+				}),
+			)
 
 			rtestutils.AssertResource(ctx, t, tc.State, machines[0].Metadata().ID(), func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 				assertions.True(machineConfigOf(t, res).Machine().Features().DiskQuotaSupportEnabled())

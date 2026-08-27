@@ -272,6 +272,9 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("install disk is not resolved yet: %s", installDiskStatus.TypedSpec().Value.Message)
 	}
 
+	// clusterMachine is not on this list on purpose. Everything read from it to generate the
+	// config is set when it is created and is never updated in place. Because of this, a new
+	// version of it alone never changes the generated config.
 	inputs := []resource.Resource{
 		clusterMachineSecrets,
 		loadBalancerConfig,
