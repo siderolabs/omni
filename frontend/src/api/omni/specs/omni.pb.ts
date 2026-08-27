@@ -565,6 +565,7 @@ export type MachinePendingUpdatesSpec = {
 
 export type ClusterBootstrapStatusSpec = {
   bootstrapped?: boolean
+  last_bootstrap_attempt?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type ClusterSecretsSpecCertsCA = {

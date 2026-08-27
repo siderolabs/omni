@@ -140,7 +140,7 @@ func TestResourceLogger(t *testing.T) {
 				resource: "ClusterBootstrapStatuses.omni.sidero.dev(default/test@2)",
 				diff: `--- ClusterBootstrapStatuses.omni.sidero.dev(default/test)
 +++ ClusterBootstrapStatuses.omni.sidero.dev(default/test)
-@@ -2,10 +2,10 @@
+@@ -2,11 +2,11 @@
      namespace: default
      type: ClusterBootstrapStatuses.omni.sidero.dev
      id: test
@@ -154,6 +154,7 @@ func TestResourceLogger(t *testing.T) {
  spec:
 -    bootstrapped: false
 +    bootstrapped: true
+     lastbootstrapattempt: null
 `,
 			},
 			{

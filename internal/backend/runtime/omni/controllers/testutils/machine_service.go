@@ -176,6 +176,7 @@ type MachineServiceMock struct {
 	files                   map[string][]string
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
+	bootstrapHandler        func(context.Context, *machine.BootstrapRequest) (*machine.BootstrapResponse, error)
 	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
 	readHandler             func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error
 
@@ -290,13 +291,52 @@ func (ms *MachineServiceMock) GetApplyRequests() []*machine.ApplyConfigurationRe
 	return ms.applyRequests
 }
 
-func (ms *MachineServiceMock) Bootstrap(_ context.Context, req *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
+func (ms *MachineServiceMock) Bootstrap(ctx context.Context, req *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
+	ms.lock.Lock()
+	ms.bootstrapRequests = append(ms.bootstrapRequests, req)
+	handler := ms.bootstrapHandler
+	ms.lock.Unlock()
+
+	if handler != nil {
+		return handler(ctx, req)
+	}
+
+	return &machine.BootstrapResponse{}, nil
+}
+
+// SetBootstrapHandler overrides the response to the bootstrap requests.
+func (ms *MachineServiceMock) SetBootstrapHandler(handler func(context.Context, *machine.BootstrapRequest) (*machine.BootstrapResponse, error)) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	ms.bootstrapRequests = append(ms.bootstrapRequests, req)
+	ms.bootstrapHandler = handler
+}
 
-	return &machine.BootstrapResponse{}, nil
+// SetEtcdRunning makes the etcd service report as running and healthy, or as still preparing.
+func (ms *MachineServiceMock) SetEtcdRunning(running bool) {
+	svc := &machine.ServiceInfo{
+		Id:     "etcd",
+		State:  "Preparing",
+		Health: &machine.ServiceHealth{Unknown: true},
+	}
+
+	if running {
+		svc.State = "Running"
+		svc.Health = &machine.ServiceHealth{Healthy: true}
+	}
+
+	ms.SetServiceList(&machine.ServiceListResponse{
+		Messages: []*machine.ServiceList{
+			{
+				Services: []*machine.ServiceInfo{svc},
+			},
+		},
+	})
+}
+
+// GetEtcdRecoverRequestCount returns the number of etcd recover requests received.
+func (ms *MachineServiceMock) GetEtcdRecoverRequestCount() uint64 {
+	return ms.etcdRecoverRequestCount.Load()
 }
 
 func (ms *MachineServiceMock) GetBootstrapRequests() []*machine.BootstrapRequest {
@@ -304,11 +344,6 @@ func (ms *MachineServiceMock) GetBootstrapRequests() []*machine.BootstrapRequest
 	defer ms.lock.Unlock()
 
 	return ms.bootstrapRequests
-}
-
-// GetEtcdRecoverRequestCount returns the number of etcd recover requests received.
-func (ms *MachineServiceMock) GetEtcdRecoverRequestCount() uint64 {
-	return ms.etcdRecoverRequestCount.Load()
 }
 
 func (ms *MachineServiceMock) Reset(ctx context.Context, req *machine.ResetRequest) (*machine.ResetResponse, error) {

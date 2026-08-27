@@ -726,7 +726,10 @@ message MachinePendingUpdatesSpec {
 
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
 message ClusterBootstrapStatusSpec {
+  // Bootstrapped is set once etcd is confirmed to be running on the bootstrapped node.
   bool bootstrapped = 1;
+  // LastBootstrapAttempt is the time the bootstrap request was last sent to the cluster.
+  google.protobuf.Timestamp last_bootstrap_attempt = 2;
 }
 
 // ClusterSecretsSpec describes cluster secrets.

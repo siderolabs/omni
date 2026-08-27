@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -18,6 +19,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -35,6 +39,19 @@ type BootstrapStatusController struct {
 
 // BootstrapStatusControllerName is the name of the BootstrapStatusController.
 const BootstrapStatusControllerName = "ClusterBootstrapStatusController"
+
+const (
+	// bootstrapCheckInterval is how often etcd is checked on the bootstrapped node after a bootstrap request was sent.
+	bootstrapCheckInterval = 5 * time.Second
+
+	// bootstrapRetryInterval is how long to wait before sending another bootstrap request.
+	//
+	// It is long on purpose: a bootstrap with a snapshot restore runs on the node long after the request
+	// has returned, and a request sent while that restore is still running interrupts it and can leave
+	// a broken etcd data directory behind, from which the cluster does not recover on its own. Waiting
+	// too long only delays the recovery from a lost request.
+	bootstrapRetryInterval = 5 * time.Minute
+)
 
 // NewBootstrapStatusController initializes BootstrapStatusController.
 func NewBootstrapStatusController(etcdBackupStoreFactory store.Factory) *BootstrapStatusController {
@@ -88,6 +105,7 @@ func (ctrl *BootstrapStatusController) reconcile(
 	if err != nil {
 		if state.IsNotFoundError(err) { // missing control-plane, mark the cluster as non-bootstrapped
 			bootstrapStatus.TypedSpec().Value.Bootstrapped = false
+			bootstrapStatus.TypedSpec().Value.LastBootstrapAttempt = nil
 
 			return nil
 		}
@@ -97,6 +115,7 @@ func (ctrl *BootstrapStatusController) reconcile(
 
 	if cpMachineSet.Metadata().Phase() == resource.PhaseTearingDown {
 		bootstrapStatus.TypedSpec().Value.Bootstrapped = false
+		bootstrapStatus.TypedSpec().Value.LastBootstrapAttempt = nil
 
 		return r.RemoveFinalizer(ctx, cpMachineSet.Metadata(), BootstrapStatusControllerName)
 	}
@@ -128,59 +147,6 @@ func (ctrl *BootstrapStatusController) reconcile(
 	}
 
 	return ctrl.bootstrapCluster(ctx, r, logger, cpMachineSet, bootstrapStatus)
-}
-
-func (ctrl *BootstrapStatusController) bootstrapCluster(
-	ctx context.Context,
-	r controller.Reader,
-	logger *zap.Logger,
-	cpMachineSet *omni.MachineSet,
-	bootstrapStatus *omni.ClusterBootstrapStatus,
-) error {
-	clusterID := bootstrapStatus.Metadata().ID()
-
-	talosCli, err := ctrl.getTalosClient(ctx, r, clusterID)
-	if err != nil {
-		if talos.IsClientNotReadyError(err) {
-			return nil
-		}
-
-		return fmt.Errorf("error getting talos client for cluster '%s': %w", clusterID, err)
-	}
-
-	defer func() {
-		if e := talosCli.Close(); e != nil {
-			logger.Error("failed to close talos client", zap.Error(e))
-		}
-	}()
-
-	bootstrapSpec := cpMachineSet.TypedSpec().Value.GetBootstrapSpec()
-	recoverEtcd := bootstrapSpec != nil
-
-	if recoverEtcd {
-		logger.Info(
-			"recovering etcd from backup",
-			zap.String("cluster_id", clusterID),
-			zap.String("cluster_uuid", bootstrapSpec.GetClusterUuid()),
-			zap.String("snapshot", bootstrapSpec.GetSnapshot()),
-		)
-
-		if err = ctrl.recoverEtcdFromBackup(ctx, r, talosCli, bootstrapSpec); err != nil {
-			return err
-		}
-	}
-
-	if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
-		RecoverEtcd: recoverEtcd,
-	}); err != nil {
-		return fmt.Errorf("error bootstrapping cluster '%s': %w", clusterID, err)
-	}
-
-	logger.Info("bootstrapping cluster", zap.String("cluster_id", clusterID))
-
-	bootstrapStatus.TypedSpec().Value.Bootstrapped = true
-
-	return nil
 }
 
 func (ctrl *BootstrapStatusController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterStatus *omni.ClusterStatus) error {
@@ -244,6 +210,119 @@ func (ctrl *BootstrapStatusController) recoverEtcdFromBackup(
 	}
 
 	return nil
+}
+
+// bootstrapCluster sends the bootstrap request to the cluster and marks the cluster as bootstrapped once etcd is
+// confirmed to be running on the node.
+//
+// The bootstrap API returns as soon as the etcd service is started on the node, before the bootstrap (and the
+// snapshot restore, if requested) has actually happened. The node only keeps that intent in memory, so a reboot
+// in that window loses it. This is why the cluster is marked as bootstrapped only once etcd is running.
+func (ctrl *BootstrapStatusController) bootstrapCluster(
+	ctx context.Context,
+	r controller.Reader,
+	logger *zap.Logger,
+	cpMachineSet *omni.MachineSet,
+	bootstrapStatus *omni.ClusterBootstrapStatus,
+) error {
+	clusterID := bootstrapStatus.Metadata().ID()
+
+	talosCli, err := ctrl.getTalosClient(ctx, r, clusterID)
+	if err != nil {
+		if talos.IsClientNotReadyError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("error getting talos client for cluster '%s': %w", clusterID, err)
+	}
+
+	defer func() {
+		if e := talosCli.Close(); e != nil {
+			logger.Error("failed to close talos client", zap.Error(e))
+		}
+	}()
+
+	etcdRunning, err := ctrl.isEtcdRunning(ctx, talosCli)
+	if err != nil {
+		return fmt.Errorf("error checking etcd on cluster '%s': %w", clusterID, err)
+	}
+
+	if etcdRunning {
+		logger.Info("etcd is running, cluster is bootstrapped", zap.String("cluster_id", clusterID))
+
+		bootstrapStatus.TypedSpec().Value.Bootstrapped = true
+
+		return nil
+	}
+
+	// A request sent recently might still be in progress on the node. Sending another one would interrupt it, so
+	// only keep checking etcd until enough time has passed to send again.
+	lastAttempt := bootstrapStatus.TypedSpec().Value.GetLastBootstrapAttempt()
+	if lastAttempt != nil && time.Since(lastAttempt.AsTime()) < bootstrapRetryInterval {
+		return controller.NewRequeueInterval(bootstrapCheckInterval)
+	}
+
+	bootstrapSpec := cpMachineSet.TypedSpec().Value.GetBootstrapSpec()
+	recoverEtcd := bootstrapSpec != nil
+
+	if recoverEtcd {
+		logger.Info(
+			"recovering etcd from backup",
+			zap.String("cluster_id", clusterID),
+			zap.String("cluster_uuid", bootstrapSpec.GetClusterUuid()),
+			zap.String("snapshot", bootstrapSpec.GetSnapshot()),
+		)
+
+		if err = ctrl.recoverEtcdFromBackup(ctx, r, talosCli, bootstrapSpec); err != nil {
+			return err
+		}
+	}
+
+	bootstrapStatus.TypedSpec().Value.LastBootstrapAttempt = timestamppb.Now()
+
+	if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
+		RecoverEtcd: recoverEtcd,
+	}); err != nil {
+		// The node already has etcd data, e.g. from a bootstrap that was not confirmed yet: there is nothing to
+		// send, keep checking etcd instead.
+		if status.Code(err) == codes.AlreadyExists {
+			logger.Warn("the node has etcd data but etcd is not running, waiting for it", zap.String("cluster_id", clusterID))
+
+			return controller.NewRequeueInterval(bootstrapCheckInterval)
+		}
+
+		// The request might have been accepted by the node even though the call failed, e.g. on a timeout. Do not
+		// fail the reconcile, as that would discard the attempt time and re-send the request right away.
+		logger.Error("error bootstrapping cluster", zap.String("cluster_id", clusterID), zap.Error(err))
+
+		return controller.NewRequeueInterval(bootstrapCheckInterval)
+	}
+
+	logger.Info("bootstrapping cluster", zap.String("cluster_id", clusterID))
+
+	return controller.NewRequeueInterval(bootstrapCheckInterval)
+}
+
+// isEtcdRunning checks whether the etcd service is running and healthy on the node.
+//
+// The etcd service gets there only after its preparation is done, which includes the snapshot restore
+// when one was requested, so this confirms that the bootstrap has happened.
+func (ctrl *BootstrapStatusController) isEtcdRunning(ctx context.Context, talosCli *client.Client) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	services, err := talosCli.ServiceInfo(ctx, "etcd")
+	if err != nil {
+		return false, err
+	}
+
+	for _, svc := range services {
+		if svc.Service.GetState() == "Running" && svc.Service.GetHealth().GetHealthy() {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (ctrl *BootstrapStatusController) getTalosClient(ctx context.Context, r controller.Reader, clusterName string) (*client.Client, error) {
