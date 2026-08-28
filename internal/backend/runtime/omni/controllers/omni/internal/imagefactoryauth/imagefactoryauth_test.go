@@ -30,6 +30,15 @@ func newImageFactoryAuth(id, username, password string) *omni.ImageFactoryAuth {
 	)
 }
 
+func newImageFactoryAuthToken(id, token string) *omni.ImageFactoryAuth {
+	return typed.NewResource[omni.ImageFactoryAuthSpec, omni.ImageFactoryAuthExtension](
+		resource.NewMetadata(resources.DefaultNamespace, omni.ImageFactoryAuthType, id, resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.ImageFactoryAuthSpec{
+			Token: &specs.ImageFactoryAuthSpec_AccessToken{Token: token},
+		}),
+	)
+}
+
 func TestBuildDocs(t *testing.T) {
 	t.Parallel()
 
@@ -91,5 +100,21 @@ func TestBuildDocs(t *testing.T) {
 		require.Len(t, docs, 1)
 
 		assert.Equal(t, "factory.example.org", docs[0].Name())
+	})
+
+	t.Run("token credentials are used as the registry password", func(t *testing.T) {
+		t.Parallel()
+
+		creds := []*omni.ImageFactoryAuth{
+			newImageFactoryAuthToken("https://factory.example.org", "the-token"),
+		}
+
+		docs, err := imagefactoryauth.BuildDocs(creds)
+		require.NoError(t, err)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, "token", docs[0].Username())
+		assert.Equal(t, "the-token", docs[0].Password())
 	})
 }

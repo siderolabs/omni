@@ -75,7 +75,7 @@ type Client struct {
 // The base URL is canonicalized by stripping any trailing slash, so that the URL reported by
 // [Client.URL] can be compared to a factory URL from any other source (a configured factory, a
 // TalosVersion resource, a client request) without each comparison having to normalize first.
-func NewClient(imageFactoryBaseURL, username, password string) (*Client, error) {
+func NewClient(imageFactoryBaseURL, username, password string, extraOpts ...client.Option) (*Client, error) {
 	imageFactoryBaseURL = normalizeFactoryURL(imageFactoryBaseURL)
 
 	sniffer := &serverSnifferTransport{wrapped: http.DefaultTransport}
@@ -87,6 +87,8 @@ func NewClient(imageFactoryBaseURL, username, password string) (*Client, error) 
 	if username != "" && password != "" {
 		clientOptions = append(clientOptions, client.WithBasicAuth(username, password))
 	}
+
+	clientOptions = append(clientOptions, extraOpts...)
 
 	factoryClient, err := client.New(imageFactoryBaseURL, clientOptions...)
 	if err != nil {

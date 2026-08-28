@@ -774,6 +774,27 @@ registries:
 		assert.Equal(t, "new-pass", primary.GetPassword())
 	})
 
+	t.Run("primary OAuth2 without a primary URL is carried over as-is", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  imageFactoryBaseURL: https://old.example.com
+  factories:
+    primary:
+      oAuth2:
+        domain: tenant.example.com
+        audience: https://image-factory.example.com
+        clientID: client_id
+        clientSecret: client_secret
+`))
+		require.NoError(t, err)
+
+		primary := p.Registries.GetPrimaryFactory()
+		assert.Equal(t, "tenant.example.com", primary.OAuth2.GetDomain())
+		assert.Equal(t, "https://image-factory.example.com", primary.OAuth2.GetAudience())
+		assert.Equal(t, "client_id", primary.OAuth2.GetClientID())
+		assert.Equal(t, "client_secret", primary.OAuth2.GetClientSecret())
+	})
+
 	t.Run("secondary factory", func(t *testing.T) {
 		p, err := config.FromBytes([]byte(`
 registries:

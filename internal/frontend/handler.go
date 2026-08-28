@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/jxskiss/base62"
+
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 

@@ -84,7 +84,7 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 		return nil, err
 	}
 
-	primaryClient, err := NewClient(baseURL, username, password)
+	primaryClient, err := NewClient(baseURL, username, password, client.WithTokenSource(TokenSource(st, baseURL)))
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,10 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 			return nil, err
 		}
 
-		secondaryClient, err := NewClient(config.TypedSpec().Value.SecondaryImageFactoryBaseUrl, secondaryUsername, secondaryPassword)
+		secondaryClient, err := NewClient(
+			config.TypedSpec().Value.SecondaryImageFactoryBaseUrl, secondaryUsername, secondaryPassword,
+			client.WithTokenSource(TokenSource(st, config.TypedSpec().Value.SecondaryImageFactoryBaseUrl)),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +137,32 @@ func Credentials(ctx context.Context, st state.State, factoryURL string) (userna
 		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
 	}
 
+	token := auth.TypedSpec().Value.GetToken().GetToken()
+	if token != "" {
+		return "token", token, nil
+	}
+
 	return auth.TypedSpec().Value.GetUsername(), auth.TypedSpec().Value.GetPassword(), nil
+}
+
+// TokenSource returns a client.TokenSource that reads the bearer token reconciled into
+// ImageFactoryAuth for the factory at the given URL. The token is looked up fresh on every
+// request, so it stays current as AuthController rotates it.
+func TokenSource(st state.State, factoryURL string) client.TokenSource {
+	factoryURL = normalizeFactoryURL(factoryURL)
+
+	return func(ctx context.Context) (string, error) {
+		auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, factoryURL)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return "", nil
+			}
+
+			return "", fmt.Errorf("failed to get image factory auth: %w", err)
+		}
+
+		return auth.TypedSpec().Value.GetToken().GetToken(), nil
+	}
 }
 
 // SetSecondary configures the secondary image factory client.

@@ -32,6 +32,10 @@ func (s *Registries) GetPrimaryFactory() Factory {
 	resolved.SetPxeURL(firstNonEmpty(primary.GetPxeURL(), s.GetImageFactoryPXEBaseURL()))
 	resolved.SetUsername(firstNonEmpty(primary.GetUsername(), s.GetImageFactoryUsername()))
 	resolved.SetPassword(firstNonEmpty(primary.GetPassword(), s.GetImageFactoryPassword()))
+	resolved.OAuth2.SetDomain(primary.OAuth2.GetDomain())
+	resolved.OAuth2.SetAudience(primary.OAuth2.GetAudience())
+	resolved.OAuth2.SetClientID(primary.OAuth2.GetClientID())
+	resolved.OAuth2.SetClientSecret(primary.OAuth2.GetClientSecret())
 
 	return resolved
 }

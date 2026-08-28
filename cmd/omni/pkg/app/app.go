@@ -15,6 +15,7 @@ import (
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	imagefactoryclient "github.com/siderolabs/image-factory/pkg/client"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
@@ -279,6 +280,7 @@ func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefact
 		primaryFactory.GetUrl(),
 		primaryFactory.GetUsername(),
 		primaryFactory.GetPassword(),
+		imagefactoryclient.WithTokenSource(imagefactory.TokenSource(state.Default(), primaryFactory.GetUrl())),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
@@ -296,6 +298,7 @@ func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefact
 			secondaryFactory.GetUrl(),
 			secondaryFactory.GetUsername(),
 			secondaryFactory.GetPassword(),
+			imagefactoryclient.WithTokenSource(imagefactory.TokenSource(state.Default(), secondaryFactory.GetUrl())),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up secondary image factory client: %w", err)

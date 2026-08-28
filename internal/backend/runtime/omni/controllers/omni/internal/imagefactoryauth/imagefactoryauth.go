@@ -17,10 +17,11 @@ import (
 )
 
 func buildDoc(auth *omni.ImageFactoryAuth) (*cri.RegistryAuthConfigV1Alpha1, error) {
+	token := auth.TypedSpec().Value.GetToken().GetToken()
 	username := auth.TypedSpec().Value.Username
 	password := auth.TypedSpec().Value.Password
 
-	if username == "" || password == "" {
+	if token == "" && (username == "" || password == "") {
 		return nil, nil //nolint:nilnil
 	}
 
@@ -30,8 +31,13 @@ func buildDoc(auth *omni.ImageFactoryAuth) (*cri.RegistryAuthConfigV1Alpha1, err
 	}
 
 	doc := cri.NewRegistryAuthConfigV1Alpha1(u.Host)
-	doc.RegistryUsername = username
-	doc.RegistryPassword = password
+	if token != "" {
+		doc.RegistryUsername = "token"
+		doc.RegistryPassword = token
+	} else {
+		doc.RegistryUsername = username
+		doc.RegistryPassword = password
+	}
 
 	return doc, nil
 }
