@@ -574,7 +574,8 @@ func TestProvisionStepImageFactory(t *testing.T) {
 		media.disk.Headers.Get("Authorization"))
 	require.NotContains(t, media.disk.URL, testFactoryPassword)
 
-	// PXE firmware cannot send headers, so those credentials have to ride in the URL instead.
+	// No factory client is wired here, so no download token is requested, and PXE firmware cannot send
+	// headers, so the credentials ride in the URL instead.
 	require.Contains(t, media.pxe.URL,
 		"https://"+testFactoryUsername+":"+testFactoryPassword+"@pxe.factory.example.org/pxe/")
 	require.Contains(t, media.pxe.URL, "/v1.13.0/metal-amd64")

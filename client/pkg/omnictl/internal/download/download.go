@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -626,11 +627,17 @@ func resolveInstallationMedia(
 		headers.Set(name, value)
 	}
 
-	return imagefactory.InstallationMedia{
+	media := imagefactory.InstallationMedia{
 		URL:              resp.Url,
 		Headers:          headers,
 		ImageFactoryHost: resp.ImageFactoryHost,
-	}, nil
+	}
+
+	if resp.ExpiresAt != nil {
+		media.ExpiresAt = resp.ExpiresAt.AsTime()
+	}
+
+	return media, nil
 }
 
 // DownloadImageTo downloads an installation media image and saves it to the output path.
@@ -661,6 +668,11 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	fmt.Fprintf(os.Stderr, "Using image factory at %q\n", media.ImageFactoryHost)
 
 	if params.PXE {
+		if !media.ExpiresAt.IsZero() {
+			fmt.Fprintf(os.Stderr, "This URL is authenticated with a token expiring at %s. Run this again for a fresh one.\n",
+				media.ExpiresAt.Format(time.RFC3339))
+		}
+
 		fmt.Println(media.URL)
 
 		return nil

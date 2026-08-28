@@ -942,6 +942,70 @@ func TestResolveInstallationMediaDownloadTokenRequest(t *testing.T) {
 	})
 }
 
+// TestResolveInstallationMediaPXEDownloadToken covers the authentication a caller gets for a PXE script.
+// The factory forwards the token that fetched the script into the kernel and initramfs URLs it points at,
+// so the token authenticates the whole boot and the credentials never leave Omni.
+func TestResolveInstallationMediaPXEDownloadToken(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	const (
+		token = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+
+		// defaultPXETTL pins imagefactory's unexported PXE default, which is longer than the image one
+		// because a PXE URL is written into a boot configuration before anything boots from it.
+		defaultPXETTL = 2 * time.Hour
+	)
+
+	t.Run("a token replaces the userinfo", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		before := time.Now()
+
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, primaryPXEURL+"/pxe/"+schematicID+"/v1.13.0/metal-amd64?token="+url.QueryEscape(token), media.URL)
+		require.Empty(t, media.Headers, "PXE firmware cannot send a header")
+		require.NotContains(t, media.URL, "hunter2", "the credential must not travel alongside the token")
+
+		require.Equal(t, []time.Duration{defaultPXETTL}, issuer.calls())
+		require.WithinRange(t, media.ExpiresAt, before.Add(defaultPXETTL), time.Now().Add(defaultPXETTL))
+	})
+
+	t.Run("a requested lifetime overrides the PXE default", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 30*time.Minute))
+		require.NoError(t, err)
+
+		require.Equal(t, []time.Duration{30 * time.Minute}, issuer.calls())
+	})
+
+	t.Run("a factory that issues no token falls back to credentials", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer("", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"})
+
+		// An image factory below 1.6.0 rejects a token on /pxe/, and one below 1.5.0 or with its own
+		// authentication disabled issues none at all. Both answer 404 here.
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", media.URL)
+		require.Empty(t, media.Headers)
+		require.Zero(t, media.ExpiresAt)
+	})
+}
+
 // TestResolveInstallationMediaDownloadToken covers the authentication a caller gets for a medium under /image/
 // when the factory issues download tokens, and the credential fallback for every factory that does not.
 func TestResolveInstallationMediaDownloadToken(t *testing.T) {
@@ -953,7 +1017,7 @@ func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 		token         = "eyJhbGciOiJFUzI1NiJ9.fake.token"
 		authorization = "Basic dXNlcjpodW50ZXIy" // user:hunter2
 
-		// defaultTTL pins imagefactory's unexported default, which matches the factory's own documented
+		// defaultTTL pins imagefactory's unexported default for an image, which matches the factory's own documented
 		// default. Omni sends it explicitly so that the expiry it reports back is knowable.
 		defaultTTL = 5 * time.Minute
 	)
@@ -985,22 +1049,6 @@ func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 
 		require.Equal(t, primaryURL+mediaPath+"?token="+url.QueryEscape(token), media.URL)
 		require.Empty(t, media.Headers, "a token in the URL leaves nothing for the headers to carry")
-	})
-
-	t.Run("PXE keeps its credentials and never asks for a token", func(t *testing.T) {
-		t.Parallel()
-
-		st := authenticatedState(ctx, t)
-		issuer := newIssuer(token, nil)
-
-		// The factory reads ?token= only under /image/, and its iPXE script propagates basic auth alone, so
-		// a token would authenticate neither the script nor what it boots.
-		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
-		require.NoError(t, err)
-
-		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", media.URL)
-		require.Empty(t, issuer.calls(), "a token that cannot be used must not be requested")
-		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("an anonymous factory never asks for a token", func(t *testing.T) {

@@ -233,7 +233,8 @@ message InstallationMediaURLRequest {
 
   // DownloadTokenTtl is how long the caller needs the URL to keep working, for a factory that
   // authenticates downloads with a token. Unset takes Omni's default, which suits a fetch performed right
-  // away. Ask for more when something else performs it later, such as a hypervisor import queue.
+  // away, or for the PXE kind one that also covers writing the script into a boot configuration. Ask for
+  // more when something else performs the fetch later, such as a hypervisor import queue.
   //
   // The factory refuses a lifetime outside its configured bounds, which comes back as InvalidArgument.
   // Ignored by a factory that authenticates downloads with credentials instead.

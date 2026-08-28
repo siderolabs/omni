@@ -228,15 +228,23 @@ func (o *DownloadTokenOptions) logger() *zap.Logger {
 	return o.Logger
 }
 
-// defaultDownloadTokenTTL is what Omni asks for when the caller asks for nothing.
-const defaultDownloadTokenTTL = 5 * time.Minute
+// defaultDownloadTokenTTL is what Omni asks for when the caller asks for nothing. An image is fetched as
+// soon as it is resolved, while a PXE script is written into a boot configuration first and has to
+// outlive being set up, so the two are worth different lifetimes.
+func defaultDownloadTokenTTL(kind InstallationMediaKind) time.Duration {
+	if kind == InstallationMediaKindPXE {
+		return 2 * time.Hour
+	}
+
+	return 5 * time.Minute
+}
 
 // downloadTokenRequestTimeout bounds the token request on its own, since the factory client's timeout is
 // sized for the slowest thing it does.
 const downloadTokenRequestTimeout = 30 * time.Second
 
-// WithDownloadTokens authenticates an image download with a short-lived token issued by the factory
-// instead of the basic auth credentials Omni holds.
+// WithDownloadTokens authenticates an installation media download with a short-lived token issued by
+// the factory instead of the basic auth credentials Omni holds.
 func WithDownloadTokens(opts DownloadTokenOptions) ResolveOption {
 	return func(o *resolveOptions) {
 		o.downloadTokens = &opts
@@ -245,7 +253,7 @@ func WithDownloadTokens(opts DownloadTokenOptions) ResolveOption {
 
 // requestDownloadToken returns a token authenticating a download from the factory at baseURL and the
 // moment it stops working.
-func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTokenOptions) (string, time.Time, bool, error) {
+func requestDownloadToken(ctx context.Context, baseURL string, kind InstallationMediaKind, opts *DownloadTokenOptions) (string, time.Time, bool, error) {
 	// A caller that cannot ask for a token, such as the provider-side fallback against an older Omni,
 	// passes nothing.
 	if opts == nil || opts.Factories == nil {
@@ -264,7 +272,7 @@ func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTok
 
 	ttl := opts.TTL
 	if ttl == 0 {
-		ttl = defaultDownloadTokenTTL
+		ttl = defaultDownloadTokenTTL(kind)
 	}
 
 	tokenCtx, cancel := context.WithTimeout(ctx, downloadTokenRequestTimeout)
@@ -373,13 +381,12 @@ func ResolveInstallationMedia(
 		ImageFactoryHost: mediaURL.Host,
 	}
 
-	switch {
-	case resolved.username == "" || resolved.password == "":
-		// The factory serves this anonymously, so there is nothing to place.
-	case spec.Kind == InstallationMediaKindPXE:
-		mediaURL.User = url.UserPassword(resolved.username, resolved.password)
-	default:
-		token, expiresAt, ok, err := requestDownloadToken(ctx, resolved.baseURL, options.downloadTokens)
+	// The firmware fetching an iPXE script cannot send a header, and neither can the boot that follows it,
+	// so PXE authentication always travels inside the URL.
+	standalone = standalone || spec.Kind == InstallationMediaKindPXE
+
+	if resolved.username != "" && resolved.password != "" {
+		token, expiresAt, ok, err := requestDownloadToken(ctx, resolved.baseURL, spec.Kind, options.downloadTokens)
 
 		switch {
 		case err != nil:

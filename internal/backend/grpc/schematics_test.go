@@ -621,8 +621,11 @@ func (suite *GrpcSuite) TestMediaToken() {
 		schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 	)
 
+	const pxeBaseURL = "https://pxe.factory.example.org"
+
 	features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
 	features.TypedSpec().Value.ImageFactoryBaseUrl = suite.imageFactory.address
+	features.TypedSpec().Value.ImageFactoryPxeBaseUrl = pxeBaseURL
 
 	suite.Require().NoError(suite.state.Create(ctx, features))
 
@@ -699,6 +702,48 @@ func (suite *GrpcSuite) TestMediaToken() {
 
 		suite.Require().Equal(suite.imageFactory.address+assetPath+"?token="+url.QueryEscape(token), resp.Url)
 		suite.Require().NotContains(resp.Url, "hunter2", "the credential must not travel alongside the token")
+	})
+
+	suite.Run("a PXE script carries the token too", func() {
+		// The factory forwards it into the kernel and initramfs URLs of the script it serves, so the token
+		// authenticates the whole boot and the credentials never leave Omni.
+		suite.imageFactory.setDownloadToken(issuesToken)
+
+		request := newRequest()
+		request.InstallationMediaKind = management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE
+		request.Platform = "metal"
+		request.Format = ""
+
+		resp, err := client.GetInstallationMediaURL(ctx, request)
+		suite.Require().NoError(err)
+
+		suite.Require().Equal(pxeBaseURL+"/pxe/"+schematicID+"/v1.13.0/metal-amd64?token="+url.QueryEscape(token), resp.Url)
+		suite.Require().Empty(resp.Headers, "PXE firmware cannot send a header")
+		suite.Require().NotContains(resp.Url, testFactoryPassword, "the credential must not travel alongside the token")
+
+		// A PXE URL is written into a boot configuration before anything boots from it, so its default
+		// lifetime is longer than the one an image download gets.
+		suite.Require().Equal([]string{"2h0m0s"}, suite.imageFactory.downloadTokenTTLs())
+		suite.Require().NotNil(resp.ExpiresAt)
+	})
+
+	suite.Run("a PXE script falls back to credentials when the factory issues no token", func() {
+		// An image factory below 1.6.0 rejects a token on /pxe/, and one below 1.5.0 or with its own
+		// authentication disabled issues none at all. Both answer 404 here.
+		suite.imageFactory.setDownloadToken(nil)
+
+		request := newRequest()
+		request.InstallationMediaKind = management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE
+		request.Platform = "metal"
+		request.Format = ""
+
+		resp, err := client.GetInstallationMediaURL(ctx, request)
+		suite.Require().NoError(err)
+
+		suite.Require().Equal("https://"+testFactoryUsername+":"+testFactoryPassword+"@pxe.factory.example.org/pxe/"+
+			schematicID+"/v1.13.0/metal-amd64", resp.Url)
+		suite.Require().Empty(resp.Headers)
+		suite.Require().Nil(resp.ExpiresAt)
 	})
 
 	suite.Run("a refused lifetime is InvalidArgument", func() {
