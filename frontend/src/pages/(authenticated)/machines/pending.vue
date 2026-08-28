@@ -98,7 +98,7 @@ function unselectDeletedMachines(machineIds: string[]) {
 
       <div class="flex justify-between gap-2">
         <div class="flex grow gap-2">
-          <template v-if="selectedFilterOption === 'Pending'">
+          <template v-if="selectedFilterOption === 'pending'">
             <TButton
               icon="check"
               variant="highlighted"
