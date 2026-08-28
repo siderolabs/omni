@@ -30,13 +30,13 @@ const MinDiscoveredTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.36.3"
+const DefaultKubernetesVersion = "1.36.4"
 
 // DefaultTalosVersion to be used in the tests.
 const DefaultTalosVersion = constants.DefaultTalosVersion
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.35.7"
+const AnotherKubernetesVersion = "1.35.8"
 
 // MinDiscoveredKubernetesVersion makes Omni pull the versions from this point.
 const MinDiscoveredKubernetesVersion = "1.23.0"
