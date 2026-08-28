@@ -69,8 +69,12 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 
 		machineClassName := "tmpl-cluster-machine-class"
 
+		// reserve the machines for the machine-class based machine set up front, enough for the
+		// biggest size the machine set reaches across the synced template versions
+		pickMachinesForMachineClass(ctx, t, st, 2, machineClassName)
+
 		err := safe.StateModify(ctx, st, omni.NewMachineClass(machineClassName), func(r *omni.MachineClass) error {
-			r.TypedSpec().Value.MatchLabels = []string{"!" + pickedByManualAllocation}
+			r.TypedSpec().Value.MatchLabels = []string{pickedForMachineClass + "=" + machineClassName}
 
 			return nil
 		})

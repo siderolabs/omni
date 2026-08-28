@@ -205,8 +205,10 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 				return nil
 			})
 		} else {
+			pickMachinesForMachineClass(ctx, t, st, options.ControlPlanes+options.Workers, machineClass.Metadata().ID())
+
 			createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
-				r.TypedSpec().Value.MatchLabels = []string{omni.MachineStatusLabelConnected + ",!" + pickedByManualAllocation}
+				r.TypedSpec().Value.MatchLabels = []string{pickedForMachineClass + "=" + machineClass.Metadata().ID()}
 				r.TypedSpec().Value.AutoProvision = nil
 
 				return nil
@@ -916,10 +918,12 @@ func getMachineSetNodes(ctx context.Context, t *testing.T, st state.State, clust
 	return machineIDs
 }
 
-// pickedByManualAllocation marks machines picked by pickUnallocatedMachines, so that the server-side
-// machine allocation (machine-class based machine sets) does not grab them: every machine class used
-// in the tests must exclude this label in its match selector.
-const pickedByManualAllocation = "picked-by-manual-allocation"
+// pickedForMachineClass labels machines reserved for a machine-class based machine set, carrying the
+// machine class name as its value. Every machine class used in the tests must select exactly this
+// label, so the server-side machine allocation can only ever grab machines which some test has
+// already picked and reserved. Machines picked for manual allocation carry no label at all, which
+// keeps them invisible to the machine classes.
+const pickedForMachineClass = "picked-for-machine-class"
 
 // machineReservationSet holds the IDs of the machines currently reserved by running tests.
 type machineReservationSet struct {
@@ -955,8 +959,9 @@ func (s *machineReservationSet) release(ids []resource.ID) {
 // install of a machine which is never bound to a cluster at all.
 //
 // The lock also serializes the picks themselves, so that a machine cannot be picked twice before
-// getting reserved. It only protects against concurrent picks: the server-side machine allocation
-// is kept away from the picked machines via the pickedByManualAllocation label instead.
+// getting reserved. The server-side machine allocation cannot race the reservations either, since it
+// only sees machines labeled for its machine class, and machines get that label only after they are
+// reserved here.
 var machineReservations = machineReservationSet{ids: map[resource.ID]struct{}{}}
 
 // pickUnallocatedMachines picks machines which are not allocated to any cluster and not picked by
@@ -970,48 +975,42 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 
 	logger := zaptest.NewLogger(t)
 
-	loggedLeakedMarkers := map[resource.ID]struct{}{}
+	loggedStaleLabels := map[resource.ID]struct{}{}
 
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
 		var attemptErr error
 
-		result, attemptErr = pickUnallocatedMachinesAttempt(ctx, st, count, filterFunc, logger, loggedLeakedMarkers)
+		result, attemptErr = pickUnallocatedMachinesAttempt(ctx, st, count, filterFunc, logger, loggedStaleLabels)
 
 		return attemptErr
 	})
 
 	require.NoError(t, err)
 
-	// Register the cleanup before the fallible marker work below, so that a failure in it cannot
-	// leak the in-memory reservations or already written markers.
 	t.Cleanup(func() {
 		releasePickedMachines(ctx, t, st, result)
-	})
-
-	// Also reserve the picked machines against the server-side machine allocation: mark them with a
-	// label which the machine classes used in the tests exclude, and wait for the label to become
-	// visible on the label projection which the allocation matches against.
-	for _, id := range result {
-		require.NoError(t, safe.StateModify(ctx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
-			machineLabels.Metadata().Labels().Set(pickedByManualAllocation, "")
-
-			return nil
-		}))
-	}
-
-	rtestutils.AssertResources(ctx, t, st, result, func(labels *system.ResourceLabels[*omni.MachineStatus], assert *assert.Assertions) {
-		_, ok := labels.Metadata().Labels().Get(pickedByManualAllocation)
-
-		assert.True(ok)
 	})
 
 	return result
 }
 
+// pickMachinesForMachineClass reserves machines for a machine-class based machine set and labels them
+// for the given machine class. The label is what makes them visible to the server-side machine
+// allocation, so the allocation can never grab a machine which is not already reserved by a test.
+func pickMachinesForMachineClass(ctx context.Context, t *testing.T, st state.State, count int, machineClassName string) {
+	for _, id := range pickUnallocatedMachines(ctx, t, st, count, nil) {
+		require.NoError(t, safe.StateModify(ctx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
+			machineLabels.Metadata().Labels().Set(pickedForMachineClass, machineClassName)
+
+			return nil
+		}))
+	}
+}
+
 // pickUnallocatedMachinesAttempt makes a single scan over the available machines under the reservation
 // lock and reserves the picked ones before releasing it.
 func pickUnallocatedMachinesAttempt(ctx context.Context, st state.State, count int, filterFunc PickFilterFunc,
-	logger *zap.Logger, loggedLeakedMarkers map[resource.ID]struct{},
+	logger *zap.Logger, loggedStaleLabels map[resource.ID]struct{},
 ) ([]resource.ID, error) {
 	machineReservations.mx.Lock()
 	defer machineReservations.mx.Unlock()
@@ -1053,13 +1052,18 @@ func pickUnallocatedMachinesAttempt(ctx context.Context, st state.State, count i
 			continue
 		}
 
-		if _, marked := machineStatus.Metadata().Labels().Get(pickedByManualAllocation); marked {
-			if _, logged := loggedLeakedMarkers[machineStatus.Metadata().ID()]; !logged {
-				loggedLeakedMarkers[machineStatus.Metadata().ID()] = struct{}{}
+		// an unreserved machine carrying a machine class pick label is a leak from a failed release:
+		// skip it, since the machine class it is labeled for may still allocate it at any moment
+		if className, labeled := machineStatus.Metadata().Labels().Get(pickedForMachineClass); labeled {
+			if _, logged := loggedStaleLabels[machineStatus.Metadata().ID()]; !logged {
+				loggedStaleLabels[machineStatus.Metadata().ID()] = struct{}{}
 
-				logger.Error("available machine carries the manual allocation marker but is not reserved by any test",
-					zap.String("machine_id", machineStatus.Metadata().ID()))
+				logger.Error("available machine carries a machine class pick label but is not reserved by any test",
+					zap.String("machine_id", machineStatus.Metadata().ID()),
+					zap.String("machine_class", className))
 			}
+
+			continue
 		}
 
 		if filterFunc(machineStatus, pickedMachineStatuses) {
@@ -1086,26 +1090,40 @@ func pickUnallocatedMachinesAttempt(ctx context.Context, st state.State, count i
 	return result, nil
 }
 
-// releasePickedMachines removes the manual allocation markers from the machines and releases their
+// releasePickedMachines removes the machine class pick labels from the machines and releases their
 // in-memory reservations.
 func releasePickedMachines(ctx context.Context, t *testing.T, st state.State, ids []resource.ID) {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
 	defer cancel()
 
-	// Release the in-memory reservations last and unconditionally, even when the marker removal
-	// below fails: a permanently reserved machine is worse than a leaked marker, which the pick
-	// scans at least report.
+	// Release the in-memory reservations last and unconditionally, even when the label removal
+	// below fails: a permanently reserved machine is worse than a leaked label, which the pick
+	// scans report and skip.
 	defer machineReservations.release(ids)
 
 	removed := make([]resource.ID, 0, len(ids))
 
 	for _, id := range ids {
-		if err := safe.StateModify(cleanupCtx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
-			machineLabels.Metadata().Labels().Delete(pickedByManualAllocation)
+		machineLabels, err := safe.StateGetByID[*omni.MachineLabels](cleanupCtx, st, id)
+		if err != nil {
+			if !state.IsNotFoundError(err) {
+				t.Errorf("failed to get the machine labels of machine %q: %v", id, err)
+			}
+
+			// machines picked for manual allocation carry no label to remove
+			continue
+		}
+
+		if _, ok := machineLabels.Metadata().Labels().Get(pickedForMachineClass); !ok {
+			continue
+		}
+
+		if err = safe.StateModify(cleanupCtx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
+			machineLabels.Metadata().Labels().Delete(pickedForMachineClass)
 
 			return nil
 		}); err != nil {
-			t.Errorf("failed to remove the manual allocation marker from machine %q: %v", id, err)
+			t.Errorf("failed to remove the machine class pick label from machine %q: %v", id, err)
 
 			continue
 		}
@@ -1113,20 +1131,18 @@ func releasePickedMachines(ctx context.Context, t *testing.T, st state.State, id
 		removed = append(removed, id)
 	}
 
-	// Wait for the marker removal to propagate before releasing the in-memory reservations, so
-	// that the next picker of the machine cannot pass its marker visibility wait on this test's
-	// stale marker and then lose the machine to the server-side allocation when the removal lands.
-	// A failure here only re-widens that handoff window, and the pick scans report leaked markers
-	// anyway, so log it instead of failing an already finished test.
-	if err := waitManualAllocationMarkersGone(cleanupCtx, st, removed); err != nil {
-		t.Logf("failed to wait for the manual allocation markers to be removed: %v", err)
+	// Wait for the label removal to propagate before releasing the in-memory reservations, so that
+	// the next picker does not skip the machine because of this test's stale label. A failure here
+	// only delays that pick, so log it instead of failing an already finished test.
+	if err := waitMachineClassPickLabelsGone(cleanupCtx, st, removed); err != nil {
+		t.Logf("failed to wait for the machine class pick labels to be removed: %v", err)
 	}
 }
 
-// waitManualAllocationMarkersGone waits until the manual allocation marker is no longer visible on the
+// waitMachineClassPickLabelsGone waits until the machine class pick label is no longer visible on the
 // machine status label projections of the given machines. A missing projection counts as gone, since a
 // machine unknown to Omni cannot be allocated.
-func waitManualAllocationMarkersGone(ctx context.Context, st state.State, ids []resource.ID) error {
+func waitMachineClassPickLabelsGone(ctx context.Context, st state.State, ids []resource.ID) error {
 	return retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
 		for _, id := range ids {
 			labels, err := safe.StateGetByID[*system.ResourceLabels[*omni.MachineStatus]](ctx, st, id)
@@ -1139,8 +1155,8 @@ func waitManualAllocationMarkersGone(ctx context.Context, st state.State, ids []
 				return retry.ExpectedError(err)
 			}
 
-			if _, ok := labels.Metadata().Labels().Get(pickedByManualAllocation); ok {
-				return retry.ExpectedErrorf("machine %q still carries the manual allocation marker", id)
+			if _, ok := labels.Metadata().Labels().Get(pickedForMachineClass); ok {
+				return retry.ExpectedErrorf("machine %q still carries the machine class pick label", id)
 			}
 		}
 
@@ -1216,6 +1232,23 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 		}
 
 		ms := omni.NewMachineSet(id)
+
+		// a scale-up of an existing machine-class based machine set needs the additional machines
+		// reserved and labeled for its machine class before the machine count is raised
+		if machineClass == nil && machineCount > 0 {
+			existing, err := safe.StateGetByID[*omni.MachineSet](ctx, st, id)
+			require.NoError(t, err)
+
+			allocation := existing.TypedSpec().Value.MachineAllocation
+			require.NotNilf(t, allocation, "the machine set doesn't have machine class set")
+
+			cls, err := safe.StateGetByID[*omni.MachineClass](ctx, st, allocation.Name)
+			require.NoError(t, err)
+
+			if cls.TypedSpec().Value.AutoProvision == nil {
+				pickMachinesForMachineClass(ctx, t, st, machineCount, allocation.Name)
+			}
+		}
 
 		createOrUpdate(ctx, t, st, ms, func(r *omni.MachineSet) error {
 			r.Metadata().Labels().Set(omni.LabelCluster, options.Name)
