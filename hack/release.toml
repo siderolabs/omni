@@ -8,21 +8,22 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.9.0"
 
-[notes.infra-provider-boot-assets]
+[notes.infra-provider-installation-media]
 title = "Infrastructure Providers Use the Image Factory Omni Is Configured With"
 description = """\
 Infrastructure providers used to reach the image factory themselves, at the hardcoded public URL, so an on-prem or authenticated factory was out of \
-reach, and every provider carried its own copy of the factory's URL layout and file naming. A provision step now names the asset it wants by kind, \
-platform, architecture and format. Omni creates the schematic, picks the factory that serves the machine's Talos version, works out the filename \
-including the secure boot variant, and answers with a URL and whatever headers the fetch has to carry. A provider that cannot attach a header, because \
-PXE firmware or a hypervisor download API performs the fetch, asks for a self-contained URL instead. Carrying this through the Omni client library for \
-infrastructure providers meant breaking changes, so a provider has to be updated to the new API, and once it is, it needs Omni 1.8 or newer.
+reach, and every provider carried its own copy of the factory's URL layout and file naming. A provision step now states which medium it wants by kind, \
+platform, architecture and format through Context.EnsureInstallationMedia. Omni creates the schematic, picks the factory that serves the machine's \
+Talos version, works out the filename including the secure boot variant, and answers with a URL and whatever headers the fetch has to carry. A provider \
+that cannot attach a header, because PXE firmware or a hypervisor download API performs the fetch, asks for a self-contained URL instead. Carrying this \
+through the Omni client library for infrastructure providers meant breaking changes, so a provider has to be updated to the new API, and once it is, it \
+needs Omni 1.8 or newer.
 
 Image downloads are now authenticated with a short-lived download token issued by the factory rather than with the factory credentials, so a provider \
 receives something that expires and that only downloads, instead of a credential valid on every factory route until someone rotates it. A provision \
 step that hands the URL to something else, such as a hypervisor import queue that starts later, asks for the lifetime it needs and is told when the \
 URL stops working. A factory that does not issue tokens keeps working unchanged, and so does PXE: the factory accepts a token only on image downloads, \
-and the iPXE script it serves passes on the credentials it was fetched with, so a PXE asset still carries them. Two things change for provider authors. \
-A URL is no longer stable for a given asset, since each one carries a fresh token, so compare the storage key rather than the URL when deciding whether \
-something has already been fetched. And a URL now expires, so fetch it promptly or ask for a lifetime that covers the delay.
+and the iPXE script it serves passes on the credentials it was fetched with, so a PXE script still carries them. Two things change for provider authors. \
+A URL is no longer stable for a given medium, since each one carries a fresh token, so compare the storage key rather than the URL when deciding \
+whether something has already been fetched. And a URL now expires, so fetch it promptly or ask for a lifetime that covers the delay.
 """

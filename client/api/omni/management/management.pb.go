@@ -402,60 +402,60 @@ func (CreateSchematicRequest_SiderolinkGRPCTunnelMode) EnumDescriptor() ([]byte,
 	return file_omni_management_management_proto_rawDescGZIP(), []int{18, 0}
 }
 
-// BootAssetKind is one of the asset kinds the image factory serves. The comments show the shape of
-// the name the factory serves the asset under, which Omni assembles from the fields below.
-type BootAssetURLRequest_BootAssetKind int32
+// InstallationMediaKind is one of the kinds the image factory serves. The comments show the shape of
+// the filename the factory serves each kind under, which Omni assembles from the fields below.
+type InstallationMediaURLRequest_InstallationMediaKind int32
 
 const (
-	BootAssetURLRequest_BOOT_ASSET_KIND_UNSET BootAssetURLRequest_BootAssetKind = 0
+	InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_UNSET InstallationMediaURLRequest_InstallationMediaKind = 0
 	// <platform>-<arch>[-secureboot], served from the factory's PXE endpoint.
-	BootAssetURLRequest_BOOT_ASSET_KIND_PXE BootAssetURLRequest_BootAssetKind = 1
+	InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE InstallationMediaURLRequest_InstallationMediaKind = 1
 	// <platform>-<arch>[-secureboot].iso
-	BootAssetURLRequest_BOOT_ASSET_KIND_ISO BootAssetURLRequest_BootAssetKind = 2
+	InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO InstallationMediaURLRequest_InstallationMediaKind = 2
 	// <platform>-<arch>[-secureboot].<format>
-	BootAssetURLRequest_BOOT_ASSET_KIND_DISK BootAssetURLRequest_BootAssetKind = 3
+	InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK InstallationMediaURLRequest_InstallationMediaKind = 3
 )
 
-// Enum value maps for BootAssetURLRequest_BootAssetKind.
+// Enum value maps for InstallationMediaURLRequest_InstallationMediaKind.
 var (
-	BootAssetURLRequest_BootAssetKind_name = map[int32]string{
-		0: "BOOT_ASSET_KIND_UNSET",
-		1: "BOOT_ASSET_KIND_PXE",
-		2: "BOOT_ASSET_KIND_ISO",
-		3: "BOOT_ASSET_KIND_DISK",
+	InstallationMediaURLRequest_InstallationMediaKind_name = map[int32]string{
+		0: "INSTALLATION_MEDIA_KIND_UNSET",
+		1: "INSTALLATION_MEDIA_KIND_PXE",
+		2: "INSTALLATION_MEDIA_KIND_ISO",
+		3: "INSTALLATION_MEDIA_KIND_DISK",
 	}
-	BootAssetURLRequest_BootAssetKind_value = map[string]int32{
-		"BOOT_ASSET_KIND_UNSET": 0,
-		"BOOT_ASSET_KIND_PXE":   1,
-		"BOOT_ASSET_KIND_ISO":   2,
-		"BOOT_ASSET_KIND_DISK":  3,
+	InstallationMediaURLRequest_InstallationMediaKind_value = map[string]int32{
+		"INSTALLATION_MEDIA_KIND_UNSET": 0,
+		"INSTALLATION_MEDIA_KIND_PXE":   1,
+		"INSTALLATION_MEDIA_KIND_ISO":   2,
+		"INSTALLATION_MEDIA_KIND_DISK":  3,
 	}
 )
 
-func (x BootAssetURLRequest_BootAssetKind) Enum() *BootAssetURLRequest_BootAssetKind {
-	p := new(BootAssetURLRequest_BootAssetKind)
+func (x InstallationMediaURLRequest_InstallationMediaKind) Enum() *InstallationMediaURLRequest_InstallationMediaKind {
+	p := new(InstallationMediaURLRequest_InstallationMediaKind)
 	*p = x
 	return p
 }
 
-func (x BootAssetURLRequest_BootAssetKind) String() string {
+func (x InstallationMediaURLRequest_InstallationMediaKind) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (BootAssetURLRequest_BootAssetKind) Descriptor() protoreflect.EnumDescriptor {
+func (InstallationMediaURLRequest_InstallationMediaKind) Descriptor() protoreflect.EnumDescriptor {
 	return file_omni_management_management_proto_enumTypes[7].Descriptor()
 }
 
-func (BootAssetURLRequest_BootAssetKind) Type() protoreflect.EnumType {
+func (InstallationMediaURLRequest_InstallationMediaKind) Type() protoreflect.EnumType {
 	return &file_omni_management_management_proto_enumTypes[7]
 }
 
-func (x BootAssetURLRequest_BootAssetKind) Number() protoreflect.EnumNumber {
+func (x InstallationMediaURLRequest_InstallationMediaKind) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use BootAssetURLRequest_BootAssetKind.Descriptor instead.
-func (BootAssetURLRequest_BootAssetKind) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use InstallationMediaURLRequest_InstallationMediaKind.Descriptor instead.
+func (InstallationMediaURLRequest_InstallationMediaKind) EnumDescriptor() ([]byte, []int) {
 	return file_omni_management_management_proto_rawDescGZIP(), []int{21, 0}
 }
 
@@ -1741,9 +1741,9 @@ func (x *CreateSchematicResponse) GetSchematicYml() string {
 	return ""
 }
 
-type BootAssetURLRequest struct {
+type InstallationMediaURLRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// TalosVersion selects the image factory the same way asset URLs do.
+	// TalosVersion selects the image factory the same way the media URLs do.
 	TalosVersion string `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	// SchematicId is the ID the image factory returned for a schematic, e.g. from CreateSchematicFromRaw.
 	SchematicId string `protobuf:"bytes,2,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
@@ -1753,15 +1753,15 @@ type BootAssetURLRequest struct {
 	// Such a URL is as sensitive as the credentials it carries. Anything it is written into, like an
 	// iPXE script or a task log, exposes them to whoever can read it.
 	//
-	// When this is set, Headers on the response will be empty. It is implied for PXE assets, which are
+	// When this is set, Headers on the response will be empty. It is implied for the PXE kind, which is
 	// fetched by firmware that cannot send headers.
 	//
 	// Leaving it unset does not promise headers: a factory that authenticates downloads with a token puts it
 	// in the URL for every caller. Send Headers whenever it is not empty, instead of deciding from this field.
-	StandaloneUrl bool                              `protobuf:"varint,3,opt,name=standalone_url,json=standaloneUrl,proto3" json:"standalone_url,omitempty"`
-	BootAssetKind BootAssetURLRequest_BootAssetKind `protobuf:"varint,4,opt,name=boot_asset_kind,json=bootAssetKind,proto3,enum=management.BootAssetURLRequest_BootAssetKind" json:"boot_asset_kind,omitempty"`
-	// Platform, Architecture, Format and SecureBoot name the asset. Omni assembles the image factory
-	// filename out of them, so callers never encode the naming convention themselves.
+	StandaloneUrl         bool                                              `protobuf:"varint,3,opt,name=standalone_url,json=standaloneUrl,proto3" json:"standalone_url,omitempty"`
+	InstallationMediaKind InstallationMediaURLRequest_InstallationMediaKind `protobuf:"varint,4,opt,name=installation_media_kind,json=installationMediaKind,proto3,enum=management.InstallationMediaURLRequest_InstallationMediaKind" json:"installation_media_kind,omitempty"`
+	// Platform, Architecture, Format and SecureBoot identify which medium is wanted. Omni assembles the
+	// image factory filename out of them, so callers never encode the naming convention themselves.
 	//
 	// Platform is the Talos platform, e.g. "metal" or "nocloud".
 	Platform     string `protobuf:"bytes,5,opt,name=platform,proto3" json:"platform,omitempty"`
@@ -1781,20 +1781,20 @@ type BootAssetURLRequest struct {
 	sizeCache        protoimpl.SizeCache
 }
 
-func (x *BootAssetURLRequest) Reset() {
-	*x = BootAssetURLRequest{}
+func (x *InstallationMediaURLRequest) Reset() {
+	*x = InstallationMediaURLRequest{}
 	mi := &file_omni_management_management_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BootAssetURLRequest) String() string {
+func (x *InstallationMediaURLRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BootAssetURLRequest) ProtoMessage() {}
+func (*InstallationMediaURLRequest) ProtoMessage() {}
 
-func (x *BootAssetURLRequest) ProtoReflect() protoreflect.Message {
+func (x *InstallationMediaURLRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_omni_management_management_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1806,89 +1806,89 @@ func (x *BootAssetURLRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BootAssetURLRequest.ProtoReflect.Descriptor instead.
-func (*BootAssetURLRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use InstallationMediaURLRequest.ProtoReflect.Descriptor instead.
+func (*InstallationMediaURLRequest) Descriptor() ([]byte, []int) {
 	return file_omni_management_management_proto_rawDescGZIP(), []int{21}
 }
 
-func (x *BootAssetURLRequest) GetTalosVersion() string {
+func (x *InstallationMediaURLRequest) GetTalosVersion() string {
 	if x != nil {
 		return x.TalosVersion
 	}
 	return ""
 }
 
-func (x *BootAssetURLRequest) GetSchematicId() string {
+func (x *InstallationMediaURLRequest) GetSchematicId() string {
 	if x != nil {
 		return x.SchematicId
 	}
 	return ""
 }
 
-func (x *BootAssetURLRequest) GetStandaloneUrl() bool {
+func (x *InstallationMediaURLRequest) GetStandaloneUrl() bool {
 	if x != nil {
 		return x.StandaloneUrl
 	}
 	return false
 }
 
-func (x *BootAssetURLRequest) GetBootAssetKind() BootAssetURLRequest_BootAssetKind {
+func (x *InstallationMediaURLRequest) GetInstallationMediaKind() InstallationMediaURLRequest_InstallationMediaKind {
 	if x != nil {
-		return x.BootAssetKind
+		return x.InstallationMediaKind
 	}
-	return BootAssetURLRequest_BOOT_ASSET_KIND_UNSET
+	return InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_UNSET
 }
 
-func (x *BootAssetURLRequest) GetPlatform() string {
+func (x *InstallationMediaURLRequest) GetPlatform() string {
 	if x != nil {
 		return x.Platform
 	}
 	return ""
 }
 
-func (x *BootAssetURLRequest) GetArchitecture() string {
+func (x *InstallationMediaURLRequest) GetArchitecture() string {
 	if x != nil {
 		return x.Architecture
 	}
 	return ""
 }
 
-func (x *BootAssetURLRequest) GetFormat() string {
+func (x *InstallationMediaURLRequest) GetFormat() string {
 	if x != nil {
 		return x.Format
 	}
 	return ""
 }
 
-func (x *BootAssetURLRequest) GetSecureBoot() bool {
+func (x *InstallationMediaURLRequest) GetSecureBoot() bool {
 	if x != nil {
 		return x.SecureBoot
 	}
 	return false
 }
 
-func (x *BootAssetURLRequest) GetDownloadTokenTtl() *durationpb.Duration {
+func (x *InstallationMediaURLRequest) GetDownloadTokenTtl() *durationpb.Duration {
 	if x != nil {
 		return x.DownloadTokenTtl
 	}
 	return nil
 }
 
-type BootAssetURLResponse struct {
+type InstallationMediaURLResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	// Headers must be sent with the request fetching the URL. Empty when the image factory needs no
 	// authentication, or when it travels inside the URL instead.
 	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// ImageFactoryHost is the same host as in the URL. Purely informative: to fetch the asset, only the
+	// ImageFactoryHost is the same host as in the URL. Purely informative: to fetch the medium, only the
 	// URL and the headers should be used.
 	ImageFactoryHost string `protobuf:"bytes,3,opt,name=image_factory_host,json=imageFactoryHost,proto3" json:"image_factory_host,omitempty"`
-	// StorageKey identifies the asset the URL points at, for callers that store what they download. It
-	// changes only when the asset itself does, so it is stable across credential rotation, unlike the URL,
+	// StorageKey identifies the medium the URL points at, for callers that store what they download. It
+	// changes only when the medium itself does, so it is stable across credential rotation, unlike the URL,
 	// which can carry credentials or a token.
 	//
 	// Treat it as opaque. Omni may change how it is derived, which costs a caller one re-download of the
-	// assets it already holds.
+	// media it already holds.
 	StorageKey string `protobuf:"bytes,4,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// ExpiresAt is when the URL stops working, for a caller that does not perform the fetch itself, such as
 	// one handing the URL to a hypervisor download API. Unset when the URL does not expire.
@@ -1900,20 +1900,20 @@ type BootAssetURLResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *BootAssetURLResponse) Reset() {
-	*x = BootAssetURLResponse{}
+func (x *InstallationMediaURLResponse) Reset() {
+	*x = InstallationMediaURLResponse{}
 	mi := &file_omni_management_management_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BootAssetURLResponse) String() string {
+func (x *InstallationMediaURLResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BootAssetURLResponse) ProtoMessage() {}
+func (*InstallationMediaURLResponse) ProtoMessage() {}
 
-func (x *BootAssetURLResponse) ProtoReflect() protoreflect.Message {
+func (x *InstallationMediaURLResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_omni_management_management_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1925,40 +1925,40 @@ func (x *BootAssetURLResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BootAssetURLResponse.ProtoReflect.Descriptor instead.
-func (*BootAssetURLResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use InstallationMediaURLResponse.ProtoReflect.Descriptor instead.
+func (*InstallationMediaURLResponse) Descriptor() ([]byte, []int) {
 	return file_omni_management_management_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *BootAssetURLResponse) GetUrl() string {
+func (x *InstallationMediaURLResponse) GetUrl() string {
 	if x != nil {
 		return x.Url
 	}
 	return ""
 }
 
-func (x *BootAssetURLResponse) GetHeaders() map[string]string {
+func (x *InstallationMediaURLResponse) GetHeaders() map[string]string {
 	if x != nil {
 		return x.Headers
 	}
 	return nil
 }
 
-func (x *BootAssetURLResponse) GetImageFactoryHost() string {
+func (x *InstallationMediaURLResponse) GetImageFactoryHost() string {
 	if x != nil {
 		return x.ImageFactoryHost
 	}
 	return ""
 }
 
-func (x *BootAssetURLResponse) GetStorageKey() string {
+func (x *InstallationMediaURLResponse) GetStorageKey() string {
 	if x != nil {
 		return x.StorageKey
 	}
 	return ""
 }
 
-func (x *BootAssetURLResponse) GetExpiresAt() *timestamppb.Timestamp {
+func (x *InstallationMediaURLResponse) GetExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpiresAt
 	}
@@ -3894,26 +3894,26 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12\x17\n" +
 	"\apxe_url\x18\x02 \x01(\tR\x06pxeUrl\x12.\n" +
 	"\x13grpc_tunnel_enabled\x18\x03 \x01(\bR\x11grpcTunnelEnabled\x12#\n" +
-	"\rschematic_yml\x18\x04 \x01(\tR\fschematicYml\"\x95\x04\n" +
-	"\x13BootAssetURLRequest\x12#\n" +
+	"\rschematic_yml\x18\x04 \x01(\tR\fschematicYml\"\xe6\x04\n" +
+	"\x1bInstallationMediaURLRequest\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x12%\n" +
-	"\x0estandalone_url\x18\x03 \x01(\bR\rstandaloneUrl\x12U\n" +
-	"\x0fboot_asset_kind\x18\x04 \x01(\x0e2-.management.BootAssetURLRequest.BootAssetKindR\rbootAssetKind\x12\x1a\n" +
+	"\x0estandalone_url\x18\x03 \x01(\bR\rstandaloneUrl\x12u\n" +
+	"\x17installation_media_kind\x18\x04 \x01(\x0e2=.management.InstallationMediaURLRequest.InstallationMediaKindR\x15installationMediaKind\x12\x1a\n" +
 	"\bplatform\x18\x05 \x01(\tR\bplatform\x12\"\n" +
 	"\farchitecture\x18\x06 \x01(\tR\farchitecture\x12\x16\n" +
 	"\x06format\x18\a \x01(\tR\x06format\x12\x1f\n" +
 	"\vsecure_boot\x18\b \x01(\bR\n" +
 	"secureBoot\x12G\n" +
-	"\x12download_token_ttl\x18\t \x01(\v2\x19.google.protobuf.DurationR\x10downloadTokenTtl\"v\n" +
-	"\rBootAssetKind\x12\x19\n" +
-	"\x15BOOT_ASSET_KIND_UNSET\x10\x00\x12\x17\n" +
-	"\x13BOOT_ASSET_KIND_PXE\x10\x01\x12\x17\n" +
-	"\x13BOOT_ASSET_KIND_ISO\x10\x02\x12\x18\n" +
-	"\x14BOOT_ASSET_KIND_DISK\x10\x03\"\xb7\x02\n" +
-	"\x14BootAssetURLResponse\x12\x10\n" +
-	"\x03url\x18\x01 \x01(\tR\x03url\x12G\n" +
-	"\aheaders\x18\x02 \x03(\v2-.management.BootAssetURLResponse.HeadersEntryR\aheaders\x12,\n" +
+	"\x12download_token_ttl\x18\t \x01(\v2\x19.google.protobuf.DurationR\x10downloadTokenTtl\"\x9e\x01\n" +
+	"\x15InstallationMediaKind\x12!\n" +
+	"\x1dINSTALLATION_MEDIA_KIND_UNSET\x10\x00\x12\x1f\n" +
+	"\x1bINSTALLATION_MEDIA_KIND_PXE\x10\x01\x12\x1f\n" +
+	"\x1bINSTALLATION_MEDIA_KIND_ISO\x10\x02\x12 \n" +
+	"\x1cINSTALLATION_MEDIA_KIND_DISK\x10\x03\"\xc7\x02\n" +
+	"\x1cInstallationMediaURLResponse\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12O\n" +
+	"\aheaders\x18\x02 \x03(\v25.management.InstallationMediaURLResponse.HeadersEntryR\aheaders\x12,\n" +
 	"\x12image_factory_host\x18\x03 \x01(\tR\x10imageFactoryHost\x12\x1f\n" +
 	"\vstorage_key\x18\x04 \x01(\tR\n" +
 	"storageKey\x129\n" +
@@ -4064,7 +4064,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x12AuditLogOrderByDir\x12&\n" +
 	"\"AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aAUDIT_LOG_ORDER_BY_DIR_ASC\x10\x01\x12\x1f\n" +
-	"\x1bAUDIT_LOG_ORDER_BY_DIR_DESC\x10\x022\x86\x14\n" +
+	"\x1bAUDIT_LOG_ORDER_BY_DIR_DESC\x10\x022\x9e\x14\n" +
 	"\x11ManagementService\x12K\n" +
 	"\n" +
 	"Kubeconfig\x12\x1d.management.KubeconfigRequest\x1a\x1e.management.KubeconfigResponse\x12N\n" +
@@ -4081,8 +4081,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1aKubernetesUpgradePreChecks\x12-.management.KubernetesUpgradePreChecksRequest\x1a..management.KubernetesUpgradePreChecksResponse\x12r\n" +
 	"\x17KubernetesSyncManifests\x12).management.KubernetesSyncManifestRequest\x1a*.management.KubernetesSyncManifestResponse0\x01\x12Z\n" +
 	"\x0fCreateSchematic\x12\".management.CreateSchematicRequest\x1a#.management.CreateSchematicResponse\x12h\n" +
-	"\x16CreateSchematicFromRaw\x12).management.CreateSchematicFromRawRequest\x1a#.management.CreateSchematicResponse\x12T\n" +
-	"\x0fGetBootAssetURL\x12\x1f.management.BootAssetURLRequest\x1a .management.BootAssetURLResponse\x12_\n" +
+	"\x16CreateSchematicFromRaw\x12).management.CreateSchematicFromRawRequest\x1a#.management.CreateSchematicResponse\x12l\n" +
+	"\x17GetInstallationMediaURL\x12'.management.InstallationMediaURLRequest\x1a(.management.InstallationMediaURLResponse\x12_\n" +
 	"\x10GetSupportBundle\x12#.management.GetSupportBundleRequest\x1a$.management.GetSupportBundleResponse0\x01\x12S\n" +
 	"\fReadAuditLog\x12\x1f.management.ReadAuditLogRequest\x1a .management.ReadAuditLogResponse0\x01\x12c\n" +
 	"\x12MaintenanceUpgrade\x12%.management.MaintenanceUpgradeRequest\x1a&.management.MaintenanceUpgradeResponse\x12k\n" +
@@ -4121,7 +4121,7 @@ var file_omni_management_management_proto_goTypes = []any{
 	(KubernetesSSAOptions_InventoryPolicy)(0),                       // 4: management.KubernetesSSAOptions.InventoryPolicy
 	(KubernetesSyncManifestResponse_ResponseType)(0),                // 5: management.KubernetesSyncManifestResponse.ResponseType
 	(CreateSchematicRequest_SiderolinkGRPCTunnelMode)(0),            // 6: management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
-	(BootAssetURLRequest_BootAssetKind)(0),                          // 7: management.BootAssetURLRequest.BootAssetKind
+	(InstallationMediaURLRequest_InstallationMediaKind)(0),          // 7: management.InstallationMediaURLRequest.InstallationMediaKind
 	(MaintenanceLifecycleRequest_Operation)(0),                      // 8: management.MaintenanceLifecycleRequest.Operation
 	(*KubeconfigResponse)(nil),                                      // 9: management.KubeconfigResponse
 	(*TalosconfigResponse)(nil),                                     // 10: management.TalosconfigResponse
@@ -4144,8 +4144,8 @@ var file_omni_management_management_proto_goTypes = []any{
 	(*CreateSchematicRequest)(nil),                                  // 27: management.CreateSchematicRequest
 	(*CreateSchematicFromRawRequest)(nil),                           // 28: management.CreateSchematicFromRawRequest
 	(*CreateSchematicResponse)(nil),                                 // 29: management.CreateSchematicResponse
-	(*BootAssetURLRequest)(nil),                                     // 30: management.BootAssetURLRequest
-	(*BootAssetURLResponse)(nil),                                    // 31: management.BootAssetURLResponse
+	(*InstallationMediaURLRequest)(nil),                             // 30: management.InstallationMediaURLRequest
+	(*InstallationMediaURLResponse)(nil),                            // 31: management.InstallationMediaURLResponse
 	(*GetSupportBundleRequest)(nil),                                 // 32: management.GetSupportBundleRequest
 	(*GetSupportBundleResponse)(nil),                                // 33: management.GetSupportBundleResponse
 	(*ReadAuditLogRequest)(nil),                                     // 34: management.ReadAuditLogRequest
@@ -4176,7 +4176,7 @@ var file_omni_management_management_proto_goTypes = []any{
 	(*ListServiceAccountsResponse_ServiceAccount_PgpPublicKey)(nil), // 59: management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKey
 	(*CreateSchematicRequest_Overlay)(nil),                          // 60: management.CreateSchematicRequest.Overlay
 	nil,                                                             // 61: management.CreateSchematicRequest.MetaValuesEntry
-	nil,                                                             // 62: management.BootAssetURLResponse.HeadersEntry
+	nil,                                                             // 62: management.InstallationMediaURLResponse.HeadersEntry
 	(*GetSupportBundleResponse_Progress)(nil),                       // 63: management.GetSupportBundleResponse.Progress
 	(*ValidateJsonSchemaResponse_Error)(nil),                        // 64: management.ValidateJsonSchemaResponse.Error
 	(*ListUsersResponse_User)(nil),                                  // 65: management.ListUsersResponse.User
@@ -4197,10 +4197,10 @@ var file_omni_management_management_proto_depIdxs = []int32{
 	6,  // 7: management.CreateSchematicRequest.siderolink_grpc_tunnel_mode:type_name -> management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
 	60, // 8: management.CreateSchematicRequest.overlay:type_name -> management.CreateSchematicRequest.Overlay
 	0,  // 9: management.CreateSchematicRequest.bootloader:type_name -> management.SchematicBootloader
-	7,  // 10: management.BootAssetURLRequest.boot_asset_kind:type_name -> management.BootAssetURLRequest.BootAssetKind
-	67, // 11: management.BootAssetURLRequest.download_token_ttl:type_name -> google.protobuf.Duration
-	62, // 12: management.BootAssetURLResponse.headers:type_name -> management.BootAssetURLResponse.HeadersEntry
-	68, // 13: management.BootAssetURLResponse.expires_at:type_name -> google.protobuf.Timestamp
+	7,  // 10: management.InstallationMediaURLRequest.installation_media_kind:type_name -> management.InstallationMediaURLRequest.InstallationMediaKind
+	67, // 11: management.InstallationMediaURLRequest.download_token_ttl:type_name -> google.protobuf.Duration
+	62, // 12: management.InstallationMediaURLResponse.headers:type_name -> management.InstallationMediaURLResponse.HeadersEntry
+	68, // 13: management.InstallationMediaURLResponse.expires_at:type_name -> google.protobuf.Timestamp
 	63, // 14: management.GetSupportBundleResponse.progress:type_name -> management.GetSupportBundleResponse.Progress
 	2,  // 15: management.ReadAuditLogRequest.order_by_field:type_name -> management.AuditLogOrderByField
 	3,  // 16: management.ReadAuditLogRequest.order_by_dir:type_name -> management.AuditLogOrderByDir
@@ -4229,7 +4229,7 @@ var file_omni_management_management_proto_depIdxs = []int32{
 	25, // 39: management.ManagementService.KubernetesSyncManifests:input_type -> management.KubernetesSyncManifestRequest
 	27, // 40: management.ManagementService.CreateSchematic:input_type -> management.CreateSchematicRequest
 	28, // 41: management.ManagementService.CreateSchematicFromRaw:input_type -> management.CreateSchematicFromRawRequest
-	30, // 42: management.ManagementService.GetBootAssetURL:input_type -> management.BootAssetURLRequest
+	30, // 42: management.ManagementService.GetInstallationMediaURL:input_type -> management.InstallationMediaURLRequest
 	32, // 43: management.ManagementService.GetSupportBundle:input_type -> management.GetSupportBundleRequest
 	34, // 44: management.ManagementService.ReadAuditLog:input_type -> management.ReadAuditLogRequest
 	38, // 45: management.ManagementService.MaintenanceUpgrade:input_type -> management.MaintenanceUpgradeRequest
@@ -4257,7 +4257,7 @@ var file_omni_management_management_proto_depIdxs = []int32{
 	26, // 67: management.ManagementService.KubernetesSyncManifests:output_type -> management.KubernetesSyncManifestResponse
 	29, // 68: management.ManagementService.CreateSchematic:output_type -> management.CreateSchematicResponse
 	29, // 69: management.ManagementService.CreateSchematicFromRaw:output_type -> management.CreateSchematicResponse
-	31, // 70: management.ManagementService.GetBootAssetURL:output_type -> management.BootAssetURLResponse
+	31, // 70: management.ManagementService.GetInstallationMediaURL:output_type -> management.InstallationMediaURLResponse
 	33, // 71: management.ManagementService.GetSupportBundle:output_type -> management.GetSupportBundleResponse
 	35, // 72: management.ManagementService.ReadAuditLog:output_type -> management.ReadAuditLogResponse
 	39, // 73: management.ManagementService.MaintenanceUpgrade:output_type -> management.MaintenanceUpgradeResponse

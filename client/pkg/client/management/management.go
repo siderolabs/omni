@@ -167,10 +167,10 @@ func (client *Client) CreateSchematicFromRaw(ctx context.Context, schematic []by
 	return client.conn.CreateSchematicFromRaw(ctx, req)
 }
 
-// GetBootAssetURL returns the URL of a boot asset, served by whichever image factory Omni uses for the
+// GetInstallationMediaURL returns the URL of an installation medium, served by whichever image factory Omni uses for the
 // given Talos version, with the authentication the fetch must carry.
-func (client *Client) GetBootAssetURL(ctx context.Context, request *management.BootAssetURLRequest) (*management.BootAssetURLResponse, error) {
-	return client.conn.GetBootAssetURL(ctx, request)
+func (client *Client) GetInstallationMediaURL(ctx context.Context, request *management.InstallationMediaURLRequest) (*management.InstallationMediaURLResponse, error) {
+	return client.conn.GetInstallationMediaURL(ctx, request)
 }
 
 // CreateServiceAccount creates a service account and returns the public key ID.

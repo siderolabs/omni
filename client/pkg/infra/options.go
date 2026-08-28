@@ -20,7 +20,7 @@ type HealthCheckFunc func(context.Context) error
 // Options defines additional infra provider options.
 type Options struct {
 	state                      state.State
-	bootAssetResolver          provision.BootAssetResolver
+	installationMediaResolver  provision.InstallationMediaResolver
 	healthCheckFunc            HealthCheckFunc
 	omniEndpoint               string
 	version                    string
@@ -40,13 +40,13 @@ func WithClientOptions(options ...client.Option) Option {
 	}
 }
 
-// WithBootAssetResolver sets up the boot asset resolver explicitly.
+// WithInstallationMediaResolver sets up the installation media resolver explicitly.
 //
 // The infra provider builds one over its Omni API client, so this is for the setups that have no such
 // client, such as one configured with WithState, and for tests.
-func WithBootAssetResolver(resolver provision.BootAssetResolver) Option {
+func WithInstallationMediaResolver(resolver provision.InstallationMediaResolver) Option {
 	return func(o *Options) {
-		o.bootAssetResolver = resolver
+		o.installationMediaResolver = resolver
 	}
 }
 

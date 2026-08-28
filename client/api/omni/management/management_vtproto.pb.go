@@ -528,15 +528,15 @@ func (m *CreateSchematicResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *BootAssetURLRequest) CloneVT() *BootAssetURLRequest {
+func (m *InstallationMediaURLRequest) CloneVT() *InstallationMediaURLRequest {
 	if m == nil {
-		return (*BootAssetURLRequest)(nil)
+		return (*InstallationMediaURLRequest)(nil)
 	}
-	r := new(BootAssetURLRequest)
+	r := new(InstallationMediaURLRequest)
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
 	r.StandaloneUrl = m.StandaloneUrl
-	r.BootAssetKind = m.BootAssetKind
+	r.InstallationMediaKind = m.InstallationMediaKind
 	r.Platform = m.Platform
 	r.Architecture = m.Architecture
 	r.Format = m.Format
@@ -549,15 +549,15 @@ func (m *BootAssetURLRequest) CloneVT() *BootAssetURLRequest {
 	return r
 }
 
-func (m *BootAssetURLRequest) CloneMessageVT() proto.Message {
+func (m *InstallationMediaURLRequest) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *BootAssetURLResponse) CloneVT() *BootAssetURLResponse {
+func (m *InstallationMediaURLResponse) CloneVT() *InstallationMediaURLResponse {
 	if m == nil {
-		return (*BootAssetURLResponse)(nil)
+		return (*InstallationMediaURLResponse)(nil)
 	}
-	r := new(BootAssetURLResponse)
+	r := new(InstallationMediaURLResponse)
 	r.Url = m.Url
 	r.ImageFactoryHost = m.ImageFactoryHost
 	r.StorageKey = m.StorageKey
@@ -576,7 +576,7 @@ func (m *BootAssetURLResponse) CloneVT() *BootAssetURLResponse {
 	return r
 }
 
-func (m *BootAssetURLResponse) CloneMessageVT() proto.Message {
+func (m *InstallationMediaURLResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1801,7 +1801,7 @@ func (this *CreateSchematicResponse) EqualMessageVT(thatMsg proto.Message) bool 
 	}
 	return this.EqualVT(that)
 }
-func (this *BootAssetURLRequest) EqualVT(that *BootAssetURLRequest) bool {
+func (this *InstallationMediaURLRequest) EqualVT(that *InstallationMediaURLRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1816,7 +1816,7 @@ func (this *BootAssetURLRequest) EqualVT(that *BootAssetURLRequest) bool {
 	if this.StandaloneUrl != that.StandaloneUrl {
 		return false
 	}
-	if this.BootAssetKind != that.BootAssetKind {
+	if this.InstallationMediaKind != that.InstallationMediaKind {
 		return false
 	}
 	if this.Platform != that.Platform {
@@ -1837,14 +1837,14 @@ func (this *BootAssetURLRequest) EqualVT(that *BootAssetURLRequest) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *BootAssetURLRequest) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*BootAssetURLRequest)
+func (this *InstallationMediaURLRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*InstallationMediaURLRequest)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
-func (this *BootAssetURLResponse) EqualVT(that *BootAssetURLResponse) bool {
+func (this *InstallationMediaURLResponse) EqualVT(that *InstallationMediaURLResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1877,8 +1877,8 @@ func (this *BootAssetURLResponse) EqualVT(that *BootAssetURLResponse) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *BootAssetURLResponse) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*BootAssetURLResponse)
+func (this *InstallationMediaURLResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*InstallationMediaURLResponse)
 	if !ok {
 		return false
 	}
@@ -3967,7 +3967,7 @@ func (m *CreateSchematicResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
-func (m *BootAssetURLRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *InstallationMediaURLRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3980,12 +3980,12 @@ func (m *BootAssetURLRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *BootAssetURLRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *InstallationMediaURLRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *BootAssetURLRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *InstallationMediaURLRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -4038,8 +4038,8 @@ func (m *BootAssetURLRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x2a
 	}
-	if m.BootAssetKind != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.BootAssetKind))
+	if m.InstallationMediaKind != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.InstallationMediaKind))
 		i--
 		dAtA[i] = 0x20
 	}
@@ -4070,7 +4070,7 @@ func (m *BootAssetURLRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *BootAssetURLResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *InstallationMediaURLResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -4083,12 +4083,12 @@ func (m *BootAssetURLResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *BootAssetURLResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *InstallationMediaURLResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *BootAssetURLResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *InstallationMediaURLResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -6107,7 +6107,7 @@ func (m *CreateSchematicResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *BootAssetURLRequest) SizeVT() (n int) {
+func (m *InstallationMediaURLRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -6124,8 +6124,8 @@ func (m *BootAssetURLRequest) SizeVT() (n int) {
 	if m.StandaloneUrl {
 		n += 2
 	}
-	if m.BootAssetKind != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.BootAssetKind))
+	if m.InstallationMediaKind != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.InstallationMediaKind))
 	}
 	l = len(m.Platform)
 	if l > 0 {
@@ -6150,7 +6150,7 @@ func (m *BootAssetURLRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *BootAssetURLResponse) SizeVT() (n int) {
+func (m *InstallationMediaURLResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -10099,7 +10099,7 @@ func (m *CreateSchematicResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
+func (m *InstallationMediaURLRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -10122,10 +10122,10 @@ func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: BootAssetURLRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: InstallationMediaURLRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BootAssetURLRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: InstallationMediaURLRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -10214,9 +10214,9 @@ func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
 			m.StandaloneUrl = bool(v != 0)
 		case 4:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BootAssetKind", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field InstallationMediaKind", wireType)
 			}
-			m.BootAssetKind = 0
+			m.InstallationMediaKind = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -10226,7 +10226,7 @@ func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.BootAssetKind |= BootAssetURLRequest_BootAssetKind(b&0x7F) << shift
+				m.InstallationMediaKind |= InstallationMediaURLRequest_InstallationMediaKind(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -10405,7 +10405,7 @@ func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *BootAssetURLResponse) UnmarshalVT(dAtA []byte) error {
+func (m *InstallationMediaURLResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -10428,10 +10428,10 @@ func (m *BootAssetURLResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: BootAssetURLResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: InstallationMediaURLResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BootAssetURLResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: InstallationMediaURLResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

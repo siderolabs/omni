@@ -27,27 +27,27 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// BootAssetKind selects one of the asset kinds the image factory serves.
-type BootAssetKind string
+// InstallationMediaKind selects one of the kinds the image factory serves.
+type InstallationMediaKind string
 
 const (
-	// BootAssetKindPXE is an iPXE script, served from the factory's PXE endpoint.
-	BootAssetKindPXE BootAssetKind = "pxe"
+	// InstallationMediaKindPXE is an iPXE script, served from the factory's PXE endpoint.
+	InstallationMediaKindPXE InstallationMediaKind = "pxe"
 
-	// BootAssetKindISO is a bootable ISO image.
-	BootAssetKindISO BootAssetKind = "iso"
+	// InstallationMediaKindISO is a bootable ISO image.
+	InstallationMediaKindISO InstallationMediaKind = "iso"
 
-	// BootAssetKindDisk is a bootable disk image, in the disk format named by AssetSpec.Format.
-	BootAssetKindDisk BootAssetKind = "disk"
+	// InstallationMediaKindDisk is a bootable disk image, in the disk format named by MediaSpec.Format.
+	InstallationMediaKindDisk InstallationMediaKind = "disk"
 )
 
 // ErrInvalidInput marks the arguments a caller got wrong, as opposed to a misconfigured image factory.
 // A server turning these into a response should answer InvalidArgument for them and not for the rest.
-var ErrInvalidInput = errors.New("invalid boot asset request")
+var ErrInvalidInput = errors.New("invalid installation media request")
 
-// AssetSpec names a boot asset, without saying how the image factory spells it.
-type AssetSpec struct {
-	Kind BootAssetKind
+// MediaSpec identifies an installation medium, without saying how the image factory spells it.
+type MediaSpec struct {
+	Kind InstallationMediaKind
 
 	// Platform is the Talos platform, such as "metal" or "nocloud".
 	Platform string
@@ -59,7 +59,7 @@ type AssetSpec struct {
 	// unused by every other kind, whose format the kind itself implies.
 	Format string
 
-	// SecureBoot selects the secure boot variant of the asset.
+	// SecureBoot selects the secure boot variant.
 	SecureBoot bool
 }
 
@@ -81,14 +81,14 @@ func validPathSegment(value string) bool {
 	}) == -1 && value != "." && value != ".."
 }
 
-// Validate reports whether the spec names an asset the image factory can serve.
-func (s AssetSpec) Validate() error {
+// Validate reports whether the spec identifies a medium the image factory can serve.
+func (s MediaSpec) Validate() error {
 	switch s.Kind {
-	case BootAssetKindPXE, BootAssetKindISO, BootAssetKindDisk:
+	case InstallationMediaKindPXE, InstallationMediaKindISO, InstallationMediaKindDisk:
 	case "":
-		return fmt.Errorf("%w: boot asset kind is not set", ErrInvalidInput)
+		return fmt.Errorf("%w: installation media kind is not set", ErrInvalidInput)
 	default:
-		return fmt.Errorf("%w: unknown boot asset kind %q", ErrInvalidInput, s.Kind)
+		return fmt.Errorf("%w: unknown installation media kind %q", ErrInvalidInput, s.Kind)
 	}
 
 	if !validPathSegment(s.Platform) {
@@ -99,31 +99,31 @@ func (s AssetSpec) Validate() error {
 		return fmt.Errorf("%w: invalid architecture %q", ErrInvalidInput, s.Architecture)
 	}
 
-	if s.Kind == BootAssetKindDisk && !validPathSegment(s.Format) {
+	if s.Kind == InstallationMediaKindDisk && !validPathSegment(s.Format) {
 		return fmt.Errorf("%w: invalid disk image format %q", ErrInvalidInput, s.Format)
 	}
 
 	return nil
 }
 
-// Filename returns the name the image factory serves this asset under.
-func (s AssetSpec) Filename() string {
+// Filename returns the filename the image factory serves this medium under.
+func (s MediaSpec) Filename() string {
 	platform := platforms.Platform{Name: s.Platform}
 
 	switch s.Kind {
-	case BootAssetKindPXE:
+	case InstallationMediaKindPXE:
 		if s.SecureBoot {
 			return platform.SecureBootPXEScriptPath(s.Architecture)
 		}
 
 		return platform.PXEScriptPath(s.Architecture)
-	case BootAssetKindISO:
+	case InstallationMediaKindISO:
 		if s.SecureBoot {
 			return platform.SecureBootISOPath(s.Architecture)
 		}
 
 		return platform.ISOPath(s.Architecture)
-	case BootAssetKindDisk:
+	case InstallationMediaKindDisk:
 		if s.SecureBoot {
 			return platform.SecureBootDiskImagePath(s.Architecture, s.Format)
 		}
@@ -134,11 +134,11 @@ func (s AssetSpec) Filename() string {
 	return ""
 }
 
-// BootAsset is a fetchable boot asset.
+// InstallationMedia is a fetchable installation medium.
 //
 // Fetch URL, sending Headers when they are not empty. The URL is opaque and can carry secrets, whether
 // as credentials or as a factory token, so it does not belong in a log line.
-type BootAsset struct {
+type InstallationMedia struct {
 	// Headers must be sent with the request fetching URL. Empty when the factory needs no
 	// authentication, or when it travels inside the URL instead.
 	Headers http.Header
@@ -152,47 +152,47 @@ type BootAsset struct {
 	// the earliest moment the URL may stop working.
 	ExpiresAt time.Time
 
-	// URL of the boot asset.
+	// URL of the installation medium.
 	URL string
 
-	// SchematicID is the ID the image factory gave the schematic this asset is built from.
+	// SchematicID is the ID the image factory gave the schematic this medium is built from.
 	SchematicID string
 
-	// StorageKey identifies this asset, for callers that store what they download. It changes only when
-	// the asset itself does, so it survives a credential rotation, which the URL does not: a name derived
+	// StorageKey identifies this medium, for callers that store what they download. It changes only when
+	// the medium itself does, so it survives a credential rotation, which the URL does not: a name derived
 	// from the URL would change with the credentials in it and orphan whatever was stored under the old
 	// one.
 	//
 	// Treat it as opaque. Omni may change how it is derived, which costs a caller one re-download of the
-	// assets it already holds.
+	// media it already holds.
 	StorageKey string
 
-	// ImageFactoryHost is the host serving the asset, the same one in the URL. Purely informative: to
-	// fetch the asset, use the URL and the headers.
+	// ImageFactoryHost is the host serving the medium, the same one in the URL. Purely informative: to
+	// fetch it, use the URL and the headers.
 	ImageFactoryHost string
 }
 
-// String returns a representation of the asset that is safe to log.
+// String returns a representation that is safe to log.
 //
 // The URL is left out on purpose: it can carry credentials as userinfo or a token in the query, so a
-// logged BootAsset would leak them. What remains identifies the asset just as well. This covers %v and
+// logged InstallationMedia would leak them. What remains identifies the medium just as well. This covers %v and
 // zap.Any, which prefer a Stringer, but not reflection or json.Marshal.
-func (a BootAsset) String() string {
+func (a InstallationMedia) String() string {
 	var expires string
 
 	if !a.ExpiresAt.IsZero() {
 		expires = ", expires: " + a.ExpiresAt.Format(time.RFC3339)
 	}
 
-	return fmt.Sprintf("BootAsset{host: %q, schematic: %q, key: %q%s}", a.ImageFactoryHost, a.SchematicID, a.StorageKey, expires)
+	return fmt.Sprintf("InstallationMedia{host: %q, schematic: %q, key: %q%s}", a.ImageFactoryHost, a.SchematicID, a.StorageKey, expires)
 }
 
-// storageKey derives the identity of an asset from everything that decides its content: the factory
+// storageKey derives the identity of a medium from everything that decides its content: the factory
 // serving it, the schematic, the Talos version and the name the factory serves it under.
 //
 // Deliberately not the URL, which also carries the credentials and so changes when they rotate.
 //
-// **Important:** New inputs must be appended only when they are set, so that every asset hashed
+// **Important:** New inputs must be appended only when they are set, so that every medium hashed
 // before the input existed keeps its key. A changed key makes the providers
 // re-download everything they already store.
 func storageKey(factoryBaseURL, pathPrefix, schematicID, version, filename string) string {
@@ -203,7 +203,7 @@ func storageKey(factoryBaseURL, pathPrefix, schematicID, version, filename strin
 	return hex.EncodeToString(digest[:])
 }
 
-// ResolveOption configures how an asset is resolved. With no options, the download is authenticated with
+// ResolveOption configures how a medium is resolved. With no options, the download is authenticated with
 // the basic auth credentials Omni holds.
 type ResolveOption func(*resolveOptions)
 
@@ -256,7 +256,7 @@ func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTok
 
 	factory := opts.Factories.ForURL(baseURL)
 	if factory == nil {
-		logger.Warn("no image factory client is configured for the factory serving this asset, so no download token was requested",
+		logger.Warn("no image factory client is configured for the factory serving this medium, so no download token was requested",
 			zap.String("factory_url", baseURL))
 
 		return "", time.Time{}, false, nil
@@ -308,7 +308,7 @@ func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTok
 	}
 }
 
-// ResolveBootAsset returns the boot asset the given schematic produces, served by whichever image
+// ResolveInstallationMedia returns the installation medium the given schematic produces, served by whichever image
 // factory Omni uses for the given Talos version. An empty version means the default Talos version.
 //
 // Set standalone when the fetch cannot carry headers, such as a hypervisor download API handed a bare
@@ -318,9 +318,9 @@ func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTok
 // Headers can come back empty without standalone too, since a factory issuing download tokens
 // authenticates the download inside the URL for every caller. Send Headers whenever it is not empty,
 // instead of deciding from what was asked for.
-func ResolveBootAsset(
-	ctx context.Context, st state.State, talosVersion string, spec AssetSpec, schematicID string, standalone bool, opts ...ResolveOption,
-) (BootAsset, error) {
+func ResolveInstallationMedia(
+	ctx context.Context, st state.State, talosVersion string, spec MediaSpec, schematicID string, standalone bool, opts ...ResolveOption,
+) (InstallationMedia, error) {
 	var options resolveOptions
 
 	for _, opt := range opts {
@@ -328,11 +328,11 @@ func ResolveBootAsset(
 	}
 
 	if err := spec.Validate(); err != nil {
-		return BootAsset{}, err
+		return InstallationMedia{}, err
 	}
 
 	if options.downloadTokens != nil && options.downloadTokens.TTL < 0 {
-		return BootAsset{}, fmt.Errorf("%w: download token lifetime %s is negative", ErrInvalidInput, options.downloadTokens.TTL)
+		return InstallationMedia{}, fmt.Errorf("%w: download token lifetime %s is negative", ErrInvalidInput, options.downloadTokens.TTL)
 	}
 
 	if talosVersion == "" {
@@ -340,74 +340,74 @@ func ResolveBootAsset(
 	}
 
 	if _, err := semver.ParseTolerant(talosVersion); err != nil {
-		return BootAsset{}, fmt.Errorf("%w: invalid Talos version %q: %w", ErrInvalidInput, talosVersion, err)
+		return InstallationMedia{}, fmt.Errorf("%w: invalid Talos version %q: %w", ErrInvalidInput, talosVersion, err)
 	}
 
 	version := "v" + strings.TrimLeft(talosVersion, "v")
 
 	if !validPathSegment(schematicID) {
-		return BootAsset{}, fmt.Errorf("%w: invalid schematic ID %q", ErrInvalidInput, schematicID)
+		return InstallationMedia{}, fmt.Errorf("%w: invalid schematic ID %q", ErrInvalidInput, schematicID)
 	}
 
 	resolved, err := resolveEndpoint(ctx, st, talosVersion)
 	if err != nil {
-		return BootAsset{}, err
+		return InstallationMedia{}, err
 	}
 
 	baseURL, pathPrefix := resolved.baseURL, "image"
-	if spec.Kind == BootAssetKindPXE {
+	if spec.Kind == InstallationMediaKindPXE {
 		baseURL, pathPrefix = resolved.pxeBaseURL, "pxe"
 	}
 
 	parsed, err := parseFactoryURL(baseURL)
 	if err != nil {
-		return BootAsset{}, err
+		return InstallationMedia{}, err
 	}
 
 	filename := spec.Filename()
-	assetURL := parsed.JoinPath(pathPrefix, schematicID, version, filename)
+	mediaURL := parsed.JoinPath(pathPrefix, schematicID, version, filename)
 
-	asset := BootAsset{
+	media := InstallationMedia{
 		SchematicID:      schematicID,
 		StorageKey:       storageKey(baseURL, pathPrefix, schematicID, version, filename),
-		ImageFactoryHost: assetURL.Host,
+		ImageFactoryHost: mediaURL.Host,
 	}
 
 	switch {
 	case resolved.username == "" || resolved.password == "":
 		// The factory serves this anonymously, so there is nothing to place.
-	case spec.Kind == BootAssetKindPXE:
-		assetURL.User = url.UserPassword(resolved.username, resolved.password)
+	case spec.Kind == InstallationMediaKindPXE:
+		mediaURL.User = url.UserPassword(resolved.username, resolved.password)
 	default:
 		token, expiresAt, ok, err := requestDownloadToken(ctx, resolved.baseURL, options.downloadTokens)
 
 		switch {
 		case err != nil:
-			return BootAsset{}, err
+			return InstallationMedia{}, err
 		case ok:
-			query := assetURL.Query()
+			query := mediaURL.Query()
 			query.Set("token", token)
-			assetURL.RawQuery = query.Encode()
+			mediaURL.RawQuery = query.Encode()
 
-			asset.ExpiresAt = expiresAt
+			media.ExpiresAt = expiresAt
 		case standalone:
-			assetURL.User = url.UserPassword(resolved.username, resolved.password)
+			mediaURL.User = url.UserPassword(resolved.username, resolved.password)
 
-			options.downloadTokens.logger().Debug("authenticating the boot asset download with credentials in the URL",
+			options.downloadTokens.logger().Debug("authenticating the installation media download with credentials in the URL",
 				zap.String("factory_url", resolved.baseURL))
 		default:
-			asset.Headers = http.Header{
+			media.Headers = http.Header{
 				"Authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(resolved.username+":"+resolved.password))},
 			}
 
-			options.downloadTokens.logger().Debug("authenticating the boot asset download with a credentials header",
+			options.downloadTokens.logger().Debug("authenticating the installation media download with a credentials header",
 				zap.String("factory_url", resolved.baseURL))
 		}
 	}
 
-	asset.URL = assetURL.String()
+	media.URL = mediaURL.String()
 
-	return asset, nil
+	return media, nil
 }
 
 // parseFactoryURL parses a factory URL and rejects anything that is not absolute.
@@ -470,7 +470,7 @@ func resolveEndpoint(ctx context.Context, st state.State, talosVersion string) (
 	// Check the base URL before deriving anything from it, so the error names what Omni was given rather
 	// than the mangled host derivePXEBaseURL would build out of it.
 	//
-	// A configured PXE URL is deliberately left to the PXE asset build. Resolving also serves callers
+	// A configured PXE URL is deliberately left to the PXE build. Resolving also serves callers
 	// that only download images, and a malformed PXE URL is no reason to deny them.
 	parsedBaseURL, err := parseFactoryURL(baseURL)
 	if err != nil {

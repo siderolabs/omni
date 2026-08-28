@@ -35,7 +35,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
-// The credentials the boot asset tests configure on both sides: the ImageFactoryAuth resource Omni reads
+// The credentials the installation media tests configure on both sides: the ImageFactoryAuth resource Omni reads
 // for the fallback, and the factory client Omni requests a download token with.
 const (
 	testFactoryUsername = "user"
@@ -455,10 +455,10 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 	}
 }
 
-// TestBootAssetURL pins the server-side boot asset build: Omni assembles the image factory filename
-// from the asset spec, picks the factory serving that Talos version, and places the credentials where
+// TestMediaURL pins the server-side installation media build: Omni assembles the image factory filename
+// from the media spec, picks the factory serving that Talos version, and places the credentials where
 // the caller can use them.
-func (suite *GrpcSuite) TestBootAssetURL() {
+func (suite *GrpcSuite) TestMediaURL() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
@@ -480,39 +480,39 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 
 	for _, tt := range []struct {
 		name         string
-		request      *management.BootAssetURLRequest
+		request      *management.InstallationMediaURLRequest
 		expectedURL  string
 		expectHeader bool
 	}{
 		{
 			name: "disk image with credentials in the headers",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
-				Platform:      "nocloud",
-				Architecture:  "amd64",
-				Format:        "raw.xz",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
+				Platform:              "nocloud",
+				Architecture:          "amd64",
+				Format:                "raw.xz",
 			},
 			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
 			expectHeader: true,
 		},
 		{
 			name: "standalone disk image carries them in the URL",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
-				Platform:      "nocloud",
-				Architecture:  "amd64",
-				Format:        "qcow2",
-				StandaloneUrl: true,
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
+				Platform:              "nocloud",
+				Architecture:          "amd64",
+				Format:                "qcow2",
+				StandaloneUrl:         true,
 			},
 			expectedURL: "https://user:hunter2@factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.qcow2",
 		},
 		{
 			name: "secure boot ISO",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
-				Platform:      "metal",
-				Architecture:  "amd64",
-				SecureBoot:    true,
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO,
+				Platform:              "metal",
+				Architecture:          "amd64",
+				SecureBoot:            true,
 			},
 			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/metal-amd64-secureboot.iso",
 			expectHeader: true,
@@ -520,10 +520,10 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 		{
 			// PXE firmware cannot send headers, so the URL carries the credentials even unasked.
 			name: "PXE is always standalone",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE,
-				Platform:      "metal",
-				Architecture:  "amd64",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE,
+				Platform:              "metal",
+				Architecture:          "amd64",
 			},
 			expectedURL: "https://user:hunter2@pxe.factory.example.org/pxe/" + schematicID + "/v1.13.0/metal-amd64",
 		},
@@ -532,7 +532,7 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 			tt.request.TalosVersion = "1.13.0"
 			tt.request.SchematicId = schematicID
 
-			resp, err := client.GetBootAssetURL(ctx, tt.request)
+			resp, err := client.GetInstallationMediaURL(ctx, tt.request)
 			suite.Require().NoError(err)
 
 			suite.Require().Equal(tt.expectedURL, resp.Url)
@@ -547,47 +547,47 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 	}
 
 	for _, tt := range []struct {
-		request *management.BootAssetURLRequest
+		request *management.InstallationMediaURLRequest
 		name    string
 	}{
 		{
 			name:    "kind unset",
-			request: &management.BootAssetURLRequest{Platform: "metal", Architecture: "amd64"},
+			request: &management.InstallationMediaURLRequest{Platform: "metal", Architecture: "amd64"},
 		},
 		{
 			// These fields become URL path segments, so traversal has to be refused outright.
 			name: "platform traversal",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
-				Platform:      "../../secret",
-				Architecture:  "amd64",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO,
+				Platform:              "../../secret",
+				Architecture:          "amd64",
 			},
 		},
 		{
 			name: "disk without a format",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
-				Platform:      "nocloud",
-				Architecture:  "amd64",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
+				Platform:              "nocloud",
+				Architecture:          "amd64",
 			},
 		},
 		{
 			// The schematic ID and the Talos version become path segments too.
 			name: "schematic ID traversal",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
-				Platform:      "metal",
-				Architecture:  "amd64",
-				SchematicId:   "../../..",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO,
+				Platform:              "metal",
+				Architecture:          "amd64",
+				SchematicId:           "../../..",
 			},
 		},
 		{
 			name: "Talos version traversal",
-			request: &management.BootAssetURLRequest{
-				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
-				Platform:      "metal",
-				Architecture:  "amd64",
-				TalosVersion:  "1.13.0/../..",
+			request: &management.InstallationMediaURLRequest{
+				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO,
+				Platform:              "metal",
+				Architecture:          "amd64",
+				TalosVersion:          "1.13.0/../..",
 			},
 		},
 	} {
@@ -600,19 +600,19 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 				tt.request.SchematicId = schematicID
 			}
 
-			_, err := client.GetBootAssetURL(ctx, tt.request)
+			_, err := client.GetInstallationMediaURL(ctx, tt.request)
 			suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 		})
 	}
 }
 
-// TestBootAssetToken covers what a caller gets when the factory Omni is configured with issues download
+// TestMediaToken covers what a caller gets when the factory Omni is configured with issues download
 // tokens: a URL that expires and only downloads, instead of the long-lived credential that works on every
 // factory route.
 //
-// TestBootAssetURL points FeaturesConfig at a factory no client is configured for, so it pins the
+// TestMediaURL points FeaturesConfig at a factory no client is configured for, so it pins the
 // credential fallback. This points it at the mock, so ForURL finds the client and the token is issued.
-func (suite *GrpcSuite) TestBootAssetToken() {
+func (suite *GrpcSuite) TestMediaToken() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*30)
 	defer cancel()
 
@@ -634,14 +634,14 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 
 	client := management.NewManagementServiceClient(suite.conn)
 
-	newRequest := func() *management.BootAssetURLRequest {
-		return &management.BootAssetURLRequest{
-			TalosVersion:  "1.13.0",
-			SchematicId:   schematicID,
-			BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
-			Platform:      "nocloud",
-			Architecture:  "amd64",
-			Format:        "raw.xz",
+	newRequest := func() *management.InstallationMediaURLRequest {
+		return &management.InstallationMediaURLRequest{
+			TalosVersion:          "1.13.0",
+			SchematicId:           schematicID,
+			InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
+			Platform:              "nocloud",
+			Architecture:          "amd64",
+			Format:                "raw.xz",
 		}
 	}
 
@@ -654,7 +654,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 
 		before := time.Now()
 
-		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		resp, err := client.GetInstallationMediaURL(ctx, newRequest())
 		suite.Require().NoError(err)
 
 		suite.Require().Equal(suite.imageFactory.address+assetPath+"?token="+url.QueryEscape(token), resp.Url)
@@ -680,7 +680,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 
 		before := time.Now()
 
-		resp, err := client.GetBootAssetURL(ctx, request)
+		resp, err := client.GetInstallationMediaURL(ctx, request)
 		suite.Require().NoError(err)
 
 		suite.Require().Equal([]string{"1h0m0s"}, suite.imageFactory.downloadTokenTTLs())
@@ -694,7 +694,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 		request := newRequest()
 		request.StandaloneUrl = true
 
-		resp, err := client.GetBootAssetURL(ctx, request)
+		resp, err := client.GetInstallationMediaURL(ctx, request)
 		suite.Require().NoError(err)
 
 		suite.Require().Equal(suite.imageFactory.address+assetPath+"?token="+url.QueryEscape(token), resp.Url)
@@ -711,7 +711,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 		request := newRequest()
 		request.DownloadTokenTtl = durationpb.New(100 * time.Hour)
 
-		_, err := client.GetBootAssetURL(ctx, request)
+		_, err := client.GetInstallationMediaURL(ctx, request)
 		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 
 		// The bounds are the whole point of passing the factory's own body on rather than summarizing it:
@@ -727,7 +727,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 			return http.StatusUnauthorized, "unauthorized"
 		})
 
-		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		resp, err := client.GetInstallationMediaURL(ctx, newRequest())
 		suite.Require().NoError(err)
 
 		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)
@@ -741,7 +741,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 		request := newRequest()
 		request.DownloadTokenTtl = durationpb.New(-time.Hour)
 
-		_, err := client.GetBootAssetURL(ctx, request)
+		_, err := client.GetInstallationMediaURL(ctx, request)
 		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 
 		// It never reaches the factory, since the client would drop a non-positive lifetime and the factory
@@ -754,7 +754,7 @@ func (suite *GrpcSuite) TestBootAssetToken() {
 		// build, and any factory with its own authentication disabled.
 		suite.imageFactory.setDownloadToken(nil)
 
-		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		resp, err := client.GetInstallationMediaURL(ctx, newRequest())
 		suite.Require().NoError(err)
 
 		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)

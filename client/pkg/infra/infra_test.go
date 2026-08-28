@@ -56,10 +56,10 @@ const (
 	testFactoryPassword = "pass"
 )
 
-// testBootAssetSpec is the asset the steps below ask for when only the schematic behind it matters.
-var testBootAssetSpec = provision.BootAssetSpec{
-	AssetSpec: imagefactory.AssetSpec{
-		Kind:         imagefactory.BootAssetKindDisk,
+// testMediaSpec is the medium the steps below ask for when only the schematic behind it matters.
+var testMediaSpec = provision.MediaSpec{
+	MediaSpec: imagefactory.MediaSpec{
+		Kind:         imagefactory.InstallationMediaKindDisk,
 		Platform:     "nocloud",
 		Architecture: "amd64",
 		Format:       "raw.xz",
@@ -175,40 +175,40 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 	return nil
 }
 
-// genSchematic pins the schematic the machine request generates, which EnsureBootAsset reports back as
+// genSchematic pins the schematic the machine request generates, which EnsureInstallationMedia reports back as
 // the ID of the schematic it ensured.
 func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
 	if pctx.ConnectionParams.CustomDataEncoded {
-		_, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec)
+		_, err := pctx.EnsureInstallationMedia(ctx, logger, testMediaSpec)
 		if err == nil {
 			return errors.New("generating schematics with the connection params must be not allowed")
 		}
 	} else {
-		asset, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec)
+		media, err := pctx.EnsureInstallationMedia(ctx, logger, testMediaSpec)
 		if err != nil {
 			return err
 		}
 
 		expectedSchematic := "4e2a2ec4368100c1b21d4fa7be47f3d38ddab9185f34fc187f82400b1e20da17"
 
-		if asset.SchematicID != expectedSchematic {
-			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, asset.SchematicID)
+		if media.SchematicID != expectedSchematic {
+			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, media.SchematicID)
 		}
 	}
 
-	asset, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec, provision.WithoutConnectionParams())
+	media, err := pctx.EnsureInstallationMedia(ctx, logger, testMediaSpec, provision.WithoutConnectionParams())
 	if err != nil {
 		return err
 	}
 
 	expectedSchematic := "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
-	if asset.SchematicID != expectedSchematic {
-		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, asset.SchematicID)
+	if media.SchematicID != expectedSchematic {
+		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, media.SchematicID)
 	}
 
-	embedded, err := pctx.EnsureBootAsset(
-		ctx, logger, testBootAssetSpec,
+	embedded, err := pctx.EnsureInstallationMedia(
+		ctx, logger, testMediaSpec,
 		provision.WithoutConnectionParams(),
 		provision.WithEmbeddedMachineConfig("version: v1alpha1\nmachine: {}\n"),
 	)
@@ -426,16 +426,16 @@ func setupInfra(ctx context.Context, t *testing.T, p provision.Provisioner[*Test
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	// Stands in for Omni: ensuring the schematic is local to the test, and the asset is built from the
+	// Stands in for Omni: ensuring the schematic is local to the test, and the medium is built from the
 	// image factory configuration in the state, exactly as an older server's fallback would.
-	opts = append(opts, infra.WithState(state), infra.WithBootAssetResolver(
-		func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.BootAssetSpec) (imagefactory.BootAsset, error) {
+	opts = append(opts, infra.WithState(state), infra.WithInstallationMediaResolver(
+		func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.MediaSpec) (imagefactory.InstallationMedia, error) {
 			schematicID, err := schematic.ID()
 			if err != nil {
-				return imagefactory.BootAsset{}, err
+				return imagefactory.InstallationMedia{}, err
 			}
 
-			return imagefactory.ResolveBootAsset(ctx, state, talosVersion, imagefactory.AssetSpec{
+			return imagefactory.ResolveInstallationMedia(ctx, state, talosVersion, imagefactory.MediaSpec{
 				Kind:         spec.Kind,
 				Platform:     spec.Platform,
 				Architecture: spec.Architecture,
@@ -497,19 +497,19 @@ func TestProvisionStepImageFactory(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	type bootAssets struct {
-		disk imagefactory.BootAsset
-		pxe  imagefactory.BootAsset
+	type installationMedia struct {
+		disk imagefactory.InstallationMedia
+		pxe  imagefactory.InstallationMedia
 	}
 
-	resolved := make(chan bootAssets, 1)
+	resolved := make(chan installationMedia, 1)
 
 	p := &stepProvisioner{
 		steps: []provision.Step[*TestResource]{
 			provision.NewStep("resolveFactory", func(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
-				disk, err := pctx.EnsureBootAsset(ctx, logger, provision.BootAssetSpec{
-					AssetSpec: imagefactory.AssetSpec{
-						Kind:         imagefactory.BootAssetKindDisk,
+				disk, err := pctx.EnsureInstallationMedia(ctx, logger, provision.MediaSpec{
+					MediaSpec: imagefactory.MediaSpec{
+						Kind:         imagefactory.InstallationMediaKindDisk,
 						Platform:     "nocloud",
 						Architecture: "amd64",
 						Format:       "raw.xz",
@@ -519,9 +519,9 @@ func TestProvisionStepImageFactory(t *testing.T) {
 					return err
 				}
 
-				pxe, err := pctx.EnsureBootAsset(ctx, logger, provision.BootAssetSpec{
-					AssetSpec: imagefactory.AssetSpec{
-						Kind:         imagefactory.BootAssetKindPXE,
+				pxe, err := pctx.EnsureInstallationMedia(ctx, logger, provision.MediaSpec{
+					MediaSpec: imagefactory.MediaSpec{
+						Kind:         imagefactory.InstallationMediaKindPXE,
 						Platform:     "metal",
 						Architecture: "amd64",
 					},
@@ -533,7 +533,7 @@ func TestProvisionStepImageFactory(t *testing.T) {
 				// The controller resumes at the recorded step, so this can run more than once for the same
 				// request. Only the first resolution is asserted, and a re-run must not block on it.
 				select {
-				case resolved <- bootAssets{disk: disk, pxe: pxe}:
+				case resolved <- installationMedia{disk: disk, pxe: pxe}:
 				default:
 				}
 
@@ -555,30 +555,30 @@ func TestProvisionStepImageFactory(t *testing.T) {
 		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, mrs.TypedSpec().Value.Stage)
 	})
 
-	var assets bootAssets
+	var media installationMedia
 
 	select {
-	case assets = <-resolved:
+	case media = <-resolved:
 	case <-ctx.Done():
-		require.Fail(t, "the provision step did not report the boot assets")
+		require.Fail(t, "the provision step did not report the installation media")
 	}
 
 	// The mock factory client returns the schematic's own ID, so the URL carries whatever the step's
 	// machine request generated.
-	require.Contains(t, assets.disk.URL, "https://factory.example.org/image/")
-	require.Contains(t, assets.disk.URL, "/v1.13.0/nocloud-amd64.raw.xz")
+	require.Contains(t, media.disk.URL, "https://factory.example.org/image/")
+	require.Contains(t, media.disk.URL, "/v1.13.0/nocloud-amd64.raw.xz")
 
 	// A disk image is fetched by the provider itself, so the credentials come back as a header and the
 	// URL stays clean.
 	require.Equal(t, "Basic "+base64.StdEncoding.EncodeToString([]byte(testFactoryUsername+":"+testFactoryPassword)),
-		assets.disk.Headers.Get("Authorization"))
-	require.NotContains(t, assets.disk.URL, testFactoryPassword)
+		media.disk.Headers.Get("Authorization"))
+	require.NotContains(t, media.disk.URL, testFactoryPassword)
 
 	// PXE firmware cannot send headers, so those credentials have to ride in the URL instead.
-	require.Contains(t, assets.pxe.URL,
+	require.Contains(t, media.pxe.URL,
 		"https://"+testFactoryUsername+":"+testFactoryPassword+"@pxe.factory.example.org/pxe/")
-	require.Contains(t, assets.pxe.URL, "/v1.13.0/metal-amd64")
-	require.Empty(t, assets.pxe.Headers)
+	require.Contains(t, media.pxe.URL, "/v1.13.0/metal-amd64")
+	require.Empty(t, media.pxe.Headers)
 }
 
 // TestProvisionContextWithoutResolver pins the error a hand-built Context reports, since provider step
@@ -598,15 +598,15 @@ func TestProvisionContextWithoutResolver(t *testing.T) {
 		nil,
 	)
 
-	_, err := pctx.EnsureBootAsset(t.Context(), zaptest.NewLogger(t), provision.BootAssetSpec{
-		AssetSpec: imagefactory.AssetSpec{
-			Kind:         imagefactory.BootAssetKindDisk,
+	_, err := pctx.EnsureInstallationMedia(t.Context(), zaptest.NewLogger(t), provision.MediaSpec{
+		MediaSpec: imagefactory.MediaSpec{
+			Kind:         imagefactory.InstallationMediaKindDisk,
 			Platform:     "nocloud",
 			Architecture: "amd64",
 			Format:       "raw.xz",
 		},
 	})
-	require.ErrorContains(t, err, "provision context has no boot asset resolver")
+	require.ErrorContains(t, err, "provision context has no installation media resolver")
 }
 
 func TestProvisionStepFailurePersistsError(t *testing.T) {
@@ -741,17 +741,17 @@ func TestProvisionStepMutationsRestricted(t *testing.T) {
 	})
 }
 
-// TestBootAssetWireConversion covers the two conversions between a provision step's spec and the
+// TestInstallationMediaWireConversion covers the two conversions between a provision step's spec and the
 // management API, since a provider only ever gets what these two carry across.
-func TestBootAssetWireConversion(t *testing.T) {
+func TestInstallationMediaWireConversion(t *testing.T) {
 	t.Parallel()
 
 	const schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
-	diskSpec := func() provision.BootAssetSpec {
-		return provision.BootAssetSpec{
-			AssetSpec: imagefactory.AssetSpec{
-				Kind:         imagefactory.BootAssetKindDisk,
+	diskSpec := func() provision.MediaSpec {
+		return provision.MediaSpec{
+			MediaSpec: imagefactory.MediaSpec{
+				Kind:         imagefactory.InstallationMediaKindDisk,
 				Platform:     "nocloud",
 				Architecture: "amd64",
 				Format:       "raw.xz",
@@ -765,18 +765,18 @@ func TestBootAssetWireConversion(t *testing.T) {
 		spec := diskSpec()
 		spec.DownloadTokenTTL = 90 * time.Minute
 
-		request, err := infra.BootAssetRequest("v1.13.0", schematicID, spec)
+		request, err := infra.InstallationMediaRequest("v1.13.0", schematicID, spec)
 		require.NoError(t, err)
 
 		require.Equal(t, 90*time.Minute, request.DownloadTokenTtl.AsDuration())
-		require.Equal(t, management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK, request.BootAssetKind)
+		require.Equal(t, management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK, request.InstallationMediaKind)
 		require.Equal(t, schematicID, request.SchematicId)
 	})
 
 	t.Run("a step that asks for no lifetime sends none", func(t *testing.T) {
 		t.Parallel()
 
-		request, err := infra.BootAssetRequest("v1.13.0", schematicID, diskSpec())
+		request, err := infra.InstallationMediaRequest("v1.13.0", schematicID, diskSpec())
 		require.NoError(t, err)
 
 		// Unset rather than zero, so Omni can tell "no preference" from a lifetime and apply its default.
@@ -786,7 +786,7 @@ func TestBootAssetWireConversion(t *testing.T) {
 	t.Run("an unknown kind is refused", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := infra.BootAssetRequest("v1.13.0", schematicID, provision.BootAssetSpec{})
+		_, err := infra.InstallationMediaRequest("v1.13.0", schematicID, provision.MediaSpec{})
 		require.Error(t, err)
 	})
 
@@ -795,15 +795,15 @@ func TestBootAssetWireConversion(t *testing.T) {
 
 		expiresAt := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 
-		asset := infra.BootAssetFromResponse(&management.BootAssetURLResponse{
+		media := infra.InstallationMediaFromResponse(&management.InstallationMediaURLResponse{
 			Url:              "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz?token=abcd",
 			ImageFactoryHost: "factory.example.org",
 			StorageKey:       "key",
 			ExpiresAt:        timestamppb.New(expiresAt),
 		})
 
-		require.Equal(t, expiresAt, asset.ExpiresAt)
-		require.Empty(t, asset.Headers)
+		require.Equal(t, expiresAt, media.ExpiresAt)
+		require.Empty(t, media.Headers)
 	})
 
 	t.Run("a response without an expiry leaves it zero", func(t *testing.T) {
@@ -811,12 +811,12 @@ func TestBootAssetWireConversion(t *testing.T) {
 
 		// An Omni that predates the field, or a factory authenticating with credentials, sends nothing.
 		// Reading that as the Unix epoch would look like a URL that expired in 1970.
-		asset := infra.BootAssetFromResponse(&management.BootAssetURLResponse{
+		media := infra.InstallationMediaFromResponse(&management.InstallationMediaURLResponse{
 			Url:     "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
 			Headers: map[string]string{"Authorization": "Basic dXNlcjpwYXNz"},
 		})
 
-		require.Zero(t, asset.ExpiresAt)
-		require.Equal(t, "Basic dXNlcjpwYXNz", asset.Headers.Get("Authorization"))
+		require.Zero(t, media.ExpiresAt)
+		require.Equal(t, "Basic dXNlcjpwYXNz", media.Headers.Get("Authorization"))
 	})
 }

@@ -7,6 +7,6 @@ package infra
 // Exported for testing: the two conversions between a provision step's spec and the management API, so
 // they can be checked without standing up a management service to answer the RPC.
 var (
-	BootAssetRequest      = bootAssetRequest
-	BootAssetFromResponse = bootAssetFromResponse
+	InstallationMediaRequest      = installationMediaRequest
+	InstallationMediaFromResponse = installationMediaFromResponse
 )

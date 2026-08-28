@@ -39,19 +39,19 @@ const (
 	schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 )
 
-// diskSpec is the asset most providers ask for.
-func diskSpec() imagefactory.AssetSpec {
-	return imagefactory.AssetSpec{
-		Kind:         imagefactory.BootAssetKindDisk,
+// diskSpec is the medium most providers ask for.
+func diskSpec() imagefactory.MediaSpec {
+	return imagefactory.MediaSpec{
+		Kind:         imagefactory.InstallationMediaKindDisk,
 		Platform:     "nocloud",
 		Architecture: "amd64",
 		Format:       "raw.xz",
 	}
 }
 
-func pxeSpec() imagefactory.AssetSpec {
-	return imagefactory.AssetSpec{
-		Kind:         imagefactory.BootAssetKindPXE,
+func pxeSpec() imagefactory.MediaSpec {
+	return imagefactory.MediaSpec{
+		Kind:         imagefactory.InstallationMediaKindPXE,
 		Platform:     "metal",
 		Architecture: "amd64",
 	}
@@ -105,41 +105,41 @@ func (s deniedAuthState) Get(ctx context.Context, ptr resource.Pointer, opts ...
 	return s.State.Get(ctx, ptr, opts...)
 }
 
-// TestAssetSpecFilename pins the filename of every asset kind the image factory serves, in the forms
+// TestMediaSpecFilename pins the filename of every kind the image factory serves, in the forms
 // its own path parser accepts.
-func TestAssetSpecFilename(t *testing.T) {
+func TestMediaSpecFilename(t *testing.T) {
 	t.Parallel()
 
 	for name, tt := range map[string]struct {
 		expected string
-		spec     imagefactory.AssetSpec
+		spec     imagefactory.MediaSpec
 	}{
 		"pxe": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindPXE, Platform: "metal", Architecture: "amd64"},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindPXE, Platform: "metal", Architecture: "amd64"},
 			expected: "metal-amd64",
 		},
 		"pxe secure boot": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindPXE, Platform: "metal", Architecture: "amd64", SecureBoot: true},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindPXE, Platform: "metal", Architecture: "amd64", SecureBoot: true},
 			expected: "metal-amd64-secureboot",
 		},
 		"iso": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "metal", Architecture: "arm64"},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal", Architecture: "arm64"},
 			expected: "metal-arm64.iso",
 		},
 		"iso secure boot": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "metal", Architecture: "amd64", SecureBoot: true},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal", Architecture: "amd64", SecureBoot: true},
 			expected: "metal-amd64-secureboot.iso",
 		},
 		"disk raw xz": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "raw.xz"},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "raw.xz"},
 			expected: "nocloud-amd64.raw.xz",
 		},
 		"disk qcow2": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "qcow2"},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "qcow2"},
 			expected: "nocloud-amd64.qcow2",
 		},
 		"disk compressed with secure boot": {
-			spec:     imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "qcow2.gz", SecureBoot: true},
+			spec:     imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "qcow2.gz", SecureBoot: true},
 			expected: "nocloud-amd64-secureboot.qcow2.gz",
 		},
 	} {
@@ -152,50 +152,50 @@ func TestAssetSpecFilename(t *testing.T) {
 	}
 }
 
-// TestAssetSpecValidate covers what must not reach the factory as a URL path, and the per-kind
+// TestMediaSpecValidate covers what must not reach the factory as a URL path, and the per-kind
 // requirements. The traversal cases are the ones that matter: these fields become path segments and
 // generally come from a provider's own configuration.
-func TestAssetSpecValidate(t *testing.T) {
+func TestMediaSpecValidate(t *testing.T) {
 	t.Parallel()
 
 	for name, tt := range map[string]struct {
 		errContains string
-		spec        imagefactory.AssetSpec
+		spec        imagefactory.MediaSpec
 	}{
 		"kind unset": {
-			spec:        imagefactory.AssetSpec{Platform: "metal", Architecture: "amd64"},
-			errContains: "boot asset kind is not set",
+			spec:        imagefactory.MediaSpec{Platform: "metal", Architecture: "amd64"},
+			errContains: "installation media kind is not set",
 		},
 		"unknown kind": {
-			spec:        imagefactory.AssetSpec{Kind: "raw", Platform: "metal", Architecture: "amd64"},
-			errContains: `unknown boot asset kind "raw"`,
+			spec:        imagefactory.MediaSpec{Kind: "raw", Platform: "metal", Architecture: "amd64"},
+			errContains: `unknown installation media kind "raw"`,
 		},
 		"missing architecture": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "metal"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal"},
 			errContains: "invalid architecture",
 		},
 		"missing platform": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Architecture: "amd64"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Architecture: "amd64"},
 			errContains: "invalid platform",
 		},
 		"platform traversal": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "../../secret", Architecture: "amd64"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "../../secret", Architecture: "amd64"},
 			errContains: "invalid platform",
 		},
 		"architecture with a slash": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "metal", Architecture: "amd64/../.."},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal", Architecture: "amd64/../.."},
 			errContains: "invalid architecture",
 		},
 		"format traversal": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "../../etc/passwd"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "nocloud", Architecture: "amd64", Format: "../../etc/passwd"},
 			errContains: "invalid disk image format",
 		},
 		"disk without a format": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindDisk, Platform: "nocloud", Architecture: "amd64"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "nocloud", Architecture: "amd64"},
 			errContains: "invalid disk image format",
 		},
 		"parent directory as a platform": {
-			spec:        imagefactory.AssetSpec{Kind: imagefactory.BootAssetKindISO, Platform: "..", Architecture: "amd64"},
+			spec:        imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "..", Architecture: "amd64"},
 			errContains: "invalid platform",
 		},
 	} {
@@ -207,10 +207,10 @@ func TestAssetSpecValidate(t *testing.T) {
 	}
 }
 
-// TestResolveBootAssetRouting pins which factory serves each Talos version, and that the version
+// TestResolveInstallationMediaRouting pins which factory serves each Talos version, and that the version
 // segment lands in the URL in the factory's canonical v-prefixed form regardless of how the caller
 // spells it. The PXE kind goes to the PXE endpoint, everything else to the image endpoint.
-func TestResolveBootAssetRouting(t *testing.T) {
+func TestResolveInstallationMediaRouting(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -283,21 +283,21 @@ func TestResolveBootAssetRouting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			disk, err := imagefactory.ResolveBootAsset(ctx, st, tt.version, diskSpec(), schematicID, false)
+			disk, err := imagefactory.ResolveInstallationMedia(ctx, st, tt.version, diskSpec(), schematicID, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.base+"/image/"+schematicID+"/"+tt.pathVersion+"/nocloud-amd64.raw.xz", disk.URL)
 			require.Empty(t, disk.Headers)
 
-			pxe, err := imagefactory.ResolveBootAsset(ctx, st, tt.version, pxeSpec(), schematicID, false)
+			pxe, err := imagefactory.ResolveInstallationMedia(ctx, st, tt.version, pxeSpec(), schematicID, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.pxeBase+"/pxe/"+schematicID+"/"+tt.pathVersion+"/metal-amd64", pxe.URL)
 		})
 	}
 }
 
-// TestResolveBootAssetDefaults covers an Omni that reports no factory URLs at all: the public factory
+// TestResolveInstallationMediaDefaults covers an Omni that reports no factory URLs at all: the public factory
 // fills in, and the PXE endpoint is derived from it the way Omni itself derives an unconfigured one.
-func TestResolveBootAssetDefaults(t *testing.T) {
+func TestResolveInstallationMediaDefaults(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -308,37 +308,37 @@ func TestResolveBootAssetDefaults(t *testing.T) {
 		config.TypedSpec().Value.ImageFactoryPxeBaseUrl = ""
 	})
 
-	disk, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+	disk, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 	require.NoError(t, err)
 	require.Equal(t, constants.ImageFactoryBaseURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", disk.URL)
 	require.Equal(t, "factory.talos.dev", disk.ImageFactoryHost)
 
-	pxe, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
+	pxe, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
 	require.NoError(t, err)
 	require.Equal(t, "https://pxe.factory.talos.dev/pxe/"+schematicID+"/v1.13.0/metal-amd64", pxe.URL)
 	require.Equal(t, "pxe.factory.talos.dev", pxe.ImageFactoryHost)
 }
 
-// TestResolveBootAssetStorageKey pins the property a provider storing what it downloads depends on: the
-// key follows the asset, not the credentials in its URL. Hashing the URL instead would rename everything
+// TestResolveInstallationMediaStorageKey pins the property a provider storing what it downloads depends on: the
+// key follows the medium, not the credentials in its URL. Hashing the URL instead would rename everything
 // stored on every password rotation and orphan the old copies.
-func TestResolveBootAssetStorageKey(t *testing.T) {
+func TestResolveInstallationMediaStorageKey(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
 
-	keyFor := func(t *testing.T, configure func(*omni.FeaturesConfig), version string, spec imagefactory.AssetSpec, schematic string) string {
+	keyFor := func(t *testing.T, configure func(*omni.FeaturesConfig), version string, spec imagefactory.MediaSpec, schematic string) string {
 		t.Helper()
 
 		st := newTestState(t)
 
 		createFeaturesConfig(ctx, t, st, configure)
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, version, spec, schematic, false)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, version, spec, schematic, false)
 		require.NoError(t, err)
-		require.NotEmpty(t, asset.StorageKey)
+		require.NotEmpty(t, media.StorageKey)
 
-		return asset.StorageKey
+		return media.StorageKey
 	}
 
 	base := keyFor(t, nil, "1.13.0", diskSpec(), schematicID)
@@ -346,18 +346,18 @@ func TestResolveBootAssetStorageKey(t *testing.T) {
 	t.Run("stable across credential rotation", func(t *testing.T) {
 		t.Parallel()
 
-		// The same asset behind an authenticated factory, and behind one whose password then changes.
+		// The same medium behind an authenticated factory, and behind one whose password then changes.
 		first := func(password string) string {
 			st := newTestState(t)
 
 			createFeaturesConfig(ctx, t, st, nil)
 			createFactoryAuth(ctx, t, st, primaryURL, "user", password)
 
-			asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+			media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 			require.NoError(t, err)
-			require.Contains(t, asset.URL, password, "the standalone URL is expected to carry the password")
+			require.Contains(t, media.URL, password, "the standalone URL is expected to carry the password")
 
-			return asset.StorageKey
+			return media.StorageKey
 		}
 
 		require.Equal(t, first("secret1"), first("secret2"))
@@ -372,16 +372,16 @@ func TestResolveBootAssetStorageKey(t *testing.T) {
 		createFeaturesConfig(ctx, t, st, nil)
 		createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
 
-		headers, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		headers, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 
-		standalone, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+		standalone, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 		require.NoError(t, err)
 
 		require.Equal(t, headers.StorageKey, standalone.StorageKey)
 	})
 
-	t.Run("changes with the asset", func(t *testing.T) {
+	t.Run("changes with the medium", func(t *testing.T) {
 		t.Parallel()
 
 		otherSchematic := "0000000000000000000000000000000000000000000000000000000000000000"
@@ -421,9 +421,9 @@ func TestResolveBootAssetStorageKey(t *testing.T) {
 	})
 }
 
-// TestBootAssetStringOmitsURL is what keeps a logged asset from leaking its credentials, since the URL
+// TestInstallationMediaStringOmitsURL is what keeps a logged medium from leaking its credentials, since the URL
 // can carry them as userinfo or, later, as a token in the query.
-func TestBootAssetStringOmitsURL(t *testing.T) {
+func TestInstallationMediaStringOmitsURL(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -432,26 +432,26 @@ func TestBootAssetStringOmitsURL(t *testing.T) {
 	createFeaturesConfig(ctx, t, st, nil)
 	createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
 
-	asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+	media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 	require.NoError(t, err)
-	require.Contains(t, asset.URL, "hunter2", "the standalone URL is expected to carry the password")
+	require.Contains(t, media.URL, "hunter2", "the standalone URL is expected to carry the password")
 
 	for _, rendered := range []string{
-		asset.String(),
-		// The accident this guards against: an asset handed to a formatter or a logger.
-		fmt.Sprintf("%v", asset),
+		media.String(),
+		// The accident this guards against: a medium handed to a formatter or a logger.
+		fmt.Sprintf("%v", media),
 	} {
 		require.NotContains(t, rendered, "hunter2")
-		require.NotContains(t, rendered, asset.URL)
-		require.Contains(t, rendered, asset.SchematicID)
-		require.Contains(t, rendered, asset.StorageKey)
-		require.Contains(t, rendered, asset.ImageFactoryHost)
+		require.NotContains(t, rendered, media.URL)
+		require.Contains(t, rendered, media.SchematicID)
+		require.Contains(t, rendered, media.StorageKey)
+		require.Contains(t, rendered, media.ImageFactoryHost)
 	}
 }
 
-// TestResolveBootAssetAuth is the contract providers rely on: fetch the URL sending the headers, and a
+// TestResolveInstallationMediaAuth is the contract providers rely on: fetch the URL sending the headers, and a
 // standalone URL works on its own.
-func TestResolveBootAssetAuth(t *testing.T) {
+func TestResolveInstallationMediaAuth(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -466,18 +466,18 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFeaturesConfig(ctx, t, st, nil)
 		createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 
-		require.NotEmpty(t, asset.StorageKey)
+		require.NotEmpty(t, media.StorageKey)
 
-		asset.StorageKey = ""
-		require.Equal(t, imagefactory.BootAsset{
+		media.StorageKey = ""
+		require.Equal(t, imagefactory.InstallationMedia{
 			URL:              primaryURL + "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
 			Headers:          http.Header{"Authorization": []string{authorization}},
 			SchematicID:      schematicID,
 			ImageFactoryHost: "factory.example.org",
-		}, asset)
+		}, media)
 	})
 
 	t.Run("standalone puts the credentials in the URL and returns no headers", func(t *testing.T) {
@@ -488,17 +488,17 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFeaturesConfig(ctx, t, st, nil)
 		createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 		require.NoError(t, err)
 
-		require.NotEmpty(t, asset.StorageKey)
+		require.NotEmpty(t, media.StorageKey)
 
-		asset.StorageKey = ""
-		require.Equal(t, imagefactory.BootAsset{
+		media.StorageKey = ""
+		require.Equal(t, imagefactory.InstallationMedia{
 			URL:              "https://user:hunter2@factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
 			SchematicID:      schematicID,
 			ImageFactoryHost: "factory.example.org",
-		}, asset)
+		}, media)
 	})
 
 	t.Run("PXE is always standalone", func(t *testing.T) {
@@ -510,17 +510,17 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
 
 		// Not requested as standalone: PXE firmware cannot send headers, so the URL has to carry them.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
 		require.NoError(t, err)
 
-		require.NotEmpty(t, asset.StorageKey)
+		require.NotEmpty(t, media.StorageKey)
 
-		asset.StorageKey = ""
-		require.Equal(t, imagefactory.BootAsset{
+		media.StorageKey = ""
+		require.Equal(t, imagefactory.InstallationMedia{
 			URL:              "https://user:hunter2@pxe.factory.example.org/pxe/" + schematicID + "/v1.13.0/metal-amd64",
 			SchematicID:      schematicID,
 			ImageFactoryHost: "pxe.factory.example.org",
-		}, asset)
+		}, media)
 	})
 
 	t.Run("each factory gets its own credentials", func(t *testing.T) {
@@ -537,14 +537,14 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFactoryAuth(ctx, t, st, secondaryURL, "secondary-user", "secondary-pass")
 
 		// The primary has no credentials, so a version it serves resolves anonymously.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.14.0", diskSpec(), schematicID, false)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.14.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
-		require.Empty(t, asset.Headers)
+		require.Empty(t, media.Headers)
 
-		asset, err = imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		media, err = imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
-		require.Equal(t, secondaryURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", asset.URL)
-		require.NotEmpty(t, asset.Headers.Get("Authorization"))
+		require.Equal(t, secondaryURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", media.URL)
+		require.NotEmpty(t, media.Headers.Get("Authorization"))
 	})
 
 	t.Run("special characters survive both forms", func(t *testing.T) {
@@ -557,7 +557,7 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFeaturesConfig(ctx, t, st, nil)
 		createFactoryAuth(ctx, t, st, primaryURL, "user", password)
 
-		withHeaders, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		withHeaders, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 
 		encoded, ok := strings.CutPrefix(withHeaders.Headers.Get("Authorization"), "Basic ")
@@ -567,7 +567,7 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "user:"+password, string(decoded))
 
-		standalone, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+		standalone, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 		require.NoError(t, err)
 
 		parsed, err := url.Parse(standalone.URL)
@@ -587,17 +587,17 @@ func TestResolveBootAssetAuth(t *testing.T) {
 		createFeaturesConfig(ctx, t, st, nil)
 		createFactoryAuth(ctx, t, st, primaryURL, "user", "")
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
 		require.NoError(t, err)
-		require.Empty(t, asset.Headers)
-		require.NotContains(t, asset.URL, "user")
+		require.Empty(t, media.Headers)
+		require.NotContains(t, media.URL, "user")
 	})
 }
 
-// TestResolveBootAssetDeniedCredentials covers an Omni that refuses the ImageFactoryAuth read: either it
-// predates the resource, or it predates infra providers being allowed to read it. The asset comes back
-// anonymous, since a factory serving assets anonymously has nothing to lose by it.
-func TestResolveBootAssetDeniedCredentials(t *testing.T) {
+// TestResolveInstallationMediaDeniedCredentials covers an Omni that refuses the ImageFactoryAuth read: either it
+// predates the resource, or it predates infra providers being allowed to read it. The media comes back
+// anonymous, since a factory serving media anonymously has nothing to lose by it.
+func TestResolveInstallationMediaDeniedCredentials(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -605,20 +605,20 @@ func TestResolveBootAssetDeniedCredentials(t *testing.T) {
 
 	createFeaturesConfig(ctx, t, st, nil)
 
-	asset, err := imagefactory.ResolveBootAsset(ctx, deniedAuthState{State: st}, "1.13.0", diskSpec(), schematicID, false)
+	media, err := imagefactory.ResolveInstallationMedia(ctx, deniedAuthState{State: st}, "1.13.0", diskSpec(), schematicID, false)
 	require.NoError(t, err)
-	require.Equal(t, primaryURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", asset.URL)
-	require.Empty(t, asset.Headers)
+	require.Equal(t, primaryURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", media.URL)
+	require.Empty(t, media.Headers)
 }
 
-func TestResolveBootAssetNoFeaturesConfig(t *testing.T) {
+func TestResolveInstallationMediaNoFeaturesConfig(t *testing.T) {
 	t.Parallel()
 
-	_, err := imagefactory.ResolveBootAsset(t.Context(), newTestState(t), "1.13.0", diskSpec(), schematicID, false)
+	_, err := imagefactory.ResolveInstallationMedia(t.Context(), newTestState(t), "1.13.0", diskSpec(), schematicID, false)
 	require.ErrorContains(t, err, "failed to get features config")
 }
 
-func TestResolveBootAssetRejectsInvalidSpec(t *testing.T) {
+func TestResolveInstallationMediaRejectsInvalidSpec(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -629,14 +629,14 @@ func TestResolveBootAssetRejectsInvalidSpec(t *testing.T) {
 	spec := diskSpec()
 	spec.Platform = "../../secret"
 
-	_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", spec, schematicID, false)
+	_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", spec, schematicID, false)
 	require.ErrorContains(t, err, "invalid platform")
 }
 
-// TestResolveBootAssetRejectsInvalidTalosVersion covers a version that is a safe path segment but not a
+// TestResolveInstallationMediaRejectsInvalidTalosVersion covers a version that is a safe path segment but not a
 // version. Without the check it resolves against the wrong factory and yields a URL that can only 404,
 // so the error would surface at download or PXE boot time rather than here.
-func TestResolveBootAssetRejectsInvalidTalosVersion(t *testing.T) {
+func TestResolveInstallationMediaRejectsInvalidTalosVersion(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -649,7 +649,7 @@ func TestResolveBootAssetRejectsInvalidTalosVersion(t *testing.T) {
 
 			createFeaturesConfig(ctx, t, st, nil)
 
-			_, err := imagefactory.ResolveBootAsset(ctx, st, version, diskSpec(), schematicID, false)
+			_, err := imagefactory.ResolveInstallationMedia(ctx, st, version, diskSpec(), schematicID, false)
 			require.ErrorIs(t, err, imagefactory.ErrInvalidInput)
 			require.ErrorContains(t, err, "invalid Talos version")
 		})
@@ -664,18 +664,18 @@ func TestResolveBootAssetRejectsInvalidTalosVersion(t *testing.T) {
 
 			createFeaturesConfig(ctx, t, st, nil)
 
-			asset, err := imagefactory.ResolveBootAsset(ctx, st, version, diskSpec(), schematicID, false)
+			media, err := imagefactory.ResolveInstallationMedia(ctx, st, version, diskSpec(), schematicID, false)
 			require.NoError(t, err)
-			require.Contains(t, asset.URL, "/v"+strings.TrimLeft(version, "v")+"/")
+			require.Contains(t, media.URL, "/v"+strings.TrimLeft(version, "v")+"/")
 		})
 	}
 }
 
-// TestResolveBootAssetRejectsRelativeConfig fails a build rather than handing back a URL nothing can
+// TestResolveInstallationMediaRejectsRelativeConfig fails a build rather than handing back a URL nothing can
 // fetch. url.Parse accepts these and JoinPath extends them, so without the check the missing scheme
 // would only surface at download time as "unsupported protocol scheme". A malformed PXE URL fails the
 // PXE kind alone: callers that only download images still get theirs.
-func TestResolveBootAssetRejectsRelativeConfig(t *testing.T) {
+func TestResolveInstallationMediaRejectsRelativeConfig(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -690,10 +690,10 @@ func TestResolveBootAssetRejectsRelativeConfig(t *testing.T) {
 			config.TypedSpec().Value.ImageFactoryPxeBaseUrl = ""
 		})
 
-		_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.ErrorContains(t, err, `image factory URL "factory.example.org" is not absolute`)
 
-		_, err = imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
+		_, err = imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
 		require.ErrorContains(t, err, `image factory URL "factory.example.org" is not absolute`)
 	})
 
@@ -706,18 +706,18 @@ func TestResolveBootAssetRejectsRelativeConfig(t *testing.T) {
 			config.TypedSpec().Value.ImageFactoryPxeBaseUrl = "pxe.factory.example.org"
 		})
 
-		disk, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		disk, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 		require.Equal(t, primaryURL+"/image/"+schematicID+"/v1.13.0/nocloud-amd64.raw.xz", disk.URL)
 
-		_, err = imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
+		_, err = imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false)
 		require.ErrorContains(t, err, `image factory URL "pxe.factory.example.org" is not absolute`)
 	})
 }
 
-// TestResolveBootAssetPathShapes pins JoinPath behavior on the base URL shapes Omni can be configured
+// TestResolveInstallationMediaPathShapes pins JoinPath behavior on the base URL shapes Omni can be configured
 // with.
-func TestResolveBootAssetPathShapes(t *testing.T) {
+func TestResolveInstallationMediaPathShapes(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -747,18 +747,18 @@ func TestResolveBootAssetPathShapes(t *testing.T) {
 				config.TypedSpec().Value.ImageFactoryBaseUrl = tt.baseURL
 			})
 
-			asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+			media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 			require.NoError(t, err)
-			require.Equal(t, tt.expected, asset.URL)
+			require.Equal(t, tt.expected, media.URL)
 		})
 	}
 }
 
-// TestResolveBootAssetRejectsInvalidPathSegments covers the inputs that are not part of the spec but
+// TestResolveInstallationMediaRejectsInvalidPathSegments covers the inputs that are not part of the spec but
 // still become URL path segments. JoinPath resolves "..", so an unchecked one would silently point the
 // URL at another path on the factory, taking any credentials with it, and it drops the error from a
 // malformed percent escape, leaving nothing but the base URL.
-func TestResolveBootAssetRejectsInvalidPathSegments(t *testing.T) {
+func TestResolveInstallationMediaRejectsInvalidPathSegments(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -801,18 +801,18 @@ func TestResolveBootAssetRejectsInvalidPathSegments(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := imagefactory.ResolveBootAsset(ctx, st, tt.version, diskSpec(), tt.schematicID, true)
+			_, err := imagefactory.ResolveInstallationMedia(ctx, st, tt.version, diskSpec(), tt.schematicID, true)
 			require.ErrorContains(t, err, tt.errContains)
 		})
 	}
 
 	// A pre-release version is a legitimate segment and has to keep working.
-	asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.14.0-alpha.0", diskSpec(), schematicID, false)
+	media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.14.0-alpha.0", diskSpec(), schematicID, false)
 	require.NoError(t, err)
-	require.Contains(t, asset.URL, "/v1.14.0-alpha.0/")
+	require.Contains(t, media.URL, "/v1.14.0-alpha.0/")
 }
 
-// fakeFactoryClient is an imagefactory.FactoryClient that does only the two things resolving a boot asset
+// fakeFactoryClient is an imagefactory.FactoryClient that does only the two things resolving an installation medium media
 // asks of one: report the URL it serves, so ForURL can find it, and issue a download token.
 type fakeFactoryClient struct {
 	imagefactory.FactoryClient
@@ -893,9 +893,9 @@ func authenticatedState(ctx context.Context, t *testing.T) state.State {
 	return st
 }
 
-// TestResolveBootAssetDownloadTokenRequest covers the deadline the token request runs under, and what a
+// TestResolveInstallationMediaDownloadTokenRequest covers the deadline the token request runs under, and what a
 // caller gets when its own context ends first.
-func TestResolveBootAssetDownloadTokenRequest(t *testing.T) {
+func TestResolveInstallationMediaDownloadTokenRequest(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -915,7 +915,7 @@ func TestResolveBootAssetDownloadTokenRequest(t *testing.T) {
 
 		before := time.Now()
 
-		_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
 		// Without one, a factory that accepts the connection and never answers holds the resolve for the factory
@@ -937,14 +937,14 @@ func TestResolveBootAssetDownloadTokenRequest(t *testing.T) {
 		issuer := newIssuer("", errors.New("connection reset"))
 		issuer.onRequest = cancel
 
-		_, err := imagefactory.ResolveBootAsset(callerCtx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
+		_, err := imagefactory.ResolveInstallationMedia(callerCtx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
 		require.ErrorIs(t, err, context.Canceled)
 	})
 }
 
-// TestResolveBootAssetDownloadToken covers the authentication a caller gets for an asset under /image/
+// TestResolveInstallationMediaDownloadToken covers the authentication a caller gets for a medium under /image/
 // when the factory issues download tokens, and the credential fallback for every factory that does not.
-func TestResolveBootAssetDownloadToken(t *testing.T) {
+func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -958,7 +958,7 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 		defaultTTL = 5 * time.Minute
 	)
 
-	assetPath := "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz"
+	mediaPath := "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz"
 
 	t.Run("a token replaces the userinfo on a standalone image", func(t *testing.T) {
 		t.Parallel()
@@ -966,12 +966,12 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 		st := authenticatedState(ctx, t)
 		issuer := newIssuer(token, nil)
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
-		require.Equal(t, primaryURL+assetPath+"?token="+url.QueryEscape(token), asset.URL)
-		require.Empty(t, asset.Headers)
-		require.NotContains(t, asset.URL, "hunter2", "the credential must not travel alongside the token")
+		require.Equal(t, primaryURL+mediaPath+"?token="+url.QueryEscape(token), media.URL)
+		require.Empty(t, media.Headers)
+		require.NotContains(t, media.URL, "hunter2", "the credential must not travel alongside the token")
 	})
 
 	t.Run("a token replaces the header on a non-standalone image", func(t *testing.T) {
@@ -980,11 +980,11 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 		st := authenticatedState(ctx, t)
 		issuer := newIssuer(token, nil)
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
-		require.Equal(t, primaryURL+assetPath+"?token="+url.QueryEscape(token), asset.URL)
-		require.Empty(t, asset.Headers, "a token in the URL leaves nothing for the headers to carry")
+		require.Equal(t, primaryURL+mediaPath+"?token="+url.QueryEscape(token), media.URL)
+		require.Empty(t, media.Headers, "a token in the URL leaves nothing for the headers to carry")
 	})
 
 	t.Run("PXE keeps its credentials and never asks for a token", func(t *testing.T) {
@@ -995,12 +995,12 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		// The factory reads ?token= only under /image/, and its iPXE script propagates basic auth alone, so
 		// a token would authenticate neither the script nor what it boots.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
-		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", asset.URL)
+		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", media.URL)
 		require.Empty(t, issuer.calls(), "a token that cannot be used must not be requested")
-		require.Zero(t, asset.ExpiresAt)
+		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("an anonymous factory never asks for a token", func(t *testing.T) {
@@ -1011,13 +1011,13 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		issuer := newIssuer(token, nil)
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
-		require.Equal(t, primaryURL+assetPath, asset.URL)
-		require.Empty(t, asset.Headers)
+		require.Equal(t, primaryURL+mediaPath, media.URL)
+		require.Empty(t, media.Headers)
 		require.Empty(t, issuer.calls(), "there is nothing to authenticate")
-		require.Zero(t, asset.ExpiresAt)
+		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("the lifetime asked for reaches the factory and comes back as the expiry", func(t *testing.T) {
@@ -1039,11 +1039,11 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 				before := time.Now()
 
-				asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, tt.requested))
+				media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, tt.requested))
 				require.NoError(t, err)
 
 				require.Equal(t, []time.Duration{tt.expected}, issuer.calls())
-				require.WithinRange(t, asset.ExpiresAt, before.Add(tt.expected), time.Now().Add(tt.expected))
+				require.WithinRange(t, media.ExpiresAt, before.Add(tt.expected), time.Now().Add(tt.expected))
 			})
 		}
 	})
@@ -1065,14 +1065,14 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 				st := authenticatedState(ctx, t)
 
-				standalone, resolveErr := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", err), 0))
+				standalone, resolveErr := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", err), 0))
 				require.NoError(t, resolveErr)
-				require.Equal(t, "https://user:hunter2@factory.example.org"+assetPath, standalone.URL)
+				require.Equal(t, "https://user:hunter2@factory.example.org"+mediaPath, standalone.URL)
 				require.Zero(t, standalone.ExpiresAt)
 
-				withHeaders, resolveErr := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer("", err), 0))
+				withHeaders, resolveErr := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer("", err), 0))
 				require.NoError(t, resolveErr)
-				require.Equal(t, primaryURL+assetPath, withHeaders.URL)
+				require.Equal(t, primaryURL+mediaPath, withHeaders.URL)
 				require.Equal(t, authorization, withHeaders.Headers.Get("Authorization"))
 				require.Zero(t, withHeaders.ExpiresAt)
 			})
@@ -1086,7 +1086,7 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		// The factory refuses anything outside its configured bounds with a 400. Silently handing back a
 		// long-lived credential instead would answer a request the caller did not make.
-		_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false,
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false,
 			withIssuer(t, st, newIssuer("", &client.InvalidSchematicError{}), 100*time.Hour))
 
 		require.ErrorIs(t, err, imagefactory.ErrInvalidInput)
@@ -1100,12 +1100,12 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		// Omni's own guess is not the caller's request, so a factory whose bounds exclude it falls back
 		// rather than failing a provision over a value the caller never chose.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false,
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false,
 			withIssuer(t, st, newIssuer("", &client.InvalidSchematicError{}), 0))
 
 		require.NoError(t, err)
-		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
-		require.Zero(t, asset.ExpiresAt)
+		require.Equal(t, authorization, media.Headers.Get("Authorization"))
+		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("a 200 carrying no token falls back", func(t *testing.T) {
@@ -1115,12 +1115,12 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		// Placing an empty token would build a URL with no credentials anywhere, which only fails at the
 		// download, with nothing in Omni's logs pointing at the token.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", nil), 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", nil), 0))
 		require.NoError(t, err)
 
-		require.Equal(t, "https://user:hunter2@factory.example.org"+assetPath, asset.URL)
-		require.NotContains(t, asset.URL, "token=")
-		require.Zero(t, asset.ExpiresAt)
+		require.Equal(t, "https://user:hunter2@factory.example.org"+mediaPath, media.URL)
+		require.NotContains(t, media.URL, "token=")
+		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("an unroutable factory falls back", func(t *testing.T) {
@@ -1128,14 +1128,14 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		st := authenticatedState(ctx, t)
 
-		// A token must come from the factory serving the asset and no other, so a client set with nothing
+		// A token must come from the factory serving the medium and no other, so a client set with nothing
 		// configured for it issues nothing at all.
 		issuer := &fakeFactoryClient{url: "https://other.example.org", token: token}
 
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
 		require.NoError(t, err)
 
-		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
+		require.Equal(t, authorization, media.Headers.Get("Authorization"))
 		require.Empty(t, issuer.calls())
 	})
 
@@ -1144,12 +1144,12 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 
 		st := authenticatedState(ctx, t)
 
-		// This is the provider-side fallback against an Omni that predates the boot asset API.
-		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		// This is the provider-side fallback against an Omni that predates the installation media API.
+		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 
-		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
-		require.Zero(t, asset.ExpiresAt)
+		require.Equal(t, authorization, media.Headers.Get("Authorization"))
+		require.Zero(t, media.ExpiresAt)
 	})
 
 	t.Run("the storage key and the log line are unaffected", func(t *testing.T) {
@@ -1158,16 +1158,16 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 		st := authenticatedState(ctx, t)
 
 		// The key must not move when a token appears, or every provider re-downloads everything it stores.
-		withToken, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer(token, nil), 0))
+		withToken, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer(token, nil), 0))
 		require.NoError(t, err)
 
-		withCredentials, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		withCredentials, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false)
 		require.NoError(t, err)
 
 		require.Equal(t, withCredentials.StorageKey, withToken.StorageKey)
 
 		for _, rendered := range []string{withToken.String(), fmt.Sprintf("%v", withToken)} {
-			require.NotContains(t, rendered, token, "a logged asset must not leak the token")
+			require.NotContains(t, rendered, token, "a logged medium must not leak the token")
 			require.NotContains(t, rendered, withToken.URL)
 			require.Contains(t, rendered, withToken.StorageKey)
 			require.Contains(t, rendered, "expires", "the expiry explains a download failing later, and is not a secret")
@@ -1175,10 +1175,10 @@ func TestResolveBootAssetDownloadToken(t *testing.T) {
 	})
 }
 
-// TestResolveBootAssetNegativeTokenLifetime covers a lifetime the caller got wrong. It is refused the same
-// way for every asset kind, not only for the ones that would have requested a token, so that a bad value
+// TestResolveInstallationMediaNegativeTokenLifetime covers a lifetime the caller got wrong. It is refused the same
+// way for every kind, not only for the ones that would have requested a token, so that a bad value
 // cannot pass unnoticed against the public factory and fail only against an authenticated one.
-func TestResolveBootAssetNegativeTokenLifetime(t *testing.T) {
+func TestResolveInstallationMediaNegativeTokenLifetime(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -1190,7 +1190,7 @@ func TestResolveBootAssetNegativeTokenLifetime(t *testing.T) {
 	// for every kind, including the two that never request a token: accepting it there would let a bad
 	// value through against the public factory and fail only against an authenticated one.
 	for name, tt := range map[string]struct {
-		spec      imagefactory.AssetSpec
+		spec      imagefactory.MediaSpec
 		anonymous bool
 	}{
 		"disk, which would have requested one": {spec: diskSpec()},
@@ -1209,7 +1209,7 @@ func TestResolveBootAssetNegativeTokenLifetime(t *testing.T) {
 
 			issuer := newIssuer(token, nil)
 
-			_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", tt.spec, schematicID, false, withIssuer(t, st, issuer, -time.Hour))
+			_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", tt.spec, schematicID, false, withIssuer(t, st, issuer, -time.Hour))
 
 			require.ErrorIs(t, err, imagefactory.ErrInvalidInput)
 			require.Empty(t, issuer.calls(), "a lifetime that cannot be honored must not reach the factory")

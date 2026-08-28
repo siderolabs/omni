@@ -139,12 +139,12 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		return fmt.Errorf("invalid infra provider configuration: either WithOmniEndpoint or WithState option should be used")
 	}
 
-	// Boot assets are resolved through Omni, so a provider given only a state has no way to reach one:
+	// Installation media are resolved through Omni, so a provider given only a state has no way to reach one:
 	// such a setup has to supply its own resolver.
-	bootAssetResolver := options.bootAssetResolver
-	if bootAssetResolver == nil && c != nil {
-		bootAssetResolver = func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.BootAssetSpec) (imagefactory.BootAsset, error) {
-			return EnsureBootAsset(ctx, c, talosVersion, schematic, spec)
+	installationMediaResolver := options.installationMediaResolver
+	if installationMediaResolver == nil && c != nil {
+		installationMediaResolver = func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.MediaSpec) (imagefactory.InstallationMedia, error) {
+			return EnsureInstallationMedia(ctx, c, talosVersion, schematic, spec)
 		}
 	}
 
@@ -164,7 +164,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		options.concurrency,
 		options.encodeRequestIDsIntoTokens,
 		rds,
-		bootAssetResolver,
+		installationMediaResolver,
 	)); err != nil {
 		return err
 	}
@@ -235,86 +235,86 @@ func schematicError(err error) error {
 	return fmt.Errorf("failed to create the schematic through Omni: %w", err)
 }
 
-// EnsureBootAsset ensures the schematic exists on the image factory Omni is configured with, and
-// returns the boot asset the given spec names, built from it.
+// EnsureInstallationMedia ensures the schematic exists on the image factory Omni is configured with, and
+// returns the installation medium the given spec identifies, built from it.
 //
-// Providers that run a provision step should call Context.EnsureBootAsset instead, which builds the
+// Providers that run a provision step should call Context.EnsureInstallationMedia instead, which builds the
 // schematic out of the machine request for them. This is for the ones that never build a provision
 // context, such as a provider serving its own iPXE endpoint.
 //
-// Fetch BootAsset.URL, sending BootAsset.Headers when they are not empty. See imagefactory.BootAsset
+// Fetch InstallationMedia.URL, sending InstallationMedia.Headers when they are not empty. See imagefactory.InstallationMedia
 // for the full contract.
-func EnsureBootAsset(
+func EnsureInstallationMedia(
 	ctx context.Context,
 	c *client.Client,
 	talosVersion string,
 	schematic schematic.Schematic,
-	spec provision.BootAssetSpec,
-) (imagefactory.BootAsset, error) {
+	spec provision.MediaSpec,
+) (imagefactory.InstallationMedia, error) {
 	schematicID, err := EnsureSchematic(ctx, c, talosVersion, schematic)
 	if err != nil {
-		return imagefactory.BootAsset{}, err
+		return imagefactory.InstallationMedia{}, err
 	}
 
-	return resolveBootAsset(ctx, c, talosVersion, spec, schematicID)
+	return resolveInstallationMedia(ctx, c, talosVersion, spec, schematicID)
 }
 
-// bootAssetKinds maps the kinds this library names onto the wire enum.
-var bootAssetKinds = map[imagefactory.BootAssetKind]management.BootAssetURLRequest_BootAssetKind{
-	imagefactory.BootAssetKindPXE:  management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE,
-	imagefactory.BootAssetKindISO:  management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
-	imagefactory.BootAssetKindDisk: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+// installationMediaKinds maps the kinds this library names onto the wire enum.
+var installationMediaKinds = map[imagefactory.InstallationMediaKind]management.InstallationMediaURLRequest_InstallationMediaKind{
+	imagefactory.InstallationMediaKindPXE:  management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE,
+	imagefactory.InstallationMediaKindISO:  management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO,
+	imagefactory.InstallationMediaKindDisk: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
 }
 
-// resolveBootAsset asks Omni to name and locate the asset, where the server decides how it is
+// resolveInstallationMedia asks Omni to locate the medium, where the server decides how it is
 // authenticated. That is what lets factory auth schemes evolve without updating this library: the
 // caller applies whatever the server returns.
 //
-// A server that predates the boot asset API answers Unimplemented, and the asset is built here instead
+// A server that predates the installation media API answers Unimplemented, and it is built here instead
 // from the image factory configuration in Omni's state, which every version exposes.
-func resolveBootAsset(
+func resolveInstallationMedia(
 	ctx context.Context,
 	c *client.Client,
 	talosVersion string,
-	spec provision.BootAssetSpec,
+	spec provision.MediaSpec,
 	schematicID string,
-) (imagefactory.BootAsset, error) {
-	request, err := bootAssetRequest(talosVersion, schematicID, spec)
+) (imagefactory.InstallationMedia, error) {
+	request, err := installationMediaRequest(talosVersion, schematicID, spec)
 	if err != nil {
-		return imagefactory.BootAsset{}, err
+		return imagefactory.InstallationMedia{}, err
 	}
 
-	resp, err := c.Management().GetBootAssetURL(ctx, request)
+	resp, err := c.Management().GetInstallationMediaURL(ctx, request)
 	if err != nil {
 		if status.Code(err) != codes.Unimplemented {
-			return imagefactory.BootAsset{}, fmt.Errorf("failed to get the boot asset URL from Omni: %w", err)
+			return imagefactory.InstallationMedia{}, fmt.Errorf("failed to get the installation media URL from Omni: %w", err)
 		}
 
-		return imagefactory.ResolveBootAsset(ctx, c.Omni().State(), talosVersion, spec.AssetSpec, schematicID, spec.StandaloneURL)
+		return imagefactory.ResolveInstallationMedia(ctx, c.Omni().State(), talosVersion, spec.MediaSpec, schematicID, spec.StandaloneURL)
 	}
 
-	asset := bootAssetFromResponse(resp)
-	asset.SchematicID = schematicID
+	media := installationMediaFromResponse(resp)
+	media.SchematicID = schematicID
 
-	return asset, nil
+	return media, nil
 }
 
-// bootAssetRequest converts a provision step's spec into the management API request.
-func bootAssetRequest(talosVersion, schematicID string, spec provision.BootAssetSpec) (*management.BootAssetURLRequest, error) {
-	kind, ok := bootAssetKinds[spec.Kind]
+// installationMediaRequest converts a provision step's spec into the management API request.
+func installationMediaRequest(talosVersion, schematicID string, spec provision.MediaSpec) (*management.InstallationMediaURLRequest, error) {
+	kind, ok := installationMediaKinds[spec.Kind]
 	if !ok {
-		return nil, fmt.Errorf("unknown boot asset kind %q", spec.Kind)
+		return nil, fmt.Errorf("unknown installation media kind %q", spec.Kind)
 	}
 
-	request := &management.BootAssetURLRequest{
-		TalosVersion:  talosVersion,
-		SchematicId:   schematicID,
-		StandaloneUrl: spec.StandaloneURL,
-		BootAssetKind: kind,
-		Platform:      spec.Platform,
-		Architecture:  spec.Architecture,
-		Format:        spec.Format,
-		SecureBoot:    spec.SecureBoot,
+	request := &management.InstallationMediaURLRequest{
+		TalosVersion:          talosVersion,
+		SchematicId:           schematicID,
+		StandaloneUrl:         spec.StandaloneURL,
+		InstallationMediaKind: kind,
+		Platform:              spec.Platform,
+		Architecture:          spec.Architecture,
+		Format:                spec.Format,
+		SecureBoot:            spec.SecureBoot,
 	}
 
 	// A zero duration on the wire would look like a request for no lifetime at all, so it stays unset and
@@ -326,8 +326,8 @@ func bootAssetRequest(talosVersion, schematicID string, spec provision.BootAsset
 	return request, nil
 }
 
-// bootAssetFromResponse converts the management API response into the client-side type.
-func bootAssetFromResponse(resp *management.BootAssetURLResponse) imagefactory.BootAsset {
+// installationMediaFromResponse converts the management API response into the client-side type.
+func installationMediaFromResponse(resp *management.InstallationMediaURLResponse) imagefactory.InstallationMedia {
 	var headers http.Header
 
 	if len(resp.Headers) > 0 {
@@ -346,7 +346,7 @@ func bootAssetFromResponse(resp *management.BootAssetURLResponse) imagefactory.B
 		expiresAt = resp.ExpiresAt.AsTime()
 	}
 
-	return imagefactory.BootAsset{
+	return imagefactory.InstallationMedia{
 		URL:              resp.Url,
 		Headers:          headers,
 		StorageKey:       resp.StorageKey,

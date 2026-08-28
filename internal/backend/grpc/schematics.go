@@ -179,27 +179,27 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 	}, nil
 }
 
-// bootAssetKinds maps the wire enum onto the kinds the image factory serves.
-var bootAssetKinds = map[management.BootAssetURLRequest_BootAssetKind]imagefactory.BootAssetKind{
-	management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE:  imagefactory.BootAssetKindPXE,
-	management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO:  imagefactory.BootAssetKindISO,
-	management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK: imagefactory.BootAssetKindDisk,
+// installationMediaKinds maps the wire enum onto the kinds the image factory serves.
+var installationMediaKinds = map[management.InstallationMediaURLRequest_InstallationMediaKind]imagefactory.InstallationMediaKind{
+	management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE:  imagefactory.InstallationMediaKindPXE,
+	management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO:  imagefactory.InstallationMediaKindISO,
+	management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK: imagefactory.InstallationMediaKindDisk,
 }
 
-// GetBootAssetURL implements managementServer.
-func (s *managementServer) GetBootAssetURL(ctx context.Context, request *management.BootAssetURLRequest) (*management.BootAssetURLResponse, error) {
+// GetInstallationMediaURL implements managementServer.
+func (s *managementServer) GetInstallationMediaURL(ctx context.Context, request *management.InstallationMediaURLRequest) (*management.InstallationMediaURLResponse, error) {
 	if _, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin)); err != nil {
 		return nil, err
 	}
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	kind, ok := bootAssetKinds[request.BootAssetKind]
+	kind, ok := installationMediaKinds[request.InstallationMediaKind]
 	if !ok {
-		return nil, status.Errorf(codes.InvalidArgument, "unknown boot asset kind %s", request.BootAssetKind)
+		return nil, status.Errorf(codes.InvalidArgument, "unknown installation media kind %s", request.InstallationMediaKind)
 	}
 
-	spec := imagefactory.AssetSpec{
+	spec := imagefactory.MediaSpec{
 		Kind:         kind,
 		Platform:     request.Platform,
 		Architecture: request.Architecture,
@@ -213,30 +213,30 @@ func (s *managementServer) GetBootAssetURL(ctx context.Context, request *managem
 		TTL:       request.DownloadTokenTtl.AsDuration(),
 	})
 
-	asset, err := imagefactory.ResolveBootAsset(ctx, s.omniState, request.TalosVersion, spec, request.SchematicId, request.StandaloneUrl, downloadTokens)
+	media, err := imagefactory.ResolveInstallationMedia(ctx, s.omniState, request.TalosVersion, spec, request.SchematicId, request.StandaloneUrl, downloadTokens)
 	if err != nil {
 		if errors.Is(err, imagefactory.ErrInvalidInput) {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 
-		return nil, status.Errorf(codes.Internal, "failed to resolve the boot asset: %s", err)
+		return nil, status.Errorf(codes.Internal, "failed to resolve the installation media: %s", err)
 	}
 
-	headers := make(map[string]string, len(asset.Headers))
+	headers := make(map[string]string, len(media.Headers))
 
-	for name := range asset.Headers {
-		headers[name] = asset.Headers.Get(name)
+	for name := range media.Headers {
+		headers[name] = media.Headers.Get(name)
 	}
 
-	response := &management.BootAssetURLResponse{
-		Url:              asset.URL,
+	response := &management.InstallationMediaURLResponse{
+		Url:              media.URL,
 		Headers:          headers,
-		ImageFactoryHost: asset.ImageFactoryHost,
-		StorageKey:       asset.StorageKey,
+		ImageFactoryHost: media.ImageFactoryHost,
+		StorageKey:       media.StorageKey,
 	}
 
-	if !asset.ExpiresAt.IsZero() {
-		response.ExpiresAt = timestamppb.New(asset.ExpiresAt)
+	if !media.ExpiresAt.IsZero() {
+		response.ExpiresAt = timestamppb.New(media.ExpiresAt)
 	}
 
 	return response, nil

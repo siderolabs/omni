@@ -189,20 +189,20 @@ message CreateSchematicResponse {
   string schematic_yml = 4;
 }
 
-message BootAssetURLRequest {
-  // BootAssetKind is one of the asset kinds the image factory serves. The comments show the shape of
-  // the name the factory serves the asset under, which Omni assembles from the fields below.
-  enum BootAssetKind {
-    BOOT_ASSET_KIND_UNSET = 0;
+message InstallationMediaURLRequest {
+  // InstallationMediaKind is one of the kinds the image factory serves. The comments show the shape of
+  // the filename the factory serves each kind under, which Omni assembles from the fields below.
+  enum InstallationMediaKind {
+    INSTALLATION_MEDIA_KIND_UNSET = 0;
     // <platform>-<arch>[-secureboot], served from the factory's PXE endpoint.
-    BOOT_ASSET_KIND_PXE = 1;
+    INSTALLATION_MEDIA_KIND_PXE = 1;
     // <platform>-<arch>[-secureboot].iso
-    BOOT_ASSET_KIND_ISO = 2;
+    INSTALLATION_MEDIA_KIND_ISO = 2;
     // <platform>-<arch>[-secureboot].<format>
-    BOOT_ASSET_KIND_DISK = 3;
+    INSTALLATION_MEDIA_KIND_DISK = 3;
   }
 
-  // TalosVersion selects the image factory the same way asset URLs do.
+  // TalosVersion selects the image factory the same way the media URLs do.
   string talos_version = 1;
   // SchematicId is the ID the image factory returned for a schematic, e.g. from CreateSchematicFromRaw.
   string schematic_id = 2;
@@ -212,16 +212,16 @@ message BootAssetURLRequest {
   // Such a URL is as sensitive as the credentials it carries. Anything it is written into, like an
   // iPXE script or a task log, exposes them to whoever can read it.
   //
-  // When this is set, Headers on the response will be empty. It is implied for PXE assets, which are
+  // When this is set, Headers on the response will be empty. It is implied for the PXE kind, which is
   // fetched by firmware that cannot send headers.
   //
   // Leaving it unset does not promise headers: a factory that authenticates downloads with a token puts it
   // in the URL for every caller. Send Headers whenever it is not empty, instead of deciding from this field.
   bool standalone_url = 3;
-  BootAssetKind boot_asset_kind = 4;
+  InstallationMediaKind installation_media_kind = 4;
 
-  // Platform, Architecture, Format and SecureBoot name the asset. Omni assembles the image factory
-  // filename out of them, so callers never encode the naming convention themselves.
+  // Platform, Architecture, Format and SecureBoot identify which medium is wanted. Omni assembles the
+  // image factory filename out of them, so callers never encode the naming convention themselves.
   //
   // Platform is the Talos platform, e.g. "metal" or "nocloud".
   string platform = 5;
@@ -240,20 +240,20 @@ message BootAssetURLRequest {
   google.protobuf.Duration download_token_ttl = 9;
 }
 
-message BootAssetURLResponse {
+message InstallationMediaURLResponse {
   string url = 1;
   // Headers must be sent with the request fetching the URL. Empty when the image factory needs no
   // authentication, or when it travels inside the URL instead.
   map<string, string> headers = 2;
-  // ImageFactoryHost is the same host as in the URL. Purely informative: to fetch the asset, only the
+  // ImageFactoryHost is the same host as in the URL. Purely informative: to fetch the medium, only the
   // URL and the headers should be used.
   string image_factory_host = 3;
-  // StorageKey identifies the asset the URL points at, for callers that store what they download. It
-  // changes only when the asset itself does, so it is stable across credential rotation, unlike the URL,
+  // StorageKey identifies the medium the URL points at, for callers that store what they download. It
+  // changes only when the medium itself does, so it is stable across credential rotation, unlike the URL,
   // which can carry credentials or a token.
   //
   // Treat it as opaque. Omni may change how it is derived, which costs a caller one re-download of the
-  // assets it already holds.
+  // media it already holds.
   string storage_key = 4;
 
   // ExpiresAt is when the URL stops working, for a caller that does not perform the fetch itself, such as
@@ -499,7 +499,7 @@ service ManagementService {
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc CreateSchematicFromRaw(CreateSchematicFromRawRequest) returns (CreateSchematicResponse);
-  rpc GetBootAssetURL(BootAssetURLRequest) returns (BootAssetURLResponse);
+  rpc GetInstallationMediaURL(InstallationMediaURLRequest) returns (InstallationMediaURLResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);

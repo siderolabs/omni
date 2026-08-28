@@ -92,12 +92,12 @@ type ConnectionParams struct {
 	CustomDataEncoded bool
 }
 
-// BootAssetSpec names the boot asset a provision step wants, without saying how the image factory
+// MediaSpec identifies the installation medium a provision step wants, without saying how the image factory
 // spells it, and says how the provider intends to fetch it.
-type BootAssetSpec struct {
-	// AssetSpec names the asset. It is embedded rather than restated so that a field added to it reaches
-	// every caller, instead of being dropped by one of the conversions along the way.
-	imagefactory.AssetSpec
+type MediaSpec struct {
+	// Embedded rather than restated so that a field added to it reaches every caller, instead of being
+	// dropped by one of the conversions along the way.
+	imagefactory.MediaSpec
 
 	// DownloadTokenTTL is how long this provider needs the URL to keep working for a factory that
 	// authenticates downloads with a token. Zero takes Omni's default, which assumes the fetch happens
@@ -113,11 +113,11 @@ type BootAssetSpec struct {
 	StandaloneURL bool
 }
 
-// BootAssetResolver ensures the schematic exists and returns the boot asset built from it.
+// InstallationMediaResolver ensures the schematic exists and returns the installation medium built from it.
 //
 // The infra library wires one that goes through Omni's management API, so that newer Omni versions can
 // apply image factory changes this library predates.
-type BootAssetResolver func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec BootAssetSpec) (imagefactory.BootAsset, error)
+type InstallationMediaResolver func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec MediaSpec) (imagefactory.InstallationMedia, error)
 
 // NewContext creates a new provision context.
 func NewContext[T resource.Resource](
@@ -126,54 +126,54 @@ func NewContext[T resource.Resource](
 	providerState T,
 	connectionParams ConnectionParams,
 	runtime controller.QRuntime,
-	bootAssetResolver BootAssetResolver,
+	installationMediaResolver InstallationMediaResolver,
 ) Context[T] {
 	return Context[T]{
-		machineRequest:       machineRequest,
-		MachineRequestStatus: machineRequestStatus,
-		State:                providerState,
-		ConnectionParams:     connectionParams,
-		runtime:              runtime,
-		bootAssetResolver:    bootAssetResolver,
+		machineRequest:            machineRequest,
+		MachineRequestStatus:      machineRequestStatus,
+		State:                     providerState,
+		ConnectionParams:          connectionParams,
+		runtime:                   runtime,
+		installationMediaResolver: installationMediaResolver,
 	}
 }
 
 // Context keeps all context which might be required for the provision calls.
 type Context[T resource.Resource] struct {
-	machineRequest       *infra.MachineRequest
-	MachineRequestStatus *infra.MachineRequestStatus
-	runtime              controller.QRuntime
-	bootAssetResolver    BootAssetResolver
-	State                T
-	ConnectionParams     ConnectionParams
+	machineRequest            *infra.MachineRequest
+	MachineRequestStatus      *infra.MachineRequestStatus
+	runtime                   controller.QRuntime
+	installationMediaResolver InstallationMediaResolver
+	State                     T
+	ConnectionParams          ConnectionParams
 }
 
-// EnsureBootAsset returns the boot asset named by the spec, for the machine request's Talos version and
+// EnsureInstallationMedia returns the installation medium the spec identifies, for the machine request's Talos version and
 // the schematic generated from the machine request and the given options.
 //
 // It ensures the schematic exists on the image factory Omni is configured with and then resolves the
-// asset, so a provision step never handles a schematic ID, a factory URL, or a filename convention.
+// medium, so a provision step never handles a schematic ID, a factory URL, or a filename convention.
 //
-// Fetch BootAsset.URL, sending BootAsset.Headers when they are not empty. See imagefactory.BootAsset
+// Fetch InstallationMedia.URL, sending InstallationMedia.Headers when they are not empty. See imagefactory.InstallationMedia
 // for the full contract: the URL is opaque and can carry secrets, so it does not belong in a log line
 // verbatim, it is not a stable input for a persisted name, and it can be short-lived, so use it
-// promptly rather than storing it. BootAsset.ExpiresAt says when it stops working, for a provider that
-// hands it on rather than fetching it, and BootAssetSpec.DownloadTokenTTL asks for a longer one.
-func (context *Context[T]) EnsureBootAsset(ctx context.Context, logger *zap.Logger, spec BootAssetSpec, opts ...SchematicOption) (imagefactory.BootAsset, error) {
+// promptly rather than storing it. InstallationMedia.ExpiresAt says when it stops working, for a provider that
+// hands it on rather than fetching it, and MediaSpec.DownloadTokenTTL asks for a longer one.
+func (context *Context[T]) EnsureInstallationMedia(ctx context.Context, logger *zap.Logger, spec MediaSpec, opts ...SchematicOption) (imagefactory.InstallationMedia, error) {
 	// Built before the resolver is checked, so that a schematic the options cannot produce is reported as
 	// such rather than as a missing resolver.
 	schematic, err := context.buildSchematic(logger, opts...)
 	if err != nil {
-		return imagefactory.BootAsset{}, err
+		return imagefactory.InstallationMedia{}, err
 	}
 
 	// The resolver goes through Omni, which owns the schematic upload as well as naming and locating the
-	// asset. A provider given only a COSI state has no way to reach it and has to supply its own.
-	if context.bootAssetResolver == nil {
-		return imagefactory.BootAsset{}, errors.New("provision context has no boot asset resolver, the infra provider needs an Omni API client")
+	// medium. A provider given only a COSI state has no way to reach it and has to supply its own.
+	if context.installationMediaResolver == nil {
+		return imagefactory.InstallationMedia{}, errors.New("provision context has no installation media resolver, the infra provider needs an Omni API client")
 	}
 
-	return context.bootAssetResolver(ctx, context.GetTalosVersion(), schematic, spec)
+	return context.installationMediaResolver(ctx, context.GetTalosVersion(), schematic, spec)
 }
 
 // GetRequestID returns machine request id.

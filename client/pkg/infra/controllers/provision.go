@@ -39,7 +39,7 @@ const currentStepAnnotation = "infra." + omni.SystemLabelPrefix + "step"
 type ProvisionController[T generic.ResourceWithRD] struct {
 	generic.NamedController
 	provisioner                provision.Provisioner[T]
-	bootAssetResolver          provision.BootAssetResolver
+	installationMediaResolver  provision.InstallationMediaResolver
 	providerID                 string
 	concurrency                uint
 	encodeRequestIDsIntoTokens bool
@@ -49,7 +49,7 @@ type ProvisionController[T generic.ResourceWithRD] struct {
 // NewProvisionController creates new ProvisionController.
 func NewProvisionController[T generic.ResourceWithRD](providerID string, provisioner provision.Provisioner[T], concurrency uint,
 	encodeRequestIDsIntoTokens bool,
-	resourceDefinitions map[string]struct{}, bootAssetResolver provision.BootAssetResolver,
+	resourceDefinitions map[string]struct{}, installationMediaResolver provision.InstallationMediaResolver,
 ) *ProvisionController[T] {
 	_, providerJoinConfigRegistered := resourceDefinitions[strings.ToLower(siderolinkres.ProviderJoinConfigType)]
 
@@ -62,7 +62,7 @@ func NewProvisionController[T generic.ResourceWithRD](providerID string, provisi
 		concurrency:                concurrency,
 		encodeRequestIDsIntoTokens: encodeRequestIDsIntoTokens,
 		useV2Tokens:                providerJoinConfigRegistered,
-		bootAssetResolver:          bootAssetResolver,
+		installationMediaResolver:  installationMediaResolver,
 	}
 }
 
@@ -331,7 +331,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 				st,
 				connectionParams,
 				r,
-				ctrl.bootAssetResolver,
+				ctrl.installationMediaResolver,
 			))
 
 			st.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
