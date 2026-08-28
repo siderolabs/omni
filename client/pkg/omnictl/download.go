@@ -9,12 +9,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/download"
 )
@@ -115,21 +113,14 @@ To download the latest Radxa ROCK PI 4 image, run:
 				GrpcTunnelMode:  download.GRPCTunnelModeFromFlag(cmd, "use-siderolink-grpc-tunnel", deprecatedDownloadFlags.useSiderolinkGRPCTunnel),
 			}
 
+			if err = download.ValidateTalosVersion(ctx, client.Omni().State(), params.TalosVersion); err != nil {
+				return err
+			}
+
 			image, err := download.FindImage(ctx, client, args[0], params)
 			if err != nil {
 				return err
 			}
-
-			version, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, client.Omni().State(), deprecatedDownloadFlags.talosVersion)
-			if err != nil {
-				return fmt.Errorf("version %q is not known by this Omni instance", deprecatedDownloadFlags.talosVersion)
-			}
-
-			if version.TypedSpec().Value.ImageFactoryUrl == "" {
-				return fmt.Errorf("version %q does not have an ImageFactory URL configured", deprecatedDownloadFlags.talosVersion)
-			}
-
-			image.FactoryURL = version.TypedSpec().Value.ImageFactoryUrl
 
 			return download.DownloadImageTo(ctx, client, image, params)
 		})

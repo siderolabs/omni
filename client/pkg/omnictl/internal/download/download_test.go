@@ -5,14 +5,11 @@
 package download_test
 
 import (
-	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -20,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/download"
@@ -349,78 +347,58 @@ func TestValidateEmbeddedConfigSupport(t *testing.T) {
 	})
 }
 
-func TestImageFactoryCredentials(t *testing.T) {
+func TestMediaSpec(t *testing.T) {
 	t.Parallel()
 
-	ctx := t.Context()
+	for _, test := range []struct {
+		name     string
+		image    download.ImageInfo
+		params   download.Params
+		expected imagefactory.MediaSpec
+	}{
+		{
+			name:     "metal ISO",
+			image:    download.ImageInfo{Profile: "metal", Architecture: "amd64", Extension: "iso"},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal", Architecture: "amd64", Format: "iso"},
+		},
+		{
+			name:     "metal raw disk image",
+			image:    download.ImageInfo{Profile: "metal", Architecture: "arm64", Extension: "raw.xz"},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "metal", Architecture: "arm64", Format: "raw.xz"},
+		},
+		{
+			name:     "metal qcow2 disk image",
+			image:    download.ImageInfo{Profile: "metal", Architecture: "amd64", Extension: "qcow2"},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "metal", Architecture: "amd64", Format: "qcow2"},
+		},
+		{
+			name:     "cloud platform",
+			image:    download.ImageInfo{Profile: "aws", Architecture: "amd64", Extension: "raw.xz"},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindDisk, Platform: "aws", Architecture: "amd64", Format: "raw.xz"},
+		},
+		{
+			name:     "secure boot ISO",
+			image:    download.ImageInfo{Profile: "metal", Architecture: "amd64", Extension: "iso"},
+			params:   download.Params{SecureBoot: true},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindISO, Platform: "metal", Architecture: "amd64", Format: "iso", SecureBoot: true},
+		},
+		{
+			// PXE wins over the extension, which a preset leaves at "iso" because nothing is downloaded.
+			name:     "PXE",
+			image:    download.ImageInfo{Profile: "metal", Architecture: "amd64", Extension: "iso"},
+			params:   download.Params{PXE: true},
+			expected: imagefactory.MediaSpec{Kind: imagefactory.InstallationMediaKindPXE, Platform: "metal", Architecture: "amd64", Format: "iso"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-	t.Run("public factory returns no credentials without reading the auth resource", func(t *testing.T) {
-		t.Parallel()
+			spec := download.MediaSpec(test.image, test.params)
 
-		// State is intentionally empty: a public factory must not require the auth resource.
-		st := newTestState(t)
-
-		username, password, err := download.ImageFactoryCredentials(ctx, st, "")
-		require.NoError(t, err)
-		require.Empty(t, username)
-		require.Empty(t, password)
-	})
-
-	t.Run("enterprise factory returns the stored credentials", func(t *testing.T) {
-		t.Parallel()
-
-		st := newTestState(t)
-
-		auth := omni.NewImageFactoryAuth("https://factory.example.org")
-		auth.TypedSpec().Value.Username = "omni-e2e-test"
-		auth.TypedSpec().Value.Password = "s3cr3t"
-		require.NoError(t, st.Create(ctx, auth))
-
-		username, password, err := download.ImageFactoryCredentials(ctx, st, auth.Metadata().ID())
-		require.NoError(t, err)
-		require.Equal(t, "omni-e2e-test", username)
-		require.Equal(t, "s3cr3t", password)
-	})
-
-	t.Run("trims a trailing slash off the factory URL", func(t *testing.T) {
-		t.Parallel()
-
-		st := newTestState(t)
-
-		auth := omni.NewImageFactoryAuth("https://factory.example.org")
-		auth.TypedSpec().Value.Username = "omni-e2e-test"
-		auth.TypedSpec().Value.Password = "s3cr3t"
-		require.NoError(t, st.Create(ctx, auth))
-
-		username, password, err := download.ImageFactoryCredentials(ctx, st, "https://factory.example.org/")
-		require.NoError(t, err)
-		require.Equal(t, "omni-e2e-test", username)
-		require.Equal(t, "s3cr3t", password)
-	})
-
-	t.Run("propagates a lookup failure that is not NotFound", func(t *testing.T) {
-		t.Parallel()
-
-		// A missing auth resource means "public factory" and is handled above; any other failure has to
-		// surface instead of silently downgrading to anonymous downloads.
-		st := failingGetState{State: newTestState(t), err: errors.New("state is unavailable")}
-
-		_, _, err := download.ImageFactoryCredentials(ctx, st, "https://factory.example.org")
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to get image factory auth")
-		require.Contains(t, err.Error(), "state is unavailable")
-	})
-}
-
-// failingGetState is a state.State whose Get always fails with a non-NotFound error.
-type failingGetState struct {
-	state.State
-
-	err error
-}
-
-func (s failingGetState) Get(context.Context, resource.Pointer, ...state.GetOption) (resource.Resource, error) {
-	return nil, s.err
+			require.Equal(t, test.expected, spec)
+			require.NoError(t, spec.Validate())
+		})
+	}
 }
 
 func TestGrpcTunnelModeToString(t *testing.T) {

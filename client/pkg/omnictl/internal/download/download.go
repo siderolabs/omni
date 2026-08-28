@@ -10,8 +10,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -21,11 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-api-signature/pkg/message"
-	pgpclient "github.com/siderolabs/go-api-signature/pkg/pgp/client"
-	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
-	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
@@ -37,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
-	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -63,42 +58,13 @@ const (
 
 // ImageInfo describes an installation media image for download.
 type ImageInfo struct {
-	MediaID        string // resource ID for CreateSchematicRequest.MediaId (empty when using Overlay)
+	MediaID        string // resource ID for CreateSchematicRequest.MediaId (unused when Params.Overlay is set)
 	Name           string // display name
 	DestFilePrefix string // prefix for output filename
 	Profile        string // platform profile (e.g., "metal", "aws")
-	Overlay        string // SBC overlay name (empty for non-SBC)
 	Architecture   string // amd64, arm64
 	Extension      string // file extension (iso, raw.xz, qcow2)
-	FactoryURL     string // factory base URL used for the Image
 	NoSecureBoot   bool   // true if secure boot is not supported
-}
-
-// generateFilename builds the filename portion of the image factory URL.
-func (info *ImageInfo) generateFilename(legacy, secureBoot, withExtension bool) string {
-	var builder strings.Builder
-
-	if info.Overlay != "" {
-		if legacy {
-			builder.WriteString(talosconstants.PlatformMetal + "-" + info.Profile)
-		} else {
-			builder.WriteString(talosconstants.PlatformMetal)
-		}
-	} else {
-		builder.WriteString(info.Profile)
-	}
-
-	builder.WriteString("-" + info.Architecture)
-
-	if secureBoot {
-		builder.WriteString("-secureboot")
-	}
-
-	if withExtension {
-		builder.WriteString("." + info.Extension)
-	}
-
-	return builder.String()
 }
 
 // imageInfoFromResource constructs an ImageInfo from an InstallationMedia resource.
@@ -110,7 +76,6 @@ func imageInfoFromResource(media *omni.InstallationMedia) ImageInfo {
 		Name:           spec.Name,
 		DestFilePrefix: spec.DestFilePrefix,
 		Profile:        spec.Profile,
-		Overlay:        spec.Overlay,
 		Architecture:   spec.Architecture,
 		Extension:      spec.Extension,
 		NoSecureBoot:   spec.NoSecureBoot,
@@ -410,7 +375,6 @@ type MediaBuildOptions struct {
 	Platform       string
 	Overlay        string
 	OverlayOptions string
-	FactoryURL     string
 }
 
 // BuildImageFromPreset constructs an ImageInfo from preset configuration.
@@ -420,13 +384,11 @@ func BuildImageFromPreset(ctx context.Context, client *client.Client, name, arch
 		Name:           name,
 		DestFilePrefix: name,
 		Architecture:   arch,
-		FactoryURL:     opts.FactoryURL,
 	}
 
 	switch {
 	case opts.Overlay != "":
 		info.Profile = talosconstants.PlatformMetal
-		info.Overlay = opts.Overlay
 		info.Extension = extensionRawXZ
 		info.NoSecureBoot = true
 
@@ -590,7 +552,6 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 		JoinToken:                params.JoinToken,
 		Bootloader:               params.Bootloader,
 		EmbeddedMachineConfig:    params.EmbeddedMachineConfig,
-		ImageFactoryUrl:          image.FactoryURL,
 	}
 
 	if params.Overlay != nil {
@@ -605,6 +566,71 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 	}
 
 	return resp, nil
+}
+
+func installationMediaKind(kind imagefactory.InstallationMediaKind) management.InstallationMediaURLRequest_InstallationMediaKind {
+	switch kind {
+	case imagefactory.InstallationMediaKindPXE:
+		return management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE
+	case imagefactory.InstallationMediaKindISO:
+		return management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_ISO
+	case imagefactory.InstallationMediaKindDisk:
+		return management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK
+	default:
+		return management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_UNSET
+	}
+}
+
+func mediaSpec(image ImageInfo, params Params) imagefactory.MediaSpec {
+	kind := imagefactory.InstallationMediaKindDisk
+
+	switch {
+	case params.PXE:
+		kind = imagefactory.InstallationMediaKindPXE
+	case image.Extension == formatISO:
+		kind = imagefactory.InstallationMediaKindISO
+	}
+
+	return imagefactory.MediaSpec{
+		Kind:         kind,
+		Platform:     image.Profile,
+		Architecture: image.Architecture,
+		Format:       image.Extension,
+		SecureBoot:   params.SecureBoot,
+	}
+}
+
+// resolveInstallationMedia asks Omni where the medium is and how the fetch has to be authenticated, so omnictl
+// carries neither the factory's URL layout nor its credentials.
+func resolveInstallationMedia(
+	ctx context.Context, c *client.Client, talosVersion, schematicID string, spec imagefactory.MediaSpec,
+) (imagefactory.InstallationMedia, error) {
+	resp, err := c.Management().GetInstallationMediaURL(ctx, &management.InstallationMediaURLRequest{
+		TalosVersion: talosVersion,
+		SchematicId:  schematicID,
+		// PXE is fetched by firmware that cannot send a header, so its authentication travels in the URL.
+		StandaloneUrl:         spec.Kind == imagefactory.InstallationMediaKindPXE,
+		InstallationMediaKind: installationMediaKind(spec.Kind),
+		Platform:              spec.Platform,
+		Architecture:          spec.Architecture,
+		Format:                spec.Format,
+		SecureBoot:            spec.SecureBoot,
+	})
+	if err != nil {
+		return imagefactory.InstallationMedia{}, fmt.Errorf("failed to get the installation media URL from Omni: %w", err)
+	}
+
+	headers := make(http.Header, len(resp.Headers))
+
+	for name, value := range resp.Headers {
+		headers.Set(name, value)
+	}
+
+	return imagefactory.InstallationMedia{
+		URL:              resp.Url,
+		Headers:          headers,
+		ImageFactoryHost: resp.ImageFactoryHost,
+	}, nil
 }
 
 // DownloadImageTo downloads an installation media image and saves it to the output path.
@@ -625,58 +651,27 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		fmt.Fprintf(os.Stderr, "WARNING: requested setting \"--use-siderolink-grpc-tunnel\" is ignored because the server's SideroLink gRPC tunnel setting is enabled.\n")
 	}
 
-	fmt.Fprintf(os.Stderr, "Using image factory at %q\n", image.FactoryURL)
+	spec := mediaSpec(image, params)
 
-	username, password, err := ImageFactoryCredentials(ctx, client.Omni().State(), image.FactoryURL)
+	media, err := resolveInstallationMedia(ctx, client, params.TalosVersion, schematicResp.SchematicId, spec)
 	if err != nil {
 		return err
 	}
 
-	legacy := !quirks.New(params.TalosVersion).SupportsOverlay()
-
-	generatedFilename := image.generateFilename(legacy, params.SecureBoot, true)
+	fmt.Fprintf(os.Stderr, "Using image factory at %q\n", media.ImageFactoryHost)
 
 	if params.PXE {
-		var features *omni.FeaturesConfig
-
-		features, err = safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
-		if err != nil {
-			return fmt.Errorf("failed to get features config: %w", err)
-		}
-
-		pxeURLString := features.TypedSpec().Value.ImageFactoryPxeBaseUrl
-		if strings.TrimRight(features.TypedSpec().Value.SecondaryImageFactoryBaseUrl, "/") == strings.TrimRight(image.FactoryURL, "/") {
-			pxeURLString = features.TypedSpec().Value.SecondaryImageFactoryPxeBaseUrl
-		}
-
-		pxeFilename := image.generateFilename(legacy, params.SecureBoot, false)
-
-		var pxeURL *url.URL
-
-		pxeURL, err = url.Parse(pxeURLString)
-		if err != nil {
-			return err
-		}
-
-		pxeURL = pxeURL.JoinPath("pxe", schematicResp.SchematicId, params.TalosVersion, pxeFilename)
-
-		if username != "" && password != "" {
-			pxeURL.User = url.UserPassword(username, password)
-		}
-
-		fmt.Println(pxeURL.String())
+		fmt.Println(media.URL)
 
 		return nil
 	}
 
-	req, err := createDirectRequest(ctx, image.FactoryURL, schematicResp.SchematicId, params.TalosVersion, generatedFilename, params.SecureBoot)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, media.URL, nil)
 	if err != nil {
 		return err
 	}
 
-	if username != "" && password != "" {
-		req.SetBasicAuth(username, password)
-	}
+	maps.Copy(req.Header, media.Headers)
 
 	dest := params.Output
 	if filepath.Ext(params.Output) == "" {
@@ -685,16 +680,11 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 			image.DestFilePrefix,
 			params.TalosVersion,
 			schematicResp.SchematicId[:6],
-			filepath.Ext(generatedFilename),
+			filepath.Ext(spec.Filename()),
 		))
 	}
 
-	return downloadToFile(req, client.KeyProvider(), dest)
-}
-
-// ImageFactoryCredentials returns the credentials to authenticate installation media downloads against the configured image factory.
-func ImageFactoryCredentials(ctx context.Context, st state.State, url string) (username, password string, err error) {
-	return imagefactory.Credentials(ctx, st, url)
+	return downloadToFile(req, dest)
 }
 
 func filterMedia[T any](ctx context.Context, client *client.Client, check func(value *omni.InstallationMedia) (T, bool)) ([]T, error) {
@@ -715,73 +705,6 @@ func filterMedia[T any](ctx context.Context, client *client.Client, check func(v
 	}
 
 	return result, nil
-}
-
-func createDirectRequest(ctx context.Context, baseURL, schematic, talosVersion, filename string, secureBoot bool) (*http.Request, error) {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Scheme = "https"
-
-	u.Path, err = url.JoinPath(u.Path, "image", schematic, talosVersion, filename)
-	if err != nil {
-		return nil, err
-	}
-
-	if secureBoot {
-		query := u.Query()
-		query.Add("secureboot", "true")
-
-		u.RawQuery = query.Encode()
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, err
-}
-
-func signRequest(req *http.Request, provider *pgpclient.KeyProvider) error {
-	identity, signer, err := getSigner(provider)
-	if err != nil {
-		return err
-	}
-
-	msg, err := message.NewHTTP(req)
-	if err != nil {
-		return err
-	}
-
-	return msg.Sign(identity, signer)
-}
-
-// getSigner returns the identity and the signer to use for signing the request.
-func getSigner(provider *pgpclient.KeyProvider) (identity string, signer message.Signer, err error) {
-	envKey, valueBase64 := serviceaccount.GetFromEnv()
-	if envKey != "" {
-		sa, saErr := serviceaccount.Decode(valueBase64)
-		if saErr != nil {
-			return "", nil, saErr
-		}
-
-		return sa.Name, sa.Key, nil
-	}
-
-	contextName, configCtx, err := currentConfigCtx()
-	if err != nil {
-		return "", nil, err
-	}
-
-	key, keyErr := provider.ReadValidKey(contextName, configCtx.Auth.SideroV1.Identity)
-	if keyErr != nil {
-		return "", nil, fmt.Errorf("failed to read key: %w", keyErr)
-	}
-
-	return configCtx.Auth.SideroV1.Identity, key, nil
 }
 
 // ParseLabelPairs converts label key=value pairs into a map.
@@ -856,33 +779,7 @@ func lookupExtensions(ctx context.Context, st state.State, talosVersion string, 
 	return result, nil
 }
 
-func currentConfigCtx() (name string, ctx *config.Context, err error) {
-	conf, err := config.Current()
-	if err != nil {
-		return "", nil, err
-	}
-
-	contextName := conf.Context
-	if access.CmdFlags.Context != "" {
-		contextName = access.CmdFlags.Context
-	}
-
-	configCtx, err := conf.GetContext(contextName)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return contextName, configCtx, nil
-}
-
-// downloadToFile signs and executes an HTTP request, then saves the response to dest.
-// If dest is a directory, filename is used as the base name.
-func downloadToFile(req *http.Request, provider *pgpclient.KeyProvider, dest string) error {
-	err := signRequest(req, provider)
-	if err != nil {
-		return err
-	}
-
+func downloadToFile(req *http.Request, dest string) error {
 	httpClient, err := newHTTPClient()
 	if err != nil {
 		return err
