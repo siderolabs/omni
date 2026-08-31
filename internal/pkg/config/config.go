@@ -238,18 +238,10 @@ const (
 	// Deprecated: use EnvPrimaryFactoryUsername/EnvPrimaryFactoryPassword instead.
 	EnvImageFactoryPassword = "OMNI_IMAGE_FACTORY_PASSWORD"
 
-	EnvPrimaryFactoryOAuth2Domain         = "OMNI_PRIMARY_FACTORY_OAUTH2_DOMAIN"
-	EnvPrimaryFactoryOAuth2Audience       = "OMNI_PRIMARY_FACTORY_OAUTH2_AUDIENCE"
-	EnvPrimaryFactoryOAuth2ClientID       = "OMNI_PRIMARY_FACTORY_OAUTH2_CLIENT_ID"
-	EnvPrimaryFactoryOAuth2ClientSecret   = "OMNI_PRIMARY_FACTORY_OAUTH2_CLIENT_SECRET"
-	EnvPrimaryFactoryUsername             = "OMNI_PRIMARY_FACTORY_USERNAME"
-	EnvPrimaryFactoryPassword             = "OMNI_PRIMARY_FACTORY_PASSWORD"
-	EnvSecondaryFactoryOAuth2Domain       = "OMNI_SECONDARY_FACTORY_OAUTH2_DOMAIN"
-	EnvSecondaryFactoryOAuth2Audience     = "OMNI_SECONDARY_FACTORY_OAUTH2_AUDIENCE"
-	EnvSecondaryFactoryOAuth2ClientID     = "OMNI_SECONDARY_FACTORY_OAUTH2_CLIENT_ID"
-	EnvSecondaryFactoryOAuth2ClientSecret = "OMNI_SECONDARY_FACTORY_OAUTH2_CLIENT_SECRET"
-	EnvSecondaryFactoryUsername           = "OMNI_SECONDARY_FACTORY_USERNAME"
-	EnvSecondaryFactoryPassword           = "OMNI_SECONDARY_FACTORY_PASSWORD"
+	EnvPrimaryFactoryUsername   = "OMNI_PRIMARY_FACTORY_USERNAME"
+	EnvPrimaryFactoryPassword   = "OMNI_PRIMARY_FACTORY_PASSWORD"
+	EnvSecondaryFactoryUsername = "OMNI_SECONDARY_FACTORY_USERNAME"
+	EnvSecondaryFactoryPassword = "OMNI_SECONDARY_FACTORY_PASSWORD"
 )
 
 // applyEnvOverrides overrides config values from environment variables, when set.
@@ -275,49 +267,13 @@ func (p *Params) applyEnvOverrides() {
 	}
 
 	for _, factory := range []struct {
-		target                *Factory
-		oauth2DomainEnv       string
-		oauth2AudienceEnv     string
-		oauth2ClientIdEnv     string
-		oauth2ClientSecretEnv string
-		usernameEnv           string
-		passwordEnv           string
+		target      *Factory
+		usernameEnv string
+		passwordEnv string
 	}{
-		{
-			target:                &p.Registries.Factories.Primary,
-			oauth2DomainEnv:       EnvPrimaryFactoryOAuth2Domain,
-			oauth2AudienceEnv:     EnvPrimaryFactoryOAuth2Audience,
-			oauth2ClientIdEnv:     EnvPrimaryFactoryOAuth2ClientID,
-			oauth2ClientSecretEnv: EnvPrimaryFactoryOAuth2ClientSecret,
-			usernameEnv:           EnvPrimaryFactoryUsername,
-			passwordEnv:           EnvPrimaryFactoryPassword,
-		},
-		{
-			target:                &p.Registries.Factories.Secondary,
-			oauth2DomainEnv:       EnvSecondaryFactoryOAuth2Domain,
-			oauth2AudienceEnv:     EnvSecondaryFactoryOAuth2Audience,
-			oauth2ClientIdEnv:     EnvSecondaryFactoryOAuth2ClientID,
-			oauth2ClientSecretEnv: EnvSecondaryFactoryOAuth2ClientSecret,
-			usernameEnv:           EnvSecondaryFactoryUsername,
-			passwordEnv:           EnvSecondaryFactoryPassword,
-		},
+		{target: &p.Registries.Factories.Primary, usernameEnv: EnvPrimaryFactoryUsername, passwordEnv: EnvPrimaryFactoryPassword},
+		{target: &p.Registries.Factories.Secondary, usernameEnv: EnvSecondaryFactoryUsername, passwordEnv: EnvSecondaryFactoryPassword},
 	} {
-		if v, ok := os.LookupEnv(factory.oauth2DomainEnv); ok {
-			factory.target.OAuth2.SetDomain(v)
-		}
-
-		if v, ok := os.LookupEnv(factory.oauth2AudienceEnv); ok {
-			factory.target.OAuth2.SetAudience(v)
-		}
-
-		if v, ok := os.LookupEnv(factory.oauth2ClientIdEnv); ok {
-			factory.target.OAuth2.SetClientID(v)
-		}
-
-		if v, ok := os.LookupEnv(factory.oauth2ClientSecretEnv); ok {
-			factory.target.OAuth2.SetClientSecret(v)
-		}
-
 		if v, ok := os.LookupEnv(factory.usernameEnv); ok {
 			factory.target.SetUsername(v)
 		}

@@ -3,13 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+//nolint:unparam
 package imagefactory_test
 
 import (
 	"context"
-	"errors"
-	"strconv"
-	"sync"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -20,77 +18,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
-	"github.com/siderolabs/omni/internal/pkg/auth/oauth2"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokens"
 )
 
-const (
-	testFactoryURL      = "https://factory.example.com"
-	testFactoryClientID = "client-id"
-	testFactoryAudience = "https://image-factory.example.com"
-
-	// testTokenLifetime is the lifetime an authorization server gives an access token by default, so
-	// the controller is exercised on the schedule it actually runs on.
-	testTokenLifetime = 24 * time.Hour
-)
-
-// fakeIssuer hands out tokens without talking to an authorization server, numbering them so a test
-// can tell one issued token from the next.
-type fakeIssuer struct { //nolint:govet // grouped by role rather than by alignment
-	clientID string
-	audience string
-	lifetime time.Duration
-
-	mu    sync.Mutex
-	count int
-	err   error
-}
-
-func newFakeIssuer() *fakeIssuer {
-	return &fakeIssuer{clientID: testFactoryClientID, audience: testFactoryAudience, lifetime: testTokenLifetime}
-}
-
-func (i *fakeIssuer) IssueToken(context.Context) (oauth2.AccessToken, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.err != nil {
-		return oauth2.AccessToken{}, i.err
-	}
-
-	i.count++
-
-	issuedAt := time.Now()
-
-	return oauth2.AccessToken{
-		Token:     tokenValue(i.count),
-		TokenType: "Bearer",
-		IssuedAt:  issuedAt,
-		ExpiresAt: issuedAt.Add(i.lifetime),
-	}, nil
-}
-
-func (i *fakeIssuer) ClientID() string { return i.clientID }
-
-func (i *fakeIssuer) Audience() string { return i.audience }
-
-func (i *fakeIssuer) setError(err error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	i.err = err
-}
-
-func tokenValue(n int) string {
-	return "token-" + strconv.Itoa(n)
-}
+const testFactoryURL = "https://factory.example.com"
 
 // testRegistries builds a configuration with a single primary factory at testFactoryURL, given basic
 // auth when a username is passed.
@@ -106,47 +41,29 @@ func testRegistries(username, password string) *config.Registries {
 	return &config.Registries{Factories: config.Factories{Primary: primary}}
 }
 
-// registerImageFactoryAuthController registers the controller under test with the given issuer for
-// testFactoryURL. A nil issuer stands for a factory that has no OAuth2 client credentials.
-func registerImageFactoryAuthController(t *testing.T, tc testutils.TestContext, registries *config.Registries, issuer *fakeIssuer) {
-	issuers := map[string]tokens.Issuer{}
-	if issuer != nil {
-		issuers[testFactoryURL] = issuer
-	}
-
-	require.NoError(t, tc.Runtime.RegisterController(
-		imagefactory.NewAuthController(registries, tokens.NewIssuersFromMap(issuers)),
-	))
+// registerImageFactoryAuthController registers the controller under test.
+func registerImageFactoryAuthController(t *testing.T, tc testutils.TestContext, registries *config.Registries) {
+	require.NoError(t, tc.Runtime.RegisterController(imagefactory.NewAuthController(registries)))
 }
 
 // createImageFactoryAuth seeds a resource that looks like one the controller wrote, since the
 // controller only modifies resources it owns.
-func createImageFactoryAuth(ctx context.Context, t *testing.T, st state.State, factoryURL, username string, token *specs.ImageFactoryAuthSpec_AccessToken) {
+func createImageFactoryAuth(ctx context.Context, t *testing.T, st state.State, factoryURL, username string) {
 	auth := omni.NewImageFactoryAuth(factoryURL)
 	auth.TypedSpec().Value.Username = username
-	auth.TypedSpec().Value.Token = token
 
 	require.NoError(t, st.Create(ctx, auth, state.WithCreateOwner(imagefactory.AuthControllerName)))
 }
 
-// assertRecordedToken requires that the factory's recorded access token is exactly the expected one.
-func assertRecordedToken(ctx context.Context, t *testing.T, st state.State, expected string) {
-	t.Helper()
-
-	auth, err := safe.StateGetByID[*omni.ImageFactoryAuth](ctx, st, testFactoryURL)
-	require.NoError(t, err)
-	assert.Equal(t, expected, auth.TypedSpec().Value.GetToken().GetToken())
-}
-
-// TestImageFactoryAuthBasicAuthOnly covers a factory configured with basic auth and no OAuth2
-// client: the controller takes over what the Omni startup path used to write, and issues no token.
+// TestImageFactoryAuthBasicAuthOnly covers a factory configured with basic auth: the controller
+// takes over what the Omni startup path used to write.
 func TestImageFactoryAuthBasicAuthOnly(t *testing.T) {
 	t.Parallel()
 
 	testutils.WithRuntime(
 		t.Context(), t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
+			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			rtestutils.AssertResources(
@@ -156,169 +73,6 @@ func TestImageFactoryAuthBasicAuthOnly(t *testing.T) {
 
 					assert.Equal("factory-user", spec.GetUsername())
 					assert.Equal("factory-pass", spec.GetPassword())
-					assert.Nil(spec.GetToken())
-				},
-			)
-		},
-	)
-}
-
-// TestImageFactoryAuthTokenOnly covers a factory that authenticates Omni purely with an access
-// token.
-func TestImageFactoryAuthTokenOnly(t *testing.T) {
-	t.Parallel()
-
-	testutils.WithRuntime(
-		t.Context(), t, testutils.TestOptions{},
-		func(_ context.Context, tc testutils.TestContext) {
-			registerImageFactoryAuthController(t, tc, testRegistries("", ""), newFakeIssuer())
-		},
-		func(ctx context.Context, tc testutils.TestContext) {
-			rtestutils.AssertResources(
-				ctx, t, tc.State, []string{testFactoryURL},
-				func(res *omni.ImageFactoryAuth, assert *assert.Assertions) {
-					spec := res.TypedSpec().Value
-
-					assert.Empty(spec.GetUsername())
-					assert.Empty(spec.GetPassword())
-					assert.Equal(tokenValue(1), spec.GetToken().GetToken())
-					assert.Equal("Bearer", spec.GetToken().GetTokenType())
-					assert.Equal(testFactoryClientID, spec.GetToken().GetClientId())
-					assert.Equal(testFactoryAudience, spec.GetToken().GetAudience())
-					assert.WithinDuration(time.Now().Add(testTokenLifetime), spec.GetToken().GetExpiresAt().AsTime(), time.Minute)
-				},
-			)
-		},
-	)
-}
-
-// TestImageFactoryAuthRotate covers replacing a token once it is halfway through its lifetime. It
-// runs on virtual time, so the real token lifetime can be used rather than a contrived one.
-func TestImageFactoryAuthRotate(t *testing.T) {
-	t.Parallel()
-
-	synctest.Test(t, func(t *testing.T) {
-		testutils.WithRuntime(
-			t.Context(), t, testutils.TestOptions{},
-			func(_ context.Context, tc testutils.TestContext) {
-				registerImageFactoryAuthController(t, tc, testRegistries("", ""), newFakeIssuer())
-			},
-			func(ctx context.Context, tc testutils.TestContext) {
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(1))
-
-				// Not yet halfway through the lifetime: the first token stands.
-				time.Sleep(testTokenLifetime/2 - time.Minute)
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(1))
-
-				// Past the halfway point, it is replaced.
-				time.Sleep(2 * time.Minute)
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(2))
-			},
-		)
-	})
-}
-
-// TestImageFactoryAuthSchedulesFullLifetimeAfterIssuing covers the wake-up scheduled after a token is
-// issued: it must be derived from the new token's lifetime, not from the one it replaced. Getting
-// this wrong reports a fresh token as unusable and brings the controller straight back.
-func TestImageFactoryAuthSchedulesFullLifetimeAfterIssuing(t *testing.T) {
-	t.Parallel()
-
-	synctest.Test(t, func(t *testing.T) {
-		testutils.WithRuntime(
-			t.Context(), t, testutils.TestOptions{},
-			func(_ context.Context, tc testutils.TestContext) {
-				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), newFakeIssuer())
-			},
-			func(ctx context.Context, tc testutils.TestContext) {
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(1))
-
-				// Clear the username behind the controller's back; any further pass restores it.
-				auth, err := safe.StateGetByID[*omni.ImageFactoryAuth](ctx, tc.State, testFactoryURL)
-				require.NoError(t, err)
-
-				auth.TypedSpec().Value.Username = ""
-				require.NoError(t, tc.State.Update(ctx, auth, state.WithUpdateOwner(imagefactory.AuthControllerName)))
-
-				// A token good for a full day must not bring the controller back on the retry interval.
-				time.Sleep(2 * imagefactory.DefaultAuthRetryInterval)
-				synctest.Wait()
-
-				auth, err = safe.StateGetByID[*omni.ImageFactoryAuth](ctx, tc.State, testFactoryURL)
-				require.NoError(t, err)
-				assert.Empty(t, auth.TypedSpec().Value.GetUsername(), "the controller retried as though the fresh token were unusable")
-
-				// It does come back at the halfway point, on the new token's own schedule.
-				time.Sleep(testTokenLifetime / 2)
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(2))
-			},
-		)
-	})
-}
-
-// TestImageFactoryAuthReissueOnCredentialChange covers a factory whose OAuth2 client credentials
-// were reconfigured: the token issued to the previous client must not be left in place until it expires.
-func TestImageFactoryAuthReissueOnCredentialChange(t *testing.T) {
-	t.Parallel()
-
-	testutils.WithRuntime(
-		t.Context(), t, testutils.TestOptions{},
-		func(ctx context.Context, tc testutils.TestContext) {
-			createImageFactoryAuth(ctx, t, tc.State, testFactoryURL, "", &specs.ImageFactoryAuthSpec_AccessToken{
-				Token:     "stale-token",
-				TokenType: "Bearer",
-				IssuedAt:  timestamppb.New(time.Now()),
-				ExpiresAt: timestamppb.New(time.Now().Add(testTokenLifetime)),
-				ClientId:  "previous-client-id",
-				Audience:  testFactoryAudience,
-			})
-
-			registerImageFactoryAuthController(t, tc, testRegistries("", ""), newFakeIssuer())
-		},
-		func(ctx context.Context, tc testutils.TestContext) {
-			rtestutils.AssertResources(
-				ctx, t, tc.State, []string{testFactoryURL},
-				func(res *omni.ImageFactoryAuth, assert *assert.Assertions) {
-					assert.Equal(tokenValue(1), res.TypedSpec().Value.GetToken().GetToken())
-					assert.Equal(testFactoryClientID, res.TypedSpec().Value.GetToken().GetClientId())
-				},
-			)
-		},
-	)
-}
-
-// TestImageFactoryAuthDropTokenWhenOAuth2Removed covers dropping a token whose OAuth2 client
-// credentials are gone from the configuration, while the factory's basic auth stays.
-func TestImageFactoryAuthDropTokenWhenOAuth2Removed(t *testing.T) {
-	t.Parallel()
-
-	testutils.WithRuntime(
-		t.Context(), t, testutils.TestOptions{},
-		func(ctx context.Context, tc testutils.TestContext) {
-			createImageFactoryAuth(ctx, t, tc.State, testFactoryURL, "factory-user", &specs.ImageFactoryAuthSpec_AccessToken{
-				Token:     "orphaned-token",
-				IssuedAt:  timestamppb.New(time.Now()),
-				ExpiresAt: timestamppb.New(time.Now().Add(testTokenLifetime)),
-			})
-
-			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
-		},
-		func(ctx context.Context, tc testutils.TestContext) {
-			rtestutils.AssertResources(
-				ctx, t, tc.State, []string{testFactoryURL},
-				func(res *omni.ImageFactoryAuth, assert *assert.Assertions) {
-					assert.Nil(res.TypedSpec().Value.GetToken())
-					assert.Equal("factory-user", res.TypedSpec().Value.GetUsername())
 				},
 			)
 		},
@@ -334,9 +88,9 @@ func TestImageFactoryAuthPrune(t *testing.T) {
 	testutils.WithRuntime(
 		t.Context(), t, testutils.TestOptions{},
 		func(ctx context.Context, tc testutils.TestContext) {
-			createImageFactoryAuth(ctx, t, tc.State, retiredURL, "retired-user", nil)
+			createImageFactoryAuth(ctx, t, tc.State, retiredURL, "retired-user")
 
-			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
+			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			rtestutils.AssertNoResource[*omni.ImageFactoryAuth](ctx, t, tc.State, retiredURL)
@@ -348,17 +102,17 @@ func TestImageFactoryAuthPrune(t *testing.T) {
 	)
 }
 
-// TestImageFactoryAuthNoFurtherWorkWithoutOAuth2 covers an installation where no factory has OAuth2
-// client credentials: nothing expires, the factories come from static configuration, so the controller must
-// reconcile once and then stop waking up rather than idling on a timer forever.
-func TestImageFactoryAuthNoFurtherWorkWithoutOAuth2(t *testing.T) {
+// TestImageFactoryAuthNoFurtherWork covers that the controller reconciles once and then stops
+// waking up rather than idling on a timer forever, since the factories come from static
+// configuration and nothing on the resources expires.
+func TestImageFactoryAuthNoFurtherWork(t *testing.T) {
 	t.Parallel()
 
 	synctest.Test(t, func(t *testing.T) {
 		testutils.WithRuntime(
 			t.Context(), t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
+				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				synctest.Wait()
@@ -408,7 +162,7 @@ func TestImageFactoryAuthPruneWaitsForFinalizer(t *testing.T) {
 
 				require.NoError(t, tc.State.Create(ctx, retired, state.WithCreateOwner(imagefactory.AuthControllerName)))
 
-				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
+				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				synctest.Wait()
@@ -448,14 +202,14 @@ func TestImageFactoryAuthPruneContinuesPastFailure(t *testing.T) {
 	testutils.WithRuntime(
 		t.Context(), t, testutils.TestOptions{},
 		func(ctx context.Context, tc testutils.TestContext) {
-			createImageFactoryAuth(ctx, t, tc.State, retiredBeforeURL, "retired-user", nil)
-			createImageFactoryAuth(ctx, t, tc.State, retiredAfterURL, "retired-user", nil)
+			createImageFactoryAuth(ctx, t, tc.State, retiredBeforeURL, "retired-user")
+			createImageFactoryAuth(ctx, t, tc.State, retiredAfterURL, "retired-user")
 
 			// Owned by somebody else, so the controller's teardown of it fails outright.
 			unowned := omni.NewImageFactoryAuth(unownedURL)
 			require.NoError(t, tc.State.Create(ctx, unowned, state.WithCreateOwner("SomeOtherController")))
 
-			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), nil)
+			registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			// Every reachable one goes, and the configured factory is still written.
@@ -474,40 +228,4 @@ func TestImageFactoryAuthPruneContinuesPastFailure(t *testing.T) {
 			assert.Equal(t, resource.PhaseRunning, unowned.Metadata().Phase())
 		},
 	)
-}
-
-// TestImageFactoryAuthBasicAuthSurvivesIssuerFailure is the reason basic auth is written before the
-// token is resolved: the machines' registry configuration is built from it, so an unreachable
-// authorization server must not keep it out of state. On virtual time, so the real retry interval is exercised.
-func TestImageFactoryAuthBasicAuthSurvivesIssuerFailure(t *testing.T) {
-	t.Parallel()
-
-	synctest.Test(t, func(t *testing.T) {
-		issuer := newFakeIssuer()
-		issuer.setError(errors.New("the authorization server is unreachable"))
-
-		testutils.WithRuntime(
-			t.Context(), t, testutils.TestOptions{},
-			func(_ context.Context, tc testutils.TestContext) {
-				registerImageFactoryAuthController(t, tc, testRegistries("factory-user", "factory-pass"), issuer)
-			},
-			func(ctx context.Context, tc testutils.TestContext) {
-				synctest.Wait()
-
-				auth, err := safe.StateGetByID[*omni.ImageFactoryAuth](ctx, tc.State, testFactoryURL)
-				require.NoError(t, err)
-
-				assert.Equal(t, "factory-user", auth.TypedSpec().Value.GetUsername())
-				assert.Nil(t, auth.TypedSpec().Value.GetToken())
-
-				issuer.setError(nil)
-
-				// The controller retries on its own; nothing pokes it.
-				time.Sleep(imagefactory.DefaultAuthRetryInterval + time.Second)
-				synctest.Wait()
-
-				assertRecordedToken(ctx, t, tc.State, tokenValue(1))
-			},
-		)
-	})
 }

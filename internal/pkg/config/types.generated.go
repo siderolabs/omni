@@ -288,10 +288,6 @@ type Factories struct {
 }
 
 type Factory struct {
-	// OAuth2 contains the OAuth2 client configuration used for Image Factory
-	// communication.
-	OAuth2 FactoryOAuth2 `json:"oAuth2" yaml:"oAuth2"`
-
 	// Password is the password used to authenticate against the Image Factory
 	// Enterprise service.
 	Password *string `json:"password,omitempty,omitzero" yaml:"password,omitempty"`
@@ -307,24 +303,6 @@ type Factory struct {
 	// Username is the username used to authenticate against the Image Factory
 	// Enterprise service.
 	Username *string `json:"username,omitempty,omitzero" yaml:"username,omitempty"`
-}
-
-type FactoryOAuth2 struct {
-	// Audience is the API identifier the Image Factory expects in the access tokens
-	// it is presented with, e.g. "https://image-factory.example.com".
-	Audience *string `json:"audience,omitempty,omitzero" yaml:"audience,omitempty"`
-
-	// ClientID identifies the OAuth2 client Omni authenticates as when requesting
-	// access tokens for Image Factory communication.
-	ClientID *string `json:"clientID,omitempty,omitzero" yaml:"clientID,omitempty"`
-
-	// ClientSecret is the secret Omni authenticates with when requesting access
-	// tokens for Image Factory communication.
-	ClientSecret *string `json:"clientSecret,omitempty,omitzero" yaml:"clientSecret,omitempty"`
-
-	// Domain is the domain of the OAuth2 authorization server which issues the access
-	// tokens used for Image Factory communication, e.g. "mycompany.us.auth0.com".
-	Domain *string `json:"domain,omitempty,omitzero" yaml:"domain,omitempty"`
 }
 
 type Features struct {

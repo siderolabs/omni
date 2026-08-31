@@ -77,7 +77,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	newgroup "github.com/siderolabs/omni/internal/pkg/errgroup"
-	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokens"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -156,11 +155,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	factoryTokenIssuers, err := tokens.NewIssuers(&cfg.Registries)
-	if err != nil {
-		return nil, err
-	}
-
 	controllers := []controller.Controller{
 		&metricsctrl.UserMetricsController{},
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
@@ -180,7 +174,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		imagefactoryctrl.NewAuthController(&cfg.Registries, factoryTokenIssuers),
+		imagefactoryctrl.NewAuthController(&cfg.Registries),
 		omnictrl.NewKubernetesStatusController(kubernetesRuntime, cfg.Services.Api.URL(), cfg.Services.WorkloadProxy.GetSubdomain(),
 			cfg.Services.WorkloadProxy.GetEnabled(), cfg.Services.WorkloadProxy.GetUseOmniSubdomain()),
 		&omnictrl.LoadBalancerController{

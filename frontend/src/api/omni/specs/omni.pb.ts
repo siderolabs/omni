@@ -1210,19 +1210,9 @@ export type MachineConfigExtractionStatusSpec = {
   error?: string
 }
 
-export type ImageFactoryAuthSpecAccessToken = {
-  token?: string
-  token_type?: string
-  issued_at?: GoogleProtobufTimestamp.Timestamp
-  expires_at?: GoogleProtobufTimestamp.Timestamp
-  client_id?: string
-  audience?: string
-}
-
 export type ImageFactoryAuthSpec = {
   username?: string
   password?: string
-  token?: ImageFactoryAuthSpecAccessToken
 }
 
 export type MachineInstallDiskConfigSpec = {

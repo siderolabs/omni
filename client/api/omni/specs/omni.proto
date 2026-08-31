@@ -1899,34 +1899,11 @@ message MachineConfigExtractionStatusSpec {
 message ImageFactoryAuthSpec {
   string username = 1;
   string password = 2;
-  // Token is the access token Omni presents to the factory when that factory is
-  // configured with OAuth2 client credentials.
-  //
-  // A factory accepts one authentication mechanism, not both, so exactly one of this and
-  // username/password is set. Omni's configuration rejects a factory that specifies both.
-  AccessToken token = 3;
 
-  // AccessToken is an access token obtained through the OAuth2 client
-  // credentials grant.
-  message AccessToken {
-    // Token is the token to send to the factory in the Authorization header.
-    string token = 1;
-    // TokenType is the token type the issuer returned, normally "Bearer".
-    string token_type = 2;
-    // IssuedAt is when Omni obtained the token. Together with ExpiresAt it gives the token's
-    // lifetime, which is what the rotation schedule is derived from.
-    google.protobuf.Timestamp issued_at = 3;
-    // ExpiresAt is when the token stops being accepted by the factory.
-    google.protobuf.Timestamp expires_at = 4;
-    // ClientId is the OAuth2 client ID the token was issued to.
-    //
-    // It is recorded so that reconfiguring the factory's credentials forces a new token instead of
-    // leaving the one issued to the previous client in place until it expires on its own.
-    string client_id = 5;
-    // Audience is the OAuth2 API identifier the token was issued for, recorded for the same reason
-    // as ClientId.
-    string audience = 6;
-  }
+  // Field 3 held an OAuth2 access token that Omni no longer obtains. It stays reserved so that a
+  // later change cannot reuse the number and misread what the builds that wrote it left behind.
+  reserved 3;
+  reserved "token";
 }
 
 // MachineInstallDiskConfigSpec describes the user's install disk selection for a machine.

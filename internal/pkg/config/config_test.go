@@ -142,14 +142,6 @@ func (tt validateConfigCase) run(t *testing.T, schema *omnijsonschema.Schema) {
 	require.NoError(t, err)
 }
 
-// setCompleteFactoryOAuth2 configures a factory with a full set of OAuth2 client credentials.
-func setCompleteFactoryOAuth2(factory *config.Factory) {
-	factory.OAuth2.SetDomain("tenant.example.com")
-	factory.OAuth2.SetAudience("https://image-factory.example.com")
-	factory.OAuth2.SetClientID("client_id")
-	factory.OAuth2.SetClientSecret("client_secret")
-}
-
 func TestValidateConfig(t *testing.T) {
 	schema, parseErr := config.ParseSchema()
 	require.NoError(t, parseErr)
@@ -326,9 +318,8 @@ func TestValidateConfig(t *testing.T) {
 	}
 }
 
-// TestValidateFactoryAuthConfig covers the credentials a factory may be configured with: basic auth
-// and OAuth2 client credentials, each of which must be complete, and which a factory may
-// not carry at the same time.
+// TestValidateFactoryAuthConfig covers the basic auth credentials a factory may be configured with,
+// which must be complete.
 func TestValidateFactoryAuthConfig(t *testing.T) {
 	schema, parseErr := config.ParseSchema()
 	require.NoError(t, parseErr)
@@ -370,52 +361,6 @@ func TestValidateFactoryAuthConfig(t *testing.T) {
 				cfg.Registries.Factories.Secondary = f
 			},
 			validateErr: `config value ".registries.factories.secondary.password" or flag "--secondary-factory-password": is required when "username" is set`,
-		},
-
-		{
-			name:   "primary factory oauth2 clientID without clientSecret",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Registries.Factories.Primary.OAuth2.SetClientID("client_id")
-			},
-			validateErr: `config value ".registries.factories.primary.oAuth2.clientSecret" or flag "--primary-factory-oauth2-client-secret": is required when "clientID" is set`,
-		},
-		{
-			name:   "secondary factory oauth2 clientID without clientSecret",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Registries.Factories.Secondary.OAuth2.SetClientID("client_id")
-			},
-			validateErr: `config value ".registries.factories.secondary.oAuth2.clientSecret" or flag "--secondary-factory-oauth2-client-secret": is required when "clientID" is set`,
-		},
-
-		{
-			name:   "primary factory with both basic auth and oauth2",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Registries.Factories.Primary.SetUsername("factory-user")
-				cfg.Registries.Factories.Primary.SetPassword("factory-pass")
-				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Primary)
-			},
-			// A factory accepts one mechanism or the other, so configuring both is a mistake rather
-			// than a preference to be resolved at runtime.
-			validateErr: "'not' failed",
-		},
-		{
-			// configFull already gives the secondary factory a username and password.
-			name:   "secondary factory with both basic auth and oauth2",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Secondary)
-			},
-			validateErr: "'not' failed",
-		},
-		{
-			name:   "factory with oauth2 and no basic auth",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Primary)
-			},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

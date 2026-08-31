@@ -236,15 +236,7 @@
             "url": { "x-cli-flag": "primary-factory-url" },
             "pxeURL": { "x-cli-flag": "primary-factory-pxe-url" },
             "username": { "x-cli-flag": "primary-factory-username" },
-            "password": { "x-cli-flag": "primary-factory-password" },
-            "oAuth2": {
-              "properties": {
-                "domain": { "x-cli-flag": "primary-factory-oauth2-domain" },
-                "audience": { "x-cli-flag": "primary-factory-oauth2-audience" },
-                "clientID": { "x-cli-flag": "primary-factory-oauth2-client-id" },
-                "clientSecret": { "x-cli-flag": "primary-factory-oauth2-client-secret" }
-              }
-            }
+            "password": { "x-cli-flag": "primary-factory-password" }
           }
         },
         "secondary": {
@@ -254,38 +246,13 @@
             "url": { "x-cli-flag": "secondary-factory-url" },
             "pxeURL": { "x-cli-flag": "secondary-factory-pxe-url" },
             "username": { "x-cli-flag": "secondary-factory-username" },
-            "password": { "x-cli-flag": "secondary-factory-password" },
-            "oAuth2": {
-              "properties": {
-                "domain": { "x-cli-flag": "secondary-factory-oauth2-domain" },
-                "audience": { "x-cli-flag": "secondary-factory-oauth2-audience" },
-                "clientID": { "x-cli-flag": "secondary-factory-oauth2-client-id" },
-                "clientSecret": { "x-cli-flag": "secondary-factory-oauth2-client-secret" }
-              }
-            }
+            "password": { "x-cli-flag": "secondary-factory-password" }
           }
         }
       }
     },
     "Factory": {
       "type": "object",
-      "required": [
-        "oAuth2"
-      ],
-      "if": {
-        "title": "Check Image Factory OAuth2",
-        "properties": {
-          "oAuth2": {
-            "required": ["clientID"]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "username": { "not": {} },
-          "password": { "not": {} }
-        }
-      },
       "dependentRequired": {
         "username": ["password"],
         "password": ["username"]
@@ -305,37 +272,6 @@
         },
         "password": {
           "description": "Password is the password used to authenticate against the Image Factory Enterprise service.",
-          "type": "string"
-        },
-        "oAuth2": {
-          "description": "OAuth2 contains the OAuth2 client configuration used for Image Factory communication.",
-          "$ref": "#/definitions/FactoryOAuth2"
-        }
-      }
-    },
-    "FactoryOAuth2": {
-      "type": "object",
-      "dependentRequired": {
-        "clientID": ["clientSecret", "domain", "audience"],
-        "clientSecret": ["clientID"],
-        "domain": ["clientID"],
-        "audience": ["clientID"]
-      },
-      "properties": {
-        "domain": {
-          "description": "Domain is the domain of the OAuth2 authorization server which issues the access tokens used for Image Factory communication, e.g. \"mycompany.us.auth0.com\".",
-          "type": "string"
-        },
-        "audience": {
-          "description": "Audience is the API identifier the Image Factory expects in the access tokens it is presented with, e.g. \"https://image-factory.example.com\".",
-          "type": "string"
-        },
-        "clientID": {
-          "description": "ClientID identifies the OAuth2 client Omni authenticates as when requesting access tokens for Image Factory communication.",
-          "type": "string"
-        },
-        "clientSecret": {
-          "description": "ClientSecret is the secret Omni authenticates with when requesting access tokens for Image Factory communication.",
           "type": "string"
         }
       }

@@ -9000,15 +9000,9 @@ func (x *MachineConfigExtractionStatusSpec) GetError() string {
 //
 // The resource ID is the factory's base URL, stripped of any trailing slash.
 type ImageFactoryAuthSpec struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Username string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Password string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	// Token is the access token Omni presents to the factory when that factory is
-	// configured with OAuth2 client credentials.
-	//
-	// A factory accepts one authentication mechanism, not both, so exactly one of this and
-	// username/password is set. Omni's configuration rejects a factory that specifies both.
-	Token         *ImageFactoryAuthSpec_AccessToken `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9055,13 +9049,6 @@ func (x *ImageFactoryAuthSpec) GetPassword() string {
 		return x.Password
 	}
 	return ""
-}
-
-func (x *ImageFactoryAuthSpec) GetToken() *ImageFactoryAuthSpec_AccessToken {
-	if x != nil {
-		return x.Token
-	}
-	return nil
 }
 
 // MachineInstallDiskConfigSpec describes the user's install disk selection for a machine.
@@ -12013,103 +12000,6 @@ func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) GetManifests() map[st
 	return nil
 }
 
-// AccessToken is an access token obtained through the OAuth2 client
-// credentials grant.
-type ImageFactoryAuthSpec_AccessToken struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Token is the token to send to the factory in the Authorization header.
-	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	// TokenType is the token type the issuer returned, normally "Bearer".
-	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
-	// IssuedAt is when Omni obtained the token. Together with ExpiresAt it gives the token's
-	// lifetime, which is what the rotation schedule is derived from.
-	IssuedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
-	// ExpiresAt is when the token stops being accepted by the factory.
-	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	// ClientId is the OAuth2 client ID the token was issued to.
-	//
-	// It is recorded so that reconfiguring the factory's credentials forces a new token instead of
-	// leaving the one issued to the previous client in place until it expires on its own.
-	ClientId string `protobuf:"bytes,5,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	// Audience is the OAuth2 API identifier the token was issued for, recorded for the same reason
-	// as ClientId.
-	Audience      string `protobuf:"bytes,6,opt,name=audience,proto3" json:"audience,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) Reset() {
-	*x = ImageFactoryAuthSpec_AccessToken{}
-	mi := &file_omni_specs_omni_proto_msgTypes[163]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ImageFactoryAuthSpec_AccessToken) ProtoMessage() {}
-
-func (x *ImageFactoryAuthSpec_AccessToken) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[163]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ImageFactoryAuthSpec_AccessToken.ProtoReflect.Descriptor instead.
-func (*ImageFactoryAuthSpec_AccessToken) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{109, 0}
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetTokenType() string {
-	if x != nil {
-		return x.TokenType
-	}
-	return ""
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetIssuedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.IssuedAt
-	}
-	return nil
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetClientId() string {
-	if x != nil {
-		return x.ClientId
-	}
-	return ""
-}
-
-func (x *ImageFactoryAuthSpec_AccessToken) GetAudience() string {
-	if x != nil {
-		return x.Audience
-	}
-	return ""
-}
-
 type MachineInstallDiskStatusSpec_Disk struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// DevPath is the dev path of the disk.
@@ -12129,7 +12019,7 @@ type MachineInstallDiskStatusSpec_Disk struct {
 
 func (x *MachineInstallDiskStatusSpec_Disk) Reset() {
 	*x = MachineInstallDiskStatusSpec_Disk{}
-	mi := &file_omni_specs_omni_proto_msgTypes[164]
+	mi := &file_omni_specs_omni_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12141,7 +12031,7 @@ func (x *MachineInstallDiskStatusSpec_Disk) String() string {
 func (*MachineInstallDiskStatusSpec_Disk) ProtoMessage() {}
 
 func (x *MachineInstallDiskStatusSpec_Disk) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[164]
+	mi := &file_omni_specs_omni_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13139,20 +13029,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x06PASSED\x10\x03\"[\n" +
 	"!MachineConfigExtractionStatusSpec\x12 \n" +
 	"\vinitialized\x18\x01 \x01(\bR\vinitialized\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"\xff\x02\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"[\n" +
 	"\x14ImageFactoryAuthSpec\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\x12=\n" +
-	"\x05token\x18\x03 \x01(\v2'.specs.ImageFactoryAuthSpec.AccessTokenR\x05token\x1a\xef\x01\n" +
-	"\vAccessToken\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
-	"\n" +
-	"token_type\x18\x02 \x01(\tR\ttokenType\x127\n" +
-	"\tissued_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1b\n" +
-	"\tclient_id\x18\x05 \x01(\tR\bclientId\x12\x1a\n" +
-	"\baudience\x18\x06 \x01(\tR\baudience\"W\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpasswordJ\x04\b\x03\x10\x04R\x05token\"W\n" +
 	"\x1cMachineInstallDiskConfigSpec\x12#\n" +
 	"\rdisk_selector\x18\x01 \x01(\tR\fdiskSelector\x12\x12\n" +
 	"\x04disk\x18\x02 \x01(\tR\x04disk\"\xb1\x02\n" +
@@ -13208,7 +13088,7 @@ func file_omni_specs_omni_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_omni_proto_enumTypes = make([]protoimpl.EnumInfo, 31)
-var file_omni_specs_omni_proto_msgTypes = make([]protoimpl.MessageInfo, 165)
+var file_omni_specs_omni_proto_msgTypes = make([]protoimpl.MessageInfo, 164)
 var file_omni_specs_omni_proto_goTypes = []any{
 	(ConfigApplyStatus)(0),                                         // 0: specs.ConfigApplyStatus
 	(MachineSetPhase)(0),                                           // 1: specs.MachineSetPhase
@@ -13402,15 +13282,14 @@ var file_omni_specs_omni_proto_goTypes = []any{
 	nil, // 189: specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntry
 	(*ClusterKubernetesManifestsStatusSpec_ManifestStatus)(nil), // 190: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
 	(*ClusterKubernetesManifestsStatusSpec_GroupStatus)(nil),    // 191: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
-	nil,                                      // 192: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
-	nil,                                      // 193: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
-	(*ImageFactoryAuthSpec_AccessToken)(nil), // 194: specs.ImageFactoryAuthSpec.AccessToken
-	(*MachineInstallDiskStatusSpec_Disk)(nil), // 195: specs.MachineInstallDiskStatusSpec.Disk
-	(*durationpb.Duration)(nil),               // 196: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),             // 197: google.protobuf.Timestamp
-	(*machine.MachineStatusEvent)(nil),        // 198: machine.MachineStatusEvent
-	(PlatformConfigSpec_Arch)(0),              // 199: specs.PlatformConfigSpec.Arch
-	(management.SchematicBootloader)(0),       // 200: management.SchematicBootloader
+	nil, // 192: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
+	nil, // 193: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
+	(*MachineInstallDiskStatusSpec_Disk)(nil), // 194: specs.MachineInstallDiskStatusSpec.Disk
+	(*durationpb.Duration)(nil),               // 195: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),             // 196: google.protobuf.Timestamp
+	(*machine.MachineStatusEvent)(nil),        // 197: machine.MachineStatusEvent
+	(PlatformConfigSpec_Arch)(0),              // 198: specs.PlatformConfigSpec.Arch
+	(management.SchematicBootloader)(0),       // 199: management.SchematicBootloader
 }
 var file_omni_specs_omni_proto_depIdxs = []int32{
 	4,   // 0: specs.SecurityState.fips_state:type_name -> specs.SecurityState.FIPSState
@@ -13425,13 +13304,13 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	32,  // 9: specs.MachineStatusSpec.security_state:type_name -> specs.SecurityState
 	155, // 10: specs.ClusterSpec.features:type_name -> specs.ClusterSpec.Features
 	39,  // 11: specs.ClusterSpec.backup_configuration:type_name -> specs.EtcdBackupConf
-	196, // 12: specs.EtcdBackupConf.interval:type_name -> google.protobuf.Duration
-	197, // 13: specs.EtcdBackupSpec.created_at:type_name -> google.protobuf.Timestamp
-	196, // 14: specs.BackupDataSpec.interval:type_name -> google.protobuf.Duration
+	195, // 12: specs.EtcdBackupConf.interval:type_name -> google.protobuf.Duration
+	196, // 13: specs.EtcdBackupSpec.created_at:type_name -> google.protobuf.Timestamp
+	195, // 14: specs.BackupDataSpec.interval:type_name -> google.protobuf.Duration
 	7,   // 15: specs.EtcdBackupStatusSpec.status:type_name -> specs.EtcdBackupStatusSpec.Status
-	197, // 16: specs.EtcdBackupStatusSpec.last_backup_time:type_name -> google.protobuf.Timestamp
-	197, // 17: specs.EtcdBackupStatusSpec.last_backup_attempt:type_name -> google.protobuf.Timestamp
-	197, // 18: specs.EtcdManualBackupSpec.backup_at:type_name -> google.protobuf.Timestamp
+	196, // 16: specs.EtcdBackupStatusSpec.last_backup_time:type_name -> google.protobuf.Timestamp
+	196, // 17: specs.EtcdBackupStatusSpec.last_backup_attempt:type_name -> google.protobuf.Timestamp
+	196, // 18: specs.EtcdManualBackupSpec.backup_at:type_name -> google.protobuf.Timestamp
 	45,  // 19: specs.EtcdBackupOverallStatusSpec.last_backup_status:type_name -> specs.EtcdBackupStatusSpec
 	8,   // 20: specs.ClusterMachineStatusSpec.stage:type_name -> specs.ClusterMachineStatusSpec.Stage
 	0,   // 21: specs.ClusterMachineStatusSpec.config_apply_status:type_name -> specs.ConfigApplyStatus
@@ -13439,7 +13318,7 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	56,  // 23: specs.ClusterStatusSpec.machines:type_name -> specs.Machines
 	9,   // 24: specs.ClusterStatusSpec.phase:type_name -> specs.ClusterStatusSpec.Phase
 	157, // 25: specs.MachinePendingUpdatesSpec.upgrade:type_name -> specs.MachinePendingUpdatesSpec.Upgrade
-	197, // 26: specs.ClusterBootstrapStatusSpec.last_bootstrap_attempt:type_name -> google.protobuf.Timestamp
+	196, // 26: specs.ClusterBootstrapStatusSpec.last_bootstrap_attempt:type_name -> google.protobuf.Timestamp
 	158, // 27: specs.ClusterSecretsSpec.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
 	10,  // 28: specs.MachineSetSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
 	161, // 29: specs.MachineSetSpec.machine_class:type_name -> specs.MachineSetSpec.MachineAllocation
@@ -13456,7 +13335,7 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	161, // 40: specs.MachineSetStatusSpec.machine_allocation:type_name -> specs.MachineSetSpec.MachineAllocation
 	10,  // 41: specs.MachineSetConfigStatusSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
 	164, // 42: specs.MachineSetConfigStatusSpec.update_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
-	198, // 43: specs.MachineStatusSnapshotSpec.machine_status:type_name -> machine.MachineStatusEvent
+	197, // 43: specs.MachineStatusSnapshotSpec.machine_status:type_name -> machine.MachineStatusEvent
 	14,  // 44: specs.MachineStatusSnapshotSpec.power_stage:type_name -> specs.MachineStatusSnapshotSpec.PowerStage
 	165, // 45: specs.ControlPlaneStatusSpec.conditions:type_name -> specs.ControlPlaneStatusSpec.Condition
 	166, // 46: specs.KubernetesStatusSpec.nodes:type_name -> specs.KubernetesStatusSpec.NodeStatus
@@ -13472,9 +13351,9 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	91,  // 56: specs.FeaturesConfigSpec.stripe_settings:type_name -> specs.StripeSettings
 	92,  // 57: specs.FeaturesConfigSpec.account:type_name -> specs.Account
 	90,  // 58: specs.FeaturesConfigSpec.posthog_settings:type_name -> specs.PosthogSettings
-	196, // 59: specs.EtcdBackupSettings.tick_interval:type_name -> google.protobuf.Duration
-	196, // 60: specs.EtcdBackupSettings.min_interval:type_name -> google.protobuf.Duration
-	196, // 61: specs.EtcdBackupSettings.max_interval:type_name -> google.protobuf.Duration
+	195, // 59: specs.EtcdBackupSettings.tick_interval:type_name -> google.protobuf.Duration
+	195, // 60: specs.EtcdBackupSettings.min_interval:type_name -> google.protobuf.Duration
+	195, // 61: specs.EtcdBackupSettings.max_interval:type_name -> google.protobuf.Duration
 	169, // 62: specs.MachineClassSpec.auto_provision:type_name -> specs.MachineClassSpec.Provision
 	170, // 63: specs.MachineConfigGenOptionsSpec.install_image:type_name -> specs.MachineConfigGenOptionsSpec.InstallImage
 	171, // 64: specs.KubernetesUsageSpec.cpu:type_name -> specs.KubernetesUsageSpec.Quantity
@@ -13499,12 +13378,12 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	182, // 83: specs.InfraMachineBMCConfigSpec.ipmi:type_name -> specs.InfraMachineBMCConfigSpec.IPMI
 	183, // 84: specs.InfraMachineBMCConfigSpec.api:type_name -> specs.InfraMachineBMCConfigSpec.API
 	184, // 85: specs.InfraProviderCombinedStatusSpec.health:type_name -> specs.InfraProviderCombinedStatusSpec.Health
-	199, // 86: specs.InstallationMediaConfigSpec.architecture:type_name -> specs.PlatformConfigSpec.Arch
+	198, // 86: specs.InstallationMediaConfigSpec.architecture:type_name -> specs.PlatformConfigSpec.Arch
 	185, // 87: specs.InstallationMediaConfigSpec.cloud:type_name -> specs.InstallationMediaConfigSpec.Cloud
 	186, // 88: specs.InstallationMediaConfigSpec.sbc:type_name -> specs.InstallationMediaConfigSpec.SBC
 	3,   // 89: specs.InstallationMediaConfigSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
 	187, // 90: specs.InstallationMediaConfigSpec.machine_labels:type_name -> specs.InstallationMediaConfigSpec.MachineLabelsEntry
-	200, // 91: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
+	199, // 91: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
 	23,  // 92: specs.SecretRotationSpec.status:type_name -> specs.SecretRotationSpec.Status
 	24,  // 93: specs.SecretRotationSpec.phase:type_name -> specs.SecretRotationSpec.Phase
 	25,  // 94: specs.SecretRotationSpec.component:type_name -> specs.SecretRotationSpec.Component
@@ -13519,46 +13398,43 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	26,  // 103: specs.NotificationSpec.type:type_name -> specs.NotificationSpec.Type
 	27,  // 104: specs.KubernetesManifestGroupSpec.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
 	192, // 105: specs.ClusterKubernetesManifestsStatusSpec.groups:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
-	196, // 106: specs.KubernetesHealthCheckSpec.interval:type_name -> google.protobuf.Duration
+	195, // 106: specs.KubernetesHealthCheckSpec.interval:type_name -> google.protobuf.Duration
 	30,  // 107: specs.KubernetesHealthCheckStatusSpec.state:type_name -> specs.KubernetesHealthCheckStatusSpec.State
-	194, // 108: specs.ImageFactoryAuthSpec.token:type_name -> specs.ImageFactoryAuthSpec.AccessToken
-	195, // 109: specs.MachineInstallDiskStatusSpec.disks:type_name -> specs.MachineInstallDiskStatusSpec.Disk
-	149, // 110: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
-	150, // 111: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
-	151, // 112: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
-	152, // 113: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
-	153, // 114: specs.MachineStatusSpec.PlatformMetadata.tags:type_name -> specs.MachineStatusSpec.PlatformMetadata.TagsEntry
-	154, // 115: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
-	159, // 116: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	159, // 117: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	11,  // 118: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
-	12,  // 119: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
-	163, // 120: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
-	2,   // 121: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
-	15,  // 122: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
-	16,  // 123: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
-	167, // 124: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
-	34,  // 125: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
-	3,   // 126: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	32,  // 127: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
-	19,  // 128: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
-	23,  // 129: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
-	24,  // 130: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
-	25,  // 131: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
-	158, // 132: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
-	28,  // 133: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
-	29,  // 134: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
-	27,  // 135: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
-	193, // 136: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
-	191, // 137: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
-	190, // 138: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
-	197, // 139: specs.ImageFactoryAuthSpec.AccessToken.issued_at:type_name -> google.protobuf.Timestamp
-	197, // 140: specs.ImageFactoryAuthSpec.AccessToken.expires_at:type_name -> google.protobuf.Timestamp
-	141, // [141:141] is the sub-list for method output_type
-	141, // [141:141] is the sub-list for method input_type
-	141, // [141:141] is the sub-list for extension type_name
-	141, // [141:141] is the sub-list for extension extendee
-	0,   // [0:141] is the sub-list for field type_name
+	194, // 108: specs.MachineInstallDiskStatusSpec.disks:type_name -> specs.MachineInstallDiskStatusSpec.Disk
+	149, // 109: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
+	150, // 110: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
+	151, // 111: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
+	152, // 112: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
+	153, // 113: specs.MachineStatusSpec.PlatformMetadata.tags:type_name -> specs.MachineStatusSpec.PlatformMetadata.TagsEntry
+	154, // 114: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
+	159, // 115: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	159, // 116: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	11,  // 117: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
+	12,  // 118: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
+	163, // 119: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
+	2,   // 120: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
+	15,  // 121: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
+	16,  // 122: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
+	167, // 123: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
+	34,  // 124: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
+	3,   // 125: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	32,  // 126: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
+	19,  // 127: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
+	23,  // 128: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
+	24,  // 129: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
+	25,  // 130: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
+	158, // 131: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
+	28,  // 132: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
+	29,  // 133: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
+	27,  // 134: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
+	193, // 135: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
+	191, // 136: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
+	190, // 137: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
+	138, // [138:138] is the sub-list for method output_type
+	138, // [138:138] is the sub-list for method input_type
+	138, // [138:138] is the sub-list for extension type_name
+	138, // [138:138] is the sub-list for extension extendee
+	0,   // [0:138] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_omni_proto_init() }
@@ -13580,7 +13456,7 @@ func file_omni_specs_omni_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_omni_proto_rawDesc), len(file_omni_specs_omni_proto_rawDesc)),
 			NumEnums:      31,
-			NumMessages:   165,
+			NumMessages:   164,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -31,8 +31,7 @@ const (
 	ImageFactoryAuthType = resource.Type("ImageFactoryAuths.omni.sidero.dev")
 )
 
-// ImageFactoryAuth resource holds the credentials Omni uses to authenticate against an image factory:
-// basic auth, an access token, or both.
+// ImageFactoryAuth resource holds the credentials Omni uses to authenticate against an image factory.
 type ImageFactoryAuth = typed.Resource[ImageFactoryAuthSpec, ImageFactoryAuthExtension]
 
 // ImageFactoryAuthSpec wraps specs.ImageFactoryAuthSpec.
@@ -52,12 +51,7 @@ func (ImageFactoryAuthExtension) ResourceDefinition() meta.ResourceDefinitionSpe
 				Name:     "Username",
 				JSONPath: "{.username}",
 			},
-			{
-				Name:     "Token Expires",
-				JSONPath: "{.token.expiresat}",
-			},
 		},
-		// The spec carries a factory password and a bearer token, so it is masked in audit logs.
 		Sensitivity: meta.Sensitive,
 	}
 }

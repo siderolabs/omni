@@ -240,8 +240,7 @@ func changeClusterMachineConfigPatchesOwner(ctx context.Context, st state.State,
 // changeImageFactoryAuthOwner adopts the ImageFactoryAuth resources into ImageFactoryAuthController.
 //
 // They used to be written by the Omni startup path with no owner, and the controller that now
-// maintains them — and that also issues the access tokens they carry — cannot modify a
-// resource it does not own.
+// maintains them cannot modify a resource it does not own.
 func changeImageFactoryAuthOwner(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	auths, err := safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, st)
 	if err != nil {

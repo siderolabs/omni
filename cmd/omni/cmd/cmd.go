@@ -355,20 +355,12 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	primary := &flagConfig.Registries.Factories.Primary
 	b.StringVar("registries.factories.primary.url", &primary.Url)
 	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)
-	b.StringVar("registries.factories.primary.oAuth2.domain", &primary.OAuth2.Domain)
-	b.StringVar("registries.factories.primary.oAuth2.audience", &primary.OAuth2.Audience)
-	b.StringVar("registries.factories.primary.oAuth2.clientID", &primary.OAuth2.ClientID)
-	b.StringVar("registries.factories.primary.oAuth2.clientSecret", &primary.OAuth2.ClientSecret)
 	b.StringVar("registries.factories.primary.username", &primary.Username)
 	b.StringVar("registries.factories.primary.password", &primary.Password)
 
 	secondary := &flagConfig.Registries.Factories.Secondary
 	b.StringVar("registries.factories.secondary.url", &secondary.Url)
 	b.StringVar("registries.factories.secondary.pxeURL", &secondary.PxeURL)
-	b.StringVar("registries.factories.secondary.oAuth2.domain", &secondary.OAuth2.Domain)
-	b.StringVar("registries.factories.secondary.oAuth2.audience", &secondary.OAuth2.Audience)
-	b.StringVar("registries.factories.secondary.oAuth2.clientID", &secondary.OAuth2.ClientID)
-	b.StringVar("registries.factories.secondary.oAuth2.clientSecret", &secondary.OAuth2.ClientSecret)
 	b.StringVar("registries.factories.secondary.username", &secondary.Username)
 	b.StringVar("registries.factories.secondary.password", &secondary.Password)
 
