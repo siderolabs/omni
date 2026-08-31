@@ -184,6 +184,45 @@ func TestBootstrapAlreadyExists(t *testing.T) {
 	})
 }
 
+// TestBootstrapRejectedRetriesSoon checks that a request the node rejected without starting anything is retried at
+// the next check, instead of being held back by the retry interval which only protects a request that might still be
+// running on the node. A node rejects a bootstrap this way while it is still coming up, which is an ordinary race
+// during cluster creation.
+func TestBootstrapRejectedRetriesSoon(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+
+	withBootstrapController(ctx, t, func(ctx context.Context, tc testutils.TestContext, ms *testutils.MachineServiceMock) {
+		ms.SetEtcdRunning(false)
+
+		ms.SetBootstrapHandler(func(context.Context, *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
+			// the node is not ready to be bootstrapped when the first request arrives
+			if len(ms.GetBootstrapRequests()) == 1 {
+				return nil, status.Error(codes.FailedPrecondition, "bootstrap is not available yet")
+			}
+
+			return &machine.BootstrapResponse{}, nil
+		})
+
+		clusterName := createCluster(ctx, t, tc.State, ms.SocketConnectionString)
+
+		// a rejected request is not recorded as an attempt, so the attempt time showing up means the retry landed
+		rtestutils.AssertResources(ctx, t, tc.State, []string{clusterName}, func(r *omni.ClusterBootstrapStatus, assertion *assert.Assertions) {
+			assertion.NotNil(r.TypedSpec().Value.LastBootstrapAttempt)
+		})
+
+		require.Len(t, ms.GetBootstrapRequests(), 2, "the rejected request must be retried")
+
+		ms.SetEtcdRunning(true)
+
+		rtestutils.AssertResources(ctx, t, tc.State, []string{clusterName}, func(r *omni.ClusterBootstrapStatus, assertion *assert.Assertions) {
+			assertion.True(r.TypedSpec().Value.Bootstrapped)
+		})
+	})
+}
+
 // TestBootstrapErrorSavesAttempt checks that a bootstrap request which fails with an error is still counted as sent,
 // as the node might have accepted it, so it is not re-sent right away.
 func TestBootstrapErrorSavesAttempt(t *testing.T) {

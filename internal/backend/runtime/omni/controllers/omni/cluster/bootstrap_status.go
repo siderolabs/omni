@@ -283,6 +283,17 @@ func (ctrl *BootstrapStatusController) bootstrapCluster(
 	if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
 		RecoverEtcd: recoverEtcd,
 	}); err != nil {
+		// The node rejected the request without starting anything, e.g. because it is still coming up. A rejected
+		// request leaves nothing running on the node, so there is nothing to protect: forget the attempt and send
+		// another one at the next check instead of waiting out the retry interval.
+		if status.Code(err) == codes.FailedPrecondition {
+			logger.Info("the node is not ready to be bootstrapped yet", zap.String("cluster_id", clusterID), zap.Error(err))
+
+			bootstrapStatus.TypedSpec().Value.LastBootstrapAttempt = lastAttempt
+
+			return controller.NewRequeueInterval(bootstrapCheckInterval)
+		}
+
 		// The node already has etcd data, e.g. from a bootstrap that was not confirmed yet: there is nothing to
 		// send, keep checking etcd instead.
 		if status.Code(err) == codes.AlreadyExists {
