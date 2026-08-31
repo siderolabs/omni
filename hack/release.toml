@@ -6,24 +6,34 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.9.0"
+previous = "v1.10.0"
 
-[notes.infra-provider-installation-media]
-title = "Infrastructure Providers Use the Image Factory Omni Is Configured With"
+[notes.frontend-qol]
+title = "Frontend Quality-of-Life Improvements"
 description = """\
-Every infrastructure provider reached the image factory itself, so an on-prem or authenticated one had to be configured provider by provider, each \
-with its own copy of the factory's URL layout. A provision step now states which medium it wants through Context.EnsureInstallationMedia, and Omni \
-creates the schematic, picks the factory for that Talos version, works out the filename, and answers with a URL and any headers.
-
-A provider on the new API needs at least Omni 1.8, where schematic creation moved into Omni, and locates the medium itself if the server cannot.
+Align the UI features on the Cluster scale and Cluster create pages. Support searching by labels on Cluster scaling/create pages.
 """
 
-[notes.installation-media-download-tokens]
-title = "Installation Media Downloads Use Short-Lived Tokens"
+[notes.install-disk-resource]
+title = "Install Disk Configs"
 description = """\
-Starting with version 1.6, an Image Factory Enterprise with authentication enabled can issue download tokens, which Omni now uses for every \
-installation media download, PXE included, so the URL it hands out is short-lived. A community or unauthenticated factory is unaffected.
+Config Patches can no longer be used for setting Talos install disk. Starting from Talos 1.14 installation flow was changed a lot \
+so setting the install disk in the configs will no longer work. Install disk is now defined in a separate resource and works differently for \
+the older Talos versions.
+"""
 
-Each URL also carries a fresh token, so it is never the same twice. Infrastructure providers should compare the storage key rather than the URL when \
-deciding whether something has already been fetched, and ask for a lifetime covering any delay.
+[notes.kubernetes-signing-keys]
+title = "Kubernetes Token Signing Keys"
+description = """\
+Admins can now list the keys that sign Kubernetes access tokens and delete them. Deleting one immediately invalidates every kubeconfig and OIDC token \
+it signed, which is what it takes to pull a long-lived service account kubeconfig out of circulation before it expires.
+See [documentation](https://docs.siderolabs.com/omni/security-and-authentication/revoke-kubernetes-access-tokens) for more details.
+"""
+
+[notes.saml-recovery-admin]
+title = "Recovery Admin for SAML Lockouts"
+description = """\
+`auth.recoveryAdmin` config, or the `--recovery-admin` flag can be used to elevate a user to Admin on every Omni start.
+It also blocks user demotion through SAML label rules. \
+This is the way back in when a SAML rule strips Admin from everyone. Only existing users can be promoted.
 """
