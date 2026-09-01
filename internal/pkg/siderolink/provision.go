@@ -57,6 +57,7 @@ type provisionContext struct {
 	supportsSecureJoinTokens  bool
 	tokenWasWiped             bool
 	useWireguardOverGRPC      bool
+	uuidConflict              bool
 }
 
 func (pc *provisionContext) isAuthorizedLegacyJoin() bool {
@@ -347,6 +348,8 @@ func (h *ProvisionHandler) provision(ctx context.Context, logger *zap.Logger, pr
 			// link is there, but the token doesn't match and the fingerprint differs, keep the machine in the limbo state
 			// mark pending machine as having the UUID conflict, PendingMachineStatus controller should inject the new UUID
 			// and the machine will re-join
+			provisionContext.uuidConflict = true
+
 			return establishLink[*siderolinkres.PendingMachine](ctx, h, logger, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
 		}
 
@@ -542,7 +545,11 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 	var nodeAddress string
 
 	switch {
-	case provisionContext.link != nil:
+	// A machine that collided with an existing UUID must never be given that link's address.
+	// Both records get a Wireguard peer, and each peer is configured with ReplaceAllowedIPs on a
+	// single /128, so the second one would take the address away from the live machine and leave
+	// it unroutable. Fall through to this machine's own pending record, or to a fresh address.
+	case provisionContext.link != nil && !provisionContext.uuidConflict:
 		nodeAddress = provisionContext.link.TypedSpec().Value.NodeSubnet
 	case provisionContext.pendingMachine != nil:
 		nodeAddress = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet

@@ -223,6 +223,13 @@ func (handler *pendingMachineStatusHandler) getClient(
 		return nil, fmt.Errorf("machine UUID is not set on the pending machine")
 	}
 
+	// A machine in UUID conflict is by definition not the machine that owns this UUID: the cluster
+	// credentials registered under it belong to a different, healthy node and must never be used to
+	// talk to this one. Treat it as an unallocated machine instead.
+	if _, conflict := pendingMachine.Metadata().Annotations().Get(siderolink.PendingMachineUUIDConflict); conflict {
+		return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+	}
+
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineUUID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
