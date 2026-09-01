@@ -17,7 +17,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
-	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -54,7 +53,12 @@ will only work if the cluster is locked and tainted as "importing"`,
 
 var input clusterimport.Input
 
-func importCluster(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+func importCluster(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+	// The schematics are created through Omni, which older versions cannot do.
+	if !info.ServerSupports(1, 8) {
+		return fmt.Errorf("importing a cluster requires Omni v1.8.0 or newer (server is %s)", info.Version)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, importCmdFlags.waitTimeout)
 	defer cancel()
 
@@ -66,17 +70,12 @@ func importCluster(ctx context.Context, client *client.Client, _ access.ServerIn
 
 	omniState := client.Omni().State()
 
-	imageFactoryClients, err := imagefactory.NewClientsFromState(ctx, omniState)
-	if err != nil {
-		return err
-	}
-
 	talosClient, err := clusterimport.BuildTalosClient(ctx, importCmdFlags.talosConfig, importCmdFlags.talosContext, access.CmdFlags.SideroV1KeysDir, importCmdFlags.talosEndpoints)
 	if err != nil {
 		return err
 	}
 
-	importContext, err := clusterimport.BuildContext(ctx, input, omniState, imageFactoryClients, talosClient)
+	importContext, err := clusterimport.BuildContext(ctx, input, omniState, clusterimport.NewSchematicEnsurer(client), talosClient)
 	if err != nil {
 		return err
 	}

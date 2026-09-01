@@ -1394,10 +1394,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewClusterKubernetesManifestsStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
-			{
-				resource:       omni.NewImageFactoryAuth(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
 		}...)
 
 		testCases = append(testCases, resourceAuthzTestCase{
@@ -1408,6 +1404,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		// no access resources
 		testCases = append(testCases, []resourceAuthzTestCase{
+			{
+				resource: omni.NewImageFactoryAuth(uuid.NewString()),
+			},
 			{
 				resource: system.NewDBVersion(uuid.New().String()),
 			},

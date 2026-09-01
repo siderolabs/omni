@@ -242,6 +242,7 @@ type testData struct {
 	env                 map[string]string
 	talosClient         *mockTalosClient
 	imageFactoryClients *imagefactory.Clients
+	ensureSchematic     clusterimport.SchematicEnsurer
 	bundle              *secrets.Bundle
 	kubernetesVersion   string
 	talosVersion        string
@@ -270,6 +271,14 @@ func (data *testData) prepare(ctx context.Context, t *testing.T, logger *zap.Log
 			schematics: map[string]schematic.Schematic{},
 		},
 	)
+
+	// The ensurer writes into the same mock factory the assertions below read back from. In
+	// production the schematic is created through Omni instead, see NewSchematicEnsurer.
+	data.ensureSchematic = func(ctx context.Context, _ string, imageSchematic schematic.Schematic) (string, error) {
+		id, _, err := data.imageFactoryClients.Primary().EnsureSchematic(ctx, imageSchematic)
+
+		return id, err
+	}
 
 	data.talosClient = newMockTalosClient(data.nodes, logger.With(zap.String("component", "talos-client")))
 }
@@ -556,7 +565,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -669,7 +678,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -771,7 +780,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -813,7 +822,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to collect node info")
 				require.Nil(t, importContext)
@@ -840,7 +849,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -870,7 +879,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -897,7 +906,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.ensureSchematic, data.talosClient)
 				require.Error(t, err)
 				require.ErrorContains(t, err, "minimum required version of talos is")
 				require.Nil(t, importContext)

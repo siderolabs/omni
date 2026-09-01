@@ -29,6 +29,8 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+
+	"github.com/siderolabs/omni/client/pkg/client"
 )
 
 // TalosClient is a minimal interface for Talos client used in cluster import.
@@ -40,9 +42,28 @@ type TalosClient interface {
 	ApplyConfiguration(ctx context.Context, req *machineapi.ApplyConfigurationRequest, callOptions ...grpc.CallOption) (*machineapi.ApplyConfigurationResponse, error)
 }
 
-// ImageFactoryClient is a minimal interface for Image Factory client used in cluster import.
-type ImageFactoryClient interface {
-	EnsureSchematic(ctx context.Context, schematic schematic.Schematic, talosVersion string) (string, error)
+// SchematicEnsurer ensures a schematic exists in the image factory that serves the given Talos
+// version, and returns the ID that factory gave it.
+type SchematicEnsurer func(ctx context.Context, talosVersion string, imageSchematic schematic.Schematic) (string, error)
+
+// NewSchematicEnsurer returns a SchematicEnsurer which creates the schematic through Omni.
+//
+// Omni picks the image factory and authenticates against it, so the caller needs no factory
+// endpoint and no factory credentials of its own.
+func NewSchematicEnsurer(omniClient *client.Client) SchematicEnsurer {
+	return func(ctx context.Context, talosVersion string, imageSchematic schematic.Schematic) (string, error) {
+		raw, err := imageSchematic.Marshal()
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal the schematic: %w", err)
+		}
+
+		resp, err := omniClient.Management().CreateSchematicFromRaw(ctx, raw, talosVersion)
+		if err != nil {
+			return "", fmt.Errorf("failed to create the schematic through Omni: %w", err)
+		}
+
+		return resp.GetSchematicId(), nil
+	}
 }
 
 type talosClientWrapper struct {
