@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/siderolabs/omni/client/api/common"
+	omnikubeconfig "github.com/siderolabs/omni/client/pkg/kubeconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -79,6 +80,7 @@ func TestOIDCKubeconfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig1), string(kubeconfig))
+	assertValidKubeconfig(t, kubeconfig)
 
 	kubeconfig, err = r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -86,6 +88,7 @@ func TestOIDCKubeconfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig2), string(kubeconfig))
+	assertValidKubeconfig(t, kubeconfig)
 }
 
 func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
@@ -98,13 +101,22 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig1), string(kubeconfig))
+	assertValidKubeconfig(t, kubeconfig)
 
 	kubeconfig, err = r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
 	}, "", "key=test")
 	require.NoError(t, err)
 
+	// not validated on purpose: the management API never passes such an option, so the client rejects it
 	assert.Equal(t, string(oidcKubeconfig3), string(kubeconfig))
+
+	// the full set of options the management API can pass, in the order it passes them
+	kubeconfig, err = r.GetOIDCKubeconfig(&common.Context{
+		Name: "cluster1",
+	}, "test@example.com", "grant-type=auto", "oidc-redirect-url=urn:ietf:wg:oauth:2.0:oob", "token-cache-dir=/tmp/oidc-cache")
+	require.NoError(t, err)
+	assertValidKubeconfig(t, kubeconfig)
 }
 
 func TestOIDCKubeconfigWithCacheDir(t *testing.T) {
@@ -117,6 +129,7 @@ func TestOIDCKubeconfigWithCacheDir(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig4), string(kubeconfig))
+	assertValidKubeconfig(t, kubeconfig)
 }
 
 func TestOIDCKubeconfigWithCacheIsolation(t *testing.T) {
@@ -129,6 +142,7 @@ func TestOIDCKubeconfigWithCacheIsolation(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig5), string(kubeconfig))
+	assertValidKubeconfig(t, kubeconfig)
 }
 
 func TestBreakGlassKubeconfig(t *testing.T) {
@@ -152,6 +166,7 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 
 	kubeconfig, err := r.BreakGlassKubeconfig(ctx, "cluster1")
 	require.NoError(t, err)
+	assertValidKubeconfig(t, kubeconfig)
 
 	config, err := clientcmd.Load(kubeconfig)
 	require.NoError(t, err)
@@ -178,10 +193,18 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 
 	kubeconfig, err = r.BreakGlassKubeconfig(ctx, "cluster1")
 	require.NoError(t, err)
+	assertValidKubeconfig(t, kubeconfig)
 
 	config, err = clientcmd.Load(kubeconfig)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, config.Clusters)
 	require.Equal(t, "https://10.1.0.2:6443", config.Clusters["cluster1"].Server)
+}
+
+// assertValidKubeconfig makes sure whatever Omni generates passes the validation the client applies to it.
+func assertValidKubeconfig(t *testing.T, data []byte) {
+	t.Helper()
+
+	require.NoError(t, omnikubeconfig.Validate(data))
 }

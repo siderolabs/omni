@@ -6,7 +6,11 @@
 // Package external provides constants which are consumed in other places.
 package external
 
-import "time"
+import (
+	"time"
+
+	"github.com/siderolabs/omni/client/pkg/constants"
+)
 
 // DefaultClientID is the client_id of the default (an only) client.
 const DefaultClientID = "native"
@@ -24,4 +28,4 @@ const ServiceAccountTokenLifetime = 10 * 365 * 24 * time.Hour
 const KeyRotationInterval = 30 * 24 * time.Hour
 
 // KeyCodeRedirectURL is the redirect URL for the keycode authentication method.
-const KeyCodeRedirectURL = "urn:ietf:wg:oauth:2.0:oob"
+const KeyCodeRedirectURL = constants.KeyCodeRedirectURL

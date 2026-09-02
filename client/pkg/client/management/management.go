@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/kubeconfig"
 )
 
 // TalosconfigOption is a functional option for Talosconfig.
@@ -615,8 +616,17 @@ func (client *ClusterClient) Kubeconfig(ctx context.Context, opts ...KubeconfigO
 	}
 
 	kubeconfigResp, err := client.client.conn.Kubeconfig(ctx, &request)
+	if err != nil {
+		return nil, err
+	}
 
-	return kubeconfigResp.GetKubeconfig(), err
+	// make sure the kubeconfig has the shape Omni generates before handing it back to be used or written out,
+	// so that it has no arbitrary exec command, no extra clusters or users, and no credential or file references
+	if err = kubeconfig.Validate(kubeconfigResp.GetKubeconfig()); err != nil {
+		return nil, err
+	}
+
+	return kubeconfigResp.GetKubeconfig(), nil
 }
 
 // Talosconfig retrieves Talos client configuration for the cluster.

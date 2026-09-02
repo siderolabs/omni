@@ -97,3 +97,8 @@ func NewAuthServer(st state.State, services config.Services, logger *zap.Logger)
 func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
 	return newResourceServer(st, runtimes, depGrapher)
 }
+
+// BuildServiceAccountKubeconfig is exported for testing.
+func BuildServiceAccountKubeconfig(cfg *config.Params, cluster, user, token string) ([]byte, error) {
+	return (&managementServer{cfg: cfg}).buildServiceAccountKubeconfig(cluster, user, token)
+}

@@ -184,6 +184,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 
 	// not a service account, generate OIDC (user) or admin kubeconfig
 
+	// the client validates the exact form and order of these options, so a new option needs a matching client release
 	var extraOptions []string
 
 	if req.GrantType != "" {
@@ -197,7 +198,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 
 		extraOptions = []string{
 			"grant-type=" + req.GrantType,
-			"oidc-redirect-url=urn:ietf:wg:oauth:2.0:oob",
+			"oidc-redirect-url=" + constants.KeyCodeRedirectURL,
 		}
 	}
 

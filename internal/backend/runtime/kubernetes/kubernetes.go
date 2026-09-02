@@ -270,6 +270,7 @@ func (r *Runtime) StartCacheManager(ctx context.Context) error {
 	}
 }
 
+// oidcKubeConfigTemplate is the OIDC kubeconfig shape the client validates exactly, so any change here needs a matching client release.
 var oidcKubeConfigTemplate = strings.TrimSpace(`
 apiVersion: v1
 kind: Config

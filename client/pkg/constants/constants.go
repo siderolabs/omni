@@ -54,6 +54,9 @@ const (
 	//
 	// If not, the user will only have the groups specified in the ACLs (AccessPolicies) in the token claims (will be empty if there is no matching ACL).
 	DefaultAccessGroup = "system:masters"
+
+	// KeyCodeRedirectURL is the OIDC redirect URL of the keycode authentication method, where the user copies the code from the browser.
+	KeyCodeRedirectURL = "urn:ietf:wg:oauth:2.0:oob"
 )
 
 // GRPCMaxMessageSize is the maximum message size for gRPC server.
