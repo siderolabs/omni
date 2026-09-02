@@ -8,13 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -40,11 +40,11 @@ will only work if the cluster is locked and tainted as "importing"`,
 
 			omniState := client.Omni().State()
 
-			if err := clusterimport.Abort(ctx, omniState, clusterID, os.Stderr); err != nil {
+			if err := clusterimport.Abort(ctx, omniState, clusterID, safeout.Stderr()); err != nil {
 				return fmt.Errorf("failed to abort import operation for cluster %q: %w", clusterID, err)
 			}
 
-			fmt.Fprintf(os.Stderr, "import operation was aborted successfully for cluster %q\n", clusterID)
+			fmt.Fprintf(safeout.Stderr(), "import operation was aborted successfully for cluster %q\n", clusterID)
 
 			return nil
 		})
@@ -62,7 +62,7 @@ func importCluster(ctx context.Context, client *client.Client, info access.Serve
 	ctx, cancel := context.WithTimeout(ctx, importCmdFlags.waitTimeout)
 	defer cancel()
 
-	input.LogWriter = os.Stderr
+	input.LogWriter = safeout.Stderr()
 
 	if len(input.Nodes) == 0 {
 		return fmt.Errorf("at least one node is required to import a cluster")
@@ -90,7 +90,7 @@ func importCluster(ctx context.Context, client *client.Client, info access.Serve
 		return fmt.Errorf("failed to validate cluster status %q, can be overridden with --%s:  %w", importContext.ClusterID, flagImportForce, err)
 	}
 
-	fmt.Fprintf(os.Stderr, "cluster %q is imported successfully but marked as 'locked' to prevent changes done by Omni\n", importContext.ClusterID)
+	fmt.Fprintf(safeout.Stderr(), "cluster %q is imported successfully but marked as 'locked' to prevent changes done by Omni\n", importContext.ClusterID)
 
 	return nil
 }

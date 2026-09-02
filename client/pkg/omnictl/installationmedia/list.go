@@ -7,7 +7,6 @@ package installationmedia
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -59,7 +59,7 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 
 	header := "NAME\tARCH\tTALOS VERSION\tTYPE\tPLATFORM/OVERLAY"
 	if wide {
@@ -76,7 +76,7 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 			talosVersion = constants.DefaultTalosVersion
 		}
 
-		fmt.Fprintf( //nolint:errcheck
+		safeout.Fprintf( //nolint:errcheck
 			w, "%s\t%s\t%s\t%s\t%s",
 			preset.Metadata().ID(),
 			download.ArchToString(spec.Architecture),
@@ -86,7 +86,7 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 		)
 
 		if wide {
-			fmt.Fprintf( //nolint:errcheck
+			safeout.Fprintf( //nolint:errcheck
 				w, "\t%v\t%s\t%s\t%s\t%s\t%s\t%s",
 				spec.SecureBoot,
 				extensionsOrDash(spec.InstallExtensions),

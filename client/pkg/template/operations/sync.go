@@ -87,7 +87,7 @@ func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, s
 		yellow.Fprintf(out, "* updating%s %s\n", dryRun, boldFunc(utils.Describe(p.New))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err := utils.RenderDiff(os.Stdout, p.Old, p.New); err != nil {
+			if err := utils.RenderDiff(out, p.Old, p.New); err != nil {
 				return err
 			}
 		}
@@ -146,7 +146,7 @@ func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out 
 		yellow.Fprintf(out, "* tearing down%s %s\n", dryRun, boldFunc(utils.Describe(r))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err := utils.RenderDiff(os.Stdout, r, nil); err != nil {
+			if err := utils.RenderDiff(out, r, nil); err != nil {
 				return err
 			}
 		}

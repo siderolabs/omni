@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -145,7 +146,7 @@ func clusterMachineNodeNameString(clusterMachine *omni.ClusterMachineStatus) str
 		return ""
 	}
 
-	return color.CyanString("(%s)", nodename)
+	return color.CyanString("(%s)", safeout.Cell(nodename))
 }
 
 func clusterMachineLockedString(clusterMachine *omni.ClusterMachineStatus) string {

@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -46,7 +47,7 @@ func deletePreset(ctx context.Context, client *client.Client, name string) error
 		return fmt.Errorf("failed to delete installation media preset %q: %w", name, err)
 	}
 
-	fmt.Printf("Deleted installation media preset %q\n", name)
+	safeout.Printf("Deleted installation media preset %q\n", name)
 
 	return nil
 }

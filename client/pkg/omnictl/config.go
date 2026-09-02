@@ -7,7 +7,6 @@ package omnictl
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -16,6 +15,7 @@ import (
 	"github.com/siderolabs/gen/maps"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -151,7 +151,7 @@ var configGetContextsCmd = &cobra.Command{
 		keys := maps.Keys(conf.Contexts)
 		slices.Sort(keys)
 
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+		w := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 		defer w.Flush() //nolint:errcheck
 
 		_, err = fmt.Fprintln(w, "CURRENT\tNAME\tURL")
@@ -196,7 +196,7 @@ var configMergeCmd = &cobra.Command{
 		}
 
 		for _, rename := range renames {
-			fmt.Printf("renamed omniconfig context %s\n", rename.String())
+			safeout.Printf("renamed omniconfig context %s\n", rename.String())
 		}
 
 		return conf.Save()
@@ -278,7 +278,7 @@ var configInfoCmd = &cobra.Command{
 
 		result = buf.String() + "\n"
 
-		fmt.Print(result)
+		safeout.Print(result)
 
 		return nil
 	},

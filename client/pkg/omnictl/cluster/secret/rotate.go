@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -109,7 +110,7 @@ func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, i
 		return printSecretRotationStatus(ctx, st, cluster.Metadata().ID(), rotationStatus)
 	}
 
-	fmt.Printf("starting to rotate %s for the cluster %q\n", componentName, cluster.Metadata().ID())
+	safeout.Printf("starting to rotate %s for the cluster %q\n", componentName, cluster.Metadata().ID())
 
 	if err = safe.StateModify[T](
 		ctx, st, r,
@@ -151,13 +152,13 @@ func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, i
 
 func printSecretRotationStatus(ctx context.Context, st state.State, clusterName string, rotationStatus *omni.ClusterSecretsRotationStatus) error {
 	if rotationStatus.TypedSpec().Value.Phase == specs.SecretRotationSpec_OK {
-		fmt.Printf("no ongoing secret rotation for the cluster %q\n", clusterName)
+		safeout.Printf("no ongoing secret rotation for the cluster %q\n", clusterName)
 
 		return nil
 	}
 
 	if !rotateCmdFlags.wait {
-		fmt.Printf("rotation for %q is in progress(%q) for the cluster %q\n", rotationStatus.TypedSpec().Value.Component.String(), rotationStatus.TypedSpec().Value.Phase.String(), clusterName)
+		safeout.Printf("rotation for %q is in progress(%q) for the cluster %q\n", rotationStatus.TypedSpec().Value.Component.String(), rotationStatus.TypedSpec().Value.Phase.String(), clusterName)
 
 		return nil
 	}

@@ -22,7 +22,7 @@ func main() {
 
 	omnictl.RootCmd.Version = version.String()
 
-	if err := omnictl.RootCmd.Execute(); err != nil {
+	if err := omnictl.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

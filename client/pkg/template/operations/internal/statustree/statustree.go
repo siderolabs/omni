@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/fatih/color"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -37,14 +38,14 @@ func (t NodeWrapper) String() string {
 			"%s %s %s",
 			color.YellowString("Kubernetes Upgrade"),
 			kubernetesUpgradePhaseString(node.TypedSpec().Value.Phase),
-			node.TypedSpec().Value.Step,
+			safeout.Cell(node.TypedSpec().Value.Step),
 		)
 	case *omni.TalosUpgradeStatus:
 		return fmt.Sprintf(
 			"%s %s %s",
 			color.YellowString("Talos Upgrade"),
 			talosUpgradePhaseString(node.TypedSpec().Value.Phase),
-			node.TypedSpec().Value.Step,
+			safeout.Cell(node.TypedSpec().Value.Step),
 		)
 	case *omni.MachineSetStatus:
 		return fmt.Sprintf(
@@ -82,7 +83,7 @@ func (t NodeWrapper) String() string {
 			readyString(node.TypedSpec().Value.Healthy),
 		)
 	default:
-		return resource.String(t.Resource)
+		return safeout.Cell(resource.String(t.Resource))
 	}
 }
 

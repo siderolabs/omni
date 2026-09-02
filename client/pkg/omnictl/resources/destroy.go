@@ -7,7 +7,6 @@ package resources
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 )
 
@@ -86,7 +86,7 @@ func Destroy(ctx context.Context, st state.State, resNS, resType, selector strin
 				return err
 			}
 
-			fmt.Fprintf(os.Stderr, "destroyed %s %s\n", rd.TypedSpec().Type, resourceID)
+			fmt.Fprintf(safeout.Stderr(), "destroyed %s %s\n", rd.TypedSpec().Type, resourceID)
 
 			return nil
 		})

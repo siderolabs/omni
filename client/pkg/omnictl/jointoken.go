@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -74,7 +75,7 @@ var (
 					return err
 				}
 
-				fmt.Println(token)
+				safeout.Println(token)
 
 				return nil
 			})
@@ -108,7 +109,7 @@ var (
 					return err
 				}
 
-				fmt.Printf("token %q was revoked\n", id)
+				safeout.Printf("token %q was revoked\n", id)
 
 				return nil
 			})
@@ -138,7 +139,7 @@ var (
 					return err
 				}
 
-				fmt.Printf("token %q was unrevoked\n", id)
+				safeout.Printf("token %q was unrevoked\n", id)
 
 				return nil
 			})
@@ -168,7 +169,7 @@ var (
 					return err
 				}
 
-				fmt.Printf("token %q is now default\n", id)
+				safeout.Printf("token %q is now default\n", id)
 
 				return nil
 			})
@@ -202,7 +203,7 @@ var (
 					return err
 				}
 
-				fmt.Printf("token %q was renewed, new ttl is %s\n", id, joinTokenRenewFlags.ttl)
+				safeout.Printf("token %q was renewed, new ttl is %s\n", id, joinTokenRenewFlags.ttl)
 
 				return nil
 			})
@@ -226,7 +227,7 @@ var (
 					return err
 				}
 
-				fmt.Println(resp.Config)
+				safeout.Println(resp.Config)
 
 				return nil
 			})
@@ -250,7 +251,7 @@ var (
 					return err
 				}
 
-				fmt.Println(strings.Join(resp.KernelArgs, " "))
+				safeout.Println(strings.Join(resp.KernelArgs, " "))
 
 				return nil
 			})
@@ -269,7 +270,7 @@ var (
 					return err
 				}
 
-				writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+				writer := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 
 				fmt.Fprintf(writer, "ID\tNAME\tSTATE\tEXPIRATION\tUSE COUNT\tDEFAULT\n") //nolint:errcheck
 
@@ -286,7 +287,7 @@ var (
 						expirationTime = token.TypedSpec().Value.ExpirationTime.AsTime().String()
 					}
 
-					if _, err = fmt.Fprintf(
+					if _, err = safeout.Fprintf(
 						writer,
 						"%s\t%s\t%s\t%s\t%d\t%s\n",
 						token.Metadata().ID(),
@@ -322,7 +323,7 @@ var (
 					return err
 				}
 
-				fmt.Println(constructJoinURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl, tokenID))
+				safeout.Println(constructJoinURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl, tokenID))
 
 				return nil
 			})
@@ -347,7 +348,7 @@ var (
 					return fmt.Errorf("failed to delete a join token: %w", err)
 				}
 
-				fmt.Printf("deleted join token: %s\n", id)
+				safeout.Printf("deleted join token: %s\n", id)
 
 				return nil
 			})
@@ -417,7 +418,7 @@ func checkTokenWarnings(ctx context.Context, client *client.Client, id, operatio
 
 	if joinTokenStatus.TypedSpec().Value.Warnings != nil {
 		if _, err = yellow.Fprintf(
-			os.Stderr,
+			os.Stderr, //nolint:forbidigo // colored, and the values are counts
 			"WARNING: %d of %s won't be able to connect if the token is revoked/deleted\n",
 			len(joinTokenStatus.TypedSpec().Value.Warnings),
 			pluralize.NewClient().Pluralize("machine", int(joinTokenStatus.TypedSpec().Value.UseCount), true),
@@ -425,14 +426,14 @@ func checkTokenWarnings(ctx context.Context, client *client.Client, id, operatio
 			return err
 		}
 
-		writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+		writer := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 
 		if _, err = fmt.Fprintf(writer, "MACHINE\tDETAILS\n"); err != nil {
 			return err
 		}
 
 		for _, warning := range joinTokenStatus.TypedSpec().Value.Warnings {
-			if _, err = fmt.Fprintf(writer, "%s\t%s\n", warning.Machine, warning.Message); err != nil {
+			if _, err = safeout.Fprintf(writer, "%s\t%s\n", warning.Machine, warning.Message); err != nil {
 				return err
 			}
 		}
@@ -463,7 +464,7 @@ func askConfirmation(prompt string) (bool, error) {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Printf("%s [y/N]: ", prompt)
+	safeout.Printf("%s [y/N]: ", prompt)
 
 	response, err := reader.ReadString('\n')
 	if err != nil {

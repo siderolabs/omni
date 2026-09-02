@@ -8,9 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
+
+	"github.com/siderolabs/omni/client/internal/safeout"
 )
 
 // NewDmesgOutput returns a new DmesgOutput.
@@ -49,13 +50,13 @@ func (o DmesgOutput) Run(ctx context.Context) error {
 		message := trimNewLine(msg.Message)
 
 		if strings.IndexByte(message, '\n') == -1 {
-			fmt.Printf("[%5d.%06d] %s: %s\n", secondsPart, microSecondsPart, msg.Facility, message)
+			safeout.Printf("[%5d.%06d] %s: %s\n", secondsPart, microSecondsPart, msg.Facility, message)
 		} else {
 			for i, line := range strings.Split(message, "\n") {
 				if i == 0 {
-					fmt.Printf("[%5d.%06d] %s: %s\n", secondsPart, microSecondsPart, msg.Facility, line)
+					safeout.Printf("[%5d.%06d] %s: %s\n", secondsPart, microSecondsPart, msg.Facility, line)
 				} else {
-					fmt.Printf("[%5d.%06d] %s\n", secondsPart, microSecondsPart, line)
+					safeout.Printf("[%5d.%06d] %s\n", secondsPart, microSecondsPart, line)
 				}
 			}
 		}

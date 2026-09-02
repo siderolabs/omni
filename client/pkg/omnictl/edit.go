@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubectl/pkg/cmd/util/editor"
 	"k8s.io/kubectl/pkg/cmd/util/editor/crlf"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -169,7 +170,7 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 			}
 
 			if len(bytes.TrimSpace(stripComments(edited))) == 0 {
-				fmt.Fprintln(os.Stderr, "Apply was skipped: empty file.")
+				fmt.Fprintln(safeout.Stderr(), "Apply was skipped: empty file.")
 
 				break
 			}
@@ -209,11 +210,11 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 					continue
 				}
 
-				fmt.Fprintf(os.Stderr, "Updated %s '%s'\n", res.Metadata().Type(), res.Metadata().ID())
+				fmt.Fprintf(safeout.Stderr(), "Updated %s '%s'\n", res.Metadata().Type(), res.Metadata().ID())
 			}
 
 			if changed == 0 {
-				fmt.Fprintln(os.Stderr, "Apply was skipped: no changes detected.")
+				fmt.Fprintln(safeout.Stderr(), "Apply was skipped: no changes detected.")
 
 				break
 			}

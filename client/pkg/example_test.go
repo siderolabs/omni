@@ -26,7 +26,7 @@ func Example() {
 	omnictl.RootCmd.Version = version.String()
 
 	// Run Root command.
-	if err := omnictl.RootCmd.Execute(); err != nil {
+	if err := omnictl.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

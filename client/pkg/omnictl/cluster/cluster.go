@@ -8,12 +8,12 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/kubernetes"
@@ -65,7 +65,7 @@ func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *c
 			return err
 		}
 
-		fmt.Fprintf(os.Stderr, "cluster %q lock status: %t\n", clusterID, lock)
+		fmt.Fprintf(safeout.Stderr(), "cluster %q lock status: %t\n", clusterID, lock)
 
 		return nil
 	}

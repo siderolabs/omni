@@ -15,6 +15,7 @@ import (
 	"github.com/fatih/color"
 	"go.yaml.in/yaml/v4"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/diff"
 )
 
@@ -87,15 +88,18 @@ func outputDiff(w io.Writer, diffStr, fromPath, toPath string) {
 		return
 	}
 
+	// the diff is colored, so the lines and the resource names received from the API are escaped one by one
 	bold := color.New(color.Bold)
-	bold.Fprintf(w, "--- %s\n", fromPath) //nolint:errcheck
-	bold.Fprintf(w, "+++ %s\n", toPath)   //nolint:errcheck
+	bold.Fprintf(w, "--- %s\n", safeout.Cell(fromPath)) //nolint:errcheck
+	bold.Fprintf(w, "+++ %s\n", safeout.Cell(toPath))   //nolint:errcheck
 
 	cyan := color.New(color.FgCyan)
 	red := color.New(color.FgRed)
 	green := color.New(color.FgGreen)
 
 	for line := range strings.SplitSeq(diffStr, "\n") {
+		line = safeout.Cell(line)
+
 		switch {
 		case strings.HasPrefix(line, "@@"):
 			cyan.Fprintln(w, line) //nolint:errcheck
@@ -112,6 +116,8 @@ func outputDiff(w io.Writer, diffStr, fromPath, toPath string) {
 }
 
 // Describe a resources in human readable format.
+//
+// The description is escaped for a single line, as it is put into colored lines.
 func Describe(r resource.Resource) string {
-	return fmt.Sprintf("%s(%s)", r.Metadata().Type(), r.Metadata().ID())
+	return safeout.Cell(fmt.Sprintf("%s(%s)", r.Metadata().Type(), r.Metadata().ID()))
 }

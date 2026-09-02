@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
@@ -226,7 +227,7 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 		return fmt.Errorf("failed to create installation media preset: %w", err)
 	}
 
-	fmt.Printf("Created installation media preset %q\n", name)
+	safeout.Printf("Created installation media preset %q\n", name)
 
 	return nil
 }

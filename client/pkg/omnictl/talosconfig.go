@@ -15,6 +15,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -96,7 +97,7 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 					return err
 				}
 
-				fmt.Fprintf(os.Stderr, "warning: cluster %q does not exist\n", talosconfigCmdFlags.cluster)
+				fmt.Fprintf(safeout.Stderr(), "warning: cluster %q does not exist\n", talosconfigCmdFlags.cluster)
 			}
 
 			data, err = client.Management().WithCluster(talosconfigCmdFlags.cluster).Talosconfig(ctx, opts...)
@@ -120,7 +121,7 @@ func getTalosconfig(args []string) func(ctx context.Context, client *client.Clie
 			renames := existing.Merge(cfg)
 
 			for _, rename := range renames {
-				fmt.Printf("renamed talosconfig context %s\n", rename.String())
+				safeout.Printf("renamed talosconfig context %s\n", rename.String())
 			}
 
 			return existing.Save(localPath)

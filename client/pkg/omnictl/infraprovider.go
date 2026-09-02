@@ -7,7 +7,6 @@ package omnictl
 import (
 	"context"
 	"fmt"
-	"os"
 	"text/tabwriter"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -76,15 +76,15 @@ var (
 					return err
 				}
 
-				fmt.Printf("Your infra provider %q is ready to use\n", name)
-				fmt.Printf("Created infra provider service account %q with public key ID %q\n", serviceAccountName, publicKeyID)
-				fmt.Printf("\n")
-				fmt.Printf("Set the following environment variables to use the service account:\n")
-				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
-				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Println("")
-				fmt.Println("Note: Store the service account key securely, it will not be displayed again")
-				fmt.Println("Please use the endpoint and the service account key to set up the infra provider")
+				safeout.Printf("Your infra provider %q is ready to use\n", name)
+				safeout.Printf("Created infra provider service account %q with public key ID %q\n", serviceAccountName, publicKeyID)
+				safeout.Printf("\n")
+				safeout.Printf("Set the following environment variables to use the service account:\n")
+				safeout.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
+				safeout.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
+				safeout.Println("")
+				safeout.Println("Note: Store the service account key securely, it will not be displayed again")
+				safeout.Println("Please use the endpoint and the service account key to set up the infra provider")
 
 				return nil
 			})
@@ -122,13 +122,13 @@ var (
 					return err
 				}
 
-				fmt.Printf("Renewed service account %q by adding a public key with ID %q\n", serviceAccountName, publicKeyID)
-				fmt.Printf("\n")
-				fmt.Printf("Set the following environment variables to use the service account:\n")
-				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
-				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Println("")
-				fmt.Println("Note: Store the service account key securely, it will not be displayed again")
+				safeout.Printf("Renewed service account %q by adding a public key with ID %q\n", serviceAccountName, publicKeyID)
+				safeout.Printf("\n")
+				safeout.Printf("Set the following environment variables to use the service account:\n")
+				safeout.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
+				safeout.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
+				safeout.Println("")
+				safeout.Println("Note: Store the service account key securely, it will not be displayed again")
 
 				return nil
 			})
@@ -147,12 +147,12 @@ var (
 					return err
 				}
 
-				writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+				writer := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 4, ' ', 0)
 
 				fmt.Fprintf(writer, "ID\tNAME\tVERSION\tDESCRIPTION\tCONNECTED\tERROR\n") //nolint:errcheck
 
 				for ps := range infraProviders.All() {
-					fmt.Fprintf( //nolint:errcheck
+					safeout.Fprintf( //nolint:errcheck
 						writer,
 						"%s\t%s\t%s\t%s\t%t\t%s\n",
 						ps.Metadata().ID(),
@@ -182,7 +182,7 @@ var (
 					return fmt.Errorf("failed to delete infra provider: %w", err)
 				}
 
-				fmt.Printf("deleted infra provider: %s\n", name)
+				safeout.Printf("deleted infra provider: %s\n", name)
 
 				return nil
 			})

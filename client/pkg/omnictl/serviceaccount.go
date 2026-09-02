@@ -7,7 +7,6 @@ package omnictl
 import (
 	"context"
 	"fmt"
-	"os"
 	"runtime"
 	"text/tabwriter"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -69,13 +69,13 @@ var (
 					return err
 				}
 
-				fmt.Fprintf(os.Stderr, "Created service account %q with public key ID %q\n", name, publicKeyID)
-				fmt.Fprintf(os.Stderr, "\n")
-				fmt.Fprintf(os.Stderr, "Set the following environment variables to use the service account:\n")
-				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
-				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Fprintf(os.Stderr, "\n")
-				fmt.Fprintf(os.Stderr, "Note: Store the service account key securely, it will not be displayed again\n")
+				fmt.Fprintf(safeout.Stderr(), "Created service account %q with public key ID %q\n", name, publicKeyID)
+				fmt.Fprintf(safeout.Stderr(), "\n")
+				fmt.Fprintf(safeout.Stderr(), "Set the following environment variables to use the service account:\n")
+				safeout.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
+				safeout.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
+				fmt.Fprintf(safeout.Stderr(), "\n")
+				fmt.Fprintf(safeout.Stderr(), "Note: Store the service account key securely, it will not be displayed again\n")
 
 				return nil
 			})
@@ -111,13 +111,13 @@ var (
 					return err
 				}
 
-				fmt.Fprintf(os.Stderr, "Renewed service account %q by adding a public key with ID %q\n", name, publicKeyID)
-				fmt.Fprintf(os.Stderr, "\n")
-				fmt.Fprintf(os.Stderr, "Set the following environment variables to use the service account:\n")
-				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
-				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Fprintf(os.Stderr, "\n")
-				fmt.Fprintf(os.Stderr, "Note: Store the service account key securely, it will not be displayed again\n")
+				fmt.Fprintf(safeout.Stderr(), "Renewed service account %q by adding a public key with ID %q\n", name, publicKeyID)
+				fmt.Fprintf(safeout.Stderr(), "\n")
+				fmt.Fprintf(safeout.Stderr(), "Set the following environment variables to use the service account:\n")
+				safeout.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
+				safeout.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
+				fmt.Fprintf(safeout.Stderr(), "\n")
+				fmt.Fprintf(safeout.Stderr(), "Note: Store the service account key securely, it will not be displayed again\n")
 
 				return nil
 			})
@@ -136,7 +136,7 @@ var (
 					return err
 				}
 
-				writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+				writer := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 
 				fmt.Fprintf(writer, "NAME\tROLE\tLAST ACTIVE\tPUBLIC KEY ID\tKEY CREATED\tKEY LAST ACTIVE\tEXPIRATION\n") //nolint:errcheck
 
@@ -161,11 +161,11 @@ var (
 
 						if i == 0 {
 							//nolint:errcheck
-							fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+							safeout.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 								sa.Name, sa.GetRole(), lastActive, publicKey.Id, keyCreated, keyLastActive, expiration)
 						} else {
 							//nolint:errcheck
-							fmt.Fprintf(writer, "\t\t\t%s\t%s\t%s\t%s\n",
+							safeout.Fprintf(writer, "\t\t\t%s\t%s\t%s\t%s\n",
 								publicKey.Id, keyCreated, keyLastActive, expiration)
 						}
 					}
@@ -190,7 +190,7 @@ var (
 					return fmt.Errorf("failed to destroy service account: %w", err)
 				}
 
-				fmt.Printf("destroyed service account: %s\n", name)
+				safeout.Printf("destroyed service account: %s\n", name)
 
 				return nil
 			})

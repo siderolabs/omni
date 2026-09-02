@@ -16,6 +16,8 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/siderolabs/omni/client/internal/safeout"
 )
 
 const (
@@ -209,7 +211,7 @@ func defaultPath(readOnly bool) (string, error) {
 	baseDir, err := config.GetTalosDirectory()
 	if err != nil {
 		if readOnly && fileutils.FileExists(filepath.Join(xdg.ConfigHome, OmniRelativePath)) {
-			fmt.Fprintf(os.Stderr, "WARN: Failed to determine Talos directory, falling back to deprecated Omni config location: '%s' for reading.\n",
+			fmt.Fprintf(safeout.Stderr(), "WARN: Failed to determine Talos directory, falling back to deprecated Omni config location: '%s' for reading.\n",
 				filepath.Join(xdg.ConfigHome, OmniRelativePath))
 
 			return xdg.ConfigFile(OmniRelativePath)
@@ -227,7 +229,7 @@ func evaluatePath(readOnly bool, baseDir string) (string, error) {
 		if _, err := ensurePath(filepath.Join(baseDir, omniConfigDirectory)); err != nil {
 			// Talos home directory is not writable, but we can still read the config from XDG config directory
 			if readOnly {
-				fmt.Fprintf(os.Stderr, "WARN: Default Omni config location: '%s' is not writable, falling back to deprecated Omni config location: '%s' for reading.\n",
+				fmt.Fprintf(safeout.Stderr(), "WARN: Default Omni config location: '%s' is not writable, falling back to deprecated Omni config location: '%s' for reading.\n",
 					filepath.Join(baseDir, OmniRelativePath), filepath.Join(xdg.ConfigHome, OmniRelativePath))
 
 				return xdg.ConfigFile(OmniRelativePath)
@@ -270,7 +272,7 @@ func copyConfig(src, dstDir string) (string, error) {
 		return "", fmt.Errorf("failed to write destination config file %q: %w", dst, err)
 	}
 
-	fmt.Fprintf(os.Stderr, "INFO: Omni config was copied from deprecated default location: '%s' to new default location: '%s'\n", src, dst)
+	fmt.Fprintf(safeout.Stderr(), "INFO: Omni config was copied from deprecated default location: '%s' to new default location: '%s'\n", src, dst)
 
 	return dst, nil
 }

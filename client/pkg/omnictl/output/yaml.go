@@ -6,7 +6,7 @@ package output
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -17,13 +17,14 @@ import (
 
 // YAML outputs resources in YAML format.
 type YAML struct {
+	w          io.Writer
 	needDashes bool
 	withEvents bool
 }
 
 // NewYAML initializes YAML resource output.
-func NewYAML() *YAML {
-	return &YAML{}
+func NewYAML(w io.Writer) *YAML {
+	return &YAML{w: w}
 }
 
 // WriteHeader implements output.Writer interface.
@@ -41,16 +42,16 @@ func (y *YAML) WriteResource(r resource.Resource, event state.EventType) error {
 	}
 
 	if y.needDashes {
-		fmt.Fprintln(os.Stdout, "---") //nolint:errcheck
+		fmt.Fprintln(y.w, "---") //nolint:errcheck
 	}
 
 	y.needDashes = true
 
 	if y.withEvents {
-		fmt.Fprintf(os.Stdout, "event: %s\n", strings.ToLower(event.String())) //nolint:errcheck
+		fmt.Fprintf(y.w, "event: %s\n", strings.ToLower(event.String())) //nolint:errcheck
 	}
 
-	return yaml.NewEncoder(os.Stdout).Encode(out)
+	return yaml.NewEncoder(y.w).Encode(out)
 }
 
 // Flush implements output.Writer interface.

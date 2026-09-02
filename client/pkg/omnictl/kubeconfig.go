@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -195,7 +196,7 @@ func writeWithContextName(data []byte, localPath string, contextName string) err
 	err = merger.Merge(config, kubeconfig.MergeOptions{
 		ActivateContext:  true,
 		ForceContextName: contextName,
-		OutputWriter:     os.Stdout,
+		OutputWriter:     safeout.Stdout(),
 	})
 	if err != nil {
 		return err
@@ -219,12 +220,12 @@ func extractAndMerge(data []byte, localPath string) error {
 		merger = kubeconfig.New()
 	}
 
-	interactive := isatty.IsTerminal(os.Stdout.Fd())
+	interactive := isatty.IsTerminal(os.Stdout.Fd()) //nolint:forbidigo // asking about the stream, not writing to it
 
 	err = merger.Merge(config, kubeconfig.MergeOptions{
 		ActivateContext:  true,
 		ForceContextName: kubeconfigCmdFlags.forceContextName,
-		OutputWriter:     os.Stdout,
+		OutputWriter:     safeout.Stdout(),
 		ConflictHandler: func(component kubeconfig.ConfigComponent, name string) (kubeconfig.ConflictDecision, error) {
 			if kubeconfigCmdFlags.force {
 				return kubeconfig.OverwriteDecision, nil
@@ -248,7 +249,7 @@ func askOverwriteOrRename(prompt string) (kubeconfig.ConflictDecision, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s [(r)ename/(o)verwrite]: ", prompt)
+		safeout.Printf("%s [(r)ename/(o)verwrite]: ", prompt)
 
 		response, err := reader.ReadString('\n')
 		if err != nil {

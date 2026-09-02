@@ -52,7 +52,7 @@ func status(ctx context.Context, client *client.Client, _ access.ServerInfo) err
 		statusCmdFlags.options.Wait = false
 	}
 
-	return operations.StatusTemplate(ctx, f, os.Stdout, client.Omni().State(), statusCmdFlags.options, resolvedRoot)
+	return operations.StatusTemplate(ctx, f, os.Stdout, client.Omni().State(), statusCmdFlags.options, resolvedRoot) //nolint:forbidigo // colored output and cursor movement
 }
 
 func init() {

@@ -35,7 +35,7 @@ func diff(ctx context.Context, client *client.Client, _ access.ServerInfo) error
 
 	defer f.Close() //nolint:errcheck
 
-	return operations.DiffTemplate(ctx, f, os.Stdout, client.Omni().State(), resolvedRoot)
+	return operations.DiffTemplate(ctx, f, os.Stdout, client.Omni().State(), resolvedRoot) //nolint:forbidigo // colored output
 }
 
 func init() {

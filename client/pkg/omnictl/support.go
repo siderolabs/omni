@@ -20,6 +20,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/supportbundle"
@@ -96,13 +97,13 @@ func (sbe *supportBundleErrors) print() error {
 
 	var wroteHeader bool
 
-	w := tabwriter.NewWriter(os.Stderr, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stderr, 0, 0, 3, ' ', 0) //nolint:forbidigo // the rows are colored, so the fields are escaped one by one above
 
 	for _, err := range sbe.errors {
 		if !wroteHeader {
 			wroteHeader = true
 
-			fmt.Fprintln(os.Stderr, "Processed with errors:")
+			fmt.Fprintln(safeout.Stderr(), "Processed with errors:")
 			fmt.Fprintln(w, "\tSOURCE\tERROR") //nolint:errcheck
 		}
 
@@ -111,11 +112,11 @@ func (sbe *supportBundleErrors) print() error {
 			details[i] = strings.TrimSpace(d)
 		}
 
-		fmt.Fprintf(w, "\t%s\t%s\n", err.source, color.RedString(details[0])) //nolint:errcheck
+		fmt.Fprintf(w, "\t%s\t%s\n", safeout.Cell(err.source), color.RedString(safeout.Cell(details[0]))) //nolint:errcheck
 
 		if len(details) > 1 {
 			for _, line := range details[1:] {
-				fmt.Fprintf(w, "\t\t%s\n", color.RedString(line)) //nolint:errcheck
+				fmt.Fprintf(w, "\t\t%s\n", color.RedString(safeout.Cell(line))) //nolint:errcheck
 			}
 		}
 	}
@@ -217,10 +218,10 @@ func printRecipients(recipients []string) {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "Support bundle encrypted to the following recipients:")
+	fmt.Fprintln(safeout.Stderr(), "Support bundle encrypted to the following recipients:")
 
 	for _, r := range recipients {
-		fmt.Fprintf(os.Stderr, "  - %s\n", r)
+		fmt.Fprintf(safeout.Stderr(), "  - %s\n", r)
 	}
 }
 
@@ -232,7 +233,7 @@ func openArchive() (*os.File, error) {
 	} else {
 		buf := bufio.NewReader(os.Stdin)
 
-		fmt.Printf("%s already exists, overwrite? [y/N]: ", supportCmdFlags.output)
+		safeout.Printf("%s already exists, overwrite? [y/N]: ", supportCmdFlags.output)
 
 		choice, err := buf.ReadString('\n')
 		if err != nil {
@@ -277,7 +278,8 @@ func showProgress(progress <-chan *management.GetSupportBundleResponse_Progress,
 			bar := uiprogress.AddBar(int(p.Total))
 			bar = bar.AppendCompleted().PrependElapsed()
 
-			src := p.Source
+			// the progress bars redraw themselves, so the fields received from the API are escaped here
+			src := safeout.Cell(p.Source)
 
 			np = &nodeProgress{
 				state: "initializing...",
@@ -295,7 +297,7 @@ func showProgress(progress <-chan *management.GetSupportBundleResponse_Progress,
 			np = nodes[p.Source]
 		}
 
-		np.state = p.State
+		np.state = safeout.Cell(p.State)
 		np.bar.Incr()
 	}
 

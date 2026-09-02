@@ -11,6 +11,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/compression"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -28,7 +29,22 @@ var RootCmd = &cobra.Command{
 	},
 }
 
+// Execute runs the root command.
+//
+// It releases a partial UTF-8 sequence held back by the last filtered write, which is lost
+// when the root command is executed directly.
+func Execute() error {
+	defer safeout.Flush() //nolint:errcheck
+
+	return RootCmd.Execute()
+}
+
 func init() {
+	// cobra's own writers, so that anything printed through cmd.Print, cmd.PrintErr or
+	// cmd.OutOrStdout is filtered too, including the error message cobra prints on failure.
+	RootCmd.SetOut(safeout.Stdout())
+	RootCmd.SetErr(safeout.Stderr())
+
 	RootCmd.PersistentFlags().StringVar(&access.CmdFlags.Omniconfig, "omniconfig", "",
 		fmt.Sprintf(
 			"The path to the omni configuration file. Defaults to '%s' env variable if set, otherwise '%s'. "+

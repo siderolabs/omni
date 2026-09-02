@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -100,13 +101,13 @@ func applyConfigFiles(ctx context.Context, client *client.Client, _ access.Serve
 	}
 
 	if applyCmdFlags.options.verbose {
-		fmt.Printf("Processing %d resource file(s)\n", len(files))
+		safeout.Printf("Processing %d resource file(s)\n", len(files))
 	}
 
 	// Process each file independently
 	for _, file := range files {
 		if applyCmdFlags.options.verbose {
-			fmt.Printf("Applying resources from: %s\n", file)
+			safeout.Printf("Applying resources from: %s\n", file)
 		}
 
 		yamlRaw, err := os.ReadFile(file)
@@ -193,7 +194,7 @@ func createResource(ctx context.Context, st state.State, res resource.Resource, 
 			return err
 		}
 
-		fmt.Printf("Creating resource '%s'\n\n%s\n\n", res.Metadata().ID(), out)
+		safeout.Printf("Creating resource '%s'\n\n%s\n\n", res.Metadata().ID(), out)
 	}
 
 	if opts.dryRun {
@@ -219,10 +220,11 @@ func updateResource(ctx context.Context, st state.State, got resource.Resource, 
 			return err
 		}
 
+		// the diff is colored, so the resources are escaped before diffing and the result is written to the raw stream
 		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(outGot, outRes, false)
+		diffs := dmp.DiffMain(safeout.String(outGot), safeout.String(outRes), false)
 
-		fmt.Printf("Updating resource '%s'\n\n%s\n\n", res.Metadata().ID(), dmp.DiffPrettyText(diffs))
+		fmt.Fprintf(os.Stdout, "Updating resource '%s'\n\n%s\n\n", safeout.Cell(res.Metadata().ID()), dmp.DiffPrettyText(diffs)) //nolint:forbidigo // colored output
 	}
 
 	if opts.dryRun {

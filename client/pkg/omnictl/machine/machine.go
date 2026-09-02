@@ -8,11 +8,11 @@ package machine
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -29,7 +29,7 @@ the provider from automatically powering the machine back on.`,
 				return fmt.Errorf("failed to shut down machine %q: %w", args[0], err)
 			}
 
-			fmt.Fprintf(os.Stderr, "machine %q is shutting down\n", args[0])
+			fmt.Fprintf(safeout.Stderr(), "machine %q is shutting down\n", args[0])
 
 			return nil
 		})
@@ -48,7 +48,7 @@ and allows the provider to power the machine on.`,
 				return fmt.Errorf("failed to power on machine %q: %w", args[0], err)
 			}
 
-			fmt.Fprintf(os.Stderr, "machine %q power on requested\n", args[0])
+			fmt.Fprintf(safeout.Stderr(), "machine %q power on requested\n", args[0])
 
 			return nil
 		})
@@ -91,11 +91,11 @@ machine is rebooted so it boots from disk into the freshly installed Talos.`,
 				}
 
 				if msg := resp.GetMessage(); msg != "" {
-					fmt.Fprintln(os.Stderr, msg)
+					fmt.Fprintln(safeout.Stderr(), msg)
 				}
 			}
 
-			fmt.Fprintf(os.Stderr, "machine %q: Talos installed to %s\n", args[0], installCmdFlags.disk)
+			fmt.Fprintf(safeout.Stderr(), "machine %q: Talos installed to %s\n", args[0], installCmdFlags.disk)
 
 			return nil
 		})
@@ -134,11 +134,11 @@ Installer progress is streamed to the terminal; on success the machine is reboot
 				}
 
 				if msg := resp.GetMessage(); msg != "" {
-					fmt.Fprintln(os.Stderr, msg)
+					fmt.Fprintln(safeout.Stderr(), msg)
 				}
 			}
 
-			fmt.Fprintf(os.Stderr, "machine %q: Talos upgraded\n", args[0])
+			fmt.Fprintf(safeout.Stderr(), "machine %q: Talos upgraded\n", args[0])
 
 			return nil
 		})

@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -111,7 +112,7 @@ func WithClient(f func(ctx context.Context, client *client.Client, info ServerIn
 			}
 
 			if configCtx.Auth.Basic != "" { //nolint:staticcheck
-				fmt.Fprintf(os.Stderr, "[WARN] basic auth is deprecated and has no effect\n")
+				fmt.Fprintf(safeout.Stderr(), "[WARN] basic auth is deprecated and has no effect\n")
 			}
 
 			opts = append(
@@ -183,11 +184,11 @@ func checkVersion(ctx context.Context, state state.State) (semver.Version, error
 
 	parsedVersion, err := parseVersion(sysVersion.TypedSpec().Value.BackendVersion)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[WARN] failed to parse backend version %q: %v\n", sysVersion.TypedSpec().Value.BackendVersion, err)
+		fmt.Fprintf(safeout.Stderr(), "[WARN] failed to parse backend version %q: %v\n", sysVersion.TypedSpec().Value.BackendVersion, err)
 	}
 
 	if version.API == 0 && !version.SuppressVersionWarning {
-		fmt.Fprintln(os.Stderr, `[WARN] github.com/siderolabs/omni/client/pkg/version.API is not set, client-server version validation is disabled.
+		fmt.Fprintln(safeout.Stderr(), `[WARN] github.com/siderolabs/omni/client/pkg/version.API is not set, client-server version validation is disabled.
 If you want to enable the version validation and disable this warning, set github.com/siderolabs/omni/client/pkg/version.SuppressVersionWarning to true.`)
 
 		return parsedVersion, nil
@@ -239,7 +240,7 @@ func checkNotifications(ctx context.Context, st state.State, info ServerInfo) er
 			prefix = "[UNKNOWN]"
 		}
 
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", prefix, spec.Title, spec.Body)
+		fmt.Fprintf(safeout.Stderr(), "%s %s: %s\n", prefix, spec.Title, spec.Body)
 	}
 
 	return nil
@@ -257,7 +258,7 @@ func checkVersionWarning(sysVersion *system.SysVersion) {
 	}
 
 	if clientVersion.Major != backendVersion.Major || clientVersion.Minor != backendVersion.Minor {
-		fmt.Fprintf(os.Stderr, "[WARN] omnictl version %q differs from the backend version %q.\n", clientVersion.String(), backendVersion.String())
+		fmt.Fprintf(safeout.Stderr(), "[WARN] omnictl version %q differs from the backend version %q.\n", clientVersion.String(), backendVersion.String())
 	}
 }
 

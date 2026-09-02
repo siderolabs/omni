@@ -771,18 +771,51 @@ spec:
   buildTags:
     - integration
     - sidero.tools
-  depguardExtraRules:
-    prevent_sync_errgroup:
-      list-mode: lax
-      files:
-        - $all
-        - "!$test"
-        - "!**/integration-test/**"
-        - "!**/omnictl/**"
-        - "!**/panichandler/**"
-      deny:
-        - pkg: golang.org/x/sync/errgroup
-          desc: Use github.com/siderolabs/omni/client/pkg/panichandler.ErrGroup instead
+  config:
+    linters:
+      settings:
+        depguard:
+          rules:
+            prevent_sync_errgroup:
+              list-mode: lax
+              files:
+                - $all
+                - "!$test"
+                - "!**/integration-test/**"
+                - "!**/omnictl/**"
+                - "!**/panichandler/**"
+              deny:
+                - pkg: golang.org/x/sync/errgroup
+                  desc: Use github.com/siderolabs/omni/client/pkg/panichandler.ErrGroup instead
+        errcheck:
+          exclude-functions:
+            - github.com/siderolabs/omni/client/internal/safeout.Fprintf
+        forbidigo:
+          forbid:
+            - pattern: ^fmt\.(Print|Printf|Println)$
+              msg: >-
+                omnictl renders text received from the Omni API, and a terminal acts on
+                control sequences in it. Print through client/internal/safeout instead.
+            - pattern: ^os\.(Stdout|Stderr)$
+              msg: >-
+                use safeout.Stdout / safeout.Stderr so text received from the Omni API cannot drive
+                the operator's terminal. A stream which must stay raw, e.g. under colored output,
+                needs //nolint:forbidigo saying which.
+      enable:
+        # omnictl renders text received from the Omni API, and a terminal acts on control sequences in it,
+        # so all output goes through client/internal/safeout. The rules below only bite in the
+        # client module, as they are scoped to the omnictl packages.
+        - forbidigo
+      exclusions:
+        rules:
+          - linters:
+              - forbidigo
+            path-except: ^pkg/omnictl/
+          # errcheck excuses fmt.Fprint* to os.Stdout and os.Stderr, extend that to the filtered streams
+          - linters:
+              - errcheck
+            path: ^pkg/omnictl/
+            text: Error return value of `fmt\.Fprint
 ---
 kind: js.Build
 spec:

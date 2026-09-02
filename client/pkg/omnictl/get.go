@@ -7,6 +7,7 @@ package omnictl
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -59,7 +60,7 @@ func getResources(args []string) func(ctx context.Context, client *client.Client
 			return err
 		}
 
-		out, err := output.NewWriter(getCmdFlags.output)
+		out, err := output.NewWriter(getCmdFlags.output, os.Stdout) //nolint:forbidigo // wrapped per format inside
 		if err != nil {
 			return err
 		}

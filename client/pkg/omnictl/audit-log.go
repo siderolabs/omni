@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"iter"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -93,7 +93,7 @@ var auditLog = &cobra.Command{
 					return err
 				}
 
-				if _, err := os.Stdout.Write(resp.AuditLog); err != nil {
+				if _, err := safeout.Stdout().Write(resp.AuditLog); err != nil {
 					return err
 				}
 			}

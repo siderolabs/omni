@@ -37,7 +37,7 @@ var exportCmd = &cobra.Command{
 }
 
 func export(ctx context.Context, client *client.Client, _ access.ServerInfo) (err error) {
-	output := os.Stdout
+	output := os.Stdout //nolint:forbidigo // a YAML document, escaped by the encoder
 
 	if exportCmdFlags.output != "" {
 		var openErr error

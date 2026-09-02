@@ -27,6 +27,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
@@ -653,9 +654,9 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 
 	switch {
 	case params.GrpcTunnelMode == management.CreateSchematicRequest_AUTO:
-		fmt.Fprintf(os.Stderr, "Using server's SideroLink gRPC tunnel setting: %v\n", schematicResp.GrpcTunnelEnabled)
+		fmt.Fprintf(safeout.Stderr(), "Using server's SideroLink gRPC tunnel setting: %v\n", schematicResp.GrpcTunnelEnabled)
 	case params.GrpcTunnelMode == management.CreateSchematicRequest_DISABLED && schematicResp.GrpcTunnelEnabled:
-		fmt.Fprintf(os.Stderr, "WARNING: requested setting \"--use-siderolink-grpc-tunnel\" is ignored because the server's SideroLink gRPC tunnel setting is enabled.\n")
+		fmt.Fprintf(safeout.Stderr(), "WARNING: requested setting \"--use-siderolink-grpc-tunnel\" is ignored because the server's SideroLink gRPC tunnel setting is enabled.\n")
 	}
 
 	spec := mediaSpec(image, params)
@@ -665,15 +666,15 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Using image factory at %q\n", media.ImageFactoryHost)
+	fmt.Fprintf(safeout.Stderr(), "Using image factory at %q\n", media.ImageFactoryHost)
 
 	if params.PXE {
 		if !media.ExpiresAt.IsZero() {
-			fmt.Fprintf(os.Stderr, "This URL is authenticated with a token expiring at %s. Run this again for a fresh one.\n",
+			fmt.Fprintf(safeout.Stderr(), "This URL is authenticated with a token expiring at %s. Run this again for a fresh one.\n",
 				media.ExpiresAt.Format(time.RFC3339))
 		}
 
-		fmt.Println(media.URL)
+		safeout.Println(media.URL)
 
 		return nil
 	}
@@ -781,7 +782,7 @@ func lookupExtensions(ctx context.Context, st state.State, talosVersion string, 
 
 		if announce {
 			for _, m := range matched {
-				fmt.Printf("Install Extension: %s\n", m)
+				safeout.Printf("Install Extension: %s\n", m)
 			}
 		}
 
@@ -797,7 +798,7 @@ func downloadToFile(req *http.Request, dest string) error {
 		return err
 	}
 
-	fmt.Println("Generating the image...")
+	safeout.Println("Generating the image...")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -815,14 +816,14 @@ func downloadToFile(req *http.Request, dest string) error {
 		return fmt.Errorf("failed to download the installation media, error code: %d, message: %s", resp.StatusCode, body)
 	}
 
-	fmt.Printf("Downloading to %s\n", dest)
+	safeout.Printf("Downloading to %s\n", dest)
 
 	err = downloadResponseTo(dest, resp)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Downloaded to %s\n", dest)
+	safeout.Printf("Downloaded to %s\n", dest)
 
 	return nil
 }
@@ -842,7 +843,7 @@ func downloadResponseTo(dest string, resp *http.Response) error {
 
 func checkCloser(c io.Closer) {
 	if err := c.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "error closing: %v", err)
+		fmt.Fprintf(safeout.Stderr(), "error closing: %v", err)
 	}
 }
 

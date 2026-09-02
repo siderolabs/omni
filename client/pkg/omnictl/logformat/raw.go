@@ -6,7 +6,8 @@ package logformat
 
 import (
 	"io"
-	"os"
+
+	"github.com/siderolabs/omni/client/internal/safeout"
 )
 
 // NewRawOutput runs the raw log format.
@@ -16,14 +17,14 @@ func NewRawOutput(rdr io.Reader) *RawOutput {
 	}
 }
 
-// RawOutput simply copies the input rdr to os.Stdout.
+// RawOutput simply copies the input rdr to the standard output.
 type RawOutput struct {
 	rdr io.Reader
 }
 
-// Run copies the input rdr to os.Stdout the rdr has returned an error.
+// Run copies the input rdr to the standard output until the rdr has returned an error.
 func (o RawOutput) Run() error {
-	_, err := io.Copy(os.Stdout, o.rdr)
+	_, err := io.Copy(safeout.Stdout(), o.rdr)
 
 	return err
 }

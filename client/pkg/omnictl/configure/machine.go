@@ -14,6 +14,7 @@ import (
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -53,7 +54,7 @@ var machineCmd = &cobra.Command{
 						return fmt.Errorf("failed to reset node unique token for machine %s: %w", id, err)
 					}
 
-					fmt.Printf("reset node unique token for machine %s\n", id)
+					safeout.Printf("reset node unique token for machine %s\n", id)
 				}
 			}
 
@@ -84,7 +85,7 @@ func updateSideroLinkConnectionMode(ctx context.Context, client *client.Client, 
 
 			res.TypedSpec().Value.Enabled = false
 
-			fmt.Printf("disabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
+			safeout.Printf("disabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
 
 			return nil
 		})
@@ -96,7 +97,7 @@ func updateSideroLinkConnectionMode(ctx context.Context, client *client.Client, 
 
 			res.TypedSpec().Value.Enabled = true
 
-			fmt.Printf("enabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
+			safeout.Printf("enabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
 
 			return nil
 		})
@@ -107,10 +108,10 @@ func updateSideroLinkConnectionMode(ctx context.Context, client *client.Client, 
 			return err
 		}
 
-		fmt.Printf("deleted grpc tunnel config for the machine %s\n%s", id, delayNotice)
+		safeout.Printf("deleted grpc tunnel config for the machine %s\n%s", id, delayNotice)
 	}
 
-	fmt.Println("WARNING: the changes won't be applied until the machine is restarted")
+	safeout.Println("WARNING: the changes won't be applied until the machine is restarted")
 
 	return nil
 }

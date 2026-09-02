@@ -46,7 +46,7 @@ func status(clusterName string) func(ctx context.Context, client *client.Client,
 			statusCmdFlags.options.Wait = false
 		}
 
-		return operations.StatusCluster(ctx, clusterName, os.Stdout, client.Omni().State(), statusCmdFlags.options)
+		return operations.StatusCluster(ctx, clusterName, os.Stdout, client.Omni().State(), statusCmdFlags.options) //nolint:forbidigo // colored output and cursor movement
 	}
 }
 

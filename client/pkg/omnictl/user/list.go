@@ -7,7 +7,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -17,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -44,7 +44,7 @@ func listUsers(ctx context.Context, client *client.Client, info access.ServerInf
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 	defer w.Flush() //nolint:errcheck
 
 	if _, err = fmt.Fprintln(w, "ID\tEMAIL\tROLE\tLAST ACTIVE\tLABELS"); err != nil {
@@ -59,7 +59,7 @@ func listUsers(ctx context.Context, client *client.Client, info access.ServerInf
 			lastActive = "Never"
 		}
 
-		if _, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", user.Id, user.Email, user.Role, lastActive, labels); err != nil {
+		if _, err = safeout.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", user.Id, user.Email, user.Role, lastActive, labels); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,7 @@ func listUsersLegacy(ctx context.Context, client *client.Client) error {
 		return res
 	})
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 	defer w.Flush() //nolint:errcheck
 
 	_, err = fmt.Fprintln(w, "ID\tEMAIL\tROLE\tLABELS")
@@ -131,7 +131,7 @@ func listUsersLegacy(ctx context.Context, client *client.Client) error {
 	}
 
 	for _, user := range userList {
-		_, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", user.id, user.email, user.role, user.labels)
+		_, err = safeout.Fprintf(w, "%s\t%s\t%s\t%s\n", user.id, user.email, user.role, user.labels)
 		if err != nil {
 			return err
 		}

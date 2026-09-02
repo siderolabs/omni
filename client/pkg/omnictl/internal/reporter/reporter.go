@@ -14,6 +14,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"golang.org/x/term"
+
+	"github.com/siderolabs/omni/client/internal/safeout"
 )
 
 // Status represents the status of an Update.
@@ -51,8 +53,8 @@ type Reporter struct {
 // New returns a console reporter with stderr output.
 func New() *Reporter {
 	return &Reporter{
-		w:         os.Stderr,
-		colorized: isatty.IsTerminal(os.Stderr.Fd()),
+		w:         os.Stderr,                         //nolint:forbidigo // colored and cursor movement, the message text is filtered in Report
+		colorized: isatty.IsTerminal(os.Stderr.Fd()), //nolint:forbidigo // asking about the stream, not writing to it
 	}
 }
 
@@ -61,6 +63,11 @@ func (r *Reporter) Report(update Update) {
 	line := strings.TrimSpace(update.Message)
 	// replace tabs with spaces to get consistent output length
 	line = strings.ReplaceAll(line, "\t", "    ")
+
+	// the message is assembled from data received from the API, and the reporter writes
+	// to the terminal directly and adds its own colors and cursor movement, so the message
+	// is filtered as text here rather than on the stream underneath.
+	line = safeout.String(line)
 
 	if !r.colorized {
 		if line != r.lastLine {

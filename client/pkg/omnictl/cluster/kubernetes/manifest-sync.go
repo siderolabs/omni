@@ -6,11 +6,11 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -39,20 +39,20 @@ func manifestSync(clusterName string) func(ctx context.Context, client *client.C
 			switch resp.ResponseType {
 			case management.KubernetesSyncManifestResponse_UNKNOWN:
 			case management.KubernetesSyncManifestResponse_MANIFEST:
-				fmt.Printf(" > processing manifest %s\n", resp.Path)
+				safeout.Printf(" > processing manifest %s\n", resp.Path)
 
 				switch {
 				case resp.Skipped:
-					fmt.Println(" < no changes")
+					safeout.Println(" < no changes")
 				case manifestSyncCmdFlags.dryRun:
-					fmt.Println(resp.Diff)
-					fmt.Println(" < dry run, change skipped")
+					safeout.Println(resp.Diff)
+					safeout.Println(" < dry run, change skipped")
 				case !manifestSyncCmdFlags.dryRun:
-					fmt.Println(resp.Diff)
-					fmt.Println(" < applied successfully")
+					safeout.Println(resp.Diff)
+					safeout.Println(" < applied successfully")
 				}
 			case management.KubernetesSyncManifestResponse_ROLLOUT:
-				fmt.Printf(" > waiting for %s\n", resp.Path)
+				safeout.Printf(" > waiting for %s\n", resp.Path)
 			}
 
 			return nil

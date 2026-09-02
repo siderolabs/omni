@@ -7,7 +7,7 @@ package output
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -16,6 +16,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.yaml.in/yaml/v4"
 	"k8s.io/client-go/util/jsonpath"
+
+	"github.com/siderolabs/omni/client/internal/safeout"
 )
 
 // Table outputs resources in Table view.
@@ -29,9 +31,9 @@ type Table struct {
 type dynamicColumn func(value any) (string, error)
 
 // NewTable initializes table resource output.
-func NewTable() *Table {
+func NewTable(w io.Writer) *Table {
 	output := &Table{}
-	output.w.Init(os.Stdout, 0, 0, 3, ' ', 0)
+	output.w.Init(w, 0, 0, 3, ' ', 0)
 
 	return output
 }
@@ -45,10 +47,12 @@ func (table *Table) WriteHeader(definition *meta.ResourceDefinition, withEvents 
 		fields = append([]string{"*"}, fields...)
 	}
 
-	table.displayType = definition.TypedSpec().DisplayType
+	// the resource definition comes from the API too, so the display type and the
+	// column names are untrusted, not just the rows.
+	table.displayType = safeout.Cell(definition.TypedSpec().DisplayType)
 
 	for _, col := range definition.TypedSpec().PrintColumns {
-		fields = append(fields, strings.ToUpper(col.Name))
+		fields = append(fields, safeout.Cell(strings.ToUpper(col.Name)))
 
 		expr := jsonpath.New(col.Name)
 		if err := expr.Parse(col.JSONPath); err != nil {
@@ -75,7 +79,7 @@ func (table *Table) WriteHeader(definition *meta.ResourceDefinition, withEvents 
 
 // WriteResource implements output.Writer interface.
 func (table *Table) WriteResource(r resource.Resource, event state.EventType) error {
-	values := []string{r.Metadata().Namespace(), table.displayType, r.Metadata().ID(), r.Metadata().Version().String()}
+	values := []string{safeout.Cell(r.Metadata().Namespace()), table.displayType, safeout.Cell(r.Metadata().ID()), r.Metadata().Version().String()}
 
 	if table.withEvents {
 		var label string
@@ -119,7 +123,11 @@ func (table *Table) WriteResource(r resource.Resource, event state.EventType) er
 			return err
 		}
 
-		values = append(values, value)
+		// every cell is escaped rather than only filtered on the way out, because a
+		// tab in a value is read by the tabwriter as a column separator and a newline
+		// ends the row: a value containing either one rewrites the shape of the table
+		// around it, and the tabwriter has consumed both before any writer sees them.
+		values = append(values, safeout.Cell(value))
 	}
 
 	_, err = fmt.Fprintln(&table.w, strings.Join(values, "\t"))

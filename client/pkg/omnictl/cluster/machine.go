@@ -17,6 +17,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -87,7 +88,7 @@ func setLocked(machineID resource.ID, lock bool) func(context.Context, *client.C
 			return err
 		}
 
-		fmt.Fprintf(os.Stderr, "machine %q lock status: %t\n", machineID, lock)
+		fmt.Fprintf(safeout.Stderr(), "machine %q lock status: %t\n", machineID, lock)
 
 		return nil
 	}
@@ -111,11 +112,11 @@ func deleteMachine(ctx context.Context, st state.State, id resource.ID) error {
 		if !machineDeleteCmdFlags.noAsk {
 			var response string
 
-			//nolint:errcheck
+			//nolint:errcheck,forbidigo // colored, and the values are the operator's own arguments
 			yellow.Fprintf(os.Stderr, `WARNING: force leaving etcd member on machine %s may break the etcd quorum.
 Do not use this option unless you are sure that the machine is not an etcd member or the machine is already down and will not come back up.
 `, id)
-			fmt.Fprint(os.Stderr, `Do you want to continue? (y/N): `)
+			fmt.Fprint(safeout.Stderr(), `Do you want to continue? (y/N): `)
 
 			_, err = fmt.Scanln(&response)
 			if err != nil {
@@ -123,13 +124,13 @@ Do not use this option unless you are sure that the machine is not an etcd membe
 			}
 
 			if !strings.EqualFold(response, "y") {
-				fmt.Fprintln(os.Stderr, "aborting machine deletion")
+				fmt.Fprintln(safeout.Stderr(), "aborting machine deletion")
 
 				return nil
 			}
 		}
 
-		fmt.Fprintf(os.Stderr, "create %s for machine %s\n\n", omni.NodeForceDestroyRequestType, id)
+		fmt.Fprintf(safeout.Stderr(), "create %s for machine %s\n\n", omni.NodeForceDestroyRequestType, id)
 
 		forceDestroyRequest := omni.NewNodeForceDestroyRequest(id)
 
@@ -149,13 +150,13 @@ Do not use this option unless you are sure that the machine is not an etcd membe
 		if !machineDeleteCmdFlags.noAsk {
 			var response string
 
-			//nolint:errcheck
+			//nolint:errcheck,forbidigo // colored, and the values are the operator's own arguments
 			yellow.Fprintf(os.Stderr, `WARNING: force deleting machine %s will skip wiping the machine and will remove it from the Omni account completely.
 It will be necessary to manually wipe the machine to add it to the Omni account again.
 Use this option only in case if the machine is already down and will not come back up.
 `, id)
 
-			fmt.Fprint(os.Stderr, `Do you want to continue? (y/N): `)
+			fmt.Fprint(safeout.Stderr(), `Do you want to continue? (y/N): `)
 
 			_, err = fmt.Scanln(&response)
 			if err != nil {
@@ -163,7 +164,7 @@ Use this option only in case if the machine is already down and will not come ba
 			}
 
 			if !strings.EqualFold(response, "y") {
-				fmt.Fprintln(os.Stderr, "aborting machine deletion")
+				fmt.Fprintln(safeout.Stderr(), "aborting machine deletion")
 
 				return nil
 			}
@@ -173,7 +174,7 @@ Use this option only in case if the machine is already down and will not come ba
 			return fmt.Errorf("failed to teardown %s for machine %s: %w", siderolink.LinkType, id, err)
 		}
 
-		fmt.Fprintf(os.Stderr, "teardown %s %s\n\n", siderolink.LinkType, id)
+		fmt.Fprintf(safeout.Stderr(), "teardown %s %s\n\n", siderolink.LinkType, id)
 	}
 
 	machineSetNode, err := safe.StateGetByID[*omni.MachineSetNode](ctx, st, id)
@@ -182,14 +183,14 @@ Use this option only in case if the machine is already down and will not come ba
 	}
 
 	if machineSetNode != nil {
-		fmt.Fprintf(os.Stderr, "destroy %s %s\n", omni.MachineSetNodeType, id)
+		fmt.Fprintf(safeout.Stderr(), "destroy %s %s\n", omni.MachineSetNodeType, id)
 
 		if err = resources.Destroy(ctx, st, "", omni.MachineSetNodeType, "", false, []resource.ID{id}); err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "wait until %s %s is destroyed\n", omni.ClusterMachineType, id)
+	fmt.Fprintf(safeout.Stderr(), "wait until %s %s is destroyed\n", omni.ClusterMachineType, id)
 
 	watchCh := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
 
@@ -207,7 +208,7 @@ Use this option only in case if the machine is already down and will not come ba
 			}
 
 			if event.Type() == state.Destroyed {
-				fmt.Fprintf(os.Stderr, "%s %s is destroyed\n", omni.ClusterMachineType, id)
+				fmt.Fprintf(safeout.Stderr(), "%s %s is destroyed\n", omni.ClusterMachineType, id)
 
 				return nil
 			}

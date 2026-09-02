@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/template/operations"
@@ -86,13 +87,13 @@ func syncTemplateFiles(ctx context.Context, client *client.Client, _ access.Serv
 	}
 
 	if syncCmdFlags.options.Verbose {
-		fmt.Printf("Processing %d template file(s)\n", len(files))
+		safeout.Printf("Processing %d template file(s)\n", len(files))
 	}
 
 	// Process each template file independently
 	for _, file := range files {
 		if syncCmdFlags.options.Verbose {
-			fmt.Printf("Syncing template: %s\n", file)
+			safeout.Printf("Syncing template: %s\n", file)
 		}
 
 		f, err := os.Open(file)
@@ -100,8 +101,8 @@ func syncTemplateFiles(ctx context.Context, client *client.Client, _ access.Serv
 			return fmt.Errorf("failed to open template file %q: %w", file, err)
 		}
 
-		err = operations.SyncTemplate(ctx, f, os.Stdout, client.Omni().State(), syncCmdFlags.options, resolvedRoot)
-		f.Close() //nolint:errcheck
+		err = operations.SyncTemplate(ctx, f, os.Stdout, client.Omni().State(), syncCmdFlags.options, resolvedRoot) //nolint:forbidigo // colored output
+		f.Close()                                                                                                   //nolint:errcheck
 
 		if err != nil {
 			return fmt.Errorf("failed to sync template %q: %w", file, err)

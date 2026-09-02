@@ -6,13 +6,13 @@ package user
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
+	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -41,7 +41,7 @@ func deleteUsers(emails ...string) func(ctx context.Context, client *client.Clie
 				return err
 			}
 
-			fmt.Printf("destroyed user %s\n", email)
+			safeout.Printf("destroyed user %s\n", email)
 		}
 
 		return nil
@@ -64,7 +64,7 @@ func deleteUsersLegacy(ctx context.Context, client *client.Client, emails ...str
 	}
 
 	for _, md := range toDelete {
-		fmt.Printf("tearing down %s %s\n", md.Type(), md.ID())
+		safeout.Printf("tearing down %s %s\n", md.Type(), md.ID())
 
 		if _, err := client.Omni().State().Teardown(ctx, md); err != nil {
 			return err
@@ -82,7 +82,7 @@ func deleteUsersLegacy(ctx context.Context, client *client.Client, emails ...str
 			return err
 		}
 
-		fmt.Printf("destroy %s %s\n", md.Type(), md.ID())
+		safeout.Printf("destroy %s %s\n", md.Type(), md.ID())
 	}
 
 	return nil
