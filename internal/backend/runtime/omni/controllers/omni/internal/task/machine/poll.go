@@ -41,6 +41,7 @@ var resourcePollers = map[string]machinePollFunction{
 	network.NodeAddressType:      pollAddresses,
 	network.LinkStatusType:       pollNetworkLinks,
 	hardware.ProcessorType:       pollProcessors,
+	hardware.CPUCoreType:         pollCPUCores,
 	hardware.MemoryModuleType:    pollMemory,
 	runtime.PlatformMetadataType: pollPlatformMetadata,
 	runtime.MetaKeyType:          pollMeta,
@@ -272,6 +273,59 @@ func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
 			return nil
 		},
 	)
+}
+
+// pollCPUCores builds the processor list from the Linux kernel view of the CPUs, which is more accurate than SMBIOS and follows CPU hotplug.
+//
+// Talos produces one resource per physical core, so the cores are aggregated back into one entry per socket.
+// The SMBIOS data still names the populated sockets, as the kernel view has no vendor or model on arm64 and never knows the rated clock speed.
+func pollCPUCores(ctx context.Context, c *client.Client, info *Info) error {
+	if err := pollProcessors(ctx, c, info); err != nil {
+		return err
+	}
+
+	populated := xslices.Filter(info.Processors, func(p *specs.MachineStatusSpec_HardwareStatus_Processor) bool { return p.CoreCount > 0 })
+
+	info.Processors = nil
+
+	sockets := map[string]*specs.MachineStatusSpec_HardwareStatus_Processor{}
+
+	if err := forEachResource(
+		ctx,
+		c,
+		hardware.NamespaceName,
+		hardware.CPUCoreType,
+		func(r *hardware.CPUCore) error {
+			processor, ok := sockets[r.TypedSpec().Socket]
+			if !ok {
+				processor = &specs.MachineStatusSpec_HardwareStatus_Processor{
+					Manufacturer: r.TypedSpec().VendorID,
+					Description:  r.TypedSpec().ModelName,
+				}
+
+				sockets[r.TypedSpec().Socket] = processor
+
+				info.Processors = append(info.Processors, processor)
+			}
+
+			processor.CoreCount++
+			processor.ThreadCount += uint32(len(r.TypedSpec().LogicalCPUs))
+
+			return nil
+		},
+	); err != nil {
+		return err
+	}
+
+	for i, processor := range info.Processors {
+		if i < len(populated) {
+			processor.Manufacturer = populated[i].Manufacturer
+			processor.Description = populated[i].Description
+			processor.Frequency = populated[i].Frequency
+		}
+	}
+
+	return nil
 }
 
 func pollMemory(ctx context.Context, c *client.Client, info *Info) error {

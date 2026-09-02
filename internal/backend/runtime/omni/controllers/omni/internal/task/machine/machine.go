@@ -244,6 +244,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		hardware.ProcessorType: {
 			namespace: hardware.NamespaceName,
 		},
+		hardware.CPUCoreType: {
+			namespace: hardware.NamespaceName,
+		},
 		hardware.MemoryModuleType: {
 			namespace: hardware.NamespaceName,
 		},
@@ -296,6 +299,11 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	}
 
 	skipPollers := map[string]struct{}{}
+
+	// the Linux kernel view of the CPUs is more accurate than the SMBIOS one, prefer it when Talos provides it
+	if _, ok := registeredTypes[hardware.CPUCoreType]; ok {
+		skipPollers[hardware.ProcessorType] = struct{}{}
+	}
 
 	if quirks.New(pointer.SafeDeref(info.TalosVersion)).SkipDataPartitions() {
 		skipPollers["disks"] = struct{}{}

@@ -161,7 +161,8 @@ const getCPUInfo = () => {
   const cpus: Record<string, number> = {}
 
   for (const processor of processors) {
-    const id = `${processor.frequency! / 1000} GHz ${processor.manufacturer}, ${processor.core_count} Cores`
+    const frequency = processor.frequency ? `${processor.frequency / 1000} GHz ` : ''
+    const id = `${frequency}${processor.manufacturer}, ${processor.core_count} Cores`
 
     cpus[id] = (cpus[id] ?? 0) + 1
   }

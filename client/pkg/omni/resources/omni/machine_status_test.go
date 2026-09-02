@@ -131,6 +131,40 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 			},
 		},
 		{
+			name: "linux intel vendor",
+			spec: &specs.MachineStatusSpec{
+				Hardware: &specs.MachineStatusSpec_HardwareStatus{
+					Processors: []*specs.MachineStatusSpec_HardwareStatus_Processor{
+						{
+							Manufacturer: "GenuineIntel",
+							CoreCount:    4,
+						},
+					},
+				},
+			},
+			want: map[string]string{
+				omni.MachineStatusLabelCores: "4",
+				omni.MachineStatusLabelCPU:   "intel",
+			},
+		},
+		{
+			name: "linux amd vendor",
+			spec: &specs.MachineStatusSpec{
+				Hardware: &specs.MachineStatusSpec_HardwareStatus{
+					Processors: []*specs.MachineStatusSpec_HardwareStatus_Processor{
+						{
+							Manufacturer: "AuthenticAMD",
+							CoreCount:    8,
+						},
+					},
+				},
+			},
+			want: map[string]string{
+				omni.MachineStatusLabelCores: "8",
+				omni.MachineStatusLabelCPU:   "amd",
+			},
+		},
+		{
 			name: "enterprise with fips",
 			spec: &specs.MachineStatusSpec{
 				TalosVersionName: "Talos Enterprise",

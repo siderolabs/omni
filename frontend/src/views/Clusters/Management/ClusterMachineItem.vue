@@ -413,8 +413,9 @@ const onSavePatchConfig = (config: string) => {
         <div class="mt-4 mb-2">Network Interfaces</div>
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
-            {{ (processor.frequency ?? 0) / 1000 }} GHz, {{ processor.core_count }}
-            {{ pluralize('core', processor.core_count) }}, {{ processor.description }}
+            <template v-if="processor.frequency">{{ processor.frequency / 1000 }} GHz,</template>
+            {{ processor.core_count }} {{ pluralize('core', processor.core_count) }},
+            {{ processor.description }}
           </div>
         </div>
         <div>
