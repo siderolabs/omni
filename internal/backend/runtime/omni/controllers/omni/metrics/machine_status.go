@@ -74,6 +74,7 @@ func NewMachineStatusMetricsController(maxRegisteredMachines uint32) *MachineSta
 type MachineStatusMetricsController struct {
 	versionsMu  sync.Mutex
 	versionsMap map[nodeInfo]int32
+	coresMap    map[uint32]int32
 
 	metricsOnce sync.Once
 
@@ -88,6 +89,7 @@ type MachineStatusMetricsController struct {
 	metricNumCores                                       prometheus.Gauge
 	metricNumTalosVersionEndOfSupportMachines            prometheus.Gauge
 	metricNumMachinesPerVersion                          *prometheus.Desc
+	metricNumMachinesPerCores                            *prometheus.Desc
 	metricMachinePlatforms                               *prometheus.GaugeVec
 	metricMachineSecureBootStatus                        *prometheus.GaugeVec
 	metricMachineUKIStatus                               *prometheus.GaugeVec
@@ -164,6 +166,13 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 			"omni_machines_version",
 			"Number of machines in the instance by version.",
 			[]string{"talos_version", "cluster", "connected"},
+			nil,
+		)
+
+		ctrl.metricNumMachinesPerCores = prometheus.NewDesc(
+			"omni_machine_cores",
+			"Number of machines in the instance by CPU core count.",
+			[]string{"cores"},
 			nil,
 		)
 
@@ -372,6 +381,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	ctrl.versionsMu.Lock()
 	ctrl.versionsMap = map[nodeInfo]int32{}
+	ctrl.coresMap = map[uint32]int32{}
 
 	for ms := range statuses {
 		machines++
@@ -414,9 +424,14 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 			platformMetrics[platform]++
 		}
 
+		var machineCores uint32
+
 		for _, proc := range ms.TypedSpec().Value.GetHardware().GetProcessors() {
-			cores += uint64(proc.GetCoreCount())
+			machineCores += proc.GetCoreCount()
 		}
+
+		cores += uint64(machineCores)
+		ctrl.coresMap[machineCores]++
 
 		securityState := ms.TypedSpec().Value.SecurityState
 		if securityState != nil {
@@ -480,6 +495,10 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 
 	for info, count := range ctrl.versionsMap {
 		ch <- prometheus.MustNewConstMetric(ctrl.metricNumMachinesPerVersion, prometheus.GaugeValue, float64(count), info.talosVersion, info.cluster, strconv.FormatBool(info.connected))
+	}
+
+	for machineCores, count := range ctrl.coresMap {
+		ch <- prometheus.MustNewConstMetric(ctrl.metricNumMachinesPerCores, prometheus.GaugeValue, float64(count), strconv.FormatUint(uint64(machineCores), 10))
 	}
 
 	ctrl.versionsMu.Unlock()

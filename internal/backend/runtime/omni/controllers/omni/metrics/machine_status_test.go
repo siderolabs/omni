@@ -213,6 +213,65 @@ func TestMachineStatusMetricsController_CollectMetrics(t *testing.T) {
 	}, names)
 }
 
+func TestMachineStatusMetricsController_MachinesByCores(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	ctrl := metrics.NewMachineStatusMetricsController(0)
+
+	// the vectors gain their label sets only as machines appear, which the pedantic registry does not allow
+	registry := prometheus.NewRegistry()
+	require.NoError(t, registry.Register(ctrl))
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(ctrl))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, coreCounts := range map[string][]uint32{
+				"m1": {4},
+				"m2": {2, 2},
+				"m3": {8},
+				"m4": nil,
+			} {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+					Processors: xslices.Map(coreCounts, func(cores uint32) *specs.MachineStatusSpec_HardwareStatus_Processor {
+						return &specs.MachineStatusSpec_HardwareStatus_Processor{CoreCount: cores}
+					}),
+				}
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.MachineStatusMetricsID, func(res *omni.MachineStatusMetrics, a *assert.Assertions) {
+				a.EqualValues(4, res.TypedSpec().Value.RegisteredMachinesCount)
+				a.EqualValues(16, res.TypedSpec().Value.CoresCount)
+			})
+
+			families, err := registry.Gather()
+			require.NoError(t, err)
+
+			byCores := map[string]float64{}
+
+			for _, family := range families {
+				if family.GetName() != "omni_machine_cores" {
+					continue
+				}
+
+				for _, m := range family.GetMetric() {
+					byCores[m.GetLabel()[0].GetValue()] = m.GetGauge().GetValue()
+				}
+			}
+
+			assert.Equal(t, map[string]float64{"0": 1, "4": 2, "8": 1}, byCores)
+		},
+	)
+}
+
 func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testing.T) {
 	t.Parallel()
 
