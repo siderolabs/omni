@@ -252,6 +252,44 @@ func TestBuildConfigPatchKeepsNonConnectionDocuments(t *testing.T) {
 	require.NotContains(t, data, "EventSinkConfig")
 }
 
+func TestBuildConfigPatchKeepsMachineKmsgLogDocuments(t *testing.T) {
+	t.Parallel()
+
+	omniKmsg := runtimecfg.NewKmsgLogV1Alpha1()
+	omniKmsg.MetaName = "omni-kmsg"
+	omniKmsg.KmsgLogURL.URL = mustParseURL(t, "tcp://[fdae::1]:8092")
+
+	// Talos supports multiple kmsg log destinations, only the one Omni generates is Omni's
+	machineKmsg := runtimecfg.NewKmsgLogV1Alpha1()
+	machineKmsg.MetaName = "remote-siem"
+	machineKmsg.KmsgLogURL.URL = mustParseURL(t, "tcp://logs.example.org:5000")
+
+	observed := encodeDocuments(t, omniKmsg, machineKmsg)
+
+	patch, reason, err := (&machineconfig.ExtractionController{}).BuildConfigPatch("machine-1", observed)
+	require.NoError(t, err)
+	require.Empty(t, reason)
+	require.NotNil(t, patch)
+
+	buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+	require.NoError(t, err)
+
+	data := string(buffer.Data())
+	buffer.Free()
+
+	require.Contains(t, data, "remote-siem")
+	require.NotContains(t, data, "omni-kmsg")
+}
+
+func mustParseURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+
+	u, err := url.Parse(raw)
+	require.NoError(t, err)
+
+	return u
+}
+
 // TestBuildConfigPatchKeepsEmbeddedRuntimeDocuments mirrors the config the integration test bakes into a machine's
 // embedded configuration: the three SideroLink connection documents plus an EnvironmentConfig and a StaticHostConfig.
 // It locks in that the connection documents are dropped while the two carrying user data survive into a valid patch,

@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
+	siderolinkmachinery "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
@@ -320,12 +321,12 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error getting maintenance config: %w", err)
 	}
 
-	var machineConfig config.Provider
-
-	if maintenanceConfig != nil {
-		machineConfig = maintenanceConfig.Provider()
-	} else if machineConfig, err = container.New(); err != nil {
-		return fmt.Errorf("error creating new config container: %w", err)
+	// build the config from scratch instead of patching the machine's current config, so that documents dropped from the patches are removed from the machine.
+	// the machine's own SideroLink document (if any) is the only thing carried over, as Omni does not generate one for the machine in maintenance mode:
+	// the machine is already connected, and its join token and tunnel settings are left as they are.
+	machineConfig, err := container.New(siderolinkDocuments(maintenanceConfig)...)
+	if err != nil {
+		return fmt.Errorf("error creating config container: %w", err)
 	}
 
 	patches, err := configpatcher.LoadPatches(machinePatches)
@@ -334,7 +335,6 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 	}
 
 	// the Omni-managed connection documents are applied last, so they always win over anything in the user patches.
-	// the machine's own SideroLink document (if any) is preserved as-is by the merge, so its connection is never overwritten or broken.
 	patches = append(patches, baseConfig.patch)
 
 	patched, err := configpatcher.Apply(configpatcher.WithConfig(machineConfig), patches)
@@ -429,6 +429,17 @@ func desiredConfigHash(machinePatches []string, baseConfig []byte) string {
 	hash.Write(baseConfig)
 
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// siderolinkDocuments returns the SideroLink documents of the machine's current maintenance config, if any.
+func siderolinkDocuments(maintenanceConfig *configres.MachineConfig) []talosconfig.Document {
+	if maintenanceConfig == nil {
+		return nil
+	}
+
+	return xslices.Filter(maintenanceConfig.Provider().Documents(), func(document talosconfig.Document) bool {
+		return document.Kind() == siderolinkmachinery.Kind
+	})
 }
 
 // stripV1Alpha1 removes the v1alpha1 document (if any) from the config, leaving the partial config documents intact.

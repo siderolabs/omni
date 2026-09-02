@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/resources/config"
@@ -347,6 +348,152 @@ certificates: |
 
 	// the v1alpha1 document is stripped
 	suite.NotContains(dataStr, "hostDNS:")
+}
+
+func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchDocumentRemoval() {
+	getMachineConfigCh := make(chan *config.MachineConfig)
+	machineIDCh := make(chan string)
+	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
+
+	maintenanceClient := &maintenanceClientMock{
+		getMachineConfigCh: getMachineConfigCh,
+		applyConfigReqCh:   applyConfigReqCh,
+	}
+
+	maintenanceClientFactory := func(ctx context.Context, machineID string) (omni.MaintenanceClient, error) {
+		select {
+		case machineIDCh <- machineID:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
+		return maintenanceClient, nil
+	}
+
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(controller))
+
+	suite.startRuntime()
+
+	const (
+		docA = `apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: doc-a
+certificates: |
+  -----BEGIN CERTIFICATE-----
+  MIIA
+  -----END CERTIFICATE-----
+`
+		docB = `apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: doc-b
+certificates: |
+  -----BEGIN CERTIFICATE-----
+  MIIB
+  -----END CERTIFICATE-----
+`
+	)
+
+	patch := omnires.NewConfigPatch("removal-machine-patch")
+	patch.Metadata().Labels().Set(omnires.LabelMachine, "removal-machine")
+	suite.Require().NoError(patch.TypedSpec().Value.SetUncompressedData([]byte(docA + "---\n" + docB)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, patch))
+
+	link := siderolinkres.NewLink("removal-machine", &specs.SiderolinkSpec{})
+	link.TypedSpec().Value.Connected = true
+	link.TypedSpec().Value.NodePublicKey = "removal-machine-key"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, link))
+
+	machineStatus := omnires.NewMachineStatus("removal-machine")
+	machineStatus.TypedSpec().Value.Maintenance = true
+	machineStatus.TypedSpec().Value.ManagementAddress = "removal-address"
+	machineStatus.TypedSpec().Value.TalosVersion = "1.5.0"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+	suite.markConfigExtracted("removal-machine")
+
+	// the machine's own SideroLink document: it is never part of a patch and must survive every reapply
+	u, err := url.Parse("http://example.org")
+	suite.Require().NoError(err)
+
+	siderolinkDoc := siderolink.NewConfigV1Alpha1()
+	siderolinkDoc.APIUrlConfig.URL = u
+
+	// the config the machine currently runs: initially only its SideroLink document, afterwards whatever Omni applied last
+	var applied []byte
+
+	currentMachineConfig := func() *config.MachineConfig {
+		if applied == nil {
+			configContainer, containerErr := container.New(siderolinkDoc)
+			suite.Require().NoError(containerErr)
+
+			return config.NewMachineConfig(configContainer)
+		}
+
+		provider, loadErr := configloader.NewFromBytes(applied)
+		suite.Require().NoError(loadErr)
+
+		return config.NewMachineConfig(provider)
+	}
+
+	reconcile := func() string {
+		select {
+		case <-machineIDCh:
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for maintenance client factory to be called")
+		}
+
+		select {
+		case getMachineConfigCh <- currentMachineConfig():
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for get machine config request")
+		}
+
+		select {
+		case applyConfigReq := <-applyConfigReqCh:
+			applied = applyConfigReq.Data
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for apply configuration request")
+		}
+
+		return string(applied)
+	}
+
+	dataStr := reconcile()
+
+	suite.Contains(dataStr, "name: doc-a")
+	suite.Contains(dataStr, "name: doc-b")
+	suite.Contains(dataStr, "kind: SideroLinkConfig")
+	suite.Contains(dataStr, "http://example.org")
+	suite.Contains(dataStr, "omni-kmsg")
+
+	// drop a document from the patch: it must leave the machine
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, patch.Metadata(), func(res *omnires.ConfigPatch) error {
+		return res.TypedSpec().Value.SetUncompressedData([]byte(docA))
+	})
+	suite.Require().NoError(err)
+
+	dataStr = reconcile()
+
+	suite.Contains(dataStr, "name: doc-a")
+	suite.NotContains(dataStr, "name: doc-b")
+	suite.Contains(dataStr, "kind: SideroLinkConfig")
+	suite.Contains(dataStr, "http://example.org")
+	suite.Contains(dataStr, "omni-kmsg")
+
+	// delete the patch: only the machine's SideroLink document and the Omni-managed connection documents remain
+	suite.Require().NoError(suite.state.Destroy(suite.ctx, patch.Metadata()))
+
+	dataStr = reconcile()
+
+	suite.NotContains(dataStr, "name: doc-a")
+	suite.NotContains(dataStr, "name: doc-b")
+	suite.Contains(dataStr, "kind: SideroLinkConfig")
+	suite.Contains(dataStr, "http://example.org")
+	suite.Contains(dataStr, "omni-kmsg")
 }
 
 func TestMaintenanceConfigStatusControllerSuite(t *testing.T) {

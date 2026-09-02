@@ -275,7 +275,7 @@ func (opts *JoinOptions) JoinConfigDocuments() ([]config.Document, error) {
 
 	if opts.logServerURL != nil {
 		kmsgLogConfig := runtime.NewKmsgLogV1Alpha1()
-		kmsgLogConfig.MetaName = "omni-kmsg"
+		kmsgLogConfig.MetaName = kmsgLogConfigName
 		kmsgLogConfig.KmsgLogURL = meta.URL{
 			URL: opts.logServerURL,
 		}
@@ -284,6 +284,24 @@ func (opts *JoinOptions) JoinConfigDocuments() ([]config.Document, error) {
 	}
 
 	return docs, nil
+}
+
+// kmsgLogConfigName is the name of the kmsg log document Omni generates, Talos supports multiple kmsg log destinations.
+const kmsgLogConfigName = "omni-kmsg"
+
+// IsJoinConfigDocument reports whether the document is one of the connection documents Omni manages for a machine:
+// the ones JoinConfigDocuments generates, and the SideroLink document which Omni leaves to the machine in maintenance mode.
+func IsJoinConfigDocument(document config.Document) bool {
+	switch document.Kind() {
+	case siderolinkmachinery.Kind, runtime.EventSinkKind:
+		return true
+	case runtime.KmsgLogKind:
+		named, ok := document.(config.NamedDocument)
+
+		return ok && named.Name() == kmsgLogConfigName
+	default:
+		return false
+	}
 }
 
 func encodeToken(options JoinConfigOptions) (string, error) {

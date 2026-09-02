@@ -19,13 +19,12 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
-	runtimecfg "github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
-	talossiderolink "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -170,7 +169,7 @@ func (ctrl *ExtractionController) BuildConfigPatch(machineID string, observedCon
 	kept := make([]documentconfig.Document, 0, len(documents))
 
 	for _, document := range documents {
-		if ctrl.isConnectionDocument(document) {
+		if siderolink.IsJoinConfigDocument(document) {
 			continue
 		}
 
@@ -206,16 +205,6 @@ func (ctrl *ExtractionController) BuildConfigPatch(machineID string, observedCon
 	configPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, configPatchDescription)
 
 	return configPatch, "", nil
-}
-
-// isConnectionDocument reports whether the document is one of the Omni-managed connection documents that Omni regenerates itself.
-func (ctrl *ExtractionController) isConnectionDocument(document documentconfig.Document) bool {
-	switch document.Kind() {
-	case talossiderolink.Kind, runtimecfg.EventSinkKind, runtimecfg.KmsgLogKind:
-		return true
-	default:
-		return false
-	}
 }
 
 // NewReader returns a Reader backed by the cached Talos client factory.
