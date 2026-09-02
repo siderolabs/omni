@@ -165,6 +165,23 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 			},
 		},
 		{
+			name: "smbios amd vendor",
+			spec: &specs.MachineStatusSpec{
+				Hardware: &specs.MachineStatusSpec_HardwareStatus{
+					Processors: []*specs.MachineStatusSpec_HardwareStatus_Processor{
+						{
+							Manufacturer: "Advanced Micro Devices, Inc.",
+							CoreCount:    16,
+						},
+					},
+				},
+			},
+			want: map[string]string{
+				omni.MachineStatusLabelCores: "16",
+				omni.MachineStatusLabelCPU:   "amd",
+			},
+		},
+		{
 			name: "enterprise with fips",
 			spec: &specs.MachineStatusSpec{
 				TalosVersionName: "Talos Enterprise",

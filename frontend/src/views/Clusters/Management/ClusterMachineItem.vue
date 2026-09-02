@@ -414,7 +414,7 @@ const onSavePatchConfig = (config: string) => {
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
             <template v-if="processor.frequency">{{ processor.frequency / 1000 }} GHz,</template>
-            {{ processor.core_count }} {{ pluralize('core', processor.core_count) }},
+            {{ pluralize('core', processor.core_count, true) }},
             {{ processor.description }}
           </div>
         </div>

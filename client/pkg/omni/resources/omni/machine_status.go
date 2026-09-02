@@ -148,7 +148,7 @@ func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 		switch {
 		case strings.Contains(cpuManufacturer, "intel"):
 			return "intel"
-		case strings.Contains(cpuManufacturer, "amd"):
+		case strings.Contains(cpuManufacturer, "amd"), strings.Contains(cpuManufacturer, "advanced micro devices"):
 			return "amd"
 		default:
 			return cpuManufacturer
