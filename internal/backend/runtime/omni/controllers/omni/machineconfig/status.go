@@ -1166,19 +1166,6 @@ func (ctrl *StatusController) reset(
 
 	defer logClose(c, logger, "reset")
 
-	err = c.MetaDelete(ctx, meta.StateEncryptionConfig)
-	if err != nil {
-		//nolint:exhaustive
-		switch status.Code(err) {
-		case
-			codes.NotFound,
-			codes.Unimplemented,
-			codes.FailedPrecondition:
-		default:
-			return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
-		}
-	}
-
 	// if is control plane first leave etcd
 	if isControlPlane && ctrl.ongoingResets.shouldLeaveEtcd(machineID) {
 		ctrl.ongoingResets.handleEtcdLeave(machineID)
@@ -1615,6 +1602,13 @@ func (ctrl *StatusController) deleteUpgradeMetaKey(
 
 		if status.Code(err) == codes.Unimplemented {
 			logger.Debug("upgrade meta key is not removed, unimplemented in the Talos version", zap.String("machine", rc.ID()))
+
+			return nil
+		}
+
+		// Talos 1.14 and later own the key and do not allow deleting it via the API, they drop it themselves once the machine is running and ready
+		if status.Code(err) == codes.PermissionDenied {
+			logger.Debug("upgrade meta key is not removed, not writeable via the API in the Talos version", zap.String("machine", rc.ID()))
 
 			return nil
 		}
