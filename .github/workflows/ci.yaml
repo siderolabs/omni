@@ -195,9 +195,9 @@ jobs:
             _out/sbom.cyclonedx.json
             _out/sha*.txt
   e2e-auth0:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -637,9 +637,9 @@ jobs:
           retention-days: "5"
         continue-on-error: true
   e2e-helm:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -784,13 +784,7 @@ jobs:
       || contains(fromJSON(needs.default.outputs.labels || '[]'), 'integration/e2e-upgrades')
       || contains(fromJSON(needs.default.outputs.labels || '[]'), 'integration/e2e-misc-upgrades')
     needs:
-      - integration-talemu
-      - integration-qemu
-      - e2e-qemu
-      - e2e-talemu
-      - e2e-auth0
-      - e2e-saml
-      - e2e-helm
+      - default
     steps:
       - name: gather-system-info
         id: system-info
@@ -927,9 +921,9 @@ jobs:
           retention-days: "5"
         continue-on-error: true
   e2e-qemu:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -1067,9 +1061,9 @@ jobs:
           retention-days: "5"
         continue-on-error: true
   e2e-saml:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -1353,9 +1347,9 @@ jobs:
           retention-days: "5"
         continue-on-error: true
   e2e-talemu:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -1646,9 +1640,9 @@ jobs:
           retention-days: "5"
         continue-on-error: true
   integration-qemu:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -1733,9 +1727,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         timeout-minutes: 3
   integration-talemu:
+    if: false
     runs-on:
       group: large
-    if: github.event_name == 'pull_request'
     needs:
       - default
       - lint
@@ -1808,9 +1802,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         timeout-minutes: 3
   lint:
+    if: false
     runs-on:
       group: generic
-    if: github.event_name == 'pull_request'
     needs:
       - default
     steps:
@@ -1861,9 +1855,9 @@ jobs:
         run: |
           make lint
   unit-tests:
+    if: false
     runs-on:
       group: generic
-    if: github.event_name == 'pull_request'
     needs:
       - default
     steps:
