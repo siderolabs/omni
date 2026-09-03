@@ -223,11 +223,10 @@ func TestResolveInstallationMediaRouting(t *testing.T) {
 	})
 
 	createTalosVersion(ctx, t, st, "1.13.0", secondaryURL)
-	createTalosVersion(ctx, t, st, "1.14.0", primaryURL)
 	createTalosVersion(ctx, t, st, "1.12.0", "")
 
-	// Recorded explicitly so the empty-version case asserts the fallback rather than depending on
-	// whatever DefaultTalosVersion happens to be unrecorded.
+	// The default version is the one served by the primary. It is recorded explicitly, so the empty-version
+	// case asserts the fallback rather than depending on whatever DefaultTalosVersion happens to be unrecorded.
 	createTalosVersion(ctx, t, st, constants.DefaultTalosVersion, primaryURL)
 
 	for _, tt := range []struct {
@@ -253,10 +252,10 @@ func TestResolveInstallationMediaRouting(t *testing.T) {
 		},
 		{
 			name:        "version served by the primary",
-			version:     "1.14.0",
+			version:     constants.DefaultTalosVersion,
 			base:        primaryURL,
 			pxeBase:     primaryPXEURL,
-			pathVersion: "v1.14.0",
+			pathVersion: "v" + constants.DefaultTalosVersion,
 		},
 		{
 			name:        "version without a recorded factory falls back to the primary",
