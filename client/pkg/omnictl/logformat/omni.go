@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // NewOmniOutput returns a new OmniOutput.
@@ -31,9 +33,11 @@ type OmniOutput struct {
 func (o *OmniOutput) Run(ctx context.Context) error {
 	var msg talosLogMessage
 
-	var logger zap.Logger
-
-	logger.WithOptions(zap.AddStacktrace(zap.FatalLevel))
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+		zapcore.Lock(zapcore.AddSync(os.Stdout)),
+		zapcore.DebugLevel,
+	))
 
 	for {
 		if ctx.Err() != nil {
@@ -56,12 +60,14 @@ func (o *OmniOutput) Run(ctx context.Context) error {
 
 		logMsg := logger.Check(level.Level(), msg.Message)
 		if logMsg != nil {
+			// the entry is stamped with the time the machine logged it, not the time it is printed
+			logMsg.Time = msg.TalosTime
+
 			logMsg.Write(
 				zap.Int("clock", msg.Clock),
 				zap.String("facility", msg.Facility),
 				zap.String("priority", msg.Priority),
 				zap.Int("seq", msg.Seq),
-				zap.Time("talos-time", msg.TalosTime),
 			)
 		}
 	}
