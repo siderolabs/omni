@@ -52,9 +52,12 @@ import (
 type MaintenanceClientFactory = func(ctx context.Context, machineID string) (MaintenanceClient, error)
 
 // MaintenanceClient is a client for interacting with Talos running in maintenance mode.
+//
+// It must be closed by the caller.
 type MaintenanceClient interface {
 	GetMachineConfig(ctx context.Context) (*configres.MachineConfig, error)
 	ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error)
+	Close() error
 }
 
 // NewMaintenanceClientFactory returns a MaintenanceClientFactory backed by a Talos client factory.
@@ -86,6 +89,10 @@ func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.Mac
 
 func (c maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
 	return c.client.ApplyConfiguration(ctx, req)
+}
+
+func (c maintenanceClient) Close() error {
+	return c.client.Close()
 }
 
 // MaintenanceConfigStatusController manages MaintenanceConfigStatus resource lifecycle.
@@ -347,6 +354,8 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 	if err != nil {
 		return fmt.Errorf("error creating maintenance client: %w", err)
 	}
+
+	defer maintenanceTalosClient.Close() //nolint:errcheck
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()

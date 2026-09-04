@@ -76,10 +76,51 @@ type KubernetesRuntime interface {
 }
 
 // TalosRuntime provides Talos cluster access capabilities.
+//
+// The returned clients must be closed by the caller.
 type TalosRuntime interface {
 	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
 	GetClientForCluster(ctx context.Context, clusterName string) (*talos.Client, error)
 	GetClientForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+}
+
+// talosClientGroup obtains Talos clients and closes all of them at once.
+//
+// It is for the callers which hand the clients over to a library through a callback and cannot close them one by one.
+type talosClientGroup struct {
+	talosRuntime TalosRuntime
+	clients      []*talos.Client
+	mu           sync.Mutex
+}
+
+func newTalosClientGroup(talosRuntime TalosRuntime) *talosClientGroup {
+	return &talosClientGroup{talosRuntime: talosRuntime}
+}
+
+// GetForMachine returns a Talos client for the machine, closed when the group is closed.
+func (g *talosClientGroup) GetForMachine(ctx context.Context, machineID string) (*talos.Client, error) {
+	c, err := g.talosRuntime.GetClientForMachine(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	g.mu.Lock()
+	g.clients = append(g.clients, c)
+	g.mu.Unlock()
+
+	return c, nil
+}
+
+// Close closes all the clients obtained through the group.
+func (g *talosClientGroup) Close() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for _, c := range g.clients {
+		c.Close() //nolint:errcheck
+	}
+
+	g.clients = nil
 }
 
 // TalosconfigProvider provides raw and operator Talos configurations.
@@ -521,8 +562,12 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 
 	var logBuffer strings.Builder
 
+	// the clients are closed only after the pre-checks are done
+	talosClients := newTalosClientGroup(s.talosRuntime)
+	defer talosClients.Close()
+
 	preCheck, err := upgrade.NewChecksWithStateProvider(path, func(ctx context.Context, machineID string) (state.State, error) {
-		c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
+		c, clientErr := talosClients.GetForMachine(ctx, machineID)
 		if clientErr != nil {
 			return nil, clientErr
 		}
@@ -1244,6 +1289,8 @@ func (s *managementServer) MachinePowerOff(ctx context.Context, request *managem
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer talosClient.Close() //nolint:errcheck
 
 	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Shutdown_FullMethodName, clusterName, request.MachineId); err != nil {
 		return nil, err

@@ -96,11 +96,15 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	progress := make(chan bundle.Progress)
 
+	// the clients are closed only after the bundle is complete
+	talosClients := newTalosClientGroup(s.talosRuntime)
+	defer talosClients.Close()
+
 	options := bundle.NewOptions(
 		bundle.WithArchiveOutput(archiveOutput),
 		bundle.WithKubernetesClient(kubernetesClient),
 		bundle.WithTalosClientProvider(func(ctx context.Context, machineID string) (context.Context, *client.Client, error) {
-			c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
+			c, clientErr := talosClients.GetForMachine(ctx, machineID)
 			if clientErr != nil {
 				return ctx, nil, clientErr
 			}
