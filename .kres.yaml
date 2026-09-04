@@ -244,6 +244,8 @@ spec:
     environment:
       TEST_CLASS: e2e-qemu
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -272,6 +274,8 @@ spec:
       TEST_CLASS: e2e-helm
       TEMP_REGISTRY: registry.dev.siderolabs.io
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
 ---
 kind: custom.Step
 name: run-e2e-talemu
@@ -301,6 +305,8 @@ spec:
     environment:
       TEST_CLASS: e2e-talemu
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -331,6 +337,8 @@ spec:
     environment:
       TEST_CLASS: e2e-auth0
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -358,6 +366,8 @@ spec:
     environment:
       TEST_CLASS: e2e-saml
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -390,6 +400,8 @@ spec:
       TEST_CLASS: integration-talemu
       TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SingleNodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|AccountLimits)$
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -423,6 +435,8 @@ spec:
       TEST_CLASS: integration-qemu
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
     jobs:
       - name: e2e-short-secureboot

@@ -38,6 +38,7 @@ GO_BUILDFLAGS ?=
 GO_BUILDTAGS ?= memory.counters,libc.memexpvar,
 GO_LDFLAGS ?=
 GO_GCFLAGS ?=
+GO_DEBUG_GCFLAGS ?= -N -l
 CGO_ENABLED ?= 0
 GOTOOLCHAIN ?= local
 GOEXPERIMENT ?=
@@ -162,7 +163,7 @@ GO_LDFLAGS += -linkmode=external -extldflags '-static'
 endif
 
 ifneq (, $(filter $(WITH_DEBUG), t true TRUE y yes 1))
-GO_GCFLAGS += -N -l
+GO_GCFLAGS += $(GO_DEBUG_GCFLAGS)
 GO_BUILDTAGS := $(GO_BUILDTAGS)sidero.debug,
 else
 GO_LDFLAGS += -s

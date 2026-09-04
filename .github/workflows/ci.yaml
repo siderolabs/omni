@@ -249,6 +249,7 @@ jobs:
       - name: run-e2e-auth0
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TEST_CLASS: e2e-auth0
           WITH_DEBUG: "true"
           WITH_RACE: "true"
@@ -327,6 +328,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -402,6 +404,7 @@ jobs:
         env:
           CREATE_QEMU_MACHINES: "false"
           CREATE_TALOS_CLUSTER: "true"
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/ClusterImport
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -475,6 +478,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|DrainTerminationGracePeriod)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -548,6 +552,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|TalosUpgrades|KernelArgsUpdate)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -622,6 +627,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -691,6 +697,7 @@ jobs:
       - name: run-e2e-helm
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TEMP_REGISTRY: registry.dev.siderolabs.io
           TEST_CLASS: e2e-helm
           WITH_DEBUG: "true"
@@ -762,6 +769,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -837,6 +845,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade|MaintenanceLifecycle)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -910,6 +919,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_PREPARE_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(OmniUpgradeVerify)$
           TEST_CLASS: integration-qemu
@@ -981,6 +991,7 @@ jobs:
       - name: run-e2e-qemu
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TEST_CLASS: e2e-qemu
           WITH_DEBUG: "true"
           WITH_RACE: "true"
@@ -1052,6 +1063,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|RotateCA)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1121,6 +1133,7 @@ jobs:
       - name: run-e2e-saml
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TEST_CLASS: e2e-saml
           WITH_DEBUG: "true"
           WITH_RACE: "true"
@@ -1192,6 +1205,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1265,6 +1279,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SingleNodeCluster|Auth)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1338,6 +1353,7 @@ jobs:
       - name: run-integration-qemu
         env:
           ENABLE_SECUREBOOT: "true"
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SingleNodeCluster|Auth)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1407,6 +1423,7 @@ jobs:
       - name: run-e2e-talemu
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TEST_CLASS: e2e-talemu
           WITH_DEBUG: "true"
           WITH_RACE: "true"
@@ -1485,6 +1502,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1558,6 +1576,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1631,6 +1650,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1700,6 +1720,7 @@ jobs:
       - name: run-integration-qemu
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
@@ -1787,6 +1808,7 @@ jobs:
       - name: run-integration-talemu
         if: github.event_name == 'pull_request'
         env:
+          GO_DEBUG_GCFLAGS: ""
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SingleNodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|AccountLimits)$
           TEST_CLASS: integration-talemu
           WITH_DEBUG: "true"
