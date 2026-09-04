@@ -65,3 +65,6 @@ features:
   enableBreakGlassConfigs: true
   enableClusterImport: true
   disableControllerRuntimeCache: false
+debug:
+  pprof:
+    endpoint: 127.0.0.1:9981

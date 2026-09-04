@@ -49,6 +49,20 @@ func statsLimitsHook(t *testing.T) {
 			check: func(assert *assert.Assertions, value float64) { assert.Zero(value) },
 		},
 		{
+			name:  "leaked Talos clients",
+			query: `sum(omni_talos_clientfactory_leaked_clients_total)`,
+			check: func(assert *assert.Assertions, value float64) {
+				assert.Zero(value, "Talos clients were garbage collected without being closed")
+			},
+		},
+		{
+			name:  "open Talos clients",
+			query: `sum(omni_talos_clientfactory_open_clients)`,
+			check: func(assert *assert.Assertions, value float64) {
+				assert.Zero(value, "Talos clients are still open after the tests, see the omni_talos_clients pprof profile for their creation stacks")
+			},
+		},
+		{
 			name:  "controller wakeups",
 			query: `sum(omni_runtime_controller_wakeups{controller!="MachineStatusLinkController"})`,
 			check: func(assert *assert.Assertions, value float64) {
@@ -97,6 +111,10 @@ func statsLimitsHook(t *testing.T) {
 				case *model.Scalar:
 					tt.check(assert, float64(val.Value))
 				case model.Vector:
+					if val.Len() == 0 {
+						return retry.ExpectedErrorf("no data for query %q", tt.query)
+					}
+
 					tt.check(assert, float64(val[val.Len()-1].Value))
 				default:
 					return fmt.Errorf("unexpected value type %s", val.Type())

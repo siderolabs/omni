@@ -8,7 +8,6 @@ package omni
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"strings"
 	"time"
 
@@ -170,10 +169,10 @@ func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientG
 					return fmt.Errorf("failed to get talos client: %w", err)
 				}
 
+				defer talosClient.Close() //nolint:errcheck
+
 				manifestStatus.TypedSpec().Value.OutOfSync = 0
 				manifestStatus.TypedSpec().Value.LastFatalError = ""
-
-				defer runtime.KeepAlive(talosClient) // the cached client closes its connection when garbage collected, keep it until the call returns
 
 				bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
 				if err != nil {

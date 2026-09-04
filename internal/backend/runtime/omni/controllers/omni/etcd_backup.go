@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
-	"runtime"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -374,7 +373,7 @@ func (ctrl *EtcdBackupController) doBackup(
 		return fmt.Errorf("failed to create talos client for cluster, skipping cluster backup: %w", err)
 	}
 
-	defer runtime.KeepAlive(client) // the cached client closes its connection when garbage collected, keep it while it is in use
+	defer client.Close() //nolint:errcheck
 
 	rdr, err := client.EtcdSnapshot(ctx, &machineapi.EtcdSnapshotRequest{})
 	if err != nil {
@@ -466,9 +465,10 @@ func (ctrl *EtcdBackupController) updateBackupStatus(
 	}
 }
 
-// TalosClient is a subset of Talos client.
+// TalosClient is a subset of Talos client. It must be closed by the caller.
 type TalosClient interface {
 	EtcdSnapshot(ctx context.Context, req *machineapi.EtcdSnapshotRequest, callOptions ...grpc.CallOption) (io.ReadCloser, error)
+	Close() error
 }
 
 type countingReader struct {

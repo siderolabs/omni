@@ -11,19 +11,19 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"runtime/pprof"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"go.uber.org/zap"
-	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -58,19 +58,45 @@ func IsClientNotReadyError(e error) bool {
 	return errors.As(e, &w)
 }
 
-// NewClient creates a new Talos client.
+// NewClient wraps a standalone Talos client, see Client.
 //
-// clusterID is optional, and can be empty for maintenance clients. If it is set, the client will check cluster status to determine connectivity in Connected() method.
+// clusterID is optional, and can be empty for maintenance clients. If it is set, Connected checks the cluster status.
 func NewClient(c *client.Client, clusterID, machineID string) *Client {
-	return &Client{Client: c, clusterID: clusterID, machineID: machineID}
+	cli := &Client{Client: c, clusterID: clusterID, machineID: machineID}
+
+	if c != nil {
+		cli.release = c.Close
+	}
+
+	return cli
 }
 
-// Client wraps Talos client.
+// Client represents a Talos client. It must be closed after use, and nothing obtained through it (e.g., a stream) must
+// be used after that. A client is one of:
+//   - A cached client from a ClientFactory. It is a lease on a connection shared by all the clients of the same cluster
+//     or machine. The connection stays open as long as any lease is open or the factory holds it in its cache.
+//   - A standalone client from NewClient. It owns its connection, which is closed with the client.
+//
+// The open cached clients are listed with their creation stacks in the pprof profile "omni_talos_clients".
 type Client struct {
 	*client.Client
 
+	// release is called once by Close. It drops the lease of a cached client, or closes the connection of a standalone one.
+	release func() error
+
+	// profileToken is the key of a cached client in the profile of the open clients. The profile keeps its keys alive,
+	// so the key is a separate allocation and not the client itself, otherwise a leaked client could never be collected.
+	// It has a size, zero-size allocations share one address.
+	profileToken *byte
+	openClients  *pprof.Profile
+
 	clusterID string
 	machineID string
+
+	// cleanup is the leak guard of a cached client: it logs a warning if the client is garbage collected without being closed.
+	cleanup runtime.Cleanup
+
+	once sync.Once
 }
 
 // ClusterID returns the cluster ID of the client. Empty for maintenance clients.
@@ -83,11 +109,27 @@ func (c *Client) MachineID() string {
 	return c.machineID
 }
 
-// Close closes the Talos client.
-//
-// Deprecated: Clients are cached, so this is no-op and must not be called.
+// Close releases the client. Only the first call has an effect.
 func (c *Client) Close() error {
-	return nil
+	var err error
+
+	c.once.Do(func() {
+		if c.release == nil {
+			return
+		}
+
+		// the client is released properly, so the leak guard is stopped. Stop requires the client to stay reachable across the call.
+		c.cleanup.Stop()
+		runtime.KeepAlive(c)
+
+		if c.openClients != nil {
+			c.openClients.Remove(c.profileToken)
+		}
+
+		err = c.release()
+	})
+
+	return err
 }
 
 // Connected provides informational flag about cluster being reachable which is computed from the resources.
@@ -155,24 +197,45 @@ func GetSocketOptions(address string) []client.OptionFunc {
 	return nil
 }
 
-const (
-	// Talos client cache holds both cluster-wide and per-machine clients.
-	// Cluster-wide clients are used by controllers (e.g. etcd machine audit).
-	// Per-machine clients are created on demand for frontend resource requests.
-	// TTL is kept short to avoid holding many idle per-machine connections.
-	// Active invalidation via StartCacheManager handles state-change evictions.
+const openClientsProfileName = "omni_talos_clients"
 
-	talosClientLRUSize = 1024
-	talosClientTTL     = 10 * time.Minute
+// openClientsProfile lists the open cached clients of the factory used by Omni, with their creation stacks. It is served
+// at /debug/pprof/omni_talos_clients.
+var openClientsProfile = pprof.NewProfile(openClientsProfileName)
+
+const (
+	// talosClientCacheSize is the number of cached clients the cache is trimmed back to. The idle timeout is the primary
+	// bound, this one catches a fleet-wide burst of lookups.
+	talosClientCacheSize = 1024
+
+	// talosClientIdleTimeout is how long a cached client without open leases is kept.
+	talosClientIdleTimeout = 10 * time.Minute
+
+	// talosClientSweepInterval is how often the idle clients are evicted.
+	talosClientSweepInterval = time.Minute
 )
 
-// ClientFactory creates client based on the resource state.
+// entry represents a cached Talos client shared by all the leases handed out for its key.
+//
+// refs counts the outstanding references: the open leases, plus one for the cache until the cache releases it. The
+// connection is closed when it drops to zero. idleSince is set when the last lease is closed. Both are guarded by the
+// factory mutex.
+type entry struct {
+	client    *client.Client
+	idleSince time.Time
+	key       string
+	clusterID string
+	machineID string
+	refs      int
+}
+
+// ClientFactory builds Talos clients from the resource state and caches their connections. See Client for the lifetime
+// of the returned clients.
 type ClientFactory struct {
 	omniState state.State
 	logger    *zap.Logger
 
-	cache *expirable.LRU[string, *Client]
-	sf    singleflight.Group
+	entries map[string]*entry
 
 	// started is closed by StartCacheManager once all its watches are registered.
 	started chan struct{}
@@ -181,23 +244,37 @@ type ClientFactory struct {
 	metricActiveClients *prometheus.GaugeVec
 	metricCacheHits     *prometheus.CounterVec
 	metricCacheMisses   *prometheus.CounterVec
+	metricLeakedClients prometheus.Counter
+	metricOpenClients   prometheus.GaugeFunc
+
+	openClients *pprof.Profile
+
+	mu sync.Mutex
+
+	cacheSize int
 }
 
-// NewClientFactory initializes a ClientFactory with a built-in cache.
-// For the factory to do proper cache invalidation, the method StartCacheManager must be called.
+// NewClientFactory initializes a ClientFactory with a built-in cache. StartCacheManager runs the loop which drops the
+// clients of changed clusters and machines and the idle ones, without it the cached clients are never dropped.
 func NewClientFactory(omniState state.State, logger *zap.Logger) *ClientFactory {
+	return newClientFactory(omniState, logger, openClientsProfile)
+}
+
+// newClientFactory creates a ClientFactory which records its open clients in the given profile.
+func newClientFactory(omniState state.State, logger *zap.Logger, openClients *pprof.Profile) *ClientFactory {
 	typeLabel := []string{"type"}
 
-	cacheSize := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "omni_talos_clientfactory_cache_size",
-		Help: "Number of Talos clients in the cache of Talos client factory.",
-	}, typeLabel)
-
-	f := &ClientFactory{
-		omniState:       omniState,
-		logger:          logger,
-		started:         make(chan struct{}),
-		metricCacheSize: cacheSize,
+	return &ClientFactory{
+		openClients: openClients,
+		omniState:   omniState,
+		logger:      logger,
+		entries:     map[string]*entry{},
+		cacheSize:   talosClientCacheSize,
+		started:     make(chan struct{}),
+		metricCacheSize: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_talos_clientfactory_cache_size",
+			Help: "Number of Talos clients in the cache of Talos client factory.",
+		}, typeLabel),
 		metricActiveClients: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "omni_talos_clientfactory_active_clients",
 			Help: "Number of active Talos clients created by Talos client factory.",
@@ -210,13 +287,15 @@ func NewClientFactory(omniState state.State, logger *zap.Logger) *ClientFactory 
 			Name: "omni_talos_clientfactory_cache_misses_total",
 			Help: "Number of Talos client factory cache misses.",
 		}, typeLabel),
+		metricLeakedClients: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "omni_talos_clientfactory_leaked_clients_total",
+			Help: "Number of Talos clients garbage collected without being closed.",
+		}),
+		metricOpenClients: prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+			Name: "omni_talos_clientfactory_open_clients",
+			Help: "Number of Talos clients handed out and not closed, including the ones garbage collected without being closed.",
+		}, func() float64 { return float64(openClients.Count()) }),
 	}
-
-	f.cache = expirable.NewLRU[string, *Client](talosClientLRUSize, func(key string, _ *Client) {
-		cacheSize.WithLabelValues(cacheKeyType(key)).Dec()
-	}, talosClientTTL)
-
-	return f
 }
 
 // connectionOptions returns client configuration generated from the TalosConfig resource.
@@ -263,88 +342,230 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 }
 
 // GetForCluster constructs a client from resource configuration.
-// Returned client is cached and must not be closed by the consumer.
+//
+// The returned client must be closed by the caller.
 func (factory *ClientFactory) GetForCluster(ctx context.Context, clusterID string) (*Client, error) {
 	cacheKey := buildCacheKey(clusterID, "")
-	typ := cacheKeyType(cacheKey)
 
-	if cli, ok := factory.cache.Get(cacheKey); ok {
-		factory.logger.Debug("cache hit, returning cached Talos client", zap.String("key", cacheKey))
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
 
-		factory.metricCacheHits.WithLabelValues(typ).Inc()
-
+	if cli, ok := factory.leaseLocked(cacheKey); ok {
 		return cli, nil
 	}
 
-	ch := factory.sf.DoChan(cacheKey, func() (any, error) {
-		factory.logger.Debug("cache miss, creating new Talos client", zap.String("key", cacheKey))
+	c, err := factory.buildForCluster(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
 
-		factory.metricCacheMisses.WithLabelValues(typ).Inc()
+	return factory.publishLocked(cacheKey, clusterID, "", c), nil
+}
 
-		cli, err := factory.buildForCluster(ctx, clusterID)
-		if err != nil {
-			return nil, err
-		}
+// leaseLocked returns a new lease on the cached client for the key, if there is one. Must be called with the factory mutex held.
+func (factory *ClientFactory) leaseLocked(cacheKey string) (*Client, bool) {
+	e, ok := factory.entries[cacheKey]
+	if !ok {
+		return nil, false
+	}
 
-		activeGauge := factory.metricActiveClients.WithLabelValues(typ)
-		activeGauge.Inc()
+	factory.logger.Debug("cache hit, returning cached Talos client", zap.String("key", cacheKey))
 
-		runtime.AddCleanup(cli, func(c *client.Client) {
-			factory.logger.Debug("finalizing Talos client", zap.String("key", cacheKey))
+	factory.metricCacheHits.WithLabelValues(cacheKeyType(cacheKey)).Inc()
 
-			activeGauge.Dec()
+	return factory.newLeaseLocked(e), true
+}
 
-			c.Close() //nolint:errcheck
-		}, cli.Client)
+// publishLocked caches a freshly built client and returns the first lease on it. Must be called with the factory mutex held.
+//
+// The client is built and published under the mutex on purpose, so that a client built from a stale state never survives
+// in the cache. Either:
+//   - the state reads of the build already see the change, or
+//   - the invalidation runs after the publish and evicts the client.
+//
+// Building a client only reads the state, it does not dial. A slow state stalls the lookups and the releases alike, we
+// accept that.
+func (factory *ClientFactory) publishLocked(cacheKey, clusterID, machineID string, c *client.Client) *Client {
+	factory.logger.Debug("cache miss, caching new Talos client", zap.String("key", cacheKey))
 
-		factory.cache.Add(cacheKey, cli)
+	factory.evictIdleLocked()
 
-		factory.metricCacheSize.WithLabelValues(typ).Inc()
+	typ := cacheKeyType(cacheKey)
 
-		return cli, nil
-	})
+	factory.metricCacheMisses.WithLabelValues(typ).Inc()
+	factory.metricCacheSize.WithLabelValues(typ).Inc()
+	factory.metricActiveClients.WithLabelValues(typ).Inc()
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case res := <-ch:
-		if res.Err != nil {
-			return nil, res.Err
-		}
+	e := &entry{
+		client:    c,
+		key:       cacheKey,
+		clusterID: clusterID,
+		machineID: machineID,
+		refs:      1, // the reference held by the cache
+	}
 
-		cli := res.Val.(*Client) //nolint:forcetypeassert,errcheck
+	factory.entries[cacheKey] = e
 
-		return cli, nil
+	return factory.newLeaseLocked(e)
+}
+
+// newLeaseLocked adds a reference to the entry and returns a client which releases it on Close. Must be called with the
+// factory mutex held.
+func (factory *ClientFactory) newLeaseLocked(e *entry) *Client {
+	e.refs++
+
+	cli := &Client{
+		Client:       e.client,
+		clusterID:    e.clusterID,
+		machineID:    e.machineID,
+		profileToken: new(byte),
+		openClients:  factory.openClients,
+		release: func() error {
+			factory.release(e)
+
+			return nil
+		},
+	}
+
+	factory.openClients.Add(cli.profileToken, 3) // the recorded stack starts at the lookup method
+
+	// the leak guard reports a lease which is garbage collected without being closed. It never releases the lease itself,
+	// as the connection might still be in use through a stream. Its argument must not reference the lease. The lease stays
+	// in the profile, its connection is still leaked and the stack is what tells where from.
+	cli.cleanup = runtime.AddCleanup(cli, factory.reportLeak, e.key)
+
+	return cli
+}
+
+func (factory *ClientFactory) reportLeak(key string) {
+	factory.logger.Warn("Talos client was garbage collected without being closed", zap.String("key", key))
+
+	factory.metricLeakedClients.Inc()
+}
+
+// release drops one reference to the entry and closes the connection when it was the last one.
+//
+// It never touches the cache map, the entry might have been evicted already.
+func (factory *ClientFactory) release(e *entry) {
+	factory.mu.Lock()
+
+	e.refs--
+	refs := e.refs
+
+	if refs == 1 {
+		e.idleSince = time.Now()
+	}
+
+	factory.mu.Unlock()
+
+	if refs > 0 {
+		return
+	}
+
+	factory.closeEntry(e)
+}
+
+// closeEntry closes the connection of an entry which has no references left.
+func (factory *ClientFactory) closeEntry(e *entry) {
+	factory.logger.Debug("closing Talos client", zap.String("key", e.key))
+
+	factory.metricActiveClients.WithLabelValues(cacheKeyType(e.key)).Dec()
+
+	if err := e.client.Close(); err != nil {
+		factory.logger.Warn("failed to close Talos client", zap.String("key", e.key), zap.Error(err))
 	}
 }
 
-// releaseForCluster evicts all cached clients for the given cluster (cluster-wide and per-machine).
+// evictIdleLocked makes room for a new entry when the cache is full, by evicting the entries idle for the longest.
+// Must be called with the factory mutex held.
 //
-// The cluster-wide key ("clusterID/") is removed last to avoid a window where
-// stale per-machine entries remain in the cache after the cluster key is gone.
-func (factory *ClientFactory) releaseForCluster(clusterID string) {
-	clusterKey := buildCacheKey(clusterID, "")
+// Entries with open leases are never evicted, so the cache can exceed its size while that many clients are in use. It
+// stays above it until the next cache miss or the idle sweep trims it. An evicted entry has no leases and is out of the
+// cache, so nothing references it anymore and it is closed here.
+func (factory *ClientFactory) evictIdleLocked() {
+	for len(factory.entries) >= factory.cacheSize {
+		var longestIdle *entry
 
-	for _, key := range factory.cache.Keys() {
-		if key == clusterKey {
-			continue // remove last
+		for _, e := range factory.entries {
+			if e.refs != 1 {
+				continue
+			}
+
+			if longestIdle == nil || e.idleSince.Before(longestIdle.idleSince) {
+				longestIdle = e
+			}
 		}
 
-		if !strings.HasPrefix(key, clusterKey) {
+		if longestIdle == nil {
+			return
+		}
+
+		factory.logger.Debug("cache is full, evicting the longest idle Talos client", zap.String("key", longestIdle.key))
+
+		factory.dropLocked(longestIdle)
+
+		longestIdle.refs--
+
+		factory.closeEntry(longestIdle)
+	}
+}
+
+// dropLocked removes the entry from the cache. It does not release the cache reference. Must be called with the factory
+// mutex held.
+func (factory *ClientFactory) dropLocked(e *entry) {
+	delete(factory.entries, e.key)
+
+	factory.metricCacheSize.WithLabelValues(cacheKeyType(e.key)).Dec()
+}
+
+// evict removes the matching entries from the cache and releases the cache reference on each of them.
+// The predicate is called with the factory mutex held.
+func (factory *ClientFactory) evict(match func(e *entry) bool) {
+	var evicted []*entry
+
+	factory.mu.Lock()
+
+	for _, e := range factory.entries {
+		if !match(e) {
 			continue
 		}
 
-		if factory.cache.Remove(key) {
-			factory.logger.Debug("deleted Talos client from cache", zap.String("key", key))
-		}
+		factory.dropLocked(e)
+
+		evicted = append(evicted, e)
 	}
 
-	if factory.cache.Remove(clusterKey) {
-		factory.logger.Debug("deleted Talos client from cache", zap.String("key", clusterKey))
+	factory.mu.Unlock()
+
+	for _, e := range evicted {
+		factory.logger.Debug("evicted Talos client from cache", zap.String("key", e.key))
+
+		factory.release(e)
 	}
 }
 
-func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID string) (*Client, error) {
+// sweep evicts the cached clients which had no open leases for longer than the idle timeout.
+func (factory *ClientFactory) sweep(now time.Time) {
+	factory.evict(func(e *entry) bool {
+		return e.refs == 1 && now.Sub(e.idleSince) >= talosClientIdleTimeout
+	})
+}
+
+// stop evicts all the cached clients.
+func (factory *ClientFactory) stop() {
+	factory.evict(func(*entry) bool { return true })
+}
+
+// releaseForCluster evicts all cached clients for the given cluster (cluster-wide and per-machine).
+func (factory *ClientFactory) releaseForCluster(clusterID string) {
+	clusterKey := buildCacheKey(clusterID, "")
+
+	factory.evict(func(e *entry) bool {
+		return strings.HasPrefix(e.key, clusterKey)
+	})
+}
+
+func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID string) (*client.Client, error) {
 	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](
 		ctx, factory.omniState,
 		omni.NewClusterEndpoint(clusterID).Metadata(),
@@ -367,18 +588,14 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 		return nil, err
 	}
 
-	c, err := client.New(ctx, options...)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewClient(c, clusterID, ""), nil
+	return client.New(ctx, options...)
 }
 
 // GetForMachine constructs a Talos client connected directly to a specific node's SideroLink address.
 // It returns a maintenance (insecure) or a regular (secure) client depending on whether the machine is currently in
 // maintenance mode or not, as reported by its MachineStatus.
-// Returned client is cached and must not be closed by the consumer.
+//
+// The returned client must be closed by the caller.
 func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID string) (*Client, error) {
 	return factory.getForMachine(ctx, machineID, false)
 }
@@ -390,22 +607,60 @@ func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID strin
 // is not in maintenance mode, it returns an error instead of a client. This way a caller acting on a machine it believes
 // to be in maintenance mode (based on a possibly stale view) can never accidentally reconfigure an allocated machine that
 // has already left maintenance.
-// Returned client is cached and must not be closed by the consumer.
+//
+// The returned client must be closed by the caller.
 func (factory *ClientFactory) GetMaintenance(ctx context.Context, machineID string) (*Client, error) {
 	return factory.getForMachine(ctx, machineID, true)
 }
 
 func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*Client, error) {
+	_, clusterID, err := factory.resolveMachine(ctx, machineID, maintenanceOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheKey := buildCacheKey(clusterID, machineID)
+
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
+
+	if cli, ok := factory.leaseLocked(cacheKey); ok {
+		return cli, nil
+	}
+
+	// cache miss: the machine status is read again under the mutex, as the one read above might be stale (see publishLocked)
+	machineStatus, clusterID, err := factory.resolveMachine(ctx, machineID, maintenanceOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheKey = buildCacheKey(clusterID, machineID)
+
+	if cli, ok := factory.leaseLocked(cacheKey); ok {
+		return cli, nil
+	}
+
+	c, err := factory.buildForMachine(ctx, clusterID, machineStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	return factory.publishLocked(cacheKey, clusterID, machineID, c), nil
+}
+
+// resolveMachine reads the machine status and returns the cluster the machine is reachable through: its own cluster over
+// the secure connection, or none in maintenance mode.
+func (factory *ClientFactory) resolveMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*omni.MachineStatus, string, error) {
 	machineStatus, err := safe.StateGet[*omni.MachineStatus](
 		ctx, factory.omniState,
 		omni.NewMachineStatus(machineID).Metadata(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, NewClientNotReadyError(err)
+			return nil, "", NewClientNotReadyError(err)
 		}
 
-		return nil, err
+		return nil, "", err
 	}
 
 	spec := machineStatus.TypedSpec().Value
@@ -413,71 +668,19 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 	// when only a maintenance client was asked for, refuse to build (or return a cached) cluster client. checked before
 	// touching the cache so a concurrently cached cluster client can never leak through either.
 	if maintenanceOnly && !spec.Maintenance {
-		return nil, fmt.Errorf("machine %q is not in maintenance mode", machineID)
+		return nil, "", fmt.Errorf("machine %q is not in maintenance mode", machineID)
 	}
 
 	// A machine in maintenance mode is reachable only over the insecure maintenance connection, even when already
 	// allocated to a cluster. Otherwise it is reachable over its cluster's secure connection. A machine that is in
 	// neither state has no reachable client, so report it as not ready rather than caching a doomed one.
-	clusterID := spec.Cluster
-
 	switch {
 	case spec.Maintenance:
-		clusterID = ""
-	case clusterID == "":
-		return nil, NewClientNotReadyError(fmt.Errorf("machine %q is neither in maintenance mode nor allocated to a cluster", machineID))
-	}
-
-	cacheKey := buildCacheKey(clusterID, machineID)
-	typ := cacheKeyType(cacheKey)
-
-	if cli, ok := factory.cache.Get(cacheKey); ok {
-		factory.logger.Debug("cache hit, returning cached Talos node client", zap.String("key", cacheKey))
-
-		factory.metricCacheHits.WithLabelValues(typ).Inc()
-
-		return cli, nil
-	}
-
-	ch := factory.sf.DoChan(cacheKey, func() (any, error) {
-		factory.logger.Debug("cache miss, creating new Talos node client", zap.String("key", cacheKey))
-
-		factory.metricCacheMisses.WithLabelValues(typ).Inc()
-
-		cli, err := factory.buildForMachine(ctx, clusterID, machineStatus)
-		if err != nil {
-			return nil, err
-		}
-
-		activeGauge := factory.metricActiveClients.WithLabelValues(typ)
-		activeGauge.Inc()
-
-		runtime.AddCleanup(cli, func(c *client.Client) {
-			factory.logger.Debug("finalizing Talos node client", zap.String("machine", machineID))
-
-			activeGauge.Dec()
-
-			c.Close() //nolint:errcheck
-		}, cli.Client)
-
-		factory.cache.Add(cacheKey, cli)
-
-		factory.metricCacheSize.WithLabelValues(typ).Inc()
-
-		return cli, nil
-	})
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case res := <-ch:
-		if res.Err != nil {
-			return nil, res.Err
-		}
-
-		cli := res.Val.(*Client) //nolint:forcetypeassert,errcheck
-
-		return cli, nil
+		return machineStatus, "", nil
+	case spec.Cluster == "":
+		return nil, "", NewClientNotReadyError(fmt.Errorf("machine %q is neither in maintenance mode nor allocated to a cluster", machineID))
+	default:
+		return machineStatus, spec.Cluster, nil
 	}
 }
 
@@ -495,7 +698,7 @@ func buildCacheKey(clusterID, machineID string) string {
 	return clusterID + "/" + machineID
 }
 
-func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID string, machineStatus *omni.MachineStatus) (*Client, error) {
+func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID string, machineStatus *omni.MachineStatus) (*client.Client, error) {
 	machineID := machineStatus.Metadata().ID()
 
 	managementAddress := machineStatus.TypedSpec().Value.ManagementAddress
@@ -509,16 +712,11 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 			return nil, err
 		}
 
-		c, err := client.New(ctx, options...)
-		if err != nil {
-			return nil, err
-		}
-
-		return NewClient(c, clusterID, machineID), nil
+		return client.New(ctx, options...)
 	}
 
 	// Maintenance mode: encrypted but no certificate verification.
-	c, err := client.New(
+	return client.New(
 		ctx,
 		client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), //nolint:gosec
 		client.WithEndpoints(managementAddress),
@@ -526,19 +724,27 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 		),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewClient(c, "", machineID), nil
 }
 
 func (factory *ClientFactory) releaseForMachine(clusterID, machineID string) {
 	cacheKey := buildCacheKey(clusterID, machineID)
 
-	factory.logger.Debug("deleting Talos machine client from cache", zap.String("key", cacheKey))
+	factory.mu.Lock()
 
-	factory.cache.Remove(cacheKey)
+	e := factory.entries[cacheKey]
+	if e != nil {
+		factory.dropLocked(e)
+	}
+
+	factory.mu.Unlock()
+
+	if e == nil {
+		return
+	}
+
+	factory.logger.Debug("evicted Talos client from cache", zap.String("key", cacheKey))
+
+	factory.release(e)
 }
 
 // WaitForCacheStart blocks until StartCacheManager has registered all its watches, or the context is done.
@@ -554,8 +760,11 @@ func (factory *ClientFactory) WaitForCacheStart(ctx context.Context) error {
 	}
 }
 
-// StartCacheManager starts watching the relevant resources to do the client cache invalidation.
+// StartCacheManager watches the relevant resources to invalidate the client cache and evicts the idle clients periodically.
+// It evicts all the cached clients before it returns.
 func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
+	defer factory.stop()
+
 	eventCh := make(chan state.Event)
 
 	clusterEndpointMd := omni.NewClusterEndpoint("").Metadata()
@@ -581,6 +790,9 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 
 	close(factory.started)
 
+	ticker := time.NewTicker(talosClientSweepInterval)
+	defer ticker.Stop()
+
 	for {
 		var event state.Event
 
@@ -589,6 +801,10 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 			factory.logger.Debug("stopping Talos client cache manager")
 
 			return nil
+		case now := <-ticker.C:
+			factory.sweep(now)
+
+			continue
 		case event = <-eventCh:
 		}
 
@@ -604,7 +820,7 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 		case omni.MachineStatusType:
 			factory.handleMachineStatusEvent(event)
 		default:
-			// ClusterEndpoint or TalosConfig changed — invalidate the cluster with all its clients.
+			// ClusterEndpoint or TalosConfig changed, invalidate the cluster with all its clients.
 			clusterID := event.Resource.Metadata().ID()
 			factory.releaseForCluster(clusterID)
 		}
@@ -614,11 +830,14 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 // handleMachineStatusEvent evicts the now-stale clients of a machine whose maintenance mode or cluster changed.
 //
 // A machine is reachable over exactly one client: the insecure maintenance client while in maintenance mode, or the
-// secure cluster client otherwise. On every change the clients the machine is no longer reachable through are evicted,
-// which is idempotent and never drops the currently valid one.
+// secure cluster client otherwise. On every change the clients the machine is no longer reachable through are evicted.
+// A delayed event can evict a client which is valid again, it is then built again on the next lookup.
 //
 // The previous cluster is read from the old version of the resource carried by the event, so the secure cluster client
 // can be evicted even when the machine status has already cleared its cluster field as the machine leaves the cluster.
+//
+// The management address is not watched, as it never changes for an existing machine: SideroLink keeps the address of an
+// existing link, and a machine gets a new one only after its link and status were destroyed, which evicts its clients.
 func (factory *ClientFactory) handleMachineStatusEvent(event state.Event) {
 	machineID := event.Resource.Metadata().ID()
 
@@ -674,6 +893,8 @@ func (factory *ClientFactory) Collect(ch chan<- prometheus.Metric) {
 	factory.metricActiveClients.Collect(ch)
 	factory.metricCacheHits.Collect(ch)
 	factory.metricCacheMisses.Collect(ch)
+	factory.metricLeakedClients.Collect(ch)
+	factory.metricOpenClients.Collect(ch)
 }
 
 var _ prometheus.Collector = &ClientFactory{}

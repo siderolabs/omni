@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"runtime/pprof"
 	"testing"
 	"time"
 
@@ -369,6 +370,17 @@ func preRunHooks(t *testing.T, options *TestOptions) {
 }
 
 func postRunHooks(t *testing.T, options *TestOptions) {
+	if runEmbeddedOmni {
+		// the embedded Omni runs in this process, so its open Talos clients are visible without Prometheus
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			profile := pprof.Lookup("omni_talos_clients")
+			if assert.NotNil(collect, profile) {
+				assert.Zero(collect, profile.Count(),
+					"Talos clients are still open after the tests, see the omni_talos_clients pprof profile for their creation stacks")
+			}
+		}, 15*time.Second, time.Second)
+	}
+
 	if t.Failed() {
 		t.Logf("there are failed tests, save support bundle for all clusters")
 

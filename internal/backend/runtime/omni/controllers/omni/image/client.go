@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"runtime"
 
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -45,6 +44,8 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 		return nil, fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
+	defer talosCli.Close() //nolint:errcheck
+
 	stream, err := talosCli.ImageClient.List(ctx, &machine.ImageServiceListRequest{
 		Containerd: &common.ContainerdInstance{
 			Driver:    common.ContainerDriver_CRI,
@@ -54,8 +55,6 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
-
-	defer runtime.KeepAlive(talosCli) // the cached client closes its connection when garbage collected, keep it until the stream is consumed
 
 	images, err := readImagesFromStream(stream)
 	// Requires Talos >=1.13.0
@@ -110,6 +109,8 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 		return fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
+	defer talosCli.Close() //nolint:errcheck
+
 	stream, err := talosCli.ImageClient.Pull(ctx, &machine.ImageServicePullRequest{
 		ImageRef: image,
 		Containerd: &common.ContainerdInstance{
@@ -120,8 +121,6 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 	if err != nil {
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
-
-	defer runtime.KeepAlive(talosCli) // the cached client closes its connection when garbage collected, keep it until the stream is consumed
 
 	for {
 		_, err = stream.Recv()

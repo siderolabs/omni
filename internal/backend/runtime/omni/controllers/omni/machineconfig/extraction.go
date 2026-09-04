@@ -8,7 +8,6 @@ package machineconfig
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -225,7 +224,7 @@ func (r reader) ReadMachineConfig(ctx context.Context, machineID string) (*confi
 		return nil, err
 	}
 
-	defer runtime.KeepAlive(client) // the cached client closes its connection when garbage collected, keep it until the call returns
+	defer client.Close() //nolint:errcheck
 
 	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, client.COSI, configres.ActiveID)
 	if err != nil && !state.IsNotFoundError(err) {
