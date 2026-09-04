@@ -1,3 +1,273 @@
+## [Omni 1.11.0](https://github.com/siderolabs/omni/releases/tag/v1.11.0) (2026-09-04)
+
+Welcome to the v1.11.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Frontend Quality-of-Life Improvements
+
+Align the UI features on the Cluster scale and Cluster create pages. Support searching by labels on Cluster scaling/create pages.
+
+
+### Install Disk Configs
+
+Config Patches can no longer be used for setting Talos install disk. Starting from Talos 1.14 installation flow was changed a lot so setting the install disk in the configs will no longer work. Install disk is now defined in a separate resource and works differently for the older Talos versions.
+
+
+### Kubernetes Token Signing Keys
+
+Admins can now list the keys that sign Kubernetes access tokens and delete them. Deleting one immediately invalidates every kubeconfig and OIDC token it signed, which is what it takes to pull a long-lived service account kubeconfig out of circulation before it expires.
+See [documentation](https://docs.siderolabs.com/omni/security-and-authentication/revoke-kubernetes-access-tokens) for more details.
+
+
+### Recovery Admin for SAML Lockouts
+
+`auth.recoveryAdmin` config, or the `--recovery-admin` flag can be used to elevate a user to Admin on every Omni start.
+It also blocks user demotion through SAML label rules. This is the way back in when a SAML rule strips Admin from everyone. Only existing users can be promoted.
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Utku Ozdemir
+* Oguz Kilcan
+* Spencer Smith
+* Mateusz Urbanek
+* Artem Chernyshev
+* Andrey Smirnov
+* Kevin Tijssen
+* Orzelius
+* Noel Georgi
+* Tim Jones
+
+### Changes
+<details><summary>116 commits</summary>
+<p>
+
+* [`50ccd9502`](https://github.com/siderolabs/omni/commit/50ccd95020ca45a065020a62173618ea96f59b16) release(v1.11.0-beta.1): prepare release
+* [`4c61b2687`](https://github.com/siderolabs/omni/commit/4c61b2687ef19f89b57486d7945f471040050766) test: retry the maintenance upgrade right after the install reboot
+* [`87b704fb0`](https://github.com/siderolabs/omni/commit/87b704fb026e73ddf73ce703a444423803e0173f) fix: make the omni log format of omnictl machine-logs work
+* [`af6f9c6e4`](https://github.com/siderolabs/omni/commit/af6f9c6e4fbbd4d71a65ca81dcec24ea7d84d71d) fix: filter the output in omnictl
+* [`dbf8024c1`](https://github.com/siderolabs/omni/commit/dbf8024c1b3dea5e185f3ff98c5108053ab2b659) fix: handle the META keys Talos 1.14 does not allow to write via the API
+* [`a6fa429f4`](https://github.com/siderolabs/omni/commit/a6fa429f4c42c167c7f5e68df95a816ec769323a) fix: validate the kubeconfig received from the Omni API
+* [`23d722ad0`](https://github.com/siderolabs/omni/commit/23d722ad0855103453c422a5d9e95e8f54bbcfd8) fix: remove documents dropped from config patches in maintenance mode
+* [`51560db91`](https://github.com/siderolabs/omni/commit/51560db9174c4f33de84d7aaf78f79650a03cc94) fix: recognize the full AMD vendor name in the CPU label
+* [`dbd30fd45`](https://github.com/siderolabs/omni/commit/dbd30fd45212327a1e7c4519e9e974f97604034f) feat: report the number of machines by CPU core count
+* [`2b9494644`](https://github.com/siderolabs/omni/commit/2b949464487e3750af351a48dfdc617afe73502e) feat: use the Linux view of the CPU cores for machine hardware status
+* [`685ea82f4`](https://github.com/siderolabs/omni/commit/685ea82f4d1dbe0e979461d86c9df7377667ccb9) fix: update COSI to 1.16.3
+* [`778192cd5`](https://github.com/siderolabs/omni/commit/778192cd58ce61969719125c991ca5240959da8e) fix: don't give a UUID-conflicting machine the live machine's address
+* [`81e0f1364`](https://github.com/siderolabs/omni/commit/81e0f1364a334d996f5808a80d70e804120cb8fb) fix: make the image factory credentials readable only by omni
+* [`92d72412e`](https://github.com/siderolabs/omni/commit/92d72412e31394bc163d7d3f0efcbc549b8e40bb) release(v1.11.0-beta.0): prepare release
+* [`e402ff4ef`](https://github.com/siderolabs/omni/commit/e402ff4efe22ac06ed496441ffc2013396cb85e8) chore: remove oauth2 client credentials auth for the image factory
+* [`e460ae71e`](https://github.com/siderolabs/omni/commit/e460ae71eaae93e60da1c63e45f3f7775ba86a57) fix: retry a rejected bootstrap request at the next check
+* [`b1341200b`](https://github.com/siderolabs/omni/commit/b1341200b16d00ae4ee82ad1b77c6947a0e50cbf) feat: authenticate PXE installation media with a download token
+* [`b7b58efe8`](https://github.com/siderolabs/omni/commit/b7b58efe8ff8ee73abcab7f7559b401df25d39e6) feat: download installation media through the boot asset API
+* [`e2ad5e43f`](https://github.com/siderolabs/omni/commit/e2ad5e43f736065478f2c3e42ceb380b53d64919) refactor: rename the boot asset API to installation media URL
+* [`f573426e4`](https://github.com/siderolabs/omni/commit/f573426e4af3bfd244d6e6134719137c12a5d316) test: fix a race between manual machine picks and machine classes
+* [`605a83da9`](https://github.com/siderolabs/omni/commit/605a83da965ee0883f05149c238092318bb4fead) fix: apply pending updates to unhealthy machines so they can recover
+* [`9b6d554a3`](https://github.com/siderolabs/omni/commit/9b6d554a33df660bd20fa946616113958a198573) feat(frontend): use download tokens for installation media
+* [`2491f1437`](https://github.com/siderolabs/omni/commit/2491f14373cdf391e19d563142c5393048ef0539) fix(frontend): fix filter check in pending machines
+* [`fbaa7fb18`](https://github.com/siderolabs/omni/commit/fbaa7fb18f0d438d094a8676b3f4798312062545) feat: regularly reconcile factory access tokens in cosi
+* [`23cc61d91`](https://github.com/siderolabs/omni/commit/23cc61d91cd135b972eb22c69c013cee054ababd) feat: add image factory token resource
+* [`1eecc480a`](https://github.com/siderolabs/omni/commit/1eecc480ad955fcafcee467dc30817d4e691e08e) feat: add image factory oauth2 client config
+* [`a96ef43d2`](https://github.com/siderolabs/omni/commit/a96ef43d2dd1acd155616b6120d8248144176592) chore: bump deps and default versions
+* [`36bd2eccc`](https://github.com/siderolabs/omni/commit/36bd2eccc3ca9fe95b2578e4f3ec3ed0c6a64ec5) fix: mark a cluster as bootstrapped only once etcd is running on the node
+* [`71ee3ad80`](https://github.com/siderolabs/omni/commit/71ee3ad80a0f125e176da365a8e1b5accf08d4d7) test: fix a race in the preserve-features machine config test
+* [`3794b1177`](https://github.com/siderolabs/omni/commit/3794b11771f339dd30984429b98320fe6d921416) feat: authenticate boot asset downloads with image factory tokens
+* [`4bbd713da`](https://github.com/siderolabs/omni/commit/4bbd713da2679f2389b9cf1395e988651936e52d) refactor: move the cluster and metrics controllers into their packages
+* [`ace063b53`](https://github.com/siderolabs/omni/commit/ace063b53ebccf48b76bd970b1b60ecc4081112c) fix: record the image factory host for machines already at target
+* [`8c003994b`](https://github.com/siderolabs/omni/commit/8c003994bb7943c5cb783174988f029bb82c8c6b) test: adapt the integration tests to Talos 1.14
+* [`78d56b38d`](https://github.com/siderolabs/omni/commit/78d56b38d20a413b7a553b9f45b3017566c46906) chore: prepare Omni for Talos 1.14
+* [`e37ab210b`](https://github.com/siderolabs/omni/commit/e37ab210b2b8b576a1685248183e42153f0fcee9) test: trim redundant legacy manifest group id cases
+* [`f8b9cfc30`](https://github.com/siderolabs/omni/commit/f8b9cfc302fb0fcf589b0bad312944e4d29aeaa9) fix: migrate legacy weighted one-time manifest group ids
+* [`c76cf4b7c`](https://github.com/siderolabs/omni/commit/c76cf4b7ca8b0700e87add0475d9b3f8a3009c16) test: increase timeouts for sqlitelog cleanup tests
+* [`9630157c3`](https://github.com/siderolabs/omni/commit/9630157c399aeff1cb7c282f125ae55c6b6f89a6) fix: correct manifest group ownership comparison
+* [`20afcdacb`](https://github.com/siderolabs/omni/commit/20afcdacb09b210529712f10c804a61c1c9127cb) fix: drop numeric prefix from manifest group ids
+* [`d50ea9a57`](https://github.com/siderolabs/omni/commit/d50ea9a57979836b32603a4fba109d6d2839032b) fix: drop manifest apply-order weighting and fix stale status tracking
+* [`58d1897a2`](https://github.com/siderolabs/omni/commit/58d1897a25cdd0ba41299265328c38904b5ac9cc) feat(frontend): hide machine creation commands not supported by enterprise
+* [`fc8d3d150`](https://github.com/siderolabs/omni/commit/fc8d3d1506b6c779c4426916ca6c87d4377e91af) feat(frontend): use cross-browser scroll styling
+* [`7bc0852b9`](https://github.com/siderolabs/omni/commit/7bc0852b9c571fe304d9910d6e2fb50235bf02f9) feat: proxy security reports through omni
+* [`1c6369866`](https://github.com/siderolabs/omni/commit/1c6369866277a560ed6049a3d933cbe7de0e2f93) fix(frontend): remove credentials from cluster create url
+* [`8c3f12d72`](https://github.com/siderolabs/omni/commit/8c3f12d728a3cb371900ef3a642bc0dd97451c6e) chore: bump deps
+* [`cbbfd9ffe`](https://github.com/siderolabs/omni/commit/cbbfd9ffe47ce2f26540b3a7f292f5499b8f3bc0) chore: bump go
+* [`b024ef98a`](https://github.com/siderolabs/omni/commit/b024ef98acd882e72e4dc68c2e2f21675ac2b04f) fix: change incorrect version contract for kubespan
+* [`b1ea5df26`](https://github.com/siderolabs/omni/commit/b1ea5df26e4ea80857a444c1c982387863cadbd9) fix: properly clean up pods of the health check jobs
+* [`cc3717ac6`](https://github.com/siderolabs/omni/commit/cc3717ac6a09165117be6f09d8b2d8fada875f1f) fix: provide machine id consistently in provision API logs
+* [`c9d6d489b`](https://github.com/siderolabs/omni/commit/c9d6d489b32f129dc9c9299db1d3686da069047f) fix: add missing timeout to the version API call in the identity task
+* [`c19abe332`](https://github.com/siderolabs/omni/commit/c19abe3327d5a37a3d1c4c1c995678180b00d796) fix: stop a link to an exposed service from starting a login flow
+* [`80c4a4557`](https://github.com/siderolabs/omni/commit/80c4a4557aba3f688d5127f8d95bd3d484186284) feat: manage the install disk with a first-class resource
+* [`d0ecc7b3f`](https://github.com/siderolabs/omni/commit/d0ecc7b3fe88e0b41c39c8e95a87070abc68bcdd) chore: rekres and bump deps
+* [`84856105e`](https://github.com/siderolabs/omni/commit/84856105e3ccf40fed5c37f132a19c97f4714f1f) refactor(frontend): drop luxon in favor of date-fns
+* [`b6f64c6b7`](https://github.com/siderolabs/omni/commit/b6f64c6b722ecc1337526221a88e69088fd03f79) chore: bump deps
+* [`ee0704f79`](https://github.com/siderolabs/omni/commit/ee0704f79d07af31590601c2138eb32d1370ec10) feat: allow listing and deleting the Kubernetes token signing keys
+* [`d7bef774d`](https://github.com/siderolabs/omni/commit/d7bef774d390a8b65d7e0a35128f6d8a17d9beff) feat(frontend): add filename param to image downloads
+* [`c574e432d`](https://github.com/siderolabs/omni/commit/c574e432dc7097b013b8ffc42ae46650883f4053) fix: siderolink api label
+* [`44aa6f524`](https://github.com/siderolabs/omni/commit/44aa6f524a0ee4245922042f282ccbc3aa75aabd) test: increase test timeouts
+* [`d6b8c33e3`](https://github.com/siderolabs/omni/commit/d6b8c33e36f37be62af9dabbbe58de05073e5c13) test: run talemu suite in both chrome and firefox
+* [`a0b13882c`](https://github.com/siderolabs/omni/commit/a0b13882ca07c2825ddbd1d7a40ba9e78b57662d) test: replace omni.localhost with ci.test
+* [`8378899c0`](https://github.com/siderolabs/omni/commit/8378899c0e8a76c2553c4bfb59774ab315d0a982) test: consolidate all host references to common.sh variables
+* [`0051462aa`](https://github.com/siderolabs/omni/commit/0051462aac63f1527ed93eef569c47864f96230f) feat: serve infra provider boot assets through Omni
+* [`008d9300e`](https://github.com/siderolabs/omni/commit/008d9300e17e654164ffe52d612e75838f6be830) chore: rekres and add gitattributes block
+* [`18854ce46`](https://github.com/siderolabs/omni/commit/18854ce468fd5cd9531c1136089fc182b65e9e4e) refactor(frontend): replace remaining update:xxx locations to v-model
+* [`270d06711`](https://github.com/siderolabs/omni/commit/270d067114795db11b6ed38a9015f8c0d00f1287) fix(frontend): fix etcd backup interval not editable
+* [`3798a6d8d`](https://github.com/siderolabs/omni/commit/3798a6d8d2e7be97a5889c3d0c90a7094943d539) feat: add a recovery admin for SAML lockouts
+* [`f2aeaa851`](https://github.com/siderolabs/omni/commit/f2aeaa851a8e977eb104791a1efad8df38134789) fix(frontend): check for navigation in preload error events
+* [`b56929e10`](https://github.com/siderolabs/omni/commit/b56929e107bb8ed897932256a0b282a685685eb0) chore: bump deps
+* [`4c283a3bf`](https://github.com/siderolabs/omni/commit/4c283a3bfcff32a5abbeadfc635db8d3196599bc) chore: rekres and bump go
+* [`cfa05aa5a`](https://github.com/siderolabs/omni/commit/cfa05aa5a5486ad8b6d9c06b869737bc846e4507) fix(frontend): fix incorrect machine route params
+* [`0f029dcec`](https://github.com/siderolabs/omni/commit/0f029dcec8ba5c77b262878d13afc9984cfff893) feat(frontend): add filtering and pagination to cluster scale
+* [`91a0e612d`](https://github.com/siderolabs/omni/commit/91a0e612d88acf3d39440187f4e4e9abfcefd711) feat(frontend): use labels input in cluster create
+* [`11ecf9522`](https://github.com/siderolabs/omni/commit/11ecf95225d2c588afe07374a96296713b9bb147) refactor(frontend): extract label completions query from input
+* [`76fc80dab`](https://github.com/siderolabs/omni/commit/76fc80dab1b6f58e51328daa4b9b7a217f83b426) test(frontend): fix a typo in test regex
+* [`bcf658e7f`](https://github.com/siderolabs/omni/commit/bcf658e7f9a77bb40f9a84946e7ddbec946b02fe) refactor(frontend): drop deprecated getcontext
+* [`3efa4c63c`](https://github.com/siderolabs/omni/commit/3efa4c63c2677a76463e65cb89f6d88f2d7232c7) test: make integration tests pass against a non-CI Omni instance
+* [`71b3a9e41`](https://github.com/siderolabs/omni/commit/71b3a9e41c107c073bb13565def3ffc48d160c2e) test: fix flaky unit tests on overloaded CI runners
+* [`dbff80519`](https://github.com/siderolabs/omni/commit/dbff80519cf7ead2578d17d884c148d7381c3dc1) refactor(frontend): migrate machines away from tlist
+* [`4e7e354c0`](https://github.com/siderolabs/omni/commit/4e7e354c075f6e651dc3fc9fa41411e49bd8d0b9) refactor(frontend): migrate pending machines away from tlist
+* [`ec2028cb3`](https://github.com/siderolabs/omni/commit/ec2028cb376497de9abaa4c7009ccf91512eb26e) refactor(frontend): move pagination reset logic into composable
+* [`0faf1cc1c`](https://github.com/siderolabs/omni/commit/0faf1cc1c76f749a5693e7d94b7579f9f78bf5fc) refactor(frontend): lift filtering logic out of tlist
+* [`b3845c074`](https://github.com/siderolabs/omni/commit/b3845c07404500eb87d2899991a546235a0cd724) refactor(frontend): lift pagination logic out of tlist
+* [`ec0098668`](https://github.com/siderolabs/omni/commit/ec00986685517efeb113b7cc4b074a0a02960b82) refactor(frontend): lift sorting logic out of tlist
+* [`b3967f439`](https://github.com/siderolabs/omni/commit/b3967f439867057621ad2b13f397a23c970446c5) fix(frontend): fix side panel sizing and allow control wrapping
+* [`5bed0cb85`](https://github.com/siderolabs/omni/commit/5bed0cb85c79b4714b49ea233d1ebdf787c73f10) refactor(frontend): lift sidePanel out of tlist
+* [`c2f91ee19`](https://github.com/siderolabs/omni/commit/c2f91ee190cb1f0a17a3f4649cfa9306e8beec71) refactor(frontend): lift addFilterLabel out of tlist
+* [`22d0972cd`](https://github.com/siderolabs/omni/commit/22d0972cdfd8752e44d3c87e216e852d7dc189b4) refactor(frontend): use pagination component inside tlist
+* [`8bcc1ad12`](https://github.com/siderolabs/omni/commit/8bcc1ad1291b90f5995a0e5d74b2c878c8b9252b) refactor(frontend): use reka-ui for pagination
+* [`c1ae41c57`](https://github.com/siderolabs/omni/commit/c1ae41c57bdae2c96ac7256e67352df1ba53f252) refactor(frontend): extract items out of pagination
+* [`4f299f8a8`](https://github.com/siderolabs/omni/commit/4f299f8a8c88272da786d7b48d7afbae83b7a4b1) refactor(frontend): rename tpagination to pagination
+* [`a98f5ac0b`](https://github.com/siderolabs/omni/commit/a98f5ac0b0d754bc91e3f871d2a212803c698239) refactor(frontend): rename arrow-* to chevron-* and use heroicons variants
+* [`0970a6db2`](https://github.com/siderolabs/omni/commit/0970a6db2c4cd8f1e52553a279a7167e90294ee6) fix(frontend): fix reset wizard
+* [`cc23658b0`](https://github.com/siderolabs/omni/commit/cc23658b073212889a49418f5e6aa78615dfdf5d) fix: compress diffs in the machine pending updates and diff history
+* [`47845eb51`](https://github.com/siderolabs/omni/commit/47845eb51c89ee061a0e0b0c06cade0dd4c20005) fix: force re-authentication at the IdP so logout takes effect
+* [`194c629cf`](https://github.com/siderolabs/omni/commit/194c629cf40e468d9b52cec321ea5954fc99021e) fix: keep a machine's tunnel peer address stable across provisions
+* [`899128ec5`](https://github.com/siderolabs/omni/commit/899128ec588da358c197b25fc7fbb5affbcc3bc2) fix(frontend): return no-cache for index.html
+* [`3e01d4012`](https://github.com/siderolabs/omni/commit/3e01d401281abb2fdbeeb001f2d2cbb6d6a48a28) fix: don't sign users out of Omni on Kubernetes OIDC logout
+* [`4fad1c5b9`](https://github.com/siderolabs/omni/commit/4fad1c5b9fcc8ae9fc39538d6571e806b8847dce) fix(frontend): add missing credentials to security pages
+* [`8c802ffd6`](https://github.com/siderolabs/omni/commit/8c802ffd63ebd4691030b61fda106190e9d098c8) test(frontend): add edit patch e2e test
+* [`240964a2e`](https://github.com/siderolabs/omni/commit/240964a2eb81a0a4c1d3e9c1991c9097d28b6230) fix(frontend): fix patch edit dropping fields
+* [`d9c463dcc`](https://github.com/siderolabs/omni/commit/d9c463dcc3520229f2c3bb5a44c4073ff0e2db96) fix: backfill the image factory host of machines enrolled before 1.10
+* [`2c70b1541`](https://github.com/siderolabs/omni/commit/2c70b154142a5c2668416dfba8f4bb04bbcbb6f0) fix: bound the machine config diff by bytes, not just lines
+* [`7a847f5c2`](https://github.com/siderolabs/omni/commit/7a847f5c22f5cce0feb604b8ee6cf1020252a859) fix(frontend): be more defensive about signup errors
+* [`dc6fa2246`](https://github.com/siderolabs/omni/commit/dc6fa2246f8e2ac0522d8d9b8d64c721dec1c844) chore(frontend): bump dependencies
+* [`38299fa8e`](https://github.com/siderolabs/omni/commit/38299fa8e6a202676a07958e1ae203df41027355) test: verify upgrade drain honors grace period and aborts on failure
+* [`0a45ef095`](https://github.com/siderolabs/omni/commit/0a45ef095534e3ba0f85b30663fd0b2755ec3205) chore: bump default versions
+* [`4d4e327d3`](https://github.com/siderolabs/omni/commit/4d4e327d3eeefae8f56dbcb5ac99e2ba936a7924) feat(frontend): use hostnames for machine list in delete modal
+* [`491d83ea2`](https://github.com/siderolabs/omni/commit/491d83ea2f82b5cf8a54e00a0352b5a64cd63070) feat(frontend): normalise the delete/remove text for machines
+* [`09a97cd63`](https://github.com/siderolabs/omni/commit/09a97cd63c9ad71dde8567245fc59e5ab1d95745) feat(frontend): show config errors on all node pages
+* [`6455ba835`](https://github.com/siderolabs/omni/commit/6455ba835734e316da3156d567d29957502a12e9) feat(frontend): sort talos/k8s versions newest first
+* [`a2b38563e`](https://github.com/siderolabs/omni/commit/a2b38563e081f2de768cb84cde1eddc52af704dc) fix(frontend): adjust kubespan quick start text
+* [`c55f2c2bd`](https://github.com/siderolabs/omni/commit/c55f2c2bde831e70d10c662237c87753a6ee352e) fix: never change a machine's tunnel address after registration
+* [`686be42f7`](https://github.com/siderolabs/omni/commit/686be42f77f1a9f36fc22cc0728194d78e28e0cc) fix: log out of Omni and the IdP when /logout is opened directly
+* [`06a07defd`](https://github.com/siderolabs/omni/commit/06a07defd612f4632734cd446fda5bdabb9f52f2) fix: make SAML single logout survive retries and redirect binding
+* [`31e814fa3`](https://github.com/siderolabs/omni/commit/31e814fa386fc37349ab94d95adf8b8c08693e32) test: add e2e-saml test class backed by a local Keycloak IdP
+</p>
+</details>
+
+### Changes since v1.11.0-beta.1
+<details><summary>0 commit</summary>
+<p>
+
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>44 commits</summary>
+<p>
+
+* [`b54b945`](https://github.com/siderolabs/image-factory/commit/b54b945c294855e4799eb9e27739be0a5c8efddb) release(v1.6.0): prepare release
+* [`9244e82`](https://github.com/siderolabs/image-factory/commit/9244e820bd67cb3bfc427033f9344e50ac2ee857) feat: sign installer profile when unified secureboot supported
+* [`3b58dfa`](https://github.com/siderolabs/image-factory/commit/3b58dfa0fe48cd7d8366cac92d52d42e7f156a50) feat(enterprise): add a node tokens page
+* [`82bd329`](https://github.com/siderolabs/image-factory/commit/82bd3298b90aad729c34a5fa848f93d777961f95) feat: add node token methods to the factory client
+* [`9312d82`](https://github.com/siderolabs/image-factory/commit/9312d82ff73feb8fd303dfd8d12ae498f34549f5) feat(enterprise): add self-issued node tokens
+* [`4691e01`](https://github.com/siderolabs/image-factory/commit/4691e0156da8dd62d741e9c5ba4d8e4ab534b19b) feat: add WithTokenSource to include bearer tokens
+* [`b115d17`](https://github.com/siderolabs/image-factory/commit/b115d17c79e68b568f1f3f526d1bf22bf253b398) chore(enterprise): drop the Auth0 Management API node-token design
+* [`6f08ed9`](https://github.com/siderolabs/image-factory/commit/6f08ed978167b88d5f1d384493f755aa07cb5cec) feat(enterprise): extend the download-token issuer to a second audience
+* [`c51ac14`](https://github.com/siderolabs/image-factory/commit/c51ac142788af8de5217d8116628ad43ec4f9d70) feat: accept download token on /pxe/ and forward it
+* [`7252d87`](https://github.com/siderolabs/image-factory/commit/7252d8728c5a9f83b5ce3c648f00a9b3f522961b) chore: allow proxying IF through IF
+* [`f45ec71`](https://github.com/siderolabs/image-factory/commit/f45ec713035d424a43a5686b94515a07c946a303) fix(enterprise): read the org_id claim from if_org_id
+* [`43adb19`](https://github.com/siderolabs/image-factory/commit/43adb19dfa025332eae614c4daa6a203da3029b3) release(v1.5.1): prepare release
+* [`5f1f197`](https://github.com/siderolabs/image-factory/commit/5f1f197fcc7a37c50fe9b3ac374a721653f8cd81) feat: update Talos to 1.14.0-rc.2
+* [`b7908c1`](https://github.com/siderolabs/image-factory/commit/b7908c1f25c0ab589c8d09f30ddf965be847eab3) feat(enterprise): add Auth0 Management API client for node tokens
+* [`36fedd7`](https://github.com/siderolabs/image-factory/commit/36fedd761da751d17efa61c8d07ad35bbb55767c) feat: add WithBearerToken to include m2m token
+* [`e783a3d`](https://github.com/siderolabs/image-factory/commit/e783a3d7111eccd76eee28ddd2cc5822a3f26ced) feat(frontend): preserve whitespace for vuln descriptions
+* [`18f56f7`](https://github.com/siderolabs/image-factory/commit/18f56f773239c09b10262be89a1b5ce7f36b148a) chore: make sure check-dirty also checks docs
+* [`196a447`](https://github.com/siderolabs/image-factory/commit/196a447532a25d7da6ea27f7f194d713aa88d104) fix: enforce canonical image references
+* [`26b95ca`](https://github.com/siderolabs/image-factory/commit/26b95cacb0846378fa5ed75e397eb732d6500c0a) feat(enterprise): require auth0 clientID and clientSecret always
+* [`25561f7`](https://github.com/siderolabs/image-factory/commit/25561f7ee883d742cf7b873309f1b666b1b4ee72) fix: retry put when joining a failed get flight
+* [`aab14ff`](https://github.com/siderolabs/image-factory/commit/aab14ffc33e2b276356cc022d2bd8e563eaf4cae) feat: add spdx and vex reports to factory client
+* [`dc6a9f9`](https://github.com/siderolabs/image-factory/commit/dc6a9f9a6a0ca51b36354788f7370b3fcd6328ef) feat(enterprise): theme and translate Auth0 logout/login-error pages
+* [`bd13149`](https://github.com/siderolabs/image-factory/commit/bd13149c37cbb1dc67f865f143fd1ddeedcfd4b5) release(v1.5.0): prepare release
+* [`d3c693a`](https://github.com/siderolabs/image-factory/commit/d3c693aaba0abc2248694c2df7a6560387e75569) feat: update talos to v1.14.0-rc.1
+* [`5c9839a`](https://github.com/siderolabs/image-factory/commit/5c9839ae915c9e3755989d13b7091ecec4c2caaa) feat: use the CI cluster registry cache for integration tests
+* [`70e0590`](https://github.com/siderolabs/image-factory/commit/70e0590b702a8990ce32a6314a289751caace049) feat(enterprise): add auth0 browser login
+* [`f5f3128`](https://github.com/siderolabs/image-factory/commit/f5f3128913dee8a49f183c4bcd31c0feecb35f8a) fix: record the status the client actually received
+* [`0d2275c`](https://github.com/siderolabs/image-factory/commit/0d2275cb0adfb6848cd524cea56a6f66e5889e3a) feat: make download token TTL configurable
+* [`a5824c7`](https://github.com/siderolabs/image-factory/commit/a5824c7793ff2ab090b6d22fd997e0e282528823) docs: complete user-facing API reference
+* [`dd485bd`](https://github.com/siderolabs/image-factory/commit/dd485bd39fb9107b13384ff94841eec09de99b71) docs: document endpoint access control
+* [`6016631`](https://github.com/siderolabs/image-factory/commit/60166312b08b592dc2bb779e58047b101b4b255c) test: fix two flaky checks in the enterprise integration job
+* [`f984ad8`](https://github.com/siderolabs/image-factory/commit/f984ad83451abc84a65a1f38631f3153d9444743) chore: let the OIDC test server serve extra routes
+* [`f297b62`](https://github.com/siderolabs/image-factory/commit/f297b62e4d866dfe7bab20849f17a0eabb58757e) chore: update Talos to the latest version
+* [`86b0a22`](https://github.com/siderolabs/image-factory/commit/86b0a22873263a41cc134c46dd4960de858fb095) fix: re-identify cached SBOM bundles per schematic
+* [`77990dc`](https://github.com/siderolabs/image-factory/commit/77990dcd2b3f6b2e8f9a6165d7a1107e0f81d0a9) fix: schedule grype db refresh to avoid replica desync
+* [`ad14c5f`](https://github.com/siderolabs/image-factory/commit/ad14c5ff1738427f989e59e8370b6466f1c6d36c) feat(enterprise): publish installer build evidence
+* [`dbcc3c6`](https://github.com/siderolabs/image-factory/commit/dbcc3c6d70fb864de2d81df00723970ad39ddb1e) feat: add auth0 bearer token authentication
+* [`ae757b5`](https://github.com/siderolabs/image-factory/commit/ae757b5b1ca6915a11e463a951cd77577318b263) chore: bump cosign to v3.1.2, sign via Rekor v2 + TSA
+* [`615b279`](https://github.com/siderolabs/image-factory/commit/615b279db9b70064b1855b2edc88f35b435b37d3) feat(enterprise): serve detached Sigstore bundles for assets
+* [`5296d4a`](https://github.com/siderolabs/image-factory/commit/5296d4a8f8d5a7fbc0de296f3b5d515db478e19d) chore: update grpc library
+* [`dee1a57`](https://github.com/siderolabs/image-factory/commit/dee1a57377118d9e9ef9bc9bf7e503a5a03efceb) feat: support JWT download tokens
+* [`c2339ee`](https://github.com/siderolabs/image-factory/commit/c2339ee0acf197d9c3fe17a6431a1616eba4f1a7) feat: support public routes in enterprise plugins
+* [`a81f6e9`](https://github.com/siderolabs/image-factory/commit/a81f6e9d219d03f6ceb411247676f1a5d5e70237) feat: proxy images through backing registry
+* [`32a3b08`](https://github.com/siderolabs/image-factory/commit/32a3b0894882062290e707781872b4ce0320ba6c) fix: reuse registry puller for bundle verification
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>4 commits</summary>
+<p>
+
+* [`ad296ab`](https://github.com/siderolabs/siderolink/commit/ad296ab6d9dc41c01a0a72563ec483054cc2d398) chore: rekres, bump deps
+* [`23030b0`](https://github.com/siderolabs/siderolink/commit/23030b03cc25fc04a38b096fbbce60a5bb66f081) fix: keep a replacement gRPC stream's send queue after cleanup
+* [`4b69f46`](https://github.com/siderolabs/siderolink/commit/4b69f46903ba628818a2bb9bfd161bf4b1f57808) fix: correct the wireguard device error handling
+* [`5157d0c`](https://github.com/siderolabs/siderolink/commit/5157d0c6baa873ee4bb4d5a5df5f46314433c9de) fix: accept valid short IPv6 packets on filtered devices
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2**                             v1.43.2 -> v1.44.0
+* **github.com/aws/aws-sdk-go-v2/config**                      v1.32.33 -> v1.32.40
+* **github.com/aws/aws-sdk-go-v2/credentials**                 v1.19.32 -> v1.19.39
+* **github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager**  v0.3.7 -> v0.3.17
+* **github.com/aws/aws-sdk-go-v2/service/s3**                  v1.106.2 -> v1.108.0
+* **github.com/aws/smithy-go**                                 v1.27.6 -> v1.28.1
+* **github.com/cosi-project/runtime**                          v1.16.2 -> v1.16.3
+* **github.com/google/cel-go**                                 v0.31.0 **_new_**
+* **github.com/google/go-containerregistry**                   v0.21.8 -> v0.22.0
+* **github.com/grpc-ecosystem/grpc-gateway/v2**                v2.29.0 -> v2.30.0
+* **github.com/russellhaering/goxmldsig**                      v1.6.0 -> v1.6.1
+* **github.com/santhosh-tekuri/jsonschema/v6**                 v6.0.2 -> v6.0.3
+* **github.com/siderolabs/image-factory**                      v1.4.0 -> v1.6.0
+* **github.com/siderolabs/siderolink**                         v0.3.16 -> v0.3.17
+* **github.com/siderolabs/talos/pkg/machinery**                v1.14.0-beta.1 -> 322de8bf2974
+* **github.com/sirupsen/logrus**                               v1.9.4 -> v1.10.2
+* **github.com/stretchr/testify**                              v1.11.1 -> v1.12.1
+* **github.com/zitadel/oidc/v3**                               v3.48.1 -> v3.49.3
+* **go.yaml.in/yaml/v4**                                       v4.0.0-rc.6 -> 643e93b9c9be
+* **golang.org/x/crypto**                                      v0.54.0 -> v0.55.0
+* **golang.org/x/net**                                         v0.57.0 -> v0.58.0
+* **golang.org/x/text**                                        v0.40.0 -> v0.41.0
+* **golang.org/x/tools**                                       v0.48.0 -> v0.49.0
+* **google.golang.org/grpc**                                   v1.83.0 -> v1.83.2
+* **google.golang.org/protobuf**                               f2248ac996af -> v1.36.12
+* **k8s.io/api**                                               v0.36.3 -> v0.37.0
+* **k8s.io/apimachinery**                                      v0.36.3 -> v0.37.0
+* **k8s.io/client-go**                                         v0.36.3 -> v0.37.0
+
+Previous release can be found at [v1.10.0](https://github.com/siderolabs/omni/releases/tag/v1.10.0)
+
 ## [Omni 1.11.0-beta.1](https://github.com/siderolabs/omni/releases/tag/v1.11.0-beta.1) (2026-09-03)
 
 Welcome to the v1.11.0-beta.1 release of Omni!  
