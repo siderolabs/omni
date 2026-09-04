@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/meta"
 	siderolinkmachinery "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
@@ -94,9 +96,9 @@ type MaintenanceConfigStatusController = qtransform.QController[*siderolinkres.L
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
 func NewMaintenanceConfigStatusController(
 	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
-	state state.State,
+	state state.State, registryMirrors []string,
 ) *MaintenanceConfigStatusController {
-	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, state)
+	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, state, registryMirrors)
 
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
@@ -142,7 +144,7 @@ type maintenanceConfigStatusControllerHelper struct {
 }
 
 func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
-	state state.State,
+	state state.State, registryMirrors []string,
 ) *maintenanceConfigStatusControllerHelper {
 	buildPatch := func(extraDocs ...talosconfig.Document) (maintenanceBasePatch, error) {
 		cfg, err := siderolink.NewJoinOptions(
@@ -168,9 +170,6 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 	}
 
 	var (
-		patchWithRegistryAuth   *maintenanceBasePatch
-		patchWithRegistryAuthMu sync.Mutex
-
 		basePatch   *maintenanceBasePatch
 		basePatchMu sync.Mutex
 	)
@@ -193,12 +192,13 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 		return p, nil
 	}
 
-	getPatchWithRegistryAuth := func(ctx context.Context) (maintenanceBasePatch, error) {
-		patchWithRegistryAuthMu.Lock()
-		defer patchWithRegistryAuthMu.Unlock()
-
-		if patchWithRegistryAuth != nil {
-			return *patchWithRegistryAuth, nil
+	// getPatchWithRegistryDocs returns the base patch extended with the registry mirror and registry auth documents,
+	// so that the installer image is pulled through the same mirrors and with the same credentials as on cluster machines.
+	// It is rebuilt on every call, as the image factory credentials can appear after the first reconcile.
+	getPatchWithRegistryDocs := func(ctx context.Context) (maintenanceBasePatch, error) {
+		docs, err := registryMirrorDocs(registryMirrors)
+		if err != nil {
+			return maintenanceBasePatch{}, err
 		}
 
 		auths, err := safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, state)
@@ -206,21 +206,21 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 			return maintenanceBasePatch{}, fmt.Errorf("error listing ImageFactoryAuth resources: %w", err)
 		}
 
-		if auths.Len() == 0 {
-			return getBasePatch()
-		}
-
-		authDoc, err := imagefactoryauth.BuildDocs(slices.Collect(auths.All()))
+		authDocs, err := imagefactoryauth.BuildDocs(slices.Collect(auths.All()))
 		if err != nil {
 			return maintenanceBasePatch{}, fmt.Errorf("error building registry auth doc: %w", err)
 		}
 
-		p, err := buildPatch(xslices.Map(authDoc, func(doc *cri.RegistryAuthConfigV1Alpha1) talosconfig.Document { return doc })...)
-		if err != nil {
-			return maintenanceBasePatch{}, fmt.Errorf("error building patch with registry auth: %w", err)
+		docs = append(docs, xslices.Map(authDocs, func(doc *cri.RegistryAuthConfigV1Alpha1) talosconfig.Document { return doc })...)
+
+		if len(docs) == 0 {
+			return getBasePatch()
 		}
 
-		patchWithRegistryAuth = &p
+		p, err := buildPatch(docs...)
+		if err != nil {
+			return maintenanceBasePatch{}, fmt.Errorf("error building patch with registry docs: %w", err)
+		}
 
 		return p, nil
 	}
@@ -234,12 +234,47 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 			}
 
 			if vc.MultidocNetworkConfigSupported() {
-				return getPatchWithRegistryAuth(ctx)
+				return getPatchWithRegistryDocs(ctx)
 			}
 
 			return getBasePatch()
 		},
 	}
+}
+
+// registryMirrorDocs builds the RegistryMirrorConfig documents for the registry mirrors configured in Omni ("<registry host>=<mirror URL>").
+// Several mirrors for the same registry host end up as endpoints of a single document, in the order they are configured.
+func registryMirrorDocs(registryMirrors []string) ([]talosconfig.Document, error) {
+	docs := make([]talosconfig.Document, 0, len(registryMirrors))
+	docsByHost := make(map[string]*cri.RegistryMirrorConfigV1Alpha1, len(registryMirrors))
+
+	for _, registryMirror := range registryMirrors {
+		hostname, endpoint, ok := strings.Cut(registryMirror, "=")
+		if !ok || hostname == "" {
+			return nil, fmt.Errorf("invalid registry mirror spec: %q", registryMirror)
+		}
+
+		endpointURL, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("invalid registry mirror endpoint %q: %w", endpoint, err)
+		}
+
+		if endpointURL.Scheme != "http" && endpointURL.Scheme != "https" {
+			return nil, fmt.Errorf("invalid registry mirror endpoint %q: the scheme must be http or https", endpoint)
+		}
+
+		doc, ok := docsByHost[hostname]
+		if !ok {
+			doc = cri.NewRegistryMirrorConfigV1Alpha1(hostname)
+			docsByHost[hostname] = doc
+
+			docs = append(docs, doc)
+		}
+
+		doc.RegistryEndpoints = append(doc.RegistryEndpoints, cri.RegistryEndpoint{EndpointURL: meta.URL{URL: endpointURL}})
+	}
+
+	return docs, nil
 }
 
 //nolint:gocyclo,cyclop
@@ -334,7 +369,7 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error loading machine config patches: %w", err)
 	}
 
-	// the Omni-managed connection documents are applied last, so they always win over anything in the user patches.
+	// the Omni-managed documents are applied last, so their settings win over anything in the user patches (list fields, e.g., the mirror endpoints, are merged).
 	patches = append(patches, baseConfig.patch)
 
 	patched, err := configpatcher.Apply(configpatcher.WithConfig(machineConfig), patches)

@@ -9,6 +9,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -60,7 +61,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	}
 
 	// Register the controller and start the runtime
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -165,6 +166,49 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	suite.Contains(dataStr, u.String())
 }
 
+// reconcileMaintenanceMachine registers a connected maintenance machine and returns the config apply request the controller issues for it.
+func (suite *MaintenanceConfigStatusControllerSuite) reconcileMaintenanceMachine(
+	maintenanceClient *maintenanceClientMock, machineIDCh chan string, id, talosVersion, publicKey string,
+) *machine.ApplyConfigurationRequest {
+	suite.T().Helper()
+
+	link := siderolinkres.NewLink(id, &specs.SiderolinkSpec{})
+	link.TypedSpec().Value.Connected = true
+	link.TypedSpec().Value.NodePublicKey = publicKey
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, link))
+
+	machineStatus := omnires.NewMachineStatus(id)
+	machineStatus.TypedSpec().Value.Maintenance = true
+	machineStatus.TypedSpec().Value.ManagementAddress = id + "-address"
+	machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+	suite.markConfigExtracted(id)
+
+	select {
+	case <-machineIDCh:
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for maintenance client factory to be called")
+	}
+
+	select {
+	case maintenanceClient.getMachineConfigCh <- nil:
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for get machine config request")
+	}
+
+	select {
+	case req := <-maintenanceClient.applyConfigReqCh:
+		return req
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for apply configuration request")
+	}
+
+	return nil
+}
+
 func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAuth() {
 	getMachineConfigCh := make(chan *config.MachineConfig)
 	machineIDCh := make(chan string)
@@ -191,50 +235,14 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, auth))
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
 	suite.startRuntime()
 
 	reconcileMachine := func(id, talosVersion, publicKey string) *machine.ApplyConfigurationRequest {
-		suite.T().Helper()
-
-		link := siderolinkres.NewLink(id, &specs.SiderolinkSpec{})
-		link.TypedSpec().Value.Connected = true
-		link.TypedSpec().Value.NodePublicKey = publicKey
-
-		suite.Require().NoError(suite.state.Create(suite.ctx, link))
-
-		machineStatus := omnires.NewMachineStatus(id)
-		machineStatus.TypedSpec().Value.Maintenance = true
-		machineStatus.TypedSpec().Value.ManagementAddress = id + "-address"
-		machineStatus.TypedSpec().Value.TalosVersion = talosVersion
-
-		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
-
-		suite.markConfigExtracted(id)
-
-		select {
-		case <-machineIDCh:
-		case <-suite.ctx.Done():
-			suite.Require().Fail("timeout waiting for maintenance client factory to be called")
-		}
-
-		select {
-		case getMachineConfigCh <- nil:
-		case <-suite.ctx.Done():
-			suite.Require().Fail("timeout waiting for get machine config request")
-		}
-
-		select {
-		case req := <-maintenanceClient.applyConfigReqCh:
-			return req
-		case <-suite.ctx.Done():
-			suite.Require().Fail("timeout waiting for apply configuration request")
-		}
-
-		return nil
+		return suite.reconcileMaintenanceMachine(maintenanceClient, machineIDCh, id, talosVersion, publicKey)
 	}
 
 	// Talos version that predates RegistryAuthConfig: auth must NOT be injected.
@@ -257,6 +265,74 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 	suite.Contains(newData, "password: factory-pass")
 }
 
+func (suite *MaintenanceConfigStatusControllerSuite) TestRegistryMirrors() {
+	getMachineConfigCh := make(chan *config.MachineConfig)
+	machineIDCh := make(chan string)
+	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
+
+	maintenanceClient := &maintenanceClientMock{
+		getMachineConfigCh: getMachineConfigCh,
+		applyConfigReqCh:   applyConfigReqCh,
+	}
+
+	maintenanceClientFactory := func(ctx context.Context, machineID string) (omni.MaintenanceClient, error) {
+		select {
+		case machineIDCh <- machineID:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
+		return maintenanceClient, nil
+	}
+
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state,
+		[]string{"docker.io=http://mirror.example.org:5000", "factory.talos.dev=http://mirror.example.org:5004", "docker.io=http://mirror-2.example.org:5000"})
+
+	suite.Require().NoError(suite.runtime.RegisterQController(controller))
+
+	suite.startRuntime()
+
+	reconcileMachine := func(id, talosVersion, publicKey string) *machine.ApplyConfigurationRequest {
+		return suite.reconcileMaintenanceMachine(maintenanceClient, machineIDCh, id, talosVersion, publicKey)
+	}
+
+	// Talos version that predates RegistryMirrorConfig: mirrors must NOT be injected.
+	oldReq := reconcileMachine("old-machine", "1.11.0", "pk-old")
+	oldData := string(oldReq.Data)
+
+	suite.Contains(oldData, "omni-kmsg")
+	suite.NotContains(oldData, "kind: RegistryMirrorConfig")
+
+	// Talos version that supports RegistryMirrorConfig: mirrors must be injected.
+	newReq := reconcileMachine("new-machine", "1.12.0", "pk-new")
+	newData := string(newReq.Data)
+
+	suite.Contains(newData, "omni-kmsg")
+	suite.Contains(newData, "kind: RegistryMirrorConfig")
+	suite.Contains(newData, "name: docker.io")
+	suite.Contains(newData, "url: http://mirror.example.org:5000")
+	suite.Contains(newData, "name: factory.talos.dev")
+	suite.Contains(newData, "url: http://mirror.example.org:5004")
+
+	// two mirrors for the same registry are two endpoints of a single document
+	suite.Equal(1, strings.Count(newData, "name: docker.io"))
+	suite.Contains(newData, "url: http://mirror-2.example.org:5000")
+
+	// image factory credentials that appear later must still make it into the config, next to the mirrors.
+	auth := omnires.NewImageFactoryAuth("https://factory.example.org")
+	auth.TypedSpec().Value.Username = "factory-user"
+	auth.TypedSpec().Value.Password = "factory-pass"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, auth))
+
+	authReq := reconcileMachine("auth-machine", "1.12.0", "pk-auth")
+	authData := string(authReq.Data)
+
+	suite.Contains(authData, "kind: RegistryMirrorConfig")
+	suite.Contains(authData, "kind: RegistryAuthConfig")
+	suite.Contains(authData, "username: factory-user")
+}
+
 func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPreserved() {
 	getMachineConfigCh := make(chan *config.MachineConfig)
 	machineIDCh := make(chan string)
@@ -277,7 +353,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPrese
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -370,7 +446,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchDocum
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
