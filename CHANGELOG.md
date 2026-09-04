@@ -1,3 +1,60 @@
+## [Omni 1.10.6](https://github.com/siderolabs/omni/releases/tag/v1.10.6) (2026-09-04)
+
+Welcome to the v1.10.6 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Oguz Kilcan
+* Andrey Smirnov
+* Artem Chernyshev
+* Tim Jones
+
+### Changes
+<details><summary>8 commits</summary>
+<p>
+
+* [`7c549374`](https://github.com/siderolabs/omni/commit/7c54937418e28264e445b82c34282ec53fe9e7af) chore: bump siderolink to v0.3.17
+* [`92e8440f`](https://github.com/siderolabs/omni/commit/92e8440fb18ae3ac703385bee74b66baa78f2cbf) fix: make the omni log format of omnictl machine-logs work
+* [`8385d3a2`](https://github.com/siderolabs/omni/commit/8385d3a275464c94c292da77a918a6fb5590e67b) fix: handle the META keys Talos 1.14 does not allow to write via the API
+* [`e8c13956`](https://github.com/siderolabs/omni/commit/e8c13956695802bfde27f5fe57cec71fd40ec443) fix: update COSI to 1.16.3
+* [`a8a2e61a`](https://github.com/siderolabs/omni/commit/a8a2e61ab41e237fbfb36dbaedeeaa37f41f8876) fix: don't give a UUID-conflicting machine the live machine's address
+* [`9c91887f`](https://github.com/siderolabs/omni/commit/9c91887f3df2aad26f04d40d2e632d892d28c613) fix: record the image factory host for machines already at target
+* [`cc33057a`](https://github.com/siderolabs/omni/commit/cc33057a5138771d5637129877a70256b3a38108) chore: bump go
+* [`80f1bccd`](https://github.com/siderolabs/omni/commit/80f1bccdc1199f8d96e9e7503920c33e03966f3e) fix: siderolink api label
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>4 commits</summary>
+<p>
+
+* [`ad296ab`](https://github.com/siderolabs/siderolink/commit/ad296ab6d9dc41c01a0a72563ec483054cc2d398) chore: rekres, bump deps
+* [`23030b0`](https://github.com/siderolabs/siderolink/commit/23030b03cc25fc04a38b096fbbce60a5bb66f081) fix: keep a replacement gRPC stream's send queue after cleanup
+* [`4b69f46`](https://github.com/siderolabs/siderolink/commit/4b69f46903ba628818a2bb9bfd161bf4b1f57808) fix: correct the wireguard device error handling
+* [`5157d0c`](https://github.com/siderolabs/siderolink/commit/5157d0c6baa873ee4bb4d5a5df5f46314433c9de) fix: accept valid short IPv6 packets on filtered devices
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**            v1.16.2 -> v1.16.3
+* **github.com/grpc-ecosystem/grpc-gateway/v2**  v2.29.0 -> v2.30.0
+* **github.com/siderolabs/siderolink**           v0.3.16 -> v0.3.17
+* **github.com/stretchr/testify**                v1.11.1 -> v1.12.1
+* **golang.org/x/crypto**                        v0.54.0 -> v0.55.0
+* **golang.org/x/net**                           v0.57.0 -> v0.58.0
+* **golang.org/x/text**                          v0.40.0 -> v0.41.0
+* **google.golang.org/grpc**                     v1.83.0 -> v1.83.2
+* **google.golang.org/protobuf**                 f2248ac996af -> v1.36.12
+
+Previous release can be found at [v1.10.5](https://github.com/siderolabs/omni/releases/tag/v1.10.5)
+
 ## [Omni 1.10.5](https://github.com/siderolabs/omni/releases/tag/v1.10.5) (2026-08-24)
 
 Welcome to the v1.10.5 release of Omni!
