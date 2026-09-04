@@ -11,6 +11,7 @@ export type ConfigSpec = {
   advertiseKubernetesNetworks?: boolean
   mtu?: number
   endpointFilters?: string[]
+  peerEndpointFilters?: string[]
   harvestExtraEndpoints?: boolean
   extraEndpoints?: string[]
   excludeAdvertisedNetworks?: string[]
