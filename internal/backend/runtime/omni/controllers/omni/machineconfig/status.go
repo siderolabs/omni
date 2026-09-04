@@ -597,6 +597,8 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		return false, fmt.Errorf("failed to get talos client: %w", err)
 	}
 
+	defer nodeClient.Close() //nolint:errcheck
+
 	//nolint:staticcheck
 	_, err = nodeClient.UpgradeWithOptions(
 		upgradeCtx,
@@ -867,6 +869,8 @@ func (ctrl *StatusController) checkInstalledImage(
 	if err != nil {
 		return installedImage{}, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer nodeClient.Close() //nolint:errcheck
 
 	actualVersion, err := getVersion(ctx, nodeClient.Client)
 	if err != nil {

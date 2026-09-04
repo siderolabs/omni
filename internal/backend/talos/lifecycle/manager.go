@@ -28,7 +28,7 @@ type KubernetesClientProvider interface {
 	GetKubernetesClientset(ctx context.Context, cluster string) (k8s.Interface, error)
 }
 
-// TalosClientFactory hands out a cached Talos client for a machine. The returned client must not be closed by the caller.
+// TalosClientFactory hands out a Talos client for a machine. The returned client must be closed by the caller.
 type TalosClientFactory interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 }
@@ -174,8 +174,8 @@ func (m *Manager) SupportsLifecycleManagement(version string) error {
 	return nil
 }
 
-// GetForMachine returns the cached Talos client for a machine, selecting maintenance or cluster mode from
-// live state. The client is owned by the factory and must not be closed by the caller.
+// GetForMachine returns the Talos client for a machine, selecting maintenance or cluster mode from live state.
+// The returned client must be closed by the caller.
 func (m *Manager) GetForMachine(ctx context.Context, machineID string) (*talos.Client, error) {
 	if m.talosClientFactory == nil {
 		return nil, status.Error(codes.Internal, "talos client factory not configured")
@@ -208,11 +208,13 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 		zap.String("image", installImageStr),
 		zap.Stringer("operation", op.Kind))
 
-	// The factory owns the cached client, so we never close it.
+	// the client is kept open for the whole operation
 	nodeClient, err := m.GetForMachine(ctx, op.MachineID)
 	if err != nil {
 		return err
 	}
+
+	defer nodeClient.Close() //nolint:errcheck
 
 	talosClient := nodeClient.Client
 
