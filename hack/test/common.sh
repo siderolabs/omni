@@ -210,7 +210,8 @@ function common_cleanup() {
 }
 
 function prepare_artifacts() {
-  [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C "${ARTIFACTS}")
+  # TEMP: a talosctl build with the disk cache mode option, until it lands in the latest talosctl image.
+  [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/utkuozdemir/talosctl:v1.15.0-alpha.0-omni-ci-io-wins | tar x -C "${ARTIFACTS}")
   [[ -f "${ARTIFACTS}/mc" ]] || curl -Lo "${ARTIFACTS}/mc" https://dl.min.io/client/mc/release/linux-amd64/mc
   chmod +x "${ARTIFACTS}/mc"
 
@@ -526,6 +527,8 @@ function create_machines() {
     # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
     "--disk-preallocate=false"
     "--disk-cache-mode=unsafe"
+    # TEMP: the talosctl build from the fork has no release to download the CNI bundle from.
+    '--cni-bundle-url=https://github.com/siderolabs/talos/releases/download/v1.14.0/talosctl-cni-bundle-${ARCH}.tar.gz'
   )
 
   if [[ "${uki}" == "false" ]]; then
@@ -604,6 +607,8 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
     "--disk-preallocate=false"
     "--disk-cache-mode=unsafe"
+    # TEMP: the talosctl build from the fork has no release to download the CNI bundle from.
+    '--cni-bundle-url=https://github.com/siderolabs/talos/releases/download/v1.14.0/talosctl-cni-bundle-${ARCH}.tar.gz'
   )
 
   if [[ "${allow_scheduling_on_control_planes}" == "true" ]]; then
