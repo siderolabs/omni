@@ -12,6 +12,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/siderolabs/go-retry/retry"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -79,6 +80,9 @@ func (m *Manager) buildInstallImage(ctx context.Context, machineID string, ms *o
 }
 
 // pullInstallerImage pulls the installer image into the machine's containerd and returns the resolved image name, as required by LifecycleService.{Install,Upgrade}'s InstallArtifactsSource.
+//
+// Since Talos 1.14 the image pull API does not retry or time out on its own, so both are done here. The pull can fail
+// for transient reasons, e.g., when it is requested right after the machine rebooted and the machine is not fully up yet.
 func (m *Manager) pullInstallerImage(
 	ctx context.Context,
 	talosClient *talosclient.Client,
@@ -90,10 +94,55 @@ func (m *Manager) pullInstallerImage(
 
 	emitf(cfg.progress, "[omni] pulling installer image %s", imageRef)
 
-	if err := cfg.audit(ctx, machineapi.ImageService_Pull_FullMethodName, machineID); err != nil {
+	var (
+		resolved       string
+		notFoundErrors int
+	)
+
+	err := retry.Exponential(PullTimeout, retry.WithUnits(pullRetryInterval)).RetryWithContext(ctx, func(ctx context.Context) error {
+		if auditErr := cfg.audit(ctx, machineapi.ImageService_Pull_FullMethodName, machineID); auditErr != nil {
+			return auditErr
+		}
+
+		var pullErr error
+
+		resolved, pullErr = m.pullImage(ctx, talosClient, imageRef)
+		if pullErr == nil {
+			return nil
+		}
+
+		switch status.Code(pullErr) { //nolint:exhaustive
+		case codes.PermissionDenied, codes.InvalidArgument:
+			return pullErr
+		case codes.NotFound:
+			// With several registry mirrors, a transient failure on one of them and a real miss on the next one also
+			// surface as not found, so give up on it only after a few attempts.
+			notFoundErrors++
+
+			if notFoundErrors > pullMaxNotFoundRetries {
+				return pullErr
+			}
+		}
+
+		emitf(cfg.progress, "[omni] pulling installer image failed, retrying: %v", pullErr)
+
+		return retry.ExpectedError(pullErr)
+	})
+	if err != nil {
 		return "", err
 	}
 
+	if resolved == "" {
+		resolved = imageRef
+	}
+
+	emitf(cfg.progress, "[omni] installer image pulled: %s", resolved)
+
+	return resolved, nil
+}
+
+// pullImage runs a single image pull and returns the resolved image reference reported by the machine.
+func (m *Manager) pullImage(ctx context.Context, talosClient *talosclient.Client, imageRef string) (string, error) {
 	pullClient, err := talosClient.ImageClient.Pull(ctx, &machineapi.ImageServicePullRequest{
 		Containerd: m.containerdInstance,
 		ImageRef:   imageRef,
@@ -112,7 +161,7 @@ func (m *Manager) pullInstallerImage(
 		msg, recvErr := pullClient.Recv()
 		if recvErr != nil {
 			if errors.Is(recvErr, io.EOF) {
-				break
+				return resolved, nil
 			}
 
 			return "", recvErr
@@ -122,14 +171,6 @@ func (m *Manager) pullInstallerImage(
 			resolved = name
 		}
 	}
-
-	if resolved == "" {
-		resolved = imageRef
-	}
-
-	emitf(cfg.progress, "[omni] installer image pulled: %s", resolved)
-
-	return resolved, nil
 }
 
 // install runs LifecycleService.Install and relays installer progress.

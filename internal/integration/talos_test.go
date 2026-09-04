@@ -1293,33 +1293,21 @@ func AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
 
 		t.Logf("upgrading Talos on maintenance machine %q from %q to %q", *machineID, currentVersion, target)
 
-		// The machine has just rebooted into the installed Talos. Its API and its DNS resolver come up a few
-		// seconds after Omni first sees the new boot, so the first attempts can fail with a refused connection.
-		// The budget also has to cover a successful attempt, which includes the image factory building the installer image.
-		err = retry.Constant(10*time.Minute, retry.WithUnits(5*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			lifecycle := omniClient.Management().MaintenanceLifecycle(
-				ctx,
-				*machineID,
-				management.MaintenanceLifecycleRequest_OPERATION_UPGRADE,
-				target,
-				"",
-			)
+		lifecycle := omniClient.Management().MaintenanceLifecycle(
+			ctx,
+			*machineID,
+			management.MaintenanceLifecycleRequest_OPERATION_UPGRADE,
+			target,
+			"",
+		)
 
-			for resp, upgradeErr := range lifecycle {
-				if upgradeErr != nil {
-					t.Logf("upgrade attempt failed on machine %q, retrying: %v", *machineID, upgradeErr)
+		for resp, upgradeErr := range lifecycle {
+			require.NoError(t, upgradeErr, "upgrade failed on machine %q", *machineID)
 
-					return retry.ExpectedError(upgradeErr)
-				}
-
-				if msg := resp.GetMessage(); msg != "" {
-					t.Logf("upgrade progress (%s): %s", *machineID, msg)
-				}
+			if msg := resp.GetMessage(); msg != "" {
+				t.Logf("upgrade progress (%s): %s", *machineID, msg)
 			}
-
-			return nil
-		})
-		require.NoError(t, err, "upgrade failed on machine %q", *machineID)
+		}
 
 		rtestutils.AssertResource[*omni.MachineStatus](ctx, t, omniState, *machineID, func(ms *omni.MachineStatus, assertion *assert.Assertions) {
 			got := strings.TrimPrefix(ms.TypedSpec().Value.TalosVersion, "v")

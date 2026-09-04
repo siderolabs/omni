@@ -17,8 +17,14 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// PullTimeout bounds pulling the installer image into containerd.
+// PullTimeout bounds pulling the installer image into containerd, including the retries.
 const PullTimeout = 5 * time.Minute
+
+// pullRetryInterval is the base interval between installer image pull attempts.
+const pullRetryInterval = 5 * time.Second
+
+// pullMaxNotFoundRetries is how many times a not found error is retried before it is treated as final.
+const pullMaxNotFoundRetries = 5
 
 // InstallTimeout bounds writing the image to disk (LifecycleService install or upgrade).
 const InstallTimeout = 5 * time.Minute
