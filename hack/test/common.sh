@@ -523,8 +523,9 @@ function create_machines() {
     "--skip-injecting-config"
     "--skip-injecting-extra-cmdline"
     "--wait=false"
-    # The disks are throwaway, so do not reserve their full size up front on the runner disk.
+    # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
     "--disk-preallocate=false"
+    "--disk-cache-mode=unsafe"
   )
 
   if [[ "${uki}" == "false" ]]; then
@@ -600,8 +601,9 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--talos-version=${talos_version}"
     "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v${talos_version}"
     "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso"
-    # The disks are throwaway, so do not reserve their full size up front on the runner disk.
+    # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
     "--disk-preallocate=false"
+    "--disk-cache-mode=unsafe"
   )
 
   if [[ "${allow_scheduling_on_control_planes}" == "true" ]]; then
