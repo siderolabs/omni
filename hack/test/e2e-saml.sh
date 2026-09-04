@@ -43,7 +43,7 @@ export MAX_SERVICE_ACCOUNTS=5
 prepare_omni_config
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
-  nice -n 10 "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
+  "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \
   "${REGISTRY_MIRROR_FLAGS[@]}" >"${TEST_OUTPUTS_DIR}/omni-e2e.log" 2>&1 &
