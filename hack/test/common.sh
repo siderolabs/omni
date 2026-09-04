@@ -131,7 +131,30 @@ export RUN_DIR
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
 export LOCAL_IP
 
+# Print the host IO and CPU pressure, the disk counters and the disk usage, so that a slow runner shows up in the job log.
+function print_host_pressure() {
+  # the trace output would interleave with the snapshot, so it is turned off for the duration of the function
+  local -
+  set +x
+
+  echo "--- host pressure snapshot: $1 ($(date -u +%FT%TZ)) ---"
+  {
+    local f
+    for f in io cpu memory; do
+      echo "pressure/${f}:"
+      cat "/proc/pressure/${f}"
+    done
+    echo "diskstats:"
+    awk '$3 ~ /^(nvme[0-9]+n[0-9]+|sd[a-z]+|vd[a-z]+)$/' /proc/diskstats
+    df -h "${TEST_OUTPUTS_DIR}" "${HOME}" "${ARTIFACTS}" 2>/dev/null
+    docker system df
+  } 2>&1 || true
+  echo "--- end of host pressure snapshot ---"
+}
+
 mkdir -p "$TEST_OUTPUTS_DIR"
+
+print_host_pressure "start"
 
 export ENABLE_TALOS_PRERELEASE_VERSIONS=true
 VAULT_DOCKER_IMAGE=hashicorp/vault:1.18
@@ -173,6 +196,8 @@ function configure_registry_mirrors() {
 
 function common_cleanup() {
   cd "${RUN_DIR}"
+
+  print_host_pressure "end"
   rm -rf "${ARTIFACTS}/omni.db" "${ARTIFACTS}/etcd/"
 
   if [[ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]]; then
