@@ -74,6 +74,7 @@ if [[ "${CREATE_QEMU_MACHINES:-true}" == "true" ]]; then
 fi
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
   "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \

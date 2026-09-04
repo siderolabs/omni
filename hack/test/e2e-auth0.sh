@@ -39,6 +39,7 @@ export MAX_SERVICE_ACCOUNTS=5
 prepare_omni_config
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
   "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \

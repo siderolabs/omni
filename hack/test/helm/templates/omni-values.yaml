@@ -80,6 +80,8 @@ config:
 env:
   - name: SIDEROLINK_DEV_JOIN_TOKEN
     value: ${JOIN_TOKEN}
+  - name: OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY
+    value: "true"
 
 service:
   main:

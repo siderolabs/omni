@@ -55,6 +55,7 @@ docker run --name "${TALEMU_CONTAINER_NAME}" \
   --omni-api-endpoint="https://${LOCAL_IP}:8099"
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
   "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \

@@ -154,6 +154,7 @@ fi
 
 # Run the integration test.
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   "${ARTIFACTS}/integration-test-linux-amd64" \
   --omni.talos-version="${TALOS_VERSION}" \
