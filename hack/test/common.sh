@@ -202,15 +202,28 @@ function prepare_vault() {
   # Start Vault.
   docker run --rm -d --cap-add=IPC_LOCK -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID="${VAULT_TOKEN}" --name "${VAULT_CONTAINER_NAME}" "${VAULT_DOCKER_IMAGE}"
 
-  sleep 10
+  # Wait for the dev server to be initialized and unsealed instead of sleeping a fixed time.
+  local i
+  for i in $(seq 1 30); do
+    if curl -sf "${VAULT_ADDR}/v1/sys/health" >/dev/null; then
+      break
+    fi
+
+    if [[ "$i" -eq 30 ]]; then
+      echo "Error: Vault did not become ready in time" >&2
+      docker logs "${VAULT_CONTAINER_NAME}" >&2 || true
+
+      return 1
+    fi
+
+    sleep 1
+  done
 
   # Load key into Vault.
   docker cp ./internal/backend/runtime/omni/testdata/pgp/old_key.private "${VAULT_CONTAINER_NAME}":/tmp/old_key.private
   docker exec -e VAULT_ADDR="${VAULT_ADDR}" -e VAULT_TOKEN="${VAULT_TOKEN}" "${VAULT_CONTAINER_NAME}" \
     vault kv put -mount=secret omni-private-key \
     private-key=@/tmp/old_key.private
-
-  sleep 5
 }
 
 function vault_cleanup() {
