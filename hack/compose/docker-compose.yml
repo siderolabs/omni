@@ -77,7 +77,7 @@ services:
 
   # The launcher is needed regardless of WITH_DEBUG.
   runtime-tools-init:
-    image: golang:1.26-alpine
+    image: golang:1.27-alpine
     restart: on-failure
     volumes:
       - dlv-tools:/output
@@ -97,7 +97,7 @@ services:
 
   vault-dev:
     container_name: local-vault
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:2.1
     environment:
       - VAULT_DEV_ROOT_TOKEN_ID=dev-o-token
     cap_add:
@@ -110,7 +110,7 @@ services:
       - vault-dev
     restart: on-failure
     container_name: local-vault-init
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:2.1
     volumes:
       - ../../internal/backend/runtime/omni/testdata/pgp/new_key.private:/tmp/key.private:ro
     environment:
