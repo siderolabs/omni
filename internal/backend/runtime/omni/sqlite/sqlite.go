@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/gen/panicsafe"
 	zombiesqlite "zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -44,6 +45,12 @@ func OpenDB(config config.SQLite) (*sqlitexx.Pool, error) {
 			Flags:         zombiesqlite.OpenReadWrite | zombiesqlite.OpenCreate | zombiesqlite.OpenWAL | zombiesqlite.OpenURI,
 			LowWatermark:  config.GetCachedPoolSize(),
 			HighWatermark: config.GetPoolSize(),
+			// SQLite keeps the synchronous mode per connection and does not take it from the URI, so it is set on every new connection.
+			// NORMAL skips the fsync on every commit in WAL mode. The last commits can be lost on a power loss but the database stays
+			// consistent, which is fine for the logs, the audit log and the frequently updated data this database holds.
+			PrepareConn: func(conn *zombiesqlite.Conn) error {
+				return sqlitex.ExecuteTransient(conn, "PRAGMA synchronous=NORMAL", nil)
+			},
 		},
 	)
 	if err != nil {

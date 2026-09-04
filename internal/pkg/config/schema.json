@@ -1575,7 +1575,7 @@
           "type": "string",
           "pattern": "^(?:$|[^?].*)",
           "x-pattern-message": "must not start with '?'",
-          "default": "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)",
+          "default": "",
           "goJSONSchema": {
             "pointer": true
           }
