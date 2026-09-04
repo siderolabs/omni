@@ -32,7 +32,7 @@ require (
 	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/image-factory v1.4.0
 	github.com/siderolabs/proto-codec v0.1.4
-	github.com/siderolabs/siderolink v0.3.16
+	github.com/siderolabs/siderolink v0.3.17
 	github.com/siderolabs/talos/pkg/machinery v1.14.0-beta.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1

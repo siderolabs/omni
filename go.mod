@@ -83,7 +83,7 @@ require (
 	github.com/siderolabs/kms-client v0.2.0
 	github.com/siderolabs/omni/client v1.9.3
 	github.com/siderolabs/proto-codec v0.1.4
-	github.com/siderolabs/siderolink v0.3.16
+	github.com/siderolabs/siderolink v0.3.17
 	github.com/siderolabs/talos/pkg/machinery v1.14.0-beta.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
