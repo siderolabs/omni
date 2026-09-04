@@ -42,6 +42,13 @@ type KernelArgsInitializer interface {
 	Init(ctx context.Context, id resource.ID, args []string) error
 }
 
+const (
+	// notificationAttempts is the number of times a machine notification is handled before it is given up.
+	notificationAttempts = 3
+	// notificationRetryDelay is the delay between two attempts to handle a machine notification.
+	notificationRetryDelay = 200 * time.Millisecond
+)
+
 // MachineStatusControllerName is the name of the MachineStatusController.
 const MachineStatusControllerName = "MachineStatusController"
 
@@ -134,7 +141,7 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 				case <-ctx.Done():
 					return nil
 				case event := <-ctrl.notifyCh:
-					if err := ctrl.handleNotification(ctx, r, event, logger); err != nil {
+					if err := ctrl.handleNotificationWithRetry(ctx, r, event, logger); err != nil {
 						return err
 					}
 				}
@@ -400,6 +407,36 @@ func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, i
 	info.KernelArgs = parsed.Customization.ExtraKernelArgs
 
 	return nil
+}
+
+// handleNotificationWithRetry handles a notification and retries it a few times when it fails.
+//
+// A notification is consumed from the channel, and the collect task sends the next one only when the machine info changes.
+// Without the retry, a transient failure (e.g., an audit log write timing out) drops the machine info until the machine changes.
+// For a machine in maintenance mode, that is never. The attempts are few and quick, because the channel is unbuffered and
+// shared: the collect tasks of all other machines wait while this one is retried.
+func (ctrl *MachineStatusController) handleNotificationWithRetry(ctx context.Context, r controller.QRuntime, event machinetask.Info, logger *zap.Logger) error {
+	var err error
+
+	for attempt := range notificationAttempts {
+		if err = ctrl.handleNotification(ctx, r, event, logger); err == nil {
+			return nil
+		}
+
+		if attempt == notificationAttempts-1 {
+			break
+		}
+
+		logger.Warn("failed to handle machine notification, retrying", zap.Int("attempt", attempt+1), zap.Error(err))
+
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(notificationRetryDelay):
+		}
+	}
+
+	return err
 }
 
 //nolint:gocyclo,cyclop,gocognit
