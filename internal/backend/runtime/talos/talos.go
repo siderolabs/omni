@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	goruntime "runtime"
 
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
@@ -84,6 +83,8 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 		return err
 	}
 
+	defer c.Close() //nolint:errcheck
+
 	ctx = metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
 
 	var queries []cosiresource.LabelQuery
@@ -94,8 +95,6 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 			return err
 		}
 	}
-
-	defer goruntime.KeepAlive(c)
 
 	return cosi.WatchLegacy(
 		ctx,
@@ -134,6 +133,8 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		return nil, err
 	}
 
+	defer c.Close() //nolint:errcheck
+
 	ctx = metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
 
 	res, err := c.COSI.Get(ctx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined))
@@ -155,42 +156,58 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 	var res []pkgruntime.ListItem
 
 	for _, machine := range opts.Machines {
-		var (
-			c   *Client
-			err error
-		)
-
-		if machine == "" {
-			c, err = r.GetClientForCluster(ctx, opts.Context)
-		} else {
-			c, err = r.GetClientForMachine(ctx, machine)
-		}
-
+		items, err := r.list(ctx, machine, opts)
 		if err != nil {
 			return runtime.ListResult{}, err
 		}
 
-		machineCtx := metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
-
-		items, err := c.COSI.List(machineCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
-		if err != nil {
-			return runtime.ListResult{}, err
-		}
-
-		for _, item := range items.Items {
-			resource, err := runtime.NewResource(item)
-			if err != nil {
-				return runtime.ListResult{}, err
-			}
-
-			res = append(res, newItem(resource))
-		}
+		res = append(res, items...)
 	}
 
 	return runtime.ListResult{
 		Items: res,
 		Total: len(res),
 	}, nil
+}
+
+// list lists the resources on a single machine, or on the cluster if the machine is empty.
+func (r *Runtime) list(ctx context.Context, machine string, opts *runtime.QueryOptions) ([]pkgruntime.ListItem, error) {
+	var (
+		c   *Client
+		err error
+	)
+
+	if machine == "" {
+		c, err = r.GetClientForCluster(ctx, opts.Context)
+	} else {
+		c, err = r.GetClientForMachine(ctx, machine)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer c.Close() //nolint:errcheck
+
+	machineCtx := metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
+	items, err := c.COSI.List(machineCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
+	if err != nil {
+		return nil, err
+	}
+
+	var res []pkgruntime.ListItem
+
+	for _, item := range items.Items {
+		resource, err := runtime.NewResource(item)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, newItem(resource))
+	}
+
+	return res, nil
 }
 
 // Create implements runtime.Runtime.
@@ -246,39 +263,47 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 }
 
 // GetClientForCluster returns talos client for the cluster name.
+//
+// The returned client must be closed by the caller.
 func (r *Runtime) GetClientForCluster(ctx context.Context, clusterName string) (*Client, error) {
 	c, err := r.clientFactory.GetForCluster(ctx, clusterName)
 	if err != nil {
 		return nil, err
 	}
 
-	connected, err := c.Connected(ctx, r.clientFactory.omniState)
-	if err != nil {
-		return nil, err
-	}
-
-	if !connected {
-		return nil, fmt.Errorf("the cluster %s is not reachable", clusterName)
-	}
-
-	return c, nil
+	return r.checkConnected(ctx, c)
 }
 
 // GetClientForMachine returns a Talos client connected directly to the given machine's SideroLink endpoint.
 //
 // Cluster membership is determined automatically from the machine's state.
+//
+// The returned client must be closed by the caller.
 func (r *Runtime) GetClientForMachine(ctx context.Context, machineID string) (*Client, error) {
 	c, err := r.clientFactory.GetForMachine(ctx, machineID)
 	if err != nil {
 		return nil, err
 	}
 
+	return r.checkConnected(ctx, c)
+}
+
+// checkConnected returns the client if its cluster or machine is reachable, otherwise it closes the client.
+func (r *Runtime) checkConnected(ctx context.Context, c *Client) (*Client, error) {
 	connected, err := c.Connected(ctx, r.clientFactory.omniState)
 	if err != nil {
+		c.Close() //nolint:errcheck
+
 		return nil, err
 	}
 
 	if !connected {
+		c.Close() //nolint:errcheck
+
+		if c.clusterID == "" {
+			return nil, fmt.Errorf("the machine %s is not reachable", c.machineID)
+		}
+
 		return nil, fmt.Errorf("the cluster %s is not reachable", c.clusterID)
 	}
 

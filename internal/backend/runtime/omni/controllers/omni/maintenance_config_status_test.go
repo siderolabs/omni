@@ -601,3 +601,7 @@ func (m *maintenanceClientMock) ApplyConfiguration(ctx context.Context, req *mac
 
 	return &machine.ApplyConfigurationResponse{}, nil
 }
+
+func (m *maintenanceClientMock) Close() error {
+	return nil
+}
