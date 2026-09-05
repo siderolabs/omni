@@ -109,7 +109,9 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, omniClient *clien
 					ok    bool
 				)
 
-				assert.NoError(t, retry.Constant(time.Second*30).RetryWithContext(ctx, func(ctx context.Context) error {
+				// The label is applied by the node's own controller through its local apiserver, which takes minutes on a starved runner.
+				// Give it the same budget as the node list check above.
+				assert.NoError(t, retry.Constant(3*time.Minute, retry.WithUnits(5*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 					label, ok = k8sNode.Labels[nodeLabel]
 					if !ok {
 						var n *corev1.Node
