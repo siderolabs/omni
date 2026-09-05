@@ -131,7 +131,30 @@ export RUN_DIR
 LOCAL_IP=$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
 export LOCAL_IP
 
+# Print the host IO and CPU pressure, the disk counters and the disk usage, so that a slow runner shows up in the job log.
+function print_host_pressure() {
+  # the trace output would interleave with the snapshot, so it is turned off for the duration of the function
+  local -
+  set +x
+
+  echo "--- host pressure snapshot: $1 ($(date -u +%FT%TZ)) ---"
+  {
+    local f
+    for f in io cpu memory; do
+      echo "pressure/${f}:"
+      cat "/proc/pressure/${f}"
+    done
+    echo "diskstats:"
+    awk '$3 ~ /^(nvme[0-9]+n[0-9]+|sd[a-z]+|vd[a-z]+)$/' /proc/diskstats
+    df -h "${TEST_OUTPUTS_DIR}" "${HOME}" "${ARTIFACTS}" 2>/dev/null
+    docker system df
+  } 2>&1 || true
+  echo "--- end of host pressure snapshot ---"
+}
+
 mkdir -p "$TEST_OUTPUTS_DIR"
+
+print_host_pressure "start"
 
 export ENABLE_TALOS_PRERELEASE_VERSIONS=true
 VAULT_DOCKER_IMAGE=hashicorp/vault:1.18
@@ -173,6 +196,8 @@ function configure_registry_mirrors() {
 
 function common_cleanup() {
   cd "${RUN_DIR}"
+
+  print_host_pressure "end"
   rm -rf "${ARTIFACTS}/omni.db" "${ARTIFACTS}/etcd/"
 
   if [[ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]]; then
@@ -185,7 +210,8 @@ function common_cleanup() {
 }
 
 function prepare_artifacts() {
-  [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C "${ARTIFACTS}")
+  # TEMP: a talosctl build with the disk cache mode option, until it lands in the latest talosctl image.
+  [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/utkuozdemir/talosctl:v1.15.0-alpha.0-omni-ci-io-wins | tar x -C "${ARTIFACTS}")
   [[ -f "${ARTIFACTS}/mc" ]] || curl -Lo "${ARTIFACTS}/mc" https://dl.min.io/client/mc/release/linux-amd64/mc
   chmod +x "${ARTIFACTS}/mc"
 
@@ -202,15 +228,28 @@ function prepare_vault() {
   # Start Vault.
   docker run --rm -d --cap-add=IPC_LOCK -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID="${VAULT_TOKEN}" --name "${VAULT_CONTAINER_NAME}" "${VAULT_DOCKER_IMAGE}"
 
-  sleep 10
+  # Wait for the dev server to be initialized and unsealed instead of sleeping a fixed time.
+  local i
+  for i in $(seq 1 30); do
+    if curl -sf "${VAULT_ADDR}/v1/sys/health" >/dev/null; then
+      break
+    fi
+
+    if [[ "$i" -eq 30 ]]; then
+      echo "Error: Vault did not become ready in time" >&2
+      docker logs "${VAULT_CONTAINER_NAME}" >&2 || true
+
+      return 1
+    fi
+
+    sleep 1
+  done
 
   # Load key into Vault.
   docker cp ./internal/backend/runtime/omni/testdata/pgp/old_key.private "${VAULT_CONTAINER_NAME}":/tmp/old_key.private
   docker exec -e VAULT_ADDR="${VAULT_ADDR}" -e VAULT_TOKEN="${VAULT_TOKEN}" "${VAULT_CONTAINER_NAME}" \
     vault kv put -mount=secret omni-private-key \
     private-key=@/tmp/old_key.private
-
-  sleep 5
 }
 
 function vault_cleanup() {
@@ -485,6 +524,11 @@ function create_machines() {
     "--skip-injecting-config"
     "--skip-injecting-extra-cmdline"
     "--wait=false"
+    # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
+    "--disk-preallocate=false"
+    "--disk-cache-mode=unsafe"
+    # TEMP: the talosctl build from the fork has no release to download the CNI bundle from.
+    '--cni-bundle-url=https://github.com/siderolabs/talos/releases/download/v1.14.0/talosctl-cni-bundle-${ARCH}.tar.gz'
   )
 
   if [[ "${uki}" == "false" ]]; then
@@ -560,6 +604,11 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--talos-version=${talos_version}"
     "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v${talos_version}"
     "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso"
+    # The disks are throwaway: no preallocation on the runner disk, and the guest writes stay in the host page cache.
+    "--disk-preallocate=false"
+    "--disk-cache-mode=unsafe"
+    # TEMP: the talosctl build from the fork has no release to download the CNI bundle from.
+    '--cni-bundle-url=https://github.com/siderolabs/talos/releases/download/v1.14.0/talosctl-cni-bundle-${ARCH}.tar.gz'
   )
 
   if [[ "${allow_scheduling_on_control_planes}" == "true" ]]; then

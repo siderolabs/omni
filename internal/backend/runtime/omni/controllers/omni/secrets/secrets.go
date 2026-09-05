@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -125,7 +127,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 					return nil
 				}
 
-				bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), versionContract)
+				bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), versionContract, bundleOptions(logger)...)
 				if err != nil {
 					return fmt.Errorf("error generating secrets: %w", err)
 				}
@@ -332,4 +334,27 @@ func (s *Controller) handlePostRotate(secrets *omni.ClusterSecrets, secretRotati
 	case specs.SecretRotationSpec_NONE:
 		// nothing to do
 	}
+}
+
+// devECDSAServiceAccountKeyEnvVar switches the Kubernetes service account key of new clusters from RSA to ECDSA.
+//
+// An RSA key takes hundreds of milliseconds to generate, an ECDSA key about a millisecond. This adds up in the tests, which create many clusters.
+// RSA stays the default because some external systems (e.g., AWS IAM roles for service accounts) do not accept ECDSA signed tokens.
+// Like the dev join token, this is only honored in debug builds.
+const devECDSAServiceAccountKeyEnvVar = "OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY"
+
+func bundleOptions(logger *zap.Logger) []talossecrets.Option {
+	if os.Getenv(devECDSAServiceAccountKeyEnvVar) == "" {
+		return nil
+	}
+
+	if !constants.IsDebugBuild {
+		logger.Sugar().Warnf("environment variable %s is set, but this is not a debug build, ignoring", devECDSAServiceAccountKeyEnvVar)
+
+		return nil
+	}
+
+	logger.Sugar().Warnf("generating an ECDSA service account key because of environment variable %s. THIS IS NOT RECOMMENDED FOR PRODUCTION USE.", devECDSAServiceAccountKeyEnvVar)
+
+	return []talossecrets.Option{talossecrets.WithECDSAServiceAccountKey()}
 }

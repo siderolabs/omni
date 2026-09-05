@@ -7,6 +7,8 @@ package omni_test
 
 import (
 	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -38,6 +40,11 @@ type MachineStatusSuite struct {
 }
 
 func (suite *MachineStatusSuite) setup() {
+	suite.setupWithKernelArgsInitializer(nil)
+}
+
+// setupWithKernelArgsInitializer sets up the suite, wrapping the kernel args initializer with the given function if it is not nil.
+func (suite *MachineStatusSuite) setupWithKernelArgsInitializer(wrap func(omnictrl.KernelArgsInitializer) omnictrl.KernelArgsInitializer) {
 	suite.startRuntime()
 
 	suite.Require().NoError(
@@ -55,10 +62,16 @@ func (suite *MachineStatusSuite) setup() {
 
 	logger := zaptest.NewLogger(suite.T())
 
-	exraKernelArgsInitializer, err := kernelargs.NewInitializer(suite.state, logger)
+	var kernelArgsInitializer omnictrl.KernelArgsInitializer
+
+	kernelArgsInitializer, err := kernelargs.NewInitializer(suite.state, logger)
 	suite.Require().NoError(err)
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(testutils.NewFactoryClientSet(), exraKernelArgsInitializer)))
+	if wrap != nil {
+		kernelArgsInitializer = wrap(kernelArgsInitializer)
+	}
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(testutils.NewFactoryClientSet(), kernelArgsInitializer)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*omni.Machine]()))
 }
@@ -693,6 +706,63 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 			})
 		})
 	}
+}
+
+// failingKernelArgsInitializer runs the real initializer with an extra kernel arg, so that the KernelArgs resource is created. Then it fails the first call.
+//
+// This mimics the production failure, where the nested write is committed and the audit log write after it fails.
+// The retry then has to tolerate the conflict on the already existing resource.
+type failingKernelArgsInitializer struct {
+	inner omnictrl.KernelArgsInitializer
+	calls atomic.Int32
+}
+
+func (f *failingKernelArgsInitializer) Init(ctx context.Context, id resource.ID, args []string) error {
+	if err := f.inner.Init(ctx, id, append(args, extraKernelArg)); err != nil {
+		return err
+	}
+
+	if f.calls.Add(1) == 1 {
+		return errors.New("injected failure")
+	}
+
+	return nil
+}
+
+const extraKernelArg = "console=ttyS0"
+
+// TestNotificationRetried checks that a machine notification which fails on a nested write is retried, instead of being dropped.
+//
+// The machine info is only sent again when it changes, so a dropped notification leaves the machine without its status for good.
+func (suite *MachineStatusSuite) TestNotificationRetried() {
+	failing := &failingKernelArgsInitializer{}
+
+	suite.setupWithKernelArgsInitializer(func(inner omnictrl.KernelArgsInitializer) omnictrl.KernelArgsInitializer {
+		failing.inner = inner
+
+		return failing
+	})
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	machine := omni.NewMachine(testID)
+	machine.TypedSpec().Value.Connected = true
+	machine.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
+
+	suite.Require().NoError(suite.state.Create(ctx, machine))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(status *omni.MachineStatus, assert *assert.Assertions) {
+		_, initialized := status.Metadata().Annotations().Get(omni.KernelArgsInitialized)
+		assert.True(initialized, "kernel args should be initialized after the retry")
+		assert.NotNil(status.TypedSpec().Value.Schematic)
+	})
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{testID}, func(kernelArgs *omni.KernelArgs, assert *assert.Assertions) {
+		assert.Equal([]string{extraKernelArg}, kernelArgs.TypedSpec().Value.Args)
+	})
+
+	suite.GreaterOrEqual(failing.calls.Load(), int32(2), "the failed notification should have been retried")
 }
 
 func TestMachineStatusSuite(t *testing.T) {

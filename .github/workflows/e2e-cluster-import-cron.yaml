@@ -61,6 +61,7 @@ jobs:
         env:
           CREATE_QEMU_MACHINES: "false"
           CREATE_TALOS_CLUSTER: "true"
+          GO_DEBUG_GCFLAGS: ""
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/ClusterImport
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"

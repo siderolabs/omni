@@ -55,6 +55,11 @@ config:
       - ${AUTH_USERNAME}
   registries:
     mirrors: ${REGISTRY_MIRRORS_JSON}
+  storage:
+    default:
+      etcd:
+        # The embedded etcd phase is a throwaway, skip the fsyncs like the other e2e suites do.
+        embeddedUnsafeFsync: true
   services:
     api:
       advertisedURL: https://omni.example.org
@@ -75,6 +80,8 @@ config:
 env:
   - name: SIDEROLINK_DEV_JOIN_TOKEN
     value: ${JOIN_TOKEN}
+  - name: OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY
+    value: "true"
 
 service:
   main:

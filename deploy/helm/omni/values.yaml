@@ -466,7 +466,7 @@ config:
       # ExperimentalBaseParams contains the base parameters to be used when opening the SQLite database connection.
       # This can cause data corruption if set incorrectly, modify at your own risk. This flag is experimental and may
       # be removed in future versions. It must not start with a question mark (?).
-      #experimentalBaseParams: _txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)
+      #experimentalBaseParams: ""
       # ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can
       # cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).
       #extraParams: ""

@@ -318,3 +318,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/cosi-project/state-sqlite => github.com/utkuozdemir/cosi-state-sqlite v0.0.0-20260905093546-adc9cab50e6b
+
+replace github.com/siderolabs/talos/pkg/machinery => github.com/utkuozdemir/talos/pkg/machinery v0.15.0-alpha.1.0.20260904232447-42f563cc1006

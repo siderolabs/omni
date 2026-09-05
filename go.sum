@@ -119,8 +119,6 @@ github.com/cosi-project/runtime v1.16.3 h1:EQ1oubPjAVPnAFc5GhSGfHuiPcm8b2g2XsPnp
 github.com/cosi-project/runtime v1.16.3/go.mod h1:p3nyBuIqeipcfQHuM9uGjLkFN2gYA9GJFL4oSEEtmm0=
 github.com/cosi-project/state-etcd v0.7.0 h1:7EYGKbGClLA0h910oMWxtw4NZh9qt6GebaGxqGm7zts=
 github.com/cosi-project/state-etcd v0.7.0/go.mod h1:hplOOGHR1Rt/T8fiuFcP16thoQDvprqP/aateuCv36o=
-github.com/cosi-project/state-sqlite v0.4.0 h1:SwL5/LlAwnMomRjMM72igPA1F6W/88zbae4cFxqz5vw=
-github.com/cosi-project/state-sqlite v0.4.0/go.mod h1:V20oy2Sfxla0zZ+SJSgjV20feg2xGARlvVPL4Z4KfRo=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/cpuguy83/go-md2man/v2 v2.0.7 h1:zbFlGlXEAKlwXpmvle3d8Oe3YnkKIK4xSRTd3sHPnBo=
 github.com/cpuguy83/go-md2man/v2 v2.0.7/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
@@ -481,8 +479,6 @@ github.com/siderolabs/protoenc v0.2.4 h1:D3Fpn2nQSQOhl8ZlAxijZAf7K6F8CM1uZq0afIG
 github.com/siderolabs/protoenc v0.2.4/go.mod h1:i5XLHjfv5vyi7LhQrSEo19HCA+lYtDd7CWxsoWp9XE8=
 github.com/siderolabs/siderolink v0.3.17 h1:XrHd9KTw1vecMdFw5kA+fIyH8/bGf9Yhp+IJJjbm+/Y=
 github.com/siderolabs/siderolink v0.3.17/go.mod h1:30KnTBfTrb02WAJDpXQicIZoLPjiZNSVjMP74VsIQh0=
-github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.2.0.20260825161121-322de8bf2974 h1:9JEin6yanC+PFV5lbWYa2WzVw/l4XodlEl4YqbW6O3o=
-github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.2.0.20260825161121-322de8bf2974/go.mod h1:oL3TmTv3RasTvMJx1kCZV9fqbUqkOdmTMfGjzQDk8F0=
 github.com/siderolabs/tcpproxy v0.1.0 h1:IbkS9vRhjMOscc1US3M5P1RnsGKFgB6U5IzUk+4WkKA=
 github.com/siderolabs/tcpproxy v0.1.0/go.mod h1:onn6CPPj/w1UNqQ0U97oRPF0CqbrgEApYCw4P9IiCW8=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
@@ -528,6 +524,10 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1:KO6IkyS8Y3j8OdNO85qEYBsRPuteD+YciPomcXdrMnk=
 github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe h1:yEOKa5C22XlVd77FvZON16ORl6gXJ9F5mPSizYwix50=
 github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe/go.mod h1:6WchMcmyjQveGycr2BnOKa05UlR9v5z7jU2l//YKhJk=
+github.com/utkuozdemir/cosi-state-sqlite v0.0.0-20260905093546-adc9cab50e6b h1:+vwkE/iG+Tm8SvFFd9azH9VDOzRK8Obzzw1wWCdq3QA=
+github.com/utkuozdemir/cosi-state-sqlite v0.0.0-20260905093546-adc9cab50e6b/go.mod h1:V20oy2Sfxla0zZ+SJSgjV20feg2xGARlvVPL4Z4KfRo=
+github.com/utkuozdemir/talos/pkg/machinery v0.15.0-alpha.1.0.20260904232447-42f563cc1006 h1:bvgHXURAvR8jK51IV2S5j+2jnx5U++jAZewQhYGVdvE=
+github.com/utkuozdemir/talos/pkg/machinery v0.15.0-alpha.1.0.20260904232447-42f563cc1006/go.mod h1:1d5Ifhgm34wZORpFrp9ZmITG7gNT7u3yKHRKi+hlsro=
 github.com/valyala/fastjson v1.6.7 h1:ZE4tRy0CIkh+qDc5McjatheGX2czdn8slQjomexVpBM=
 github.com/valyala/fastjson v1.6.7/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vishvananda/netns v0.0.5 h1:DfiHV+j8bA32MFM7bfEunvT8IAqQ/NzSJHtcmW5zdEY=
