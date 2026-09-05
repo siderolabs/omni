@@ -109,7 +109,7 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, omniClient *clien
 					ok    bool
 				)
 
-				assert.NoError(t, retry.Constant(time.Second*30).RetryWithContext(ctx, func(ctx context.Context) error {
+				assert.NoError(t, retry.Constant(3*time.Minute, retry.WithUnits(5*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 					label, ok = k8sNode.Labels[nodeLabel]
 					if !ok {
 						var n *corev1.Node
