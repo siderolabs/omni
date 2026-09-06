@@ -36,6 +36,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
+	talosruntime "github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -89,8 +90,12 @@ type machineService struct {
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
 
-	metaKeys       map[uint32]string
-	metaWriteCount map[uint32]int
+	metaKeys            map[uint32]string
+	metaWriteCount      map[uint32]int
+	metaWriteHook       func(*machine.MetaWriteRequest) error
+	metaWriteBeforeHook func(*machine.MetaWriteRequest) error
+	disksHook           func()
+	systemDisk          bool
 
 	address      string
 	state        state.State
@@ -227,6 +232,14 @@ func (ms *machineService) Upgrade(_ context.Context, request *machine.UpgradeReq
 }
 
 func (ms *machineService) Disks(context.Context, *emptypb.Empty) (*storage.DisksResponse, error) {
+	if ms.disksHook != nil {
+		ms.disksHook()
+	}
+
+	if ms.systemDisk {
+		return &storage.DisksResponse{Messages: []*storage.Disks{{Disks: []*storage.Disk{{SystemDisk: true}}}}}, nil
+	}
+
 	return &storage.DisksResponse{}, nil
 }
 
@@ -253,9 +266,14 @@ func (ms *machineService) ServiceList(context.Context, *emptypb.Empty) (*machine
 	return ms.serviceList, nil
 }
 
-func (ms *machineService) MetaWrite(_ context.Context, req *machine.MetaWriteRequest) (*machine.MetaWriteResponse, error) {
+func (ms *machineService) MetaWrite(ctx context.Context, req *machine.MetaWriteRequest) (*machine.MetaWriteResponse, error) {
+	if ms.metaWriteBeforeHook != nil {
+		if err := ms.metaWriteBeforeHook(req); err != nil {
+			return nil, err
+		}
+	}
+
 	ms.lock.Lock()
-	defer ms.lock.Unlock()
 
 	if ms.metaKeys == nil {
 		ms.metaKeys = map[uint32]string{}
@@ -267,6 +285,21 @@ func (ms *machineService) MetaWrite(_ context.Context, req *machine.MetaWriteReq
 
 	ms.metaKeys[req.Key] = string(req.Value)
 	ms.metaWriteCount[req.Key]++
+	ms.lock.Unlock()
+
+	if err := safe.StateModify(ctx, ms.state, talosruntime.NewMetaKey(talosruntime.NamespaceName, talosruntime.MetaKeyTagToID(uint8(req.Key))), func(res *talosruntime.MetaKey) error {
+		res.TypedSpec().Value = string(req.Value)
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	if ms.metaWriteHook != nil {
+		if err := ms.metaWriteHook(req); err != nil {
+			return nil, err
+		}
+	}
 
 	return &machine.MetaWriteResponse{}, nil
 }
