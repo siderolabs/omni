@@ -10,12 +10,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -265,6 +270,178 @@ func TestPreserveLegacyOrder(t *testing.T) {
 			assertion.True(annotationOk)
 
 			assertion.Equal([]string{"cluster-level"}, res.TypedSpec().Value.Extensions)
+		})
+	})
+}
+
+func TestMachineExtensionsDeleteOverride(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+		require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+		require := require.New(t)
+
+		clusterMachine := omni.NewClusterMachine("machine")
+		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+		require.NoError(st.Create(ctx, clusterMachine))
+
+		clusterLevel := omni.NewExtensionsConfiguration("cluster-level")
+		clusterLevel.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterLevel.TypedSpec().Value.Extensions = []string{"a"}
+		require.NoError(st.Create(ctx, clusterLevel))
+
+		machineLevel := omni.NewExtensionsConfiguration("machine-level")
+		machineLevel.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		machineLevel.Metadata().Labels().Set(omni.LabelClusterMachine, "machine")
+		machineLevel.TypedSpec().Value.Extensions = []string{"b"}
+		require.NoError(st.Create(ctx, machineLevel))
+
+		rtestutils.AssertResource(ctx, t, st, machineLevel.Metadata().ID(), func(r *omni.ExtensionsConfiguration, assertion *assert.Assertions) {
+			assertion.True(r.Metadata().Finalizers().Has(omnictrl.MachineExtensionsControllerName))
+		})
+
+		_, err := safe.StateUpdateWithConflicts(ctx, st, clusterLevel.Metadata(), func(r *omni.ExtensionsConfiguration) error {
+			r.TypedSpec().Value.Extensions = []string{"a", "c"}
+
+			return nil
+		})
+		require.NoError(err)
+
+		var created time.Time
+
+		rtestutils.AssertResources(ctx, t, st, []string{"machine"}, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"b"}, r.TypedSpec().Value.Extensions)
+
+			source, _ := r.Metadata().Labels().Get(omni.ExtensionsConfigurationLabel)
+			assertion.Equal("machine-level", source)
+
+			created = r.Metadata().Created()
+		})
+
+		rtestutils.Destroy[*omni.ExtensionsConfiguration](ctx, t, st, []string{"machine-level"})
+
+		rtestutils.AssertResources(ctx, t, st, []string{"machine"}, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"a", "c"}, r.TypedSpec().Value.Extensions)
+
+			source, _ := r.Metadata().Labels().Get(omni.ExtensionsConfigurationLabel)
+			assertion.Equal("cluster-level", source)
+
+			assertion.Equal(created, r.Metadata().Created())
+		})
+	})
+}
+
+// machineExtensionsHolder keeps a finalizer on every MachineExtensions until released, like the schematic controller does.
+type machineExtensionsHolder struct {
+	release chan struct{}
+}
+
+func (h *machineExtensionsHolder) Name() string { return "MachineExtensionsHolder" }
+
+func (h *machineExtensionsHolder) Inputs() []controller.Input {
+	return []controller.Input{{Namespace: resources.DefaultNamespace, Type: omni.MachineExtensionsType, Kind: controller.InputStrong}}
+}
+
+func (h *machineExtensionsHolder) Outputs() []controller.Output { return nil }
+
+func (h *machineExtensionsHolder) Run(ctx context.Context, r controller.Runtime, _ *zap.Logger) error {
+	released := false
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-r.EventCh():
+		case <-h.release:
+			released = true
+		}
+
+		list, err := safe.ReaderListAll[*omni.MachineExtensions](ctx, r)
+		if err != nil {
+			return err
+		}
+
+		for me := range list.All() {
+			switch {
+			case me.Metadata().Phase() == resource.PhaseTearingDown && released:
+				err = r.RemoveFinalizer(ctx, me.Metadata(), h.Name())
+			case me.Metadata().Phase() == resource.PhaseRunning && !me.Metadata().Finalizers().Has(h.Name()):
+				err = r.AddFinalizer(ctx, me.Metadata(), h.Name())
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func TestMachineExtensionsDeleteWithHeldOutput(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	holder := &machineExtensionsHolder{release: make(chan struct{})}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+		require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		require.NoError(t, testContext.Runtime.RegisterController(holder))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+		require := require.New(t)
+
+		clusterMachine := omni.NewClusterMachine("machine")
+		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+		require.NoError(st.Create(ctx, clusterMachine))
+
+		machineSetLevel := omni.NewExtensionsConfiguration("machine-set-level")
+		machineSetLevel.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		machineSetLevel.Metadata().Labels().Set(omni.LabelMachineSet, "machine-set")
+		machineSetLevel.TypedSpec().Value.Extensions = []string{"a"}
+		require.NoError(st.Create(ctx, machineSetLevel))
+
+		rtestutils.AssertResources(ctx, t, st, []string{"machine"}, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"a"}, r.TypedSpec().Value.Extensions)
+			assertion.True(r.Metadata().Finalizers().Has(holder.Name()))
+		})
+
+		rtestutils.AssertResource(ctx, t, st, machineSetLevel.Metadata().ID(), func(r *omni.ExtensionsConfiguration, assertion *assert.Assertions) {
+			assertion.True(r.Metadata().Finalizers().Has(omnictrl.MachineExtensionsControllerName))
+		})
+
+		// delete the only configuration, the output is torn down but held
+		_, err := st.Teardown(ctx, machineSetLevel.Metadata())
+		require.NoError(err)
+
+		rtestutils.AssertResources(ctx, t, st, []string{"machine"}, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal(resource.PhaseTearingDown, r.Metadata().Phase())
+		})
+
+		// a new configuration appears while the output is held
+		clusterLevel := omni.NewExtensionsConfiguration("cluster-level")
+		clusterLevel.Metadata().Labels().Set(omni.LabelCluster, "cluster")
+		clusterLevel.TypedSpec().Value.Extensions = []string{"b"}
+		require.NoError(st.Create(ctx, clusterLevel))
+
+		rtestutils.AssertResource(ctx, t, st, clusterLevel.Metadata().ID(), func(r *omni.ExtensionsConfiguration, assertion *assert.Assertions) {
+			assertion.True(r.Metadata().Finalizers().Has(omnictrl.MachineExtensionsControllerName))
+		})
+
+		close(holder.release)
+
+		rtestutils.Destroy[*omni.ExtensionsConfiguration](ctx, t, st, []string{machineSetLevel.Metadata().ID()})
+
+		rtestutils.AssertResources(ctx, t, st, []string{"machine"}, func(r *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
+			assertion.Equal([]string{"b"}, r.TypedSpec().Value.Extensions)
 		})
 	})
 }

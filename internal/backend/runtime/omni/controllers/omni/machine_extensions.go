@@ -70,7 +70,7 @@ func (ctrl *MachineExtensionsController) Settings() controller.QSettings {
 				Type: omni.MachineExtensionsType,
 			},
 		},
-		Concurrency: optional.Some[uint](4),
+		Concurrency: optional.Some[uint](1), // the configurations of a cluster write the same outputs, a parallel reconcile can overwrite a newer list with an older one
 	}
 }
 
@@ -78,25 +78,14 @@ func (ctrl *MachineExtensionsController) Settings() controller.QSettings {
 func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Logger,
 	r controller.QRuntime, ptr controller.ReducedResourceMetadata,
 ) ([]resource.Pointer, error) {
-	res, err := r.Get(ctx, ptr)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
 	switch ptr.Type() {
 	case omni.MachineExtensionsType:
-		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
+		clusterName, ok := ptr.Labels().Get(omni.LabelCluster)
 		if !ok {
 			return nil, nil
 		}
 
-		var list safe.List[*omni.ExtensionsConfiguration]
-
-		list, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		list, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 		if err != nil {
 			return nil, err
 		}
@@ -109,19 +98,19 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 
 		return resources, nil
 	case omni.ClusterMachineType:
-		clusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
+		clusterName, ok := ptr.Labels().Get(omni.LabelCluster)
 		if !ok {
-			return nil, fmt.Errorf("cluster machine %q doesn't have cluster label set", res.Metadata().ID())
+			return nil, fmt.Errorf("cluster machine %q doesn't have cluster label set", ptr.ID())
 		}
 
-		machineSet, ok := res.Metadata().Labels().Get(omni.LabelMachineSet)
+		machineSet, ok := ptr.Labels().Get(omni.LabelMachineSet)
 		if !ok {
-			return nil, fmt.Errorf("cluster machine %q doesn't have machine set label set", res.Metadata().ID())
+			return nil, fmt.Errorf("cluster machine %q doesn't have machine set label set", ptr.ID())
 		}
 
 		for _, queries := range [][]resource.LabelQueryOption{
 			{
-				resource.LabelEqual(omni.LabelClusterMachine, res.Metadata().ID()),
+				resource.LabelEqual(omni.LabelClusterMachine, ptr.ID()),
 			},
 			{
 				resource.LabelEqual(omni.LabelMachineSet, machineSet),
@@ -132,9 +121,7 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 				resource.LabelExists(omni.LabelMachineSet, resource.NotMatches),
 			},
 		} {
-			var matching safe.List[*omni.ExtensionsConfiguration]
-
-			matching, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(queries...))
+			matching, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(queries...))
 			if err != nil {
 				return nil, err
 			}
@@ -178,51 +165,68 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context, logger *
 		return err
 	}
 
-	if configuration.Metadata().Phase() == resource.PhaseTearingDown {
-		return tracker.cleanup(ctx, withDestroyReadyCallback(func() error {
-			return r.RemoveFinalizer(ctx, configuration.Metadata(), MachineExtensionsControllerName)
-		}))
-	}
+	tearingDown := configuration.Metadata().Phase() == resource.PhaseTearingDown
 
-	if !configuration.Metadata().Finalizers().Has(MachineExtensionsControllerName) {
+	if !tearingDown && !configuration.Metadata().Finalizers().Has(MachineExtensionsControllerName) {
 		if err = r.AddFinalizer(ctx, configuration.Metadata(), MachineExtensionsControllerName); err != nil {
 			return err
 		}
 	}
 
-	cluster, ok := configuration.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
+	var configs []*omni.ExtensionsConfiguration
+
+	if cluster, ok := configuration.Metadata().Labels().Get(omni.LabelCluster); ok {
+		var configList safe.List[*omni.ExtensionsConfiguration]
+
+		configList, err = safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
+		if err != nil {
+			return err
+		}
+
+		configs = xslices.Filter(slices.Collect(configList.All()), func(cfg *omni.ExtensionsConfiguration) bool {
+			return cfg.Metadata().Phase() == resource.PhaseRunning // a configuration being deleted must not be picked
+		})
+	} else if !tearingDown {
 		logger.Warn("extensions configuration doesn't have cluster label set")
 
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("extensions configuration doesn't have cluster label set")
 	}
 
-	configList, err := safe.ReaderListAll[*omni.ExtensionsConfiguration](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
-	if err != nil {
-		return err
-	}
-
-	configs := slices.Collect(configList.All())
-
 	for _, clusterMachine := range clusterMachines {
+		config := ctrl.matchExtensionsConfiguration(clusterMachine, configs)
+		if config == nil {
+			continue // destroyed by the cleanup below
+		}
+
 		status := omni.NewMachineExtensions(clusterMachine.Metadata().ID())
 
-		tracker.keep(status)
-
 		if err = safe.WriterModify(ctx, r, status, func(r *omni.MachineExtensions) error {
+			r.Metadata().Labels().Set(omni.ExtensionsConfigurationLabel, config.Metadata().ID())
+
+			helpers.CopyLabels(clusterMachine, r, omni.LabelCluster)
+
 			if !ctrl.shouldRecalculateExtensions(r, configs) {
 				return nil
 			}
 
-			r.TypedSpec().Value.Extensions = ctrl.determineExtensions(clusterMachine, configs)
-			r.Metadata().Labels().Set(omni.ExtensionsConfigurationLabel, configuration.Metadata().ID())
-
-			helpers.CopyLabels(clusterMachine, r, omni.LabelCluster)
+			r.TypedSpec().Value.Extensions = config.TypedSpec().Value.Extensions
 
 			return nil
 		}); err != nil {
+			if state.IsPhaseConflictError(err) {
+				continue // being destroyed by the cleanup below, created again on the next reconcile
+			}
+
 			return err
 		}
+
+		tracker.keep(status)
+	}
+
+	if tearingDown {
+		return tracker.cleanup(ctx, withDestroyReadyCallback(func() error {
+			return r.RemoveFinalizer(ctx, configuration.Metadata(), MachineExtensionsControllerName)
+		}))
 	}
 
 	return tracker.cleanup(ctx)
@@ -251,14 +255,14 @@ func (ctrl *MachineExtensionsController) shouldRecalculateExtensions(me *omni.Ma
 	return false
 }
 
-// determineExtensions determines the extensions for the given cluster machine.
-// The extensions are determined in the following order:
-// 1. Extensions defined for the cluster machine itself.
-// 2. Extensions defined for the machine set the cluster machine belongs to.
-// 3. Extensions defined for the cluster the machine belongs to.
+// matchExtensionsConfiguration finds the extensions configuration which applies to the given cluster machine.
+// The levels are checked in the following order:
+// 1. The configuration defined for the cluster machine itself.
+// 2. The configuration defined for the machine set the cluster machine belongs to.
+// 3. The configuration defined for the cluster the machine belongs to.
 //
-// If there are multiple extensions defined for the same level, the one with the lexicographically highest ID is used.
-func (ctrl *MachineExtensionsController) determineExtensions(cm *omni.ClusterMachine, configs []*omni.ExtensionsConfiguration) []string {
+// If there are multiple configurations defined for the same level, the one with the lexicographically highest ID is used.
+func (ctrl *MachineExtensionsController) matchExtensionsConfiguration(cm *omni.ClusterMachine, configs []*omni.ExtensionsConfiguration) *omni.ExtensionsConfiguration {
 	cmID := cm.Metadata().ID()
 	msID, _ := cm.Metadata().Labels().Get(omni.LabelMachineSet)
 	clusterID, _ := cm.Metadata().Labels().Get(omni.LabelCluster)
@@ -271,16 +275,16 @@ func (ctrl *MachineExtensionsController) determineExtensions(cm *omni.ClusterMac
 		{omni.LabelMachineSet, msID},
 		{omni.LabelCluster, clusterID},
 	} {
-		config := matchExtensionConfigByLabel(labels.labelName, labels.labelValue, configs)
+		config := ctrl.matchExtensionConfigByLabel(labels.labelName, labels.labelValue, configs)
 		if config != nil {
-			return config.TypedSpec().Value.Extensions
+			return config
 		}
 	}
 
 	return nil
 }
 
-func matchExtensionConfigByLabel(labelName, labelValue string, configs []*omni.ExtensionsConfiguration) *omni.ExtensionsConfiguration {
+func (ctrl *MachineExtensionsController) matchExtensionConfigByLabel(labelName, labelValue string, configs []*omni.ExtensionsConfiguration) *omni.ExtensionsConfiguration {
 	configs = xslices.Filter(configs, func(cfg *omni.ExtensionsConfiguration) bool {
 		val, ok := cfg.Metadata().Labels().Get(labelName)
 

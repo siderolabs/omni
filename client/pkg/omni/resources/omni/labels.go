@@ -245,8 +245,8 @@ const (
 const (
 	// MachineExtensions labels.
 
-	// ExtensionsConfigurationLabel defines the source ExtensionConfiguration resource
-	// from which MachineExtensions resource was generated.
+	// ExtensionsConfigurationLabel names the ExtensionsConfiguration resource
+	// which currently applies to the machine of the MachineExtensions resource.
 	// tsgen:ExtensionsConfigurationLabel
 	ExtensionsConfigurationLabel = SystemLabelPrefix + "root-configuration"
 )
