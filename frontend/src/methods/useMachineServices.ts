@@ -90,7 +90,7 @@ export function useMachineServices(
       // Retry with backoff
       const backoff = Math.min(2 ** retryCount * 500, 10_000)
       retryCount++
-      retryTimer = setTimeout(() => serviceListVersion.value++, backoff)
+      retryTimer = window.setTimeout(() => serviceListVersion.value++, backoff)
     } finally {
       loading.value = false
     }

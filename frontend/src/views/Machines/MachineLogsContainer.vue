@@ -210,7 +210,7 @@ watchEffect((onCleanup) => {
     </div>
     <TAlert
       v-if="stream?.err"
-      :title="logs ? 'Disconnected' : 'Failed to Fetch Logs'"
+      :title="logs.length ? 'Disconnected' : 'Failed to Fetch Logs'"
       type="error"
       class="mb-2"
     >
