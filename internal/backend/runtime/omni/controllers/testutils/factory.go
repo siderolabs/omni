@@ -9,6 +9,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
@@ -47,9 +48,14 @@ type ImageFactoryClientMock struct {
 	schematics map[string]schematic.Schematic
 	Owner      string
 	mu         sync.Mutex
+
+	// EnsureCalls counts the EnsureSchematic calls.
+	EnsureCalls atomic.Int64
 }
 
 func (i *ImageFactoryClientMock) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
+	i.EnsureCalls.Add(1)
+
 	if i.Owner != "" {
 		inputSchematic.Owner = i.Owner
 	}

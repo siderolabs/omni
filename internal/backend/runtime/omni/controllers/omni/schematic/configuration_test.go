@@ -731,3 +731,84 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 		},
 	)
 }
+
+// TestSchematicConfigurationEnsuresOnInstall covers the install of a machine in maintenance mode: the
+// schematic is ensured again on the factory serving the target version even though nothing changed.
+func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			const (
+				machineName  = "install-machine"
+				clusterName  = "install-cluster"
+				talosVersion = "1.10.0"
+			)
+
+			rawSchematic := schematic.Schematic{
+				Customization: schematic.Customization{
+					ExtraKernelArgs: []string{"console=ttyS0"},
+				},
+			}
+
+			rawYAML, err := rawSchematic.Marshal()
+			r.NoError(err)
+
+			rawSchematicID, err := rawSchematic.ID()
+			r.NoError(err)
+
+			machineStatus := omni.NewMachineStatus(machineName)
+			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.Maintenance = true
+			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				FullId:           rawSchematicID,
+				Raw:              string(rawYAML),
+				KernelArgs:       []string{"console=ttyS0"},
+				InitialSchematic: rawSchematicID,
+				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{},
+			}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+				Platform: talosconstants.PlatformMetal,
+			}
+			r.NoError(st.Create(ctx, machineStatus))
+
+			// the first reconcile ensures the schematic, as nothing is published yet
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+			})
+
+			r.EqualValues(1, factory.EnsureCalls.Load())
+
+			cluster := omni.NewCluster(clusterName)
+			cluster.TypedSpec().Value.TalosVersion = talosVersion
+			r.NoError(st.Create(ctx, cluster))
+
+			clusterMachine := omni.NewClusterMachine(machineName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			r.NoError(st.Create(ctx, clusterMachine))
+
+			// the machine is about to be installed, the schematic is ensured again although its content is the same
+			r.Eventually(func() bool { return factory.EnsureCalls.Load() >= 2 }, 10*time.Second, 50*time.Millisecond)
+
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+			})
+		},
+	)
+}

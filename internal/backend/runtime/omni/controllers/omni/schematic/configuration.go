@@ -254,8 +254,11 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	// The published ID is deliberately left alone in that case rather than reset to the machine's own
 	// Schematic.FullId: an Enterprise factory stamps an owner into the schematic, so its ID for the
 	// same content differs from the ID the machine reports, and overwriting would lose it.
+	installPending := ms.TypedSpec().Value.Maintenance && cluster != nil // the install re-images anyway, use the factory serving the target version
+
 	if !bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) ||
 		versionOutdated ||
+		installPending ||
 		schematicConfiguration.TypedSpec().Value.SchematicId == "" {
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 
