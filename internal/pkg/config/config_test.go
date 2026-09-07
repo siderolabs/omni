@@ -613,7 +613,7 @@ func TestSchemaDefaults(t *testing.T) {
 	assert.Equal(t, "_out/omni.db", p.Storage.Default.Boltdb.GetPath())
 
 	// storage.sqlite
-	assert.Equal(t, "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)", p.Storage.Sqlite.GetExperimentalBaseParams())
+	assert.Equal(t, "", p.Storage.Sqlite.GetExperimentalBaseParams())
 	assert.Equal(t, 4, p.Storage.Sqlite.GetCachedPoolSize())
 	assert.Equal(t, 64, p.Storage.Sqlite.GetPoolSize())
 	assert.Equal(t, 2*time.Minute, p.Storage.Sqlite.Metrics.GetRefreshInterval())

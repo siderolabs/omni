@@ -1570,19 +1570,21 @@
           }
         },
         "experimentalBaseParams": {
-          "description": "ExperimentalBaseParams contains the base parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. This flag is experimental and may be removed in future versions. It must not start with a question mark (?).",
+          "description": "ExperimentalBaseParams contains the base parameters to be used when opening the SQLite database connection.\n\nDeprecated: unused, has no effect.",
           "x-cli-flag": "sqlite-storage-experimental-base-params",
+          "deprecated": true,
           "type": "string",
           "pattern": "^(?:$|[^?].*)",
           "x-pattern-message": "must not start with '?'",
-          "default": "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)",
+          "default": "",
           "goJSONSchema": {
             "pointer": true
           }
         },
         "extraParams": {
-          "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).",
+          "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection.\n\nDeprecated: unused, has no effect.",
           "x-cli-flag": "sqlite-storage-extra-params",
+          "deprecated": true,
           "type": "string",
           "pattern": "^(?:$|[^&].*)",
           "x-pattern-message": "must not start with '&'"

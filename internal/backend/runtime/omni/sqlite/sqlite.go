@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/gen/panicsafe"
 	zombiesqlite "zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -26,17 +27,7 @@ func OpenDB(config config.SQLite) (*sqlitexx.Pool, error) {
 		return nil, fmt.Errorf("failed to create directory for sqlite database %q: %w", configPath, err)
 	}
 
-	allParams := config.GetExperimentalBaseParams()
-
-	extraParams := config.GetExtraParams()
-	if extraParams != "" {
-		allParams += "&" + extraParams
-	}
-
 	dsn := "file:" + configPath
-	if allParams != "" {
-		dsn += "?" + allParams
-	}
 
 	db, err := sqlitexx.NewPool(
 		dsn,
@@ -44,6 +35,10 @@ func OpenDB(config config.SQLite) (*sqlitexx.Pool, error) {
 			Flags:         zombiesqlite.OpenReadWrite | zombiesqlite.OpenCreate | zombiesqlite.OpenWAL | zombiesqlite.OpenURI,
 			LowWatermark:  config.GetCachedPoolSize(),
 			HighWatermark: config.GetPoolSize(),
+			// the synchronous mode is per connection, NORMAL skips the fsync on every commit in WAL mode
+			PrepareConn: func(conn *zombiesqlite.Conn) error {
+				return sqlitex.ExecuteTransient(conn, "PRAGMA synchronous=NORMAL", nil)
+			},
 		},
 	)
 	if err != nil {

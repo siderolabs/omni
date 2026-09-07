@@ -713,14 +713,15 @@ type SQLite struct {
 	CachedPoolSize *int `json:"cachedPoolSize,omitempty,omitzero" yaml:"cachedPoolSize,omitempty"`
 
 	// ExperimentalBaseParams contains the base parameters to be used when opening the
-	// SQLite database connection. This can cause data corruption if set incorrectly,
-	// modify at your own risk. This flag is experimental and may be removed in future
-	// versions. It must not start with a question mark (?).
+	// SQLite database connection.
+	//
+	// Deprecated: unused, has no effect.
 	ExperimentalBaseParams *string `json:"experimentalBaseParams,omitempty,omitzero" yaml:"experimentalBaseParams,omitempty"`
 
 	// ExtraParams contains the extra parameters to be used when opening the SQLite
-	// database connection. This can cause data corruption if set incorrectly, modify
-	// at your own risk. It must not start with an ampersand (&).
+	// database connection.
+	//
+	// Deprecated: unused, has no effect.
 	ExtraParams *string `json:"extraParams,omitempty,omitzero" yaml:"extraParams,omitempty"`
 
 	// Metrics corresponds to the JSON schema field "metrics".
