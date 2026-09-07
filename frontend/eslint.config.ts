@@ -80,6 +80,7 @@ export default withVueTs(
       'vue/no-irregular-whitespace': 'error',
       'vue/no-ref-object-reactivity-loss': 'error',
       'vue/no-setup-props-reactivity-loss': 'error',
+      'vue/no-shadow-native-events': 'error',
       'vue/no-template-target-blank': 'error',
       'vue/no-undef-components': [
         'error',
