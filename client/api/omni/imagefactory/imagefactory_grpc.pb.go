@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ImageFactoryService_VulnerabilityReport_FullMethodName = "/imagefactory.ImageFactoryService/VulnerabilityReport"
-	ImageFactoryService_SBOM_FullMethodName                = "/imagefactory.ImageFactoryService/SBOM"
-	ImageFactoryService_VEXDocument_FullMethodName         = "/imagefactory.ImageFactoryService/VEXDocument"
-	ImageFactoryService_DownloadToken_FullMethodName       = "/imagefactory.ImageFactoryService/DownloadToken"
+	ImageFactoryService_VulnerabilityReport_FullMethodName    = "/imagefactory.ImageFactoryService/VulnerabilityReport"
+	ImageFactoryService_SBOM_FullMethodName                   = "/imagefactory.ImageFactoryService/SBOM"
+	ImageFactoryService_VEXDocument_FullMethodName            = "/imagefactory.ImageFactoryService/VEXDocument"
+	ImageFactoryService_DownloadToken_FullMethodName          = "/imagefactory.ImageFactoryService/DownloadToken"
+	ImageFactoryService_ClusterArtifactTargets_FullMethodName = "/imagefactory.ImageFactoryService/ClusterArtifactTargets"
 )
 
 // ImageFactoryServiceClient is the client API for ImageFactoryService service.
@@ -41,6 +42,9 @@ type ImageFactoryServiceClient interface {
 	VEXDocument(ctx context.Context, in *VEXDocumentRequest, opts ...grpc.CallOption) (*VEXDocumentResponse, error)
 	// DownloadToken returns a token to download images with.
 	DownloadToken(ctx context.Context, in *DownloadTokenRequest, opts ...grpc.CallOption) (*DownloadTokenResponse, error)
+	// ClusterArtifactTargets resolves the (schematic, arch) pairs installed across a cluster's
+	// machines, along with the Talos versions to fetch security artifacts for.
+	ClusterArtifactTargets(ctx context.Context, in *ClusterArtifactTargetsRequest, opts ...grpc.CallOption) (*ClusterArtifactTargetsResponse, error)
 }
 
 type imageFactoryServiceClient struct {
@@ -91,6 +95,16 @@ func (c *imageFactoryServiceClient) DownloadToken(ctx context.Context, in *Downl
 	return out, nil
 }
 
+func (c *imageFactoryServiceClient) ClusterArtifactTargets(ctx context.Context, in *ClusterArtifactTargetsRequest, opts ...grpc.CallOption) (*ClusterArtifactTargetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClusterArtifactTargetsResponse)
+	err := c.cc.Invoke(ctx, ImageFactoryService_ClusterArtifactTargets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ImageFactoryServiceServer is the server API for ImageFactoryService service.
 // All implementations must embed UnimplementedImageFactoryServiceServer
 // for forward compatibility.
@@ -106,6 +120,9 @@ type ImageFactoryServiceServer interface {
 	VEXDocument(context.Context, *VEXDocumentRequest) (*VEXDocumentResponse, error)
 	// DownloadToken returns a token to download images with.
 	DownloadToken(context.Context, *DownloadTokenRequest) (*DownloadTokenResponse, error)
+	// ClusterArtifactTargets resolves the (schematic, arch) pairs installed across a cluster's
+	// machines, along with the Talos versions to fetch security artifacts for.
+	ClusterArtifactTargets(context.Context, *ClusterArtifactTargetsRequest) (*ClusterArtifactTargetsResponse, error)
 	mustEmbedUnimplementedImageFactoryServiceServer()
 }
 
@@ -127,6 +144,9 @@ func (UnimplementedImageFactoryServiceServer) VEXDocument(context.Context, *VEXD
 }
 func (UnimplementedImageFactoryServiceServer) DownloadToken(context.Context, *DownloadTokenRequest) (*DownloadTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DownloadToken not implemented")
+}
+func (UnimplementedImageFactoryServiceServer) ClusterArtifactTargets(context.Context, *ClusterArtifactTargetsRequest) (*ClusterArtifactTargetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClusterArtifactTargets not implemented")
 }
 func (UnimplementedImageFactoryServiceServer) mustEmbedUnimplementedImageFactoryServiceServer() {}
 func (UnimplementedImageFactoryServiceServer) testEmbeddedByValue()                             {}
@@ -221,6 +241,24 @@ func _ImageFactoryService_DownloadToken_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ImageFactoryService_ClusterArtifactTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClusterArtifactTargetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ImageFactoryServiceServer).ClusterArtifactTargets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ImageFactoryService_ClusterArtifactTargets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ImageFactoryServiceServer).ClusterArtifactTargets(ctx, req.(*ClusterArtifactTargetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ImageFactoryService_ServiceDesc is the grpc.ServiceDesc for ImageFactoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -243,6 +281,10 @@ var ImageFactoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DownloadToken",
 			Handler:    _ImageFactoryService_DownloadToken_Handler,
+		},
+		{
+			MethodName: "ClusterArtifactTargets",
+			Handler:    _ImageFactoryService_ClusterArtifactTargets_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

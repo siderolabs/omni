@@ -22,6 +22,7 @@ export enum ContainerdNamespace {
   NS_UNKNOWN = 0,
   NS_SYSTEM = 1,
   NS_CRI = 2,
+  NS_TALOSCONTAINERS = 3,
 }
 
 export type Error = {

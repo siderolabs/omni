@@ -58,6 +58,23 @@ export type DownloadTokenResponse = {
   token?: string
 }
 
+export type ClusterArtifactTargetsRequest = {
+  cluster_id?: string
+}
+
+export type ArtifactTarget = {
+  schematic_id?: string
+  arch?: Arch
+  machine_count?: number
+  includes_control_plane?: boolean
+}
+
+export type ClusterArtifactTargetsResponse = {
+  targets?: ArtifactTarget[]
+  current_talos_version?: string
+  upgrade_target_versions?: string[]
+}
+
 export class ImageFactoryService {
   static VulnerabilityReport(req: VulnerabilityReportRequest, ...options: fm.fetchOption[]): Promise<VulnerabilityReportResponse> {
     return fm.fetchReq<VulnerabilityReportRequest, VulnerabilityReportResponse>("POST", `/imagefactory.ImageFactoryService/VulnerabilityReport`, req, ...options)
@@ -70,5 +87,8 @@ export class ImageFactoryService {
   }
   static DownloadToken(req: DownloadTokenRequest, ...options: fm.fetchOption[]): Promise<DownloadTokenResponse> {
     return fm.fetchReq<DownloadTokenRequest, DownloadTokenResponse>("POST", `/imagefactory.ImageFactoryService/DownloadToken`, req, ...options)
+  }
+  static ClusterArtifactTargets(req: ClusterArtifactTargetsRequest, ...options: fm.fetchOption[]): Promise<ClusterArtifactTargetsResponse> {
+    return fm.fetchReq<ClusterArtifactTargetsRequest, ClusterArtifactTargetsResponse>("POST", `/imagefactory.ImageFactoryService/ClusterArtifactTargets`, req, ...options)
   }
 }

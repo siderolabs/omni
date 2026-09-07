@@ -547,6 +547,190 @@ func (x *DownloadTokenResponse) GetToken() string {
 	return ""
 }
 
+type ClusterArtifactTargetsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ClusterID is the cluster to resolve artifact targets for.
+	ClusterId     string `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClusterArtifactTargetsRequest) Reset() {
+	*x = ClusterArtifactTargetsRequest{}
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClusterArtifactTargetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClusterArtifactTargetsRequest) ProtoMessage() {}
+
+func (x *ClusterArtifactTargetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClusterArtifactTargetsRequest.ProtoReflect.Descriptor instead.
+func (*ClusterArtifactTargetsRequest) Descriptor() ([]byte, []int) {
+	return file_omni_imagefactory_imagefactory_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ClusterArtifactTargetsRequest) GetClusterId() string {
+	if x != nil {
+		return x.ClusterId
+	}
+	return ""
+}
+
+// ArtifactTarget is a (schematic, arch) pair to fetch security artifacts for, installed on some
+// subset of the cluster's machines.
+type ArtifactTarget struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SchematicID is the hex-encoded SHA-256 of the schematic installed on the target's machines.
+	SchematicId string `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	// Arch is the architecture of the target's machines.
+	Arch Arch `protobuf:"varint,2,opt,name=arch,proto3,enum=imagefactory.Arch" json:"arch,omitempty"`
+	// MachineCount is the number of cluster machines on this schematic and architecture.
+	MachineCount int32 `protobuf:"varint,3,opt,name=machine_count,json=machineCount,proto3" json:"machine_count,omitempty"`
+	// IncludesControlPlane is set when at least one of the target's machines is a control plane node.
+	IncludesControlPlane bool `protobuf:"varint,4,opt,name=includes_control_plane,json=includesControlPlane,proto3" json:"includes_control_plane,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ArtifactTarget) Reset() {
+	*x = ArtifactTarget{}
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArtifactTarget) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArtifactTarget) ProtoMessage() {}
+
+func (x *ArtifactTarget) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArtifactTarget.ProtoReflect.Descriptor instead.
+func (*ArtifactTarget) Descriptor() ([]byte, []int) {
+	return file_omni_imagefactory_imagefactory_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ArtifactTarget) GetSchematicId() string {
+	if x != nil {
+		return x.SchematicId
+	}
+	return ""
+}
+
+func (x *ArtifactTarget) GetArch() Arch {
+	if x != nil {
+		return x.Arch
+	}
+	return Arch_UNKNOWN_ARCH
+}
+
+func (x *ArtifactTarget) GetMachineCount() int32 {
+	if x != nil {
+		return x.MachineCount
+	}
+	return 0
+}
+
+func (x *ArtifactTarget) GetIncludesControlPlane() bool {
+	if x != nil {
+		return x.IncludesControlPlane
+	}
+	return false
+}
+
+type ClusterArtifactTargetsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Targets are the unique (schematic, arch) pairs installed across the cluster's machines.
+	Targets []*ArtifactTarget `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	// CurrentTalosVersion is the Talos version the cluster is currently running.
+	CurrentTalosVersion string `protobuf:"bytes,2,opt,name=current_talos_version,json=currentTalosVersion,proto3" json:"current_talos_version,omitempty"`
+	// UpgradeTargetVersions are the Talos versions the security views scan against in addition to
+	// the current version: the latest patch of the current minor, and the latest patch of the next
+	// minor, when strictly newer than the current version.
+	UpgradeTargetVersions []string `protobuf:"bytes,3,rep,name=upgrade_target_versions,json=upgradeTargetVersions,proto3" json:"upgrade_target_versions,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ClusterArtifactTargetsResponse) Reset() {
+	*x = ClusterArtifactTargetsResponse{}
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClusterArtifactTargetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClusterArtifactTargetsResponse) ProtoMessage() {}
+
+func (x *ClusterArtifactTargetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_imagefactory_imagefactory_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClusterArtifactTargetsResponse.ProtoReflect.Descriptor instead.
+func (*ClusterArtifactTargetsResponse) Descriptor() ([]byte, []int) {
+	return file_omni_imagefactory_imagefactory_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ClusterArtifactTargetsResponse) GetTargets() []*ArtifactTarget {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+func (x *ClusterArtifactTargetsResponse) GetCurrentTalosVersion() string {
+	if x != nil {
+		return x.CurrentTalosVersion
+	}
+	return ""
+}
+
+func (x *ClusterArtifactTargetsResponse) GetUpgradeTargetVersions() []string {
+	if x != nil {
+		return x.UpgradeTargetVersions
+	}
+	return nil
+}
+
 var File_omni_imagefactory_imagefactory_proto protoreflect.FileDescriptor
 
 const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
@@ -574,7 +758,19 @@ const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
 	"factoryUrl\x12\x1a\n" +
 	"\bduration\x18\x02 \x01(\x05R\bduration\"-\n" +
 	"\x15DownloadTokenResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token*.\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\">\n" +
+	"\x1dClusterArtifactTargetsRequest\x12\x1d\n" +
+	"\n" +
+	"cluster_id\x18\x01 \x01(\tR\tclusterId\"\xb6\x01\n" +
+	"\x0eArtifactTarget\x12!\n" +
+	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12&\n" +
+	"\x04arch\x18\x02 \x01(\x0e2\x12.imagefactory.ArchR\x04arch\x12#\n" +
+	"\rmachine_count\x18\x03 \x01(\x05R\fmachineCount\x124\n" +
+	"\x16includes_control_plane\x18\x04 \x01(\bR\x14includesControlPlane\"\xc4\x01\n" +
+	"\x1eClusterArtifactTargetsResponse\x126\n" +
+	"\atargets\x18\x01 \x03(\v2\x1c.imagefactory.ArtifactTargetR\atargets\x122\n" +
+	"\x15current_talos_version\x18\x02 \x01(\tR\x13currentTalosVersion\x126\n" +
+	"\x17upgrade_target_versions\x18\x03 \x03(\tR\x15upgradeTargetVersions*.\n" +
 	"\x04Arch\x12\x10\n" +
 	"\fUNKNOWN_ARCH\x10\x00\x12\t\n" +
 	"\x05AMD64\x10\x01\x12\t\n" +
@@ -584,12 +780,13 @@ const file_omni_imagefactory_imagefactory_proto_rawDesc = "" +
 	"\x04JSON\x10\x01\x12\t\n" +
 	"\x05SARIF\x10\x02\x12\r\n" +
 	"\tCYCLONEDX\x10\x03\x12\t\n" +
-	"\x05TABLE\x10\x042\xee\x02\n" +
+	"\x05TABLE\x10\x042\xe3\x03\n" +
 	"\x13ImageFactoryService\x12j\n" +
 	"\x13VulnerabilityReport\x12(.imagefactory.VulnerabilityReportRequest\x1a).imagefactory.VulnerabilityReportResponse\x12=\n" +
 	"\x04SBOM\x12\x19.imagefactory.SBOMRequest\x1a\x1a.imagefactory.SBOMResponse\x12R\n" +
 	"\vVEXDocument\x12 .imagefactory.VEXDocumentRequest\x1a!.imagefactory.VEXDocumentResponse\x12X\n" +
-	"\rDownloadToken\x12\".imagefactory.DownloadTokenRequest\x1a#.imagefactory.DownloadTokenResponseB9Z7github.com/siderolabs/omni/client/api/omni/imagefactoryb\x06proto3"
+	"\rDownloadToken\x12\".imagefactory.DownloadTokenRequest\x1a#.imagefactory.DownloadTokenResponse\x12s\n" +
+	"\x16ClusterArtifactTargets\x12+.imagefactory.ClusterArtifactTargetsRequest\x1a,.imagefactory.ClusterArtifactTargetsResponseB9Z7github.com/siderolabs/omni/client/api/omni/imagefactoryb\x06proto3"
 
 var (
 	file_omni_imagefactory_imagefactory_proto_rawDescOnce sync.Once
@@ -604,36 +801,43 @@ func file_omni_imagefactory_imagefactory_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_imagefactory_imagefactory_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_omni_imagefactory_imagefactory_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_omni_imagefactory_imagefactory_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_omni_imagefactory_imagefactory_proto_goTypes = []any{
-	(Arch)(0),                           // 0: imagefactory.Arch
-	(VulnerabilityReportFormat)(0),      // 1: imagefactory.VulnerabilityReportFormat
-	(*VulnerabilityReportRequest)(nil),  // 2: imagefactory.VulnerabilityReportRequest
-	(*VulnerabilityReportResponse)(nil), // 3: imagefactory.VulnerabilityReportResponse
-	(*SBOMRequest)(nil),                 // 4: imagefactory.SBOMRequest
-	(*SBOMResponse)(nil),                // 5: imagefactory.SBOMResponse
-	(*VEXDocumentRequest)(nil),          // 6: imagefactory.VEXDocumentRequest
-	(*VEXDocumentResponse)(nil),         // 7: imagefactory.VEXDocumentResponse
-	(*DownloadTokenRequest)(nil),        // 8: imagefactory.DownloadTokenRequest
-	(*DownloadTokenResponse)(nil),       // 9: imagefactory.DownloadTokenResponse
+	(Arch)(0),                              // 0: imagefactory.Arch
+	(VulnerabilityReportFormat)(0),         // 1: imagefactory.VulnerabilityReportFormat
+	(*VulnerabilityReportRequest)(nil),     // 2: imagefactory.VulnerabilityReportRequest
+	(*VulnerabilityReportResponse)(nil),    // 3: imagefactory.VulnerabilityReportResponse
+	(*SBOMRequest)(nil),                    // 4: imagefactory.SBOMRequest
+	(*SBOMResponse)(nil),                   // 5: imagefactory.SBOMResponse
+	(*VEXDocumentRequest)(nil),             // 6: imagefactory.VEXDocumentRequest
+	(*VEXDocumentResponse)(nil),            // 7: imagefactory.VEXDocumentResponse
+	(*DownloadTokenRequest)(nil),           // 8: imagefactory.DownloadTokenRequest
+	(*DownloadTokenResponse)(nil),          // 9: imagefactory.DownloadTokenResponse
+	(*ClusterArtifactTargetsRequest)(nil),  // 10: imagefactory.ClusterArtifactTargetsRequest
+	(*ArtifactTarget)(nil),                 // 11: imagefactory.ArtifactTarget
+	(*ClusterArtifactTargetsResponse)(nil), // 12: imagefactory.ClusterArtifactTargetsResponse
 }
 var file_omni_imagefactory_imagefactory_proto_depIdxs = []int32{
-	0, // 0: imagefactory.VulnerabilityReportRequest.arch:type_name -> imagefactory.Arch
-	1, // 1: imagefactory.VulnerabilityReportRequest.format:type_name -> imagefactory.VulnerabilityReportFormat
-	0, // 2: imagefactory.SBOMRequest.arch:type_name -> imagefactory.Arch
-	2, // 3: imagefactory.ImageFactoryService.VulnerabilityReport:input_type -> imagefactory.VulnerabilityReportRequest
-	4, // 4: imagefactory.ImageFactoryService.SBOM:input_type -> imagefactory.SBOMRequest
-	6, // 5: imagefactory.ImageFactoryService.VEXDocument:input_type -> imagefactory.VEXDocumentRequest
-	8, // 6: imagefactory.ImageFactoryService.DownloadToken:input_type -> imagefactory.DownloadTokenRequest
-	3, // 7: imagefactory.ImageFactoryService.VulnerabilityReport:output_type -> imagefactory.VulnerabilityReportResponse
-	5, // 8: imagefactory.ImageFactoryService.SBOM:output_type -> imagefactory.SBOMResponse
-	7, // 9: imagefactory.ImageFactoryService.VEXDocument:output_type -> imagefactory.VEXDocumentResponse
-	9, // 10: imagefactory.ImageFactoryService.DownloadToken:output_type -> imagefactory.DownloadTokenResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: imagefactory.VulnerabilityReportRequest.arch:type_name -> imagefactory.Arch
+	1,  // 1: imagefactory.VulnerabilityReportRequest.format:type_name -> imagefactory.VulnerabilityReportFormat
+	0,  // 2: imagefactory.SBOMRequest.arch:type_name -> imagefactory.Arch
+	0,  // 3: imagefactory.ArtifactTarget.arch:type_name -> imagefactory.Arch
+	11, // 4: imagefactory.ClusterArtifactTargetsResponse.targets:type_name -> imagefactory.ArtifactTarget
+	2,  // 5: imagefactory.ImageFactoryService.VulnerabilityReport:input_type -> imagefactory.VulnerabilityReportRequest
+	4,  // 6: imagefactory.ImageFactoryService.SBOM:input_type -> imagefactory.SBOMRequest
+	6,  // 7: imagefactory.ImageFactoryService.VEXDocument:input_type -> imagefactory.VEXDocumentRequest
+	8,  // 8: imagefactory.ImageFactoryService.DownloadToken:input_type -> imagefactory.DownloadTokenRequest
+	10, // 9: imagefactory.ImageFactoryService.ClusterArtifactTargets:input_type -> imagefactory.ClusterArtifactTargetsRequest
+	3,  // 10: imagefactory.ImageFactoryService.VulnerabilityReport:output_type -> imagefactory.VulnerabilityReportResponse
+	5,  // 11: imagefactory.ImageFactoryService.SBOM:output_type -> imagefactory.SBOMResponse
+	7,  // 12: imagefactory.ImageFactoryService.VEXDocument:output_type -> imagefactory.VEXDocumentResponse
+	9,  // 13: imagefactory.ImageFactoryService.DownloadToken:output_type -> imagefactory.DownloadTokenResponse
+	12, // 14: imagefactory.ImageFactoryService.ClusterArtifactTargets:output_type -> imagefactory.ClusterArtifactTargetsResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_omni_imagefactory_imagefactory_proto_init() }
@@ -647,7 +851,7 @@ func file_omni_imagefactory_imagefactory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_imagefactory_imagefactory_proto_rawDesc), len(file_omni_imagefactory_imagefactory_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

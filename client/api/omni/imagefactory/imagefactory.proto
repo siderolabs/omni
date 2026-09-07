@@ -76,6 +76,34 @@ message DownloadTokenResponse {
   string token = 1;
 }
 
+message ClusterArtifactTargetsRequest {
+  // ClusterID is the cluster to resolve artifact targets for.
+  string cluster_id = 1;
+}
+
+// ArtifactTarget is a (schematic, arch) pair to fetch security artifacts for, installed on some
+// subset of the cluster's machines.
+message ArtifactTarget {
+  // SchematicID is the hex-encoded SHA-256 of the schematic installed on the target's machines.
+  string schematic_id = 1;
+  // Arch is the architecture of the target's machines.
+  Arch arch = 2;
+  // MachineCount is the number of cluster machines on this schematic and architecture.
+  int32 machine_count = 3;
+  // IncludesControlPlane is set when at least one of the target's machines is a control plane node.
+  bool includes_control_plane = 4;
+}
+
+message ClusterArtifactTargetsResponse {
+  // Targets are the unique (schematic, arch) pairs installed across the cluster's machines.
+  repeated ArtifactTarget targets = 1;
+  // CurrentTalosVersion is the Talos version the cluster is currently running.
+  string current_talos_version = 2;
+  // UpgradeTargetVersions are the Talos versions the security views scan against in addition to
+  // the current version: the latest patch of the current minor, and the latest patch of the next
+  // minor, when strictly newer than the current version.
+  repeated string upgrade_target_versions = 3;
+}
 
 // ImageFactoryService serves the image factory artifacts Omni proxies on the caller's behalf, so
 // the frontend never talks to the image factory directly.
@@ -91,4 +119,8 @@ service ImageFactoryService {
 
   // DownloadToken returns a token to download images with.
   rpc DownloadToken(DownloadTokenRequest) returns (DownloadTokenResponse);
+
+  // ClusterArtifactTargets resolves the (schematic, arch) pairs installed across a cluster's
+  // machines, along with the Talos versions to fetch security artifacts for.
+  rpc ClusterArtifactTargets(ClusterArtifactTargetsRequest) returns (ClusterArtifactTargetsResponse);
 }
