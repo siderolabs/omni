@@ -277,8 +277,7 @@ func createErrorHandler(logger *zap.Logger, advertisedURL string) func(http.Resp
 	logger = logger.With(logging.Component("saml"))
 
 	return func(w http.ResponseWriter, r *http.Request, err error) {
-		var invalidSAML *saml.InvalidResponseError
-		if errors.As(err, &invalidSAML) {
+		if invalidSAML, ok := errors.AsType[*saml.InvalidResponseError](err); ok {
 			// When the IdP sends a LogoutResponse to the ACS endpoint (e.g., because the
 			// IdP's SAML client has no dedicated SLO URL configured), the ACS handler fails
 			// to parse it as a login Response. Treat this as a completed logout.

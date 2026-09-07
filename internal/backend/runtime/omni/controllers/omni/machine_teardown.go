@@ -35,9 +35,7 @@ type MachineTeardownController struct {
 // NewMachineTeardownController initializes MachineTeardownController.
 func NewMachineTeardownController() *MachineTeardownController {
 	return &MachineTeardownController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineTeardownControllerName,
-		},
+		ControllerName: MachineTeardownControllerName,
 	}
 }
 

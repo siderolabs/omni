@@ -14,6 +14,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/clustermachine"
 )
 
+//nolint:staticcheck // the legacy fields are what the cases cover
 func TestDiscoveryServiceEndpoints(t *testing.T) {
 	for _, tt := range []struct {
 		name     string

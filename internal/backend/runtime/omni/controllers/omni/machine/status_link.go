@@ -31,10 +31,8 @@ import (
 // NewStatusLinkController creates new StatusLinkController.
 func NewStatusLinkController(linkCounterDeltaCh <-chan siderolinkmanager.LinkCounterDeltas) *StatusLinkController {
 	ctrl := &StatusLinkController{
-		deltaCh: linkCounterDeltaCh,
-		NamedController: generic.NamedController{
-			ControllerName: "MachineStatusLinkController",
-		},
+		deltaCh:        linkCounterDeltaCh,
+		ControllerName: "MachineStatusLinkController",
 	}
 
 	return ctrl

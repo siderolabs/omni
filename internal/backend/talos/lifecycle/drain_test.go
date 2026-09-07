@@ -67,7 +67,7 @@ func TestCordonAndDrain(t *testing.T) {
 	joined := func(messages []string) string { return strings.Join(messages, "\n") }
 
 	newNodeClientset := func() *fake.Clientset {
-		return fake.NewSimpleClientset([]k8sruntime.Object{&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: nodeName}}}...)
+		return fake.NewSimpleClientset([]k8sruntime.Object{&corev1.Node{Name: nodeName}}...)
 	}
 
 	t.Run("normalModeDrains", func(t *testing.T) {

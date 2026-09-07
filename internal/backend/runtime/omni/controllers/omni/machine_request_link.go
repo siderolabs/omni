@@ -36,10 +36,8 @@ type MachineRequestLinkController struct {
 // NewMachineRequestLinkController initializes MachineRequestLinkController.
 func NewMachineRequestLinkController(state state.State) *MachineRequestLinkController {
 	return &MachineRequestLinkController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineRequestLinkControllerName,
-		},
-		state: state,
+		ControllerName: MachineRequestLinkControllerName,
+		state:          state,
 	}
 }
 

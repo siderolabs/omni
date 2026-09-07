@@ -566,10 +566,8 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 	namespace := "default"
 
 	_, err := kubeClient.CoreV1().ConfigMaps(namespace).Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      identifier,
-			Namespace: namespace,
-		},
+		Name:      identifier,
+		Namespace: namespace,
 		Data: map[string]string{
 			"index.html": fmt.Sprintf("<!doctype html><meta charset=utf-8><title>%s</title><body>%s</body>", identifier, identifier),
 		},
@@ -579,10 +577,8 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 	}
 
 	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      identifier,
-			Namespace: namespace,
-		},
+		Name:      identifier,
+		Namespace: namespace,
 		Spec: appsv1.DeploymentSpec{
 			Replicas: new(int32(numReplicas)),
 			Selector: &metav1.LabelSelector{
@@ -624,12 +620,8 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 					Volumes: []corev1.Volume{
 						{
 							Name: "contents",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: identifier,
-									},
-								},
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								Name: identifier,
 							},
 						},
 					},
@@ -657,14 +649,12 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 		port := firstPort + i
 
 		service := corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      svcIdentifier,
-				Namespace: namespace,
-				Annotations: map[string]string{
-					constants.ExposedServicePortAnnotationKey:  strconv.Itoa(port),
-					constants.ExposedServiceLabelAnnotationKey: svcIdentifier,
-					constants.ExposedServiceIconAnnotationKey:  icon,
-				},
+			Name:      svcIdentifier,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				constants.ExposedServicePortAnnotationKey:  strconv.Itoa(port),
+				constants.ExposedServiceLabelAnnotationKey: svcIdentifier,
+				constants.ExposedServiceIconAnnotationKey:  icon,
 			},
 			Spec: corev1.ServiceSpec{
 				Selector: map[string]string{
@@ -706,14 +696,12 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 	mpPort2 := 20001 + workloadIndex*2
 
 	mpService := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mpIdentifier,
-			Namespace: namespace,
-			Annotations: map[string]string{
-				constants.ExposedServicePortAnnotationKey:  fmt.Sprintf("%d,%d", mpPort1, mpPort2),
-				constants.ExposedServiceLabelAnnotationKey: mpIdentifier,
-				constants.ExposedServiceIconAnnotationKey:  icon,
-			},
+		Name:      mpIdentifier,
+		Namespace: namespace,
+		Annotations: map[string]string{
+			constants.ExposedServicePortAnnotationKey:  fmt.Sprintf("%d,%d", mpPort1, mpPort2),
+			constants.ExposedServiceLabelAnnotationKey: mpIdentifier,
+			constants.ExposedServiceIconAnnotationKey:  icon,
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{

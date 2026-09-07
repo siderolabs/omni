@@ -36,10 +36,8 @@ type NodeUniqueTokenCleanupController struct {
 // NewNodeUniqueTokenCleanupController initializes NodeUniqueTokenCleanupController.
 func NewNodeUniqueTokenCleanupController(orphanTTL time.Duration) *NodeUniqueTokenCleanupController {
 	return &NodeUniqueTokenCleanupController{
-		NamedController: generic.NamedController{
-			ControllerName: NodeUniqueTokenCleanupControllerName,
-		},
-		orphanTTL: orphanTTL,
+		ControllerName: NodeUniqueTokenCleanupControllerName,
+		orphanTTL:      orphanTTL,
 	}
 }
 

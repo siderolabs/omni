@@ -3082,7 +3082,7 @@ func TestClusterUpgradeProceedsAfterHighPriorityConfigApplied(t *testing.T) {
 			// recorded and the change stops being pending.
 			addHighPriorityConfig(ctx, t, st, id)
 
-			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.10")
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
 
 			// The upgrade eventually runs (boot ID recorded and a LifecycleService.Upgrade is issued), proving
 			// the deferral released once the high-priority config was applied.

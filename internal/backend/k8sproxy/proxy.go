@@ -30,7 +30,7 @@ func newProxyHandler(m *multiplexer, logger *zap.Logger) *proxyHandler {
 	logger = logger.With(logging.Component("k8s_proxy"))
 
 	p.proxy = &httputil.ReverseProxy{
-		Director:  p.director,
+		Rewrite:   p.rewrite,
 		Transport: m,
 		ErrorLog:  zap.NewStdLog(logger),
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -43,24 +43,26 @@ func newProxyHandler(m *multiplexer, logger *zap.Logger) *proxyHandler {
 	return p
 }
 
-// director sets the target URL for the reverse proxy.
-func (p *proxyHandler) director(req *http.Request) {
-	clusterNameVal, ok := ctxstore.Value[clusterContextKey](req.Context())
+// rewrite sets the target URL for the reverse proxy.
+func (p *proxyHandler) rewrite(req *httputil.ProxyRequest) {
+	req.SetXForwarded()
+
+	clusterNameVal, ok := ctxstore.Value[clusterContextKey](req.In.Context())
 	if !ok {
-		ctxzap.Error(req.Context(), "cluster name not found in request context")
+		ctxzap.Error(req.In.Context(), "cluster name not found in request context")
 
 		return
 	}
 
-	connector, err := p.multiplexer.getClusterConnector(req.Context(), clusterNameVal.ClusterName)
+	connector, err := p.multiplexer.getClusterConnector(req.In.Context(), clusterNameVal.ClusterName)
 	if err != nil {
-		ctxzap.Error(req.Context(), "failed to get cluster connector", zap.Error(err))
+		ctxzap.Error(req.In.Context(), "failed to get cluster connector", zap.Error(err))
 
 		return
 	}
 
-	req.URL.Scheme = "https"
-	req.URL.Host = connector.apiHost
+	req.Out.URL.Scheme = "https"
+	req.Out.URL.Host = connector.apiHost
 }
 
 func (p *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

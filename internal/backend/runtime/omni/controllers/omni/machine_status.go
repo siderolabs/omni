@@ -57,9 +57,7 @@ type MachineStatusController struct {
 // NewMachineStatusController initializes MachineStatusController.
 func NewMachineStatusController(imageFactoryClients ImageFactoryClientProvider, kernelArgsInitializer KernelArgsInitializer) *MachineStatusController {
 	return &MachineStatusController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineStatusControllerName,
-		},
+		ControllerName:        MachineStatusControllerName,
 		notifyCh:              make(chan machinetask.Info),
 		runner:                task.NewEqualRunner[machinetask.CollectTaskSpec](),
 		imageFactoryClients:   imageFactoryClients,

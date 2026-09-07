@@ -42,9 +42,7 @@ type InfraMachineController struct {
 func NewInfraMachineController(installEventCh <-chan resource.ID) *InfraMachineController {
 	return &InfraMachineController{
 		installEventCh: installEventCh,
-		NamedController: generic.NamedController{
-			ControllerName: InfraMachineControllerName,
-		},
+		ControllerName: InfraMachineControllerName,
 	}
 }
 

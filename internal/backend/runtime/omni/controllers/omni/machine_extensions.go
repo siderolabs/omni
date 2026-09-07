@@ -38,9 +38,7 @@ type MachineExtensionsController struct {
 // NewMachineExtensionsController initializes MachineExtensionsController.
 func NewMachineExtensionsController() *MachineExtensionsController {
 	return &MachineExtensionsController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineExtensionsControllerName,
-		},
+		ControllerName: MachineExtensionsControllerName,
 	}
 }
 

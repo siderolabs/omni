@@ -16,6 +16,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 )
 
+//nolint:staticcheck // the raw data field is what the test sets on purpose
 func TestFromConfigPatches(t *testing.T) {
 	// DO NOT ADD t.Parallel() HERE, as this test modifies global compression config.
 	originalConfig := specs.GetCompressionConfig()

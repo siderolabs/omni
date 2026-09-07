@@ -57,8 +57,7 @@ func (e eValidation) GRPCStatus() *status.Status {
 
 // ValidationError generates error compatible with validated.ErrValidation.
 func ValidationError(err error) error {
-	var multiErr *multierror.Error
-	if errors.As(err, &multiErr) {
+	if multiErr, ok := errors.AsType[*multierror.Error](err); ok {
 		multiErr.Errors = distinct(multiErr.Errors)
 	}
 

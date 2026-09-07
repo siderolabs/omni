@@ -68,9 +68,7 @@ func NewStripeMetricsReporterController(
 	}
 
 	return &StripeMetricsReporterController{
-		NamedController: generic.NamedController{
-			ControllerName: StripeMetricsReporterControllerName,
-		},
+		ControllerName:           StripeMetricsReporterControllerName,
 		stripeClient:             stripeClient,
 		stripeSubscriptionItemID: stripeSubscriptionItemID,
 		stripeMinCommit:          stripeMinCommit,

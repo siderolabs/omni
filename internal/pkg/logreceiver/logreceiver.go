@@ -182,8 +182,7 @@ func (ch *ConnHandler) HasLink(addr netip.Addr) bool {
 }
 
 func isTimeout(err error) bool {
-	var neterr net.Error
-	if errors.As(err, &neterr) {
+	if neterr, ok := errors.AsType[net.Error](err); ok {
 		return neterr != nil && neterr.Timeout()
 	}
 

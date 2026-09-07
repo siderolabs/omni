@@ -72,7 +72,7 @@ func (p *FakeKubernetesProvider) GetKubernetesClientset(context.Context, string)
 func NewFakeKubernetesClientset(nodeNames ...string) *fake.Clientset {
 	objects := make([]k8sruntime.Object, 0, len(nodeNames))
 	for _, name := range nodeNames {
-		objects = append(objects, &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		objects = append(objects, &corev1.Node{Name: name})
 	}
 
 	clientset := fake.NewSimpleClientset(objects...)

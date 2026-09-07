@@ -54,9 +54,7 @@ func NewProvisionController[T generic.ResourceWithRD](providerID string, provisi
 	_, providerJoinConfigRegistered := resourceDefinitions[strings.ToLower(siderolinkres.ProviderJoinConfigType)]
 
 	return &ProvisionController[T]{
-		NamedController: generic.NamedController{
-			ControllerName: providerID + ".ProvisionController",
-		},
+		ControllerName:             providerID + ".ProvisionController",
 		providerID:                 providerID,
 		provisioner:                provisioner,
 		concurrency:                concurrency,

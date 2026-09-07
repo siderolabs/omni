@@ -41,13 +41,11 @@ type MachineStatusSnapshotController struct {
 // NewMachineStatusSnapshotController initializes MachineStatusSnapshotController.
 func NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh <-chan *omni.MachineStatusSnapshot) *MachineStatusSnapshotController {
 	return &MachineStatusSnapshotController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineStatusSnapshotControllerName,
-		},
-		notifyCh:     make(chan *omni.MachineStatusSnapshot),
-		siderolinkCh: siderolinkEventsCh,
-		powerStageCh: powerStageEventsCh,
-		runner:       task.NewEqualRunner[snapshot.CollectTaskSpec](),
+		ControllerName: MachineStatusSnapshotControllerName,
+		notifyCh:       make(chan *omni.MachineStatusSnapshot),
+		siderolinkCh:   siderolinkEventsCh,
+		powerStageCh:   powerStageEventsCh,
+		runner:         task.NewEqualRunner[snapshot.CollectTaskSpec](),
 	}
 }
 

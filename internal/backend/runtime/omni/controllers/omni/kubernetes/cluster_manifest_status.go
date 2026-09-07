@@ -66,9 +66,7 @@ type ClusterManifestsStatusController struct {
 // NewClusterManifestsStatusController initializes ClusterKubernetesManifestsStatusController.
 func NewClusterManifestsStatusController(kubernetesRuntime KubernetesRuntime) *ClusterManifestsStatusController {
 	ctrl := &ClusterManifestsStatusController{
-		NamedController: generic.NamedController{
-			ControllerName: "ClusterKubernetesManifestsStatusController",
-		},
+		ControllerName:    "ClusterKubernetesManifestsStatusController",
 		kubernetesRuntime: kubernetesRuntime,
 	}
 

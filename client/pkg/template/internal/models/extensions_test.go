@@ -44,7 +44,7 @@ func TestSystemExtensionsTranslate(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cluster := models.Cluster{
-				Meta:             models.Meta{Kind: models.KindCluster},
+				Kind:             models.KindCluster,
 				Name:             "test-cluster",
 				Kubernetes:       models.KubernetesCluster{Version: "v1.30.0"},
 				Talos:            models.TalosCluster{Version: "v1.7.0"},

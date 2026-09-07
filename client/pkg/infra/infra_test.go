@@ -58,12 +58,10 @@ const (
 
 // testMediaSpec is the medium the steps below ask for when only the schematic behind it matters.
 var testMediaSpec = provision.MediaSpec{
-	MediaSpec: imagefactory.MediaSpec{
-		Kind:         imagefactory.InstallationMediaKindDisk,
-		Platform:     "nocloud",
-		Architecture: "amd64",
-		Format:       "raw.xz",
-	},
+	Kind:         imagefactory.InstallationMediaKindDisk,
+	Platform:     "nocloud",
+	Architecture: "amd64",
+	Format:       "raw.xz",
 }
 
 type ms struct {
@@ -508,23 +506,19 @@ func TestProvisionStepImageFactory(t *testing.T) {
 		steps: []provision.Step[*TestResource]{
 			provision.NewStep("resolveFactory", func(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
 				disk, err := pctx.EnsureInstallationMedia(ctx, logger, provision.MediaSpec{
-					MediaSpec: imagefactory.MediaSpec{
-						Kind:         imagefactory.InstallationMediaKindDisk,
-						Platform:     "nocloud",
-						Architecture: "amd64",
-						Format:       "raw.xz",
-					},
+					Kind:         imagefactory.InstallationMediaKindDisk,
+					Platform:     "nocloud",
+					Architecture: "amd64",
+					Format:       "raw.xz",
 				})
 				if err != nil {
 					return err
 				}
 
 				pxe, err := pctx.EnsureInstallationMedia(ctx, logger, provision.MediaSpec{
-					MediaSpec: imagefactory.MediaSpec{
-						Kind:         imagefactory.InstallationMediaKindPXE,
-						Platform:     "metal",
-						Architecture: "amd64",
-					},
+					Kind:         imagefactory.InstallationMediaKindPXE,
+					Platform:     "metal",
+					Architecture: "amd64",
 				})
 				if err != nil {
 					return err
@@ -600,12 +594,10 @@ func TestProvisionContextWithoutResolver(t *testing.T) {
 	)
 
 	_, err := pctx.EnsureInstallationMedia(t.Context(), zaptest.NewLogger(t), provision.MediaSpec{
-		MediaSpec: imagefactory.MediaSpec{
-			Kind:         imagefactory.InstallationMediaKindDisk,
-			Platform:     "nocloud",
-			Architecture: "amd64",
-			Format:       "raw.xz",
-		},
+		Kind:         imagefactory.InstallationMediaKindDisk,
+		Platform:     "nocloud",
+		Architecture: "amd64",
+		Format:       "raw.xz",
 	})
 	require.ErrorContains(t, err, "provision context has no installation media resolver")
 }
@@ -751,12 +743,10 @@ func TestInstallationMediaWireConversion(t *testing.T) {
 
 	diskSpec := func() provision.MediaSpec {
 		return provision.MediaSpec{
-			MediaSpec: imagefactory.MediaSpec{
-				Kind:         imagefactory.InstallationMediaKindDisk,
-				Platform:     "nocloud",
-				Architecture: "amd64",
-				Format:       "raw.xz",
-			},
+			Kind:         imagefactory.InstallationMediaKindDisk,
+			Platform:     "nocloud",
+			Architecture: "amd64",
+			Format:       "raw.xz",
 		}
 	}
 

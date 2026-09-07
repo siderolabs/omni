@@ -38,9 +38,7 @@ type ClusterMachineTeardownController struct {
 // NewClusterMachineTeardownController initializes ClusterMachineTeardownController.
 func NewClusterMachineTeardownController(getKubernetesClient GetKubernetesClientFunc) *ClusterMachineTeardownController {
 	return &ClusterMachineTeardownController{
-		NamedController: generic.NamedController{
-			ControllerName: ClusterMachineTeardownControllerName,
-		},
+		ControllerName:      ClusterMachineTeardownControllerName,
 		getKubernetesClient: getKubernetesClient,
 	}
 }

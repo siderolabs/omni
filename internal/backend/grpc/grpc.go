@@ -21,7 +21,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/siderolabs/omni/client/api/talos/machine"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
@@ -128,10 +127,8 @@ func RegisterGateway(
 	logger *zap.Logger,
 ) (*memconn.Transport, error) {
 	marshaller := &gateway.JSONPb{
-		MarshalOptions: protojson.MarshalOptions{
-			UseProtoNames:  true,
-			UseEnumNumbers: true,
-		},
+		UseProtoNames:  true,
+		UseEnumNumbers: true,
 	}
 	runtimeMux := gateway.NewServeMux(
 		gateway.WithMarshalerOption(gateway.MIMEWildcard, marshaller),

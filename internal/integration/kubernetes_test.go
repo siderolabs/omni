@@ -392,9 +392,7 @@ func AssertKubernetesDeploymentIsCreated(testCtx context.Context, managementClie
 		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
 
 		deployment := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
+			Name: name,
 			Spec: appsv1.DeploymentSpec{
 				Replicas: new(int32(1)),
 				Selector: &metav1.LabelSelector{
@@ -444,9 +442,7 @@ func AssertKubernetesSecretIsCreated(testCtx context.Context, managementClient *
 		valBase64 := base64.StdEncoding.EncodeToString([]byte(testValue))
 
 		secret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
+			Name: name,
 			Data: map[string][]byte{
 				"test-key": []byte(valBase64),
 			},

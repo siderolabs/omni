@@ -81,12 +81,10 @@ func newMiddleware(t *testing.T, sloEndpoint string) *samlsp.Middleware {
 	if sloEndpoint != "" {
 		sp.IDPMetadata.IDPSSODescriptors = []saml.IDPSSODescriptor{
 			{
-				SSODescriptor: saml.SSODescriptor{
-					SingleLogoutServices: []saml.Endpoint{
-						{
-							Binding:  saml.HTTPRedirectBinding,
-							Location: sloEndpoint,
-						},
+				SingleLogoutServices: []saml.Endpoint{
+					{
+						Binding:  saml.HTTPRedirectBinding,
+						Location: sloEndpoint,
 					},
 				},
 			},

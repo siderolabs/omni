@@ -95,11 +95,9 @@ func NewBasicResponse(id string, namespace string, resp *resources.WatchResponse
 	mustNotNil(resp.Event, "nil response event")
 
 	return BasicResponse{
-		BasicItem: BasicItem[*resources.WatchResponse]{
-			id: id,
-			ns: namespace,
-			v:  resp,
-		},
+		id: id,
+		ns: namespace,
+		v:  resp,
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -25,15 +24,11 @@ func (f fakeKubernetesClientFactory) NewClient(config *rest.Config) (secretrotat
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Return a list of ready nodes for the /api/v1/nodes endpoint
 		nodeList := &corev1.NodeList{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "NodeList",
-				APIVersion: "v1",
-			},
+			Kind:       "NodeList",
+			APIVersion: "v1",
 			Items: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-					},
+					Name: "node-1",
 					Status: corev1.NodeStatus{
 						Conditions: []corev1.NodeCondition{
 							{
@@ -44,9 +39,7 @@ func (f fakeKubernetesClientFactory) NewClient(config *rest.Config) (secretrotat
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-2",
-					},
+					Name: "node-2",
 					Status: corev1.NodeStatus{
 						Conditions: []corev1.NodeCondition{
 							{

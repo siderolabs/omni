@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -580,12 +579,10 @@ func makeKubernetesServices(kubernetesServices ...kubernetesService) []*corev1.S
 
 	for _, s := range kubernetesServices {
 		service := corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: s.ns,
-				Name:      s.name,
-				Annotations: map[string]string{
-					constants.ExposedServicePortAnnotationKey: s.port,
-				},
+			Namespace: s.ns,
+			Name:      s.name,
+			Annotations: map[string]string{
+				constants.ExposedServicePortAnnotationKey: s.port,
 			},
 		}
 

@@ -263,11 +263,9 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	}
 
 	return &embeddedEtcd{
-		etcdState: etcdState{
-			client:    cli,
-			elections: map[string]*etcdElections{},
-			errors:    errs,
-		},
+		client:         cli,
+		elections:      map[string]*etcdElections{},
+		errors:         errs,
 		embeddedServer: embeddedServer,
 	}, nil
 }
@@ -317,10 +315,8 @@ func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	}
 
 	return &externalEtcd{
-		etcdState: etcdState{
-			elections: map[string]*etcdElections{},
-			client:    cli,
-		},
+		elections: map[string]*etcdElections{},
+		client:    cli,
 	}, nil
 }
 

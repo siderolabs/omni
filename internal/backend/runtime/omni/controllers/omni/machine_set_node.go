@@ -66,9 +66,7 @@ type MachineSetNodeController struct {
 // NewMachineSetNodeController creates a new MachineSetNodeController.
 func NewMachineSetNodeController() *MachineSetNodeController {
 	return &MachineSetNodeController{
-		NamedController: generic.NamedController{
-			ControllerName: MachineSetNodeControllerName,
-		},
+		ControllerName: MachineSetNodeControllerName,
 	}
 }
 

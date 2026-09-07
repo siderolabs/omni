@@ -104,7 +104,7 @@ func TestKubernetesHealthCheck_Validate_File(t *testing.T) {
 		File: "job.yaml",
 	}
 
-	require.NoError(t, hc.Validate(models.ValidateOptions{FileContext: models.FileContext{Dir: dir}}))
+	require.NoError(t, hc.Validate(models.ValidateOptions{Dir: dir}))
 }
 
 func TestKubernetesHealthCheckList_DuplicateDetection(t *testing.T) {
@@ -183,7 +183,7 @@ func TestKubernetesHealthCheck_Translate_File(t *testing.T) {
 		File: "job.yaml",
 	}
 
-	ctx := models.TranslateContext{FileContext: models.FileContext{Dir: dir}}
+	ctx := models.TranslateContext{Dir: dir}
 
 	require.NoError(t, hc.Validate(models.ValidateOptions{FileContext: ctx.FileContext}))
 

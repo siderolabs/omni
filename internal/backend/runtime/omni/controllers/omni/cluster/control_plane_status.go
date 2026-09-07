@@ -139,9 +139,7 @@ func (*ControlPlaneStatusController) transform(ctx context.Context, r controller
 
 		err := handler.check(ctx, r, clusterName)
 		if err != nil {
-			var checkFail *check.Error
-
-			if errors.As(err, &checkFail) {
+			if checkFail, ok := errors.AsType[*check.Error](err); ok {
 				spec.SetCondition(handler.condition, checkFail.Status, checkFail.Severity, checkFail.Error())
 
 				interrupted = checkFail.Interrupt

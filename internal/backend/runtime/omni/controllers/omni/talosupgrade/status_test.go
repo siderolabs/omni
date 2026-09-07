@@ -916,7 +916,7 @@ func TestFailedContainerMessage(t *testing.T) {
 
 	pod := func(name, message string, exitCode int32, finishedAt int64) corev1.Pod {
 		return corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
+			Name: name,
 			Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{{
 				State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
 					ExitCode:   exitCode,

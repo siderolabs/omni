@@ -244,6 +244,8 @@ spec:
     environment:
       TEST_CLASS: e2e-qemu
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -272,6 +274,8 @@ spec:
       TEST_CLASS: e2e-helm
       TEMP_REGISTRY: registry.dev.siderolabs.io
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
 ---
 kind: custom.Step
 name: run-e2e-talemu
@@ -301,6 +305,8 @@ spec:
     environment:
       TEST_CLASS: e2e-talemu
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -331,6 +337,8 @@ spec:
     environment:
       TEST_CLASS: e2e-auth0
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -358,6 +366,8 @@ spec:
     environment:
       TEST_CLASS: e2e-saml
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -390,6 +400,8 @@ spec:
       TEST_CLASS: integration-talemu
       TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SingleNodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets|AccountLimits)$
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
 ---
 kind: custom.Step
@@ -423,6 +435,8 @@ spec:
       TEST_CLASS: integration-qemu
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
       WITH_DEBUG: true
+      # keep the compiler optimizations, only the debug build tag is needed by the tests
+      GO_DEBUG_GCFLAGS: ""
       WITH_RACE: true
     jobs:
       - name: e2e-short-secureboot
@@ -756,10 +770,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/5177c50e2ea586d09c328190a65802571210b987/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/5177c50e2ea586d09c328190a65802571210b987/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/09c012d09660f694167adc12ec8a1e81cdc1bb41/proto/v1alpha1/resource.proto
@@ -809,6 +823,9 @@ spec:
       exclusions:
         rules:
           - linters:
+              - unparam
+            path: _test\.go$
+          - linters:
               - forbidigo
             path-except: ^pkg/omnictl/
           # errcheck excuses fmt.Fprint* to os.Stdout and os.Stderr, extend that to the filtered streams
@@ -839,11 +856,11 @@ spec:
       destination: frontend/src/schemas/config_1_10.schema.json
     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_11.schema.json
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.8/pkg/machinery/config/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.12/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_12.schema.json
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.13.3/pkg/machinery/config/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.13.10/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_13.schema.json
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.14.0-rc.2/pkg/machinery/config/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.14.0/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_14.schema.json
   destinationRoot: src/api
   specs:
@@ -889,7 +906,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/5177c50e2ea586d09c328190a65802571210b987/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -907,7 +924,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/5177c50e2ea586d09c328190a65802571210b987/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/common/common.proto
       subdirectory: common/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/09c012d09660f694167adc12ec8a1e81cdc1bb41/proto/v1alpha1/resource.proto

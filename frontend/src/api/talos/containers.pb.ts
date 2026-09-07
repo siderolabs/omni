@@ -25,6 +25,7 @@ export type ContainerSecuritySpec = {
   privileged?: boolean
   capabilitiesAdd?: string[]
   capabilitiesDrop?: string[]
+  machinedAccess?: boolean
 }
 
 export type ContainerNetworkSpec = {
@@ -61,5 +62,46 @@ export type ContainerImageStatusSpec = {
   phase?: string
   image?: string
   digest?: string
+  error?: string
+}
+
+export type ResolvedMountSpec = {
+  kind?: string
+  source?: string
+  destination?: string
+  size?: number
+  options?: string[]
+  volumeID?: string
+}
+
+export type ContainerInstanceSpecSpec = {
+  containerID?: string
+  generation?: number
+  image?: string
+  entrypoint?: string[]
+  args?: string[]
+  workingDir?: string
+  runAs?: ContainerRunAsSpec
+  environment?: string[]
+  mounts?: ResolvedMountSpec[]
+  security?: ContainerSecuritySpec
+  network?: ContainerNetworkSpec
+  resources?: ContainerResourcesSpec
+}
+
+export type ContainerInstanceStatusSpec = {
+  containerID?: string
+  generation?: number
+  phase?: string
+  pid?: number
+  exitCode?: number
+  error?: string
+  startedAt?: string
+  finishedAt?: string
+}
+
+export type ContainerMountStatusSpec = {
+  ready?: boolean
+  mounts?: ResolvedMountSpec[]
   error?: string
 }

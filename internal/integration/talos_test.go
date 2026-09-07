@@ -528,10 +528,8 @@ func applyUpgradeGate(ctx context.Context, t *testing.T, kubeClient *kubernetes.
 	configMaps := kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault)
 
 	_, err := configMaps.Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   upgradeGateConfigMapName,
-			Labels: map[string]string{"healthy": healthy},
-		},
+		Name:   upgradeGateConfigMapName,
+		Labels: map[string]string{"healthy": healthy},
 	}, metav1.CreateOptions{})
 	if err == nil {
 		return

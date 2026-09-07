@@ -229,9 +229,7 @@ func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, kernelA
 	}
 
 	machine := models.Machine{
-		Meta: models.Meta{
-			Kind: models.KindMachine,
-		},
+		Kind:        models.KindMachine,
 		Name:        models.MachineID(machineSetNode.Metadata().ID()),
 		Descriptors: getUserDescriptors(machineSetNode),
 		Locked:      locked,
@@ -361,9 +359,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 	}
 
 	return models.MachineSet{
-		Meta: models.Meta{
-			Kind: kind,
-		},
+		Kind:            kind,
 		Name:            name,
 		Descriptors:     getUserDescriptors(machineSet),
 		BootstrapSpec:   bootstrapSpec,
@@ -409,9 +405,7 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch,
 	}
 
 	return models.Cluster{
-		Meta: models.Meta{
-			Kind: models.KindCluster,
-		},
+		Kind:        models.KindCluster,
 		Name:        cluster.Metadata().ID(),
 		Descriptors: getUserDescriptors(cluster),
 		Kubernetes: models.KubernetesCluster{

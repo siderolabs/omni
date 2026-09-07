@@ -162,9 +162,7 @@ func WithCluster(clusterName string) *Template {
 	return &Template{
 		models: models.List{
 			&models.Cluster{
-				Meta: models.Meta{
-					Kind: models.KindCluster,
-				},
+				Kind: models.KindCluster,
 				Name: clusterName,
 			},
 		},

@@ -11,14 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 )
 
 func newPodWithCPURequest(phase corev1.PodPhase, cpu string, reason string) *corev1.Pod {
 	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "pod-" + string(phase) + "-" + reason},
+		Name: "pod-" + string(phase) + "-" + reason,
 		Status: corev1.PodStatus{
 			Phase:  phase,
 			Reason: reason,
