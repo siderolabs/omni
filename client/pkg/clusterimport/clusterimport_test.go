@@ -216,6 +216,10 @@ func (m *mockImageFactoryClient) DownloadToken(_ context.Context, _ time.Duratio
 	return "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
 }
 
+func (m *mockImageFactoryClient) TokenCreate(_ context.Context, _ client.TokenCreateOptions) (string, string, error) {
+	return "", "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
+}
+
 func (m *mockImageFactoryClient) CachedIsEnterprise() bool {
 	return false
 }

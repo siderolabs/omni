@@ -25,7 +25,7 @@ import (
 func TestBuildInstallImage(t *testing.T) {
 	t.Parallel()
 
-	c, err := imagefactory.NewClient("https://factory.talos.dev", "", "")
+	c, err := imagefactory.NewClient("https://factory.talos.dev", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	m := lifecycle.NewManager(zapNop(t), imagefactory.NewClients(

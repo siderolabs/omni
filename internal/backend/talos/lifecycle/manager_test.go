@@ -24,7 +24,7 @@ import (
 func newManagerForTest(t *testing.T) *lifecycle.Manager {
 	t.Helper()
 
-	c, err := imagefactory.NewClient("factory.talos.dev", "", "")
+	c, err := imagefactory.NewClient("factory.talos.dev", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(

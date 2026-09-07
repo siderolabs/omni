@@ -7,6 +7,9 @@ package imagefactory_test
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -47,10 +50,9 @@ func TestCredentials(t *testing.T) {
 	t.Run("factory without credentials", func(t *testing.T) {
 		t.Parallel()
 
-		username, password, err := imagefactory.Credentials(ctx, newTestState(t), "https://factory.example.org")
+		auth, err := imagefactory.Credentials(ctx, newTestState(t), "https://factory.example.org")
 		require.NoError(t, err)
-		require.Empty(t, username)
-		require.Empty(t, password)
+		require.True(t, auth.IsZero())
 	})
 
 	t.Run("stored credentials, trailing slash trimmed", func(t *testing.T) {
@@ -63,10 +65,9 @@ func TestCredentials(t *testing.T) {
 		auth.TypedSpec().Value.Password = "pass"
 		require.NoError(t, st.Create(ctx, auth))
 
-		username, password, err := imagefactory.Credentials(ctx, st, "https://factory.example.org/")
+		creds, err := imagefactory.Credentials(ctx, st, "https://factory.example.org/")
 		require.NoError(t, err)
-		require.Equal(t, "user", username)
-		require.Equal(t, "pass", password)
+		require.Equal(t, imagefactory.Auth{Username: "user", Password: "pass"}, creds)
 	})
 
 	t.Run("a denied read surfaces rather than downgrading to anonymous", func(t *testing.T) {
@@ -76,7 +77,7 @@ func TestCredentials(t *testing.T) {
 		// credentialsAllowingDenied, which is what ResolveEndpoint and NewClientsFromState use.
 		st := failingGetState{State: newTestState(t), err: status.Error(codes.PermissionDenied, "nope")}
 
-		_, _, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
+		_, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
 		require.ErrorContains(t, err, "nope")
 	})
 
@@ -85,7 +86,7 @@ func TestCredentials(t *testing.T) {
 
 		st := failingGetState{State: newTestState(t), err: errors.New("state is unavailable")}
 
-		_, _, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
+		_, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
 		require.ErrorContains(t, err, "state is unavailable")
 	})
 }
@@ -98,7 +99,7 @@ func TestClientURLIsCanonical(t *testing.T) {
 		"https://factory.example.org/",
 		"https://factory.example.org///",
 	} {
-		client, err := imagefactory.NewClient(configured, "", "")
+		client, err := imagefactory.NewClient(configured, imagefactory.Auth{})
 		require.NoError(t, err)
 
 		require.Equal(t, "https://factory.example.org", client.URL(), "configured as %q", configured)
@@ -110,10 +111,10 @@ func TestClientsForURL(t *testing.T) {
 	t.Parallel()
 
 	// The primary is configured with a trailing slash, the secondary without: both forms must resolve.
-	primary, err := imagefactory.NewClient("https://factory.example.org/", "", "")
+	primary, err := imagefactory.NewClient("https://factory.example.org/", imagefactory.Auth{})
 	require.NoError(t, err)
 
-	secondary, err := imagefactory.NewClient("https://secondary.example.org", "", "")
+	secondary, err := imagefactory.NewClient("https://secondary.example.org", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	clients := imagefactory.NewClients(newTestState(t), primary)
@@ -149,10 +150,10 @@ func TestClientsForTalosVersion(t *testing.T) {
 
 	ctx := t.Context()
 
-	primary, err := imagefactory.NewClient("https://factory.example.org", "", "")
+	primary, err := imagefactory.NewClient("https://factory.example.org", imagefactory.Auth{})
 	require.NoError(t, err)
 
-	secondary, err := imagefactory.NewClient("https://secondary.example.org", "", "")
+	secondary, err := imagefactory.NewClient("https://secondary.example.org", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	st := newTestState(t)
@@ -233,4 +234,64 @@ func TestNewClientsFromStateDefaultsBaseURL(t *testing.T) {
 
 	_, ok := clients.Secondary()
 	require.False(t, ok)
+}
+
+// TestCredentialsToken covers a factory Omni authenticates to with an API token: the token is what
+// the client set is built with.
+func TestCredentialsToken(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	st := newTestState(t)
+
+	auth := omni.NewImageFactoryAuth("https://factory.example.org")
+	auth.TypedSpec().Value.ApiToken = "omni-token"
+	require.NoError(t, st.Create(ctx, auth))
+
+	creds, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
+	require.NoError(t, err)
+	require.NotNil(t, creds.TokenSource)
+	require.Equal(t, "omni-token", creds.TokenSource())
+	require.Empty(t, creds.Username)
+	require.False(t, creds.IsZero())
+}
+
+// TestNewClientAuthorization pins what reaches the factory on the wire for each kind of credential.
+func TestNewClientAuthorization(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name          string
+		auth          imagefactory.Auth
+		authorization string
+	}{
+		{name: "anonymous", auth: imagefactory.Auth{}},
+		{name: "basic auth", auth: imagefactory.Auth{Username: "user", Password: "hunter2"}, authorization: "Basic dXNlcjpodW50ZXIy"},
+		{name: "token", auth: imagefactory.Auth{TokenSource: func() string { return "omni-token" }}, authorization: "Bearer omni-token"},
+		{name: "token wins over basic auth", auth: imagefactory.Auth{Username: "user", Password: "hunter2", TokenSource: func() string { return "omni-token" }}, authorization: "Bearer omni-token"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var received atomic.Pointer[string]
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				header := r.Header.Get("Authorization")
+				received.Store(&header)
+
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`[]`)) //nolint:errcheck
+			}))
+			t.Cleanup(server.Close)
+
+			client, err := imagefactory.NewClient(server.URL, tt.auth)
+			require.NoError(t, err)
+
+			_, err = client.Versions(t.Context())
+			require.NoError(t, err)
+
+			require.NotNil(t, received.Load())
+			require.Equal(t, tt.authorization, *received.Load())
+		})
+	}
 }

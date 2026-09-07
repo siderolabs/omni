@@ -512,6 +512,17 @@ func (s *Factory) SetPxeURL(v string) {
 	s.PxeURL = &v
 }
 
+func (s *Factory) GetTokenFile() string {
+	if s == nil || s.TokenFile == nil {
+		return *new(string)
+	}
+	return *s.TokenFile
+}
+
+func (s *Factory) SetTokenFile(v string) {
+	s.TokenFile = &v
+}
+
 func (s *Factory) GetUrl() string {
 	if s == nil || s.Url == nil {
 		return *new(string)

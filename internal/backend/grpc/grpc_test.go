@@ -93,7 +93,7 @@ func (suite *GrpcSuite) SetupTest() {
 		suite.Require().NoError(suite.imageFactory.eg.Wait())
 	})
 
-	imageFactoryClient, err := imagefactory.NewClient(suite.imageFactory.address, testFactoryUsername, testFactoryPassword)
+	imageFactoryClient, err := imagefactory.NewClient(suite.imageFactory.address, imagefactory.Auth{Username: testFactoryUsername, Password: testFactoryPassword})
 	suite.Require().NoError(err)
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
@@ -102,7 +102,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
-		imagefactory.NewClients(suite.state, imageFactoryClient), nil, nil, nil, st,
+		imagefactory.NewClients(suite.state, imageFactoryClient), nil, nil, nil, nil, st,
 		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel),
 	)
 	suite.Require().NoError(err)

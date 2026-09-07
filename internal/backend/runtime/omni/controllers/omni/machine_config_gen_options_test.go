@@ -140,7 +140,7 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
 				func(ctx context.Context, tc testutils.TestContext) {
-					primary, err := imagefactory.NewClient("https://"+primaryFactoryHost, "", "")
+					primary, err := imagefactory.NewClient("https://"+primaryFactoryHost, imagefactory.Auth{})
 					require.NoError(t, err)
 
 					// no TalosVersion resources are created, so ForTalosVersion always resolves to the primary
@@ -149,7 +149,7 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 					if tt.withSecondary {
 						var secondary *imagefactory.Client
 
-						secondary, err = imagefactory.NewClient("https://"+secondaryFactoryHost, "", "")
+						secondary, err = imagefactory.NewClient("https://"+secondaryFactoryHost, imagefactory.Auth{})
 						require.NoError(t, err)
 
 						clients.SetSecondary(secondary)

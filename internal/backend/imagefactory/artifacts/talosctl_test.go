@@ -36,7 +36,7 @@ func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
 	}))
 	t.Cleanup(upstream.Close)
 
-	imageFactoryClient, err := imagefactory.NewClient(upstream.URL, "", "")
+	imageFactoryClient, err := imagefactory.NewClient(upstream.URL, imagefactory.Auth{})
 	require.NoError(t, err)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))

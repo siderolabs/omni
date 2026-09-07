@@ -57,6 +57,32 @@ func TestBuildDocs(t *testing.T) {
 		assert.Equal(t, "pass", docs[0].Password())
 	})
 
+	t.Run("machine token wins over basic auth credentials", func(t *testing.T) {
+		t.Parallel()
+
+		auth := newImageFactoryAuth("https://factory.example.org", "user", "pass")
+		auth.TypedSpec().Value.ApiToken = "omni-token"
+		auth.TypedSpec().Value.MachineToken = "machine-token"
+
+		docs, err := imagefactoryauth.BuildDocs([]*omni.ImageFactoryAuth{auth})
+		require.NoError(t, err)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, imagefactoryauth.MachineTokenUsername, docs[0].Username())
+		assert.Equal(t, "machine-token", docs[0].Password())
+	})
+
+	t.Run("omni's own token without a machine token is an error", func(t *testing.T) {
+		t.Parallel()
+
+		auth := newImageFactoryAuth("https://factory.example.org", "", "")
+		auth.TypedSpec().Value.ApiToken = "omni-token"
+
+		_, err := imagefactoryauth.BuildDocs([]*omni.ImageFactoryAuth{auth})
+		require.ErrorContains(t, err, "not available yet", "the machines must never get Omni's own token, and never no credentials either")
+	})
+
 	t.Run("primary and secondary credentials", func(t *testing.T) {
 		t.Parallel()
 

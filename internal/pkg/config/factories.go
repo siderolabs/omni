@@ -18,7 +18,9 @@ import (
 // would be sent to a newly configured one, which is both wrong and a way to leak them.
 //
 // Without a URL under registries.factories.primary, the deprecated fields are used instead (they
-// still carry the default factory URL), with any field set on the primary block winning.
+// still carry the default factory URL), with any field set on the primary block winning. A token file
+// set on the primary block leaves the flat username and password out, since a factory takes a token or
+// a basic auth pair, not both.
 func (s *Registries) GetPrimaryFactory() Factory {
 	primary := s.Factories.Primary
 
@@ -30,6 +32,14 @@ func (s *Registries) GetPrimaryFactory() Factory {
 
 	resolved.SetUrl(s.GetImageFactoryBaseURL())
 	resolved.SetPxeURL(firstNonEmpty(primary.GetPxeURL(), s.GetImageFactoryPXEBaseURL()))
+
+	// A token file and a basic auth pair never go together.
+	if tokenFile := primary.GetTokenFile(); tokenFile != "" {
+		resolved.SetTokenFile(tokenFile)
+
+		return resolved
+	}
+
 	resolved.SetUsername(firstNonEmpty(primary.GetUsername(), s.GetImageFactoryUsername()))
 	resolved.SetPassword(firstNonEmpty(primary.GetPassword(), s.GetImageFactoryPassword()))
 
@@ -79,9 +89,9 @@ func (f Factory) PXEBaseURL() (*url.URL, error) {
 	return u, nil
 }
 
-// RequiresAuth returns whether the factory requires auth.
+// RequiresAuth returns whether Omni has a token file or basic auth credentials for the factory.
 func (f Factory) RequiresAuth() bool {
-	return f.GetPassword() != ""
+	return f.GetTokenFile() != "" || f.GetPassword() != ""
 }
 
 func firstNonEmpty(values ...string) string {

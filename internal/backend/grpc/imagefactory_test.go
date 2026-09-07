@@ -62,7 +62,7 @@ func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFacto
 	server := httptest.NewServer(factory)
 	t.Cleanup(server.Close)
 
-	client, err := imagefactory.NewClient(server.URL, "", "")
+	client, err := imagefactory.NewClient(server.URL, imagefactory.Auth{})
 	require.NoError(t, err)
 
 	clients := imagefactory.NewClients(state.WrapCore(namespaced.NewState(inmem.Build)), client)

@@ -3376,6 +3376,8 @@ func (m *ImageFactoryAuthSpec) CloneVT() *ImageFactoryAuthSpec {
 	r := new(ImageFactoryAuthSpec)
 	r.Username = m.Username
 	r.Password = m.Password
+	r.ApiToken = m.ApiToken
+	r.MachineToken = m.MachineToken
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -8127,6 +8129,12 @@ func (this *ImageFactoryAuthSpec) EqualVT(that *ImageFactoryAuthSpec) bool {
 		return false
 	}
 	if this.Password != that.Password {
+		return false
+	}
+	if this.ApiToken != that.ApiToken {
+		return false
+	}
+	if this.MachineToken != that.MachineToken {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -17492,6 +17500,20 @@ func (m *ImageFactoryAuthSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.MachineToken) > 0 {
+		i -= len(m.MachineToken)
+		copy(dAtA[i:], m.MachineToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MachineToken)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.ApiToken) > 0 {
+		i -= len(m.ApiToken)
+		copy(dAtA[i:], m.ApiToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ApiToken)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.Password) > 0 {
 		i -= len(m.Password)
 		copy(dAtA[i:], m.Password)
@@ -21363,6 +21385,14 @@ func (m *ImageFactoryAuthSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Password)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ApiToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.MachineToken)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -45485,6 +45515,70 @@ func (m *ImageFactoryAuthSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Password = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApiToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ApiToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MachineToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

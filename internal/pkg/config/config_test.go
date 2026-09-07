@@ -362,11 +362,59 @@ func TestValidateFactoryAuthConfig(t *testing.T) {
 			},
 			validateErr: `config value ".registries.factories.secondary.password" or flag "--secondary-factory-password": is required when "username" is set`,
 		},
+		{
+			name:   "primary factory with both a token file and basic auth",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Primary.SetUsername("user")
+				cfg.Registries.Factories.Primary.SetPassword("pass")
+				cfg.Registries.Factories.Primary.SetTokenFile("/run/secrets/factory-token")
+			},
+			validateErr: "'not' failed",
+		},
+		{
+			name:   "secondary factory with both a token file and basic auth",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				var f config.Factory
+
+				f.SetUrl("https://factory.secondary.example.com")
+				f.SetUsername("secondary-user")
+				f.SetPassword("secondary-pass")
+				f.SetTokenFile("/run/secrets/secondary-factory-token")
+
+				cfg.Registries.Factories.Secondary = f
+			},
+			validateErr: "'not' failed",
+		},
+		{
+			name:   "factory with a token file and no basic auth",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Primary.SetTokenFile("/run/secrets/factory-token")
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.run(t, schema)
 		})
 	}
+}
+
+func TestFactoryRequiresAuth(t *testing.T) {
+	t.Parallel()
+
+	var f config.Factory
+
+	assert.False(t, f.RequiresAuth())
+
+	f.SetTokenFile("/run/secrets/factory-token")
+	assert.True(t, f.RequiresAuth())
+
+	f = config.Factory{}
+	f.SetUsername("user")
+	f.SetPassword("pass")
+	assert.True(t, f.RequiresAuth())
 }
 
 func TestServiceURL(t *testing.T) {
@@ -803,6 +851,26 @@ registries:
 		require.True(t, ok)
 		assert.Equal(t, "env-secondary-user", secondary.GetUsername())
 		assert.Equal(t, "env-secondary-pass", secondary.GetPassword())
+	})
+
+	t.Run("a token file replaces the deprecated credentials instead of joining them", func(t *testing.T) {
+		// An operator moving from the deprecated flat pair to a token adds the token without
+		// removing the pair. The factory takes one or the other, so the pair must not be carried
+		// over next to the token.
+		cfg := initConfig(t, `
+registries:
+  imageFactoryUsername: old-user
+  imageFactoryPassword: old-pass
+  factories:
+    primary:
+      tokenFile: /run/secrets/primary-token
+`)
+
+		primary := cfg.Registries.GetPrimaryFactory()
+		assert.Equal(t, "/run/secrets/primary-token", primary.GetTokenFile())
+		assert.True(t, primary.RequiresAuth())
+		assert.Empty(t, primary.GetUsername())
+		assert.Empty(t, primary.GetPassword())
 	})
 
 	t.Run("per-factory env var wins over the configured primary credentials", func(t *testing.T) {

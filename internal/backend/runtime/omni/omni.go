@@ -77,6 +77,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	newgroup "github.com/siderolabs/omni/internal/pkg/errgroup"
+	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokenfile"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -107,7 +108,7 @@ type Runtime struct {
 //
 //nolint:maintidx
 func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
-	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
+	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, imageFactoryTokens *tokenfile.Set, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
 	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter,
 	lifecycleManager *lifecycle.Manager, logger *zap.Logger,
@@ -174,7 +175,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		imagefactoryctrl.NewAuthController(&cfg.Registries),
+		imagefactoryctrl.NewAuthController(&cfg.Registries, cfg.Account.GetName(), imageFactoryClients, imageFactoryTokens),
 		omnictrl.NewKubernetesStatusController(kubernetesRuntime, cfg.Services.Api.URL(), cfg.Services.WorkloadProxy.GetSubdomain(),
 			cfg.Services.WorkloadProxy.GetEnabled(), cfg.Services.WorkloadProxy.GetUseOmniSubdomain()),
 		&omnictrl.LoadBalancerController{

@@ -163,6 +163,10 @@ func (s *stubFactoryClient) DownloadToken(context.Context, time.Duration) (strin
 	return "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
 }
 
+func (s *stubFactoryClient) TokenCreate(context.Context, client.TokenCreateOptions) (string, string, error) {
+	return "", "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
+}
+
 // TestFetchTalosVersions verifies the two configured factories are independent: a failure fetching one
 // never fails the other, the failed factory's URL is reported so its versions can be preserved, and the
 // primary still overwrites the secondary for versions present in both.

@@ -359,12 +359,14 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)
 	b.StringVar("registries.factories.primary.username", &primary.Username)
 	b.StringVar("registries.factories.primary.password", &primary.Password)
+	b.StringVar("registries.factories.primary.tokenFile", &primary.TokenFile)
 
 	secondary := &flagConfig.Registries.Factories.Secondary
 	b.StringVar("registries.factories.secondary.url", &secondary.Url)
 	b.StringVar("registries.factories.secondary.pxeURL", &secondary.PxeURL)
 	b.StringVar("registries.factories.secondary.username", &secondary.Username)
 	b.StringVar("registries.factories.secondary.password", &secondary.Password)
+	b.StringVar("registries.factories.secondary.tokenFile", &secondary.TokenFile)
 
 	b.StringSliceVar("registries.mirrors", &flagConfig.Registries.Mirrors, flagConfig.Registries.Mirrors)
 }

@@ -128,6 +128,18 @@ func NewMaintenanceConfigStatusController(
 				return []resource.Pointer{siderolinkres.NewLink(machineID, nil).Metadata()}, nil
 			},
 		),
+		// The image factory credentials go into every maintenance config, so a change to them (the
+		// machine token appearing or being renewed) re-applies the config on every machine.
+		qtransform.WithExtraMappedInput[*omni.ImageFactoryAuth](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				links, err := safe.ReaderListAll[*siderolinkres.Link](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(links.Pointers()), nil
+			},
+		),
 		qtransform.WithConcurrency(32),
 	)
 }

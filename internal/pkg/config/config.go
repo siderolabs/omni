@@ -254,7 +254,7 @@ const (
 //	OMNI_PRIMARY_FACTORY_* > factories.primary.* > OMNI_IMAGE_FACTORY_* > flat imageFactory*
 //
 // Note that the schema requires a username and a password to be set together, so supplying only
-// one half of a pair fails validation.
+// one half of a pair fails validation. The same goes for a pair supplied next to a token file.
 func (p *Params) applyEnvOverrides() {
 	//nolint:staticcheck
 	if v, ok := os.LookupEnv(EnvImageFactoryUsername); ok {

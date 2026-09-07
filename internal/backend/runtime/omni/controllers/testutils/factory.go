@@ -46,11 +46,25 @@ func NewFactoryClientSet(clients ...imagefactory.FactoryClient) *imagefactory.Cl
 // ImageFactoryClientMock is a mock implementation of the ImageFactoryClient interface for testing purposes.
 type ImageFactoryClientMock struct {
 	schematics map[string]schematic.Schematic
-	Owner      string
-	mu         sync.Mutex
+
+	// TokenCreateFunc answers TokenCreate when set. Unset, TokenCreate answers 404, like a factory that
+	// issues no tokens.
+	TokenCreateFunc func(ctx context.Context, opts client.TokenCreateOptions) (id, token string, err error)
+
+	Owner string
+	mu    sync.Mutex
 
 	// EnsureCalls counts the EnsureSchematic calls.
 	EnsureCalls atomic.Int64
+}
+
+// TokenCreate delegates to TokenCreateFunc.
+func (i *ImageFactoryClientMock) TokenCreate(ctx context.Context, opts client.TokenCreateOptions) (id, token string, err error) {
+	if i.TokenCreateFunc == nil {
+		return "", "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
+	}
+
+	return i.TokenCreateFunc(ctx, opts)
 }
 
 func (i *ImageFactoryClientMock) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {

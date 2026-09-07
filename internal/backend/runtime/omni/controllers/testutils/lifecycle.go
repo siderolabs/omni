@@ -35,7 +35,7 @@ const (
 // NewImageFactoryClients builds an image factory client set with a single primary factory at the test
 // host, backed by the given state (used to resolve the per-Talos-version factory via ForTalosVersion).
 func NewImageFactoryClients(t *testing.T, st state.State) *imagefactory.Clients {
-	c, err := imagefactory.NewClient("https://"+testImageFactoryHost, "", "")
+	c, err := imagefactory.NewClient("https://"+testImageFactoryHost, imagefactory.Auth{})
 	require.NoError(t, err)
 
 	return imagefactory.NewClients(st, c)

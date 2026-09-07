@@ -227,7 +227,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 		factory.eg.Wait() //nolint:errcheck
 	}()
 
-	imageFactoryClient, err := imagefactory.NewClient(factory.address, "", "")
+	imageFactoryClient, err := imagefactory.NewClient(factory.address, imagefactory.Auth{})
 	suite.Require().NoError(err)
 
 	suite.startRuntime()

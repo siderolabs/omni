@@ -95,7 +95,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.NewRuntime(config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
-		nil, nil, nil, nil, mockState, prometheus.NewRegistry(),
+		nil, nil, nil, nil, nil, mockState, prometheus.NewRegistry(),
 		discoveryClientCache, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
 
 	suite.Require().NoError(err)

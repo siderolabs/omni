@@ -33,6 +33,7 @@ type FactoryClient interface { //nolint:interfacebloat
 	CachedIsEnterprise() bool
 	TalosctlList(ctx context.Context, talosVersion string) ([]string, error)
 	DownloadToken(ctx context.Context, ttl time.Duration) (string, error)
+	TokenCreate(ctx context.Context, opts client.TokenCreateOptions) (id, token string, err error)
 	ReportsClient
 }
 
@@ -79,12 +80,12 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 		baseURL = constants.ImageFactoryBaseURL
 	}
 
-	username, password, err := credentialsAllowingDenied(ctx, st, baseURL)
+	auth, err := credentialsAllowingDenied(ctx, st, baseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	primaryClient, err := NewClient(baseURL, username, password)
+	primaryClient, err := NewClient(baseURL, auth)
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +93,12 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 	clients := NewClients(st, primaryClient)
 
 	if config.TypedSpec().Value.SecondaryImageFactoryBaseUrl != "" {
-		secondaryUsername, secondaryPassword, err := credentialsAllowingDenied(ctx, st, config.TypedSpec().Value.SecondaryImageFactoryBaseUrl)
+		secondaryAuth, err := credentialsAllowingDenied(ctx, st, config.TypedSpec().Value.SecondaryImageFactoryBaseUrl)
 		if err != nil {
 			return nil, err
 		}
 
-		secondaryClient, err := NewClient(config.TypedSpec().Value.SecondaryImageFactoryBaseUrl, secondaryUsername, secondaryPassword)
+		secondaryClient, err := NewClient(config.TypedSpec().Value.SecondaryImageFactoryBaseUrl, secondaryAuth)
 		if err != nil {
 			return nil, err
 		}
@@ -113,28 +114,36 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 // An Omni that predates ImageFactoryAuth, or a caller whose role cannot read it, denies the read outright.
 // Callers that only need to reach a factory serving assets anonymously should still get there, and one that
 // does need credentials fails on its own with a 401 naming the factory.
-func credentialsAllowingDenied(ctx context.Context, st state.State, factoryURL string) (username, password string, err error) {
-	username, password, err = Credentials(ctx, st, factoryURL)
+func credentialsAllowingDenied(ctx context.Context, st state.State, factoryURL string) (Auth, error) {
+	auth, err := Credentials(ctx, st, factoryURL)
 	if err != nil && status.Code(err) != codes.PermissionDenied {
-		return "", "", err
+		return Auth{}, err
 	}
 
-	return username, password, nil
+	return auth, nil
 }
 
-// Credentials returns the basic auth credentials for the image factory at the given URL, or empty strings
+// Credentials returns what Omni authenticates to the image factory at the given URL with, or a zero Auth
 // when that factory has none configured.
-func Credentials(ctx context.Context, st state.State, factoryURL string) (username, password string, err error) {
-	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, normalizeFactoryURL(factoryURL))
+func Credentials(ctx context.Context, st state.State, factoryURL string) (Auth, error) {
+	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, NormalizeFactoryURL(factoryURL))
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return "", "", nil
+			return Auth{}, nil
 		}
 
-		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
+		return Auth{}, fmt.Errorf("failed to get image factory auth: %w", err)
 	}
 
-	return auth.TypedSpec().Value.GetUsername(), auth.TypedSpec().Value.GetPassword(), nil
+	spec := auth.TypedSpec().Value
+
+	creds := Auth{Username: spec.GetUsername(), Password: spec.GetPassword()}
+
+	if token := spec.GetApiToken(); token != "" {
+		creds.TokenSource = func() string { return token }
+	}
+
+	return creds, nil
 }
 
 // SetSecondary configures the secondary image factory client.
@@ -142,9 +151,9 @@ func (c *Clients) SetSecondary(secondary FactoryClient) {
 	c.secondary = secondary
 }
 
-// normalizeFactoryURL strips a trailing slash so that factory URLs coming from different sources
+// NormalizeFactoryURL strips a trailing slash so that factory URLs coming from different sources
 // (Omni's own configuration, a TalosVersion resource, a client request) compare equal.
-func normalizeFactoryURL(url string) string {
+func NormalizeFactoryURL(url string) string {
 	return strings.TrimRight(url, "/")
 }
 
@@ -152,7 +161,7 @@ func normalizeFactoryURL(url string) string {
 //
 // The URL may come straight from a client request, so it is normalized before comparing.
 func (c *Clients) ForURL(url string) FactoryClient {
-	url = normalizeFactoryURL(url)
+	url = NormalizeFactoryURL(url)
 
 	clients := []FactoryClient{c.primary}
 	if c.secondary != nil {
@@ -199,7 +208,7 @@ func recordedFactoryURLForVersion(ctx context.Context, st state.State, talosVers
 	}
 
 	// The recorded URL may predate the canonicalization in NewClient, so normalize both sides.
-	return normalizeFactoryURL(version.TypedSpec().Value.GetImageFactoryUrl()), nil
+	return NormalizeFactoryURL(version.TypedSpec().Value.GetImageFactoryUrl()), nil
 }
 
 // ForTalosVersion returns the image factory client configured for the given Talos version, falling back to the primary client when no version is found or the version does not specify a factory URL.
@@ -219,7 +228,7 @@ func (c *Clients) ForTalosVersion(ctx context.Context, v string) (FactoryClient,
 	}
 
 	for _, client := range clients {
-		if normalizeFactoryURL(client.URL()) == recordedURL {
+		if NormalizeFactoryURL(client.URL()) == recordedURL {
 			return client, nil
 		}
 	}

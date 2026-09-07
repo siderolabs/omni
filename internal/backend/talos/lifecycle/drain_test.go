@@ -40,7 +40,7 @@ func (p fixedClientsetProvider) GetKubernetesClientset(context.Context, string) 
 func newDrainTestManager(t *testing.T, clientset k8s.Interface) *lifecycle.Manager {
 	t.Helper()
 
-	c, err := imagefactory.NewClient("factory.talos.dev", "", "")
+	c, err := imagefactory.NewClient("factory.talos.dev", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(

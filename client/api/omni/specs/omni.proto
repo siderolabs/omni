@@ -1896,17 +1896,27 @@ message MachineConfigExtractionStatusSpec {
   string error = 2;
 }
 
-// ImageFactoryAuthSpec holds the credentials Omni uses to authenticate against a single image factory.
+// ImageFactoryAuthSpec holds what Omni and its machines authenticate to one image factory with.
 //
-// The resource ID is the factory's base URL, stripped of any trailing slash.
+// The resource ID is the factory's base URL, stripped of any trailing slash. A factory takes either
+// basic auth or an API token, never both, so exactly one of username/password and api_token is set.
 message ImageFactoryAuthSpec {
+  // Username is the basic auth username Omni authenticates to the factory with.
   string username = 1;
+  // Password is the basic auth password Omni authenticates to the factory with.
   string password = 2;
 
   // Field 3 held an OAuth2 access token that Omni no longer obtains. It stays reserved so that a
   // later change cannot reuse the number and misread what the builds that wrote it left behind.
   reserved 3;
   reserved "token";
+
+  // ApiToken is the API token Omni authenticates to the factory with, passed to Omni through its configuration.
+  string api_token = 4;
+  // MachineToken is the API token the machines pull installer images with. Omni creates it on the
+  // factory with its own token and puts it into the machine configs. It is only set for a factory
+  // Omni authenticates to with an API token.
+  string machine_token = 5;
 }
 
 // MachineInstallDiskConfigSpec describes the user's install disk selection for a machine.

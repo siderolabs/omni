@@ -197,7 +197,7 @@ func (a InstallationMedia) String() string {
 // re-download everything they already store.
 func storageKey(factoryBaseURL, pathPrefix, schematicID, version, filename string) string {
 	digest := sha256.Sum256([]byte(strings.Join([]string{
-		normalizeFactoryURL(factoryBaseURL), pathPrefix, schematicID, version, filename,
+		NormalizeFactoryURL(factoryBaseURL), pathPrefix, schematicID, version, filename,
 	}, "\x00")))
 
 	return hex.EncodeToString(digest[:])
@@ -253,6 +253,10 @@ func WithDownloadTokens(opts DownloadTokenOptions) ResolveOption {
 
 // requestDownloadToken returns a token authenticating a download from the factory at baseURL and the
 // moment it stops working.
+//
+// An authenticated factory has to issue one: a failed request is an error rather than a fallback to
+// the credentials Omni holds, since those would end up in a link handed out to a user. The one
+// exception is a caller that cannot ask for a token at all, which reports ok=false with no error.
 func requestDownloadToken(ctx context.Context, baseURL string, kind InstallationMediaKind, opts *DownloadTokenOptions) (string, time.Time, bool, error) {
 	// A caller that cannot ask for a token, such as the provider-side fallback against an older Omni,
 	// passes nothing.
@@ -260,14 +264,9 @@ func requestDownloadToken(ctx context.Context, baseURL string, kind Installation
 		return "", time.Time{}, false, nil
 	}
 
-	logger := opts.logger()
-
 	factory := opts.Factories.ForURL(baseURL)
 	if factory == nil {
-		logger.Warn("no image factory client is configured for the factory serving this medium, so no download token was requested",
-			zap.String("factory_url", baseURL))
-
-		return "", time.Time{}, false, nil
+		return "", time.Time{}, false, fmt.Errorf("no image factory client is configured for the factory at %s serving this medium", baseURL)
 	}
 
 	ttl := opts.TTL
@@ -283,36 +282,24 @@ func requestDownloadToken(ctx context.Context, baseURL string, kind Installation
 
 	switch {
 	case err == nil && token == "":
-		logger.Warn("the image factory returned an empty download token",
-			zap.String("factory_url", baseURL))
-
-		return "", time.Time{}, false, nil
+		return "", time.Time{}, false, fmt.Errorf("the image factory at %s returned an empty download token", baseURL)
 	case err == nil:
 		return token, requestedAt.Add(ttl), true, nil
 	case client.IsHTTPErrorCode(err, http.StatusNotFound), client.IsHTTPErrorCode(err, http.StatusMethodNotAllowed):
-		logger.Debug("the image factory does not issue download tokens",
-			zap.String("factory_url", baseURL), zap.Error(err))
-
-		return "", time.Time{}, false, nil
+		// An authenticated factory that does not issue download tokens predates them and has to be upgraded.
+		return "", time.Time{}, false, fmt.Errorf("the image factory at %s does not issue download tokens, it has to be upgraded: %w", baseURL, err)
 	case client.IsInvalidSchematicError(err):
+		// The factory refuses a lifetime outside its configured bounds with a 400. It is the caller's
+		// error only when the caller chose the lifetime, Omni's own default is Omni's.
 		if opts.TTL != 0 {
-			logger.Warn("the image factory refused the requested download token lifetime",
-				zap.String("factory_url", baseURL), zap.Duration("ttl", ttl), zap.Error(err))
-
 			return "", time.Time{}, false, fmt.Errorf("%w: the image factory refused a download token lifetime of %s: %w", ErrInvalidInput, ttl, err)
 		}
 
-		logger.Warn("the image factory refused the default download token lifetime",
-			zap.String("factory_url", baseURL), zap.Duration("ttl", ttl), zap.Error(err))
-
-		return "", time.Time{}, false, nil
+		return "", time.Time{}, false, fmt.Errorf("the image factory at %s refused the default download token lifetime of %s: %w", baseURL, ttl, err)
 	case ctx.Err() != nil:
 		return "", time.Time{}, false, fmt.Errorf("failed to request an image factory download token: %w: %w", ctx.Err(), err)
 	default:
-		logger.Warn("failed to obtain an image factory download token",
-			zap.String("factory_url", baseURL), zap.Error(err))
-
-		return "", time.Time{}, false, nil
+		return "", time.Time{}, false, fmt.Errorf("failed to request a download token from the image factory at %s: %w", baseURL, err)
 	}
 }
 
@@ -385,9 +372,14 @@ func ResolveInstallationMedia(
 	// so PXE authentication always travels inside the URL.
 	standalone = standalone || spec.Kind == InstallationMediaKindPXE
 
-	if resolved.username != "" && resolved.password != "" {
+	if !resolved.auth.IsZero() {
 		token, expiresAt, ok, err := requestDownloadToken(ctx, resolved.baseURL, spec.Kind, options.downloadTokens)
 
+		// Without a token client there is nothing to request a token with: this is the infra provider
+		// library building the URL itself against an Omni that predates the installation media API. It
+		// keeps the credentials in the URL the way that Omni did, as long as there are basic auth
+		// credentials to put there. A factory that Omni authenticates to with a token has none, and
+		// an Omni that old cannot hold a token either.
 		switch {
 		case err != nil:
 			return InstallationMedia{}, err
@@ -397,14 +389,16 @@ func ResolveInstallationMedia(
 			mediaURL.RawQuery = query.Encode()
 
 			media.ExpiresAt = expiresAt
+		case resolved.auth.Password == "":
+			return InstallationMedia{}, fmt.Errorf("the image factory at %s requires a download token, and none could be requested", resolved.baseURL)
 		case standalone:
-			mediaURL.User = url.UserPassword(resolved.username, resolved.password)
+			mediaURL.User = url.UserPassword(resolved.auth.Username, resolved.auth.Password)
 
 			options.downloadTokens.logger().Debug("authenticating the installation media download with credentials in the URL",
 				zap.String("factory_url", resolved.baseURL))
 		default:
 			media.Headers = http.Header{
-				"Authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(resolved.username+":"+resolved.password))},
+				"Authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(resolved.auth.Username+":"+resolved.auth.Password))},
 			}
 
 			options.downloadTokens.logger().Debug("authenticating the installation media download with a credentials header",
@@ -437,10 +431,9 @@ func parseFactoryURL(rawURL string) (*url.URL, error) {
 
 // endpoint is the image factory serving a Talos version, with the credentials Omni holds for it.
 type endpoint struct {
-	username   string
-	password   string
 	baseURL    string
 	pxeBaseURL string
+	auth       Auth
 }
 
 // resolveEndpoint returns the image factory that serves the given Talos version.
@@ -465,7 +458,7 @@ func resolveEndpoint(ctx context.Context, st state.State, talosVersion string) (
 		}
 
 		// A version Omni doesn't know about counts as primary, the same fallback ForTalosVersion makes.
-		if recordedURL != "" && recordedURL == normalizeFactoryURL(secondary) {
+		if recordedURL != "" && recordedURL == NormalizeFactoryURL(secondary) {
 			baseURL, pxeBaseURL = secondary, spec.GetSecondaryImageFactoryPxeBaseUrl()
 		}
 	}
@@ -488,14 +481,13 @@ func resolveEndpoint(ctx context.Context, st state.State, talosVersion string) (
 		pxeBaseURL = derivePXEBaseURL(parsedBaseURL)
 	}
 
-	username, password, err := credentialsAllowingDenied(ctx, st, baseURL)
+	auth, err := credentialsAllowingDenied(ctx, st, baseURL)
 	if err != nil {
 		return endpoint{}, err
 	}
 
 	return endpoint{
-		username:   username,
-		password:   password,
+		auth:       auth,
 		baseURL:    baseURL,
 		pxeBaseURL: pxeBaseURL,
 	}, nil

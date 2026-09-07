@@ -9005,13 +9005,22 @@ func (x *MachineConfigExtractionStatusSpec) GetError() string {
 	return ""
 }
 
-// ImageFactoryAuthSpec holds the credentials Omni uses to authenticate against a single image factory.
+// ImageFactoryAuthSpec holds what Omni and its machines authenticate to one image factory with.
 //
-// The resource ID is the factory's base URL, stripped of any trailing slash.
+// The resource ID is the factory's base URL, stripped of any trailing slash. A factory takes either
+// basic auth or an API token, never both, so exactly one of username/password and api_token is set.
 type ImageFactoryAuthSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Username is the basic auth username Omni authenticates to the factory with.
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	// Password is the basic auth password Omni authenticates to the factory with.
+	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	// ApiToken is the API token Omni authenticates to the factory with, passed to Omni through its configuration.
+	ApiToken string `protobuf:"bytes,4,opt,name=api_token,json=apiToken,proto3" json:"api_token,omitempty"`
+	// MachineToken is the API token the machines pull installer images with. Omni creates it on the
+	// factory with its own token and puts it into the machine configs. It is only set for a factory
+	// Omni authenticates to with an API token.
+	MachineToken  string `protobuf:"bytes,5,opt,name=machine_token,json=machineToken,proto3" json:"machine_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9056,6 +9065,20 @@ func (x *ImageFactoryAuthSpec) GetUsername() string {
 func (x *ImageFactoryAuthSpec) GetPassword() string {
 	if x != nil {
 		return x.Password
+	}
+	return ""
+}
+
+func (x *ImageFactoryAuthSpec) GetApiToken() string {
+	if x != nil {
+		return x.ApiToken
+	}
+	return ""
+}
+
+func (x *ImageFactoryAuthSpec) GetMachineToken() string {
+	if x != nil {
+		return x.MachineToken
 	}
 	return ""
 }
@@ -13039,10 +13062,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x06PASSED\x10\x03\"[\n" +
 	"!MachineConfigExtractionStatusSpec\x12 \n" +
 	"\vinitialized\x18\x01 \x01(\bR\vinitialized\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"[\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\x9d\x01\n" +
 	"\x14ImageFactoryAuthSpec\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpasswordJ\x04\b\x03\x10\x04R\x05token\"W\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1b\n" +
+	"\tapi_token\x18\x04 \x01(\tR\bapiToken\x12#\n" +
+	"\rmachine_token\x18\x05 \x01(\tR\fmachineTokenJ\x04\b\x03\x10\x04R\x05token\"W\n" +
 	"\x1cMachineInstallDiskConfigSpec\x12#\n" +
 	"\rdisk_selector\x18\x01 \x01(\tR\fdiskSelector\x12\x12\n" +
 	"\x04disk\x18\x02 \x01(\tR\x04disk\"\xb1\x02\n" +

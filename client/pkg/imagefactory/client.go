@@ -6,6 +6,7 @@ package imagefactory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -70,13 +71,30 @@ type Client struct {
 	url     string
 }
 
+// Auth is what Omni authenticates to an image factory with: an API token, or basic auth credentials.
+// The zero value is anonymous access, for a factory that requires no authentication.
+//
+// The token is looked up on every request through TokenSource, so that a rotated token is used
+// without rebuilding the client. Token is the static alternative, for callers that hold the token
+// itself, such as a client built from the state Omni keeps it in.
+type Auth struct {
+	TokenSource func() string
+	Username    string
+	Password    string
+}
+
+// IsZero reports whether no credential is set.
+func (a Auth) IsZero() bool {
+	return a.TokenSource == nil && (a.Username == "" || a.Password == "")
+}
+
 // NewClient creates a new image factory client.
 //
 // The base URL is canonicalized by stripping any trailing slash, so that the URL reported by
 // [Client.URL] can be compared to a factory URL from any other source (a configured factory, a
 // TalosVersion resource, a client request) without each comparison having to normalize first.
-func NewClient(imageFactoryBaseURL, username, password string) (*Client, error) {
-	imageFactoryBaseURL = normalizeFactoryURL(imageFactoryBaseURL)
+func NewClient(imageFactoryBaseURL string, auth Auth) (*Client, error) {
+	imageFactoryBaseURL = NormalizeFactoryURL(imageFactoryBaseURL)
 
 	sniffer := &serverSnifferTransport{wrapped: http.DefaultTransport}
 
@@ -84,8 +102,20 @@ func NewClient(imageFactoryBaseURL, username, password string) (*Client, error) 
 		client.WithClient(http.Client{Transport: sniffer, Timeout: requestTimeout}),
 	}
 
-	if username != "" && password != "" {
-		clientOptions = append(clientOptions, client.WithBasicAuth(username, password))
+	switch {
+	case auth.TokenSource != nil:
+		clientOptions = append(clientOptions, client.WithTokenSource(func(context.Context) (string, error) {
+			token := auth.TokenSource()
+			if token == "" {
+				// The factory client sends no header for an empty token, and the resulting 401 would
+				// not point at the token.
+				return "", errors.New("the image factory token is empty")
+			}
+
+			return token, nil
+		}))
+	case auth.Username != "" && auth.Password != "":
+		clientOptions = append(clientOptions, client.WithBasicAuth(auth.Username, auth.Password))
 	}
 
 	factoryClient, err := client.New(imageFactoryBaseURL, clientOptions...)

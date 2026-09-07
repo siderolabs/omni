@@ -989,20 +989,16 @@ func TestResolveInstallationMediaPXEDownloadToken(t *testing.T) {
 		require.Equal(t, []time.Duration{30 * time.Minute}, issuer.calls())
 	})
 
-	t.Run("a factory that issues no token falls back to credentials", func(t *testing.T) {
+	t.Run("a factory that issues no token is an error", func(t *testing.T) {
 		t.Parallel()
 
 		st := authenticatedState(ctx, t)
 		issuer := newIssuer("", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"})
 
-		// An image factory below 1.6.0 rejects a token on /pxe/, and one below 1.5.0 or with its own
-		// authentication disabled issues none at all. Both answer 404 here.
-		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
-		require.NoError(t, err)
-
-		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", media.URL)
-		require.Empty(t, media.Headers)
-		require.Zero(t, media.ExpiresAt)
+		// An authenticated factory that answers 404 here predates download tokens and has to be
+		// upgraded. The credentials must not go into the boot script instead.
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.ErrorContains(t, err, "does not issue download tokens")
 	})
 }
 
@@ -1096,16 +1092,15 @@ func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 		}
 	})
 
-	t.Run("a factory that does not issue tokens falls back to credentials", func(t *testing.T) {
+	t.Run("a factory that does not issue a token is an error", func(t *testing.T) {
 		t.Parallel()
 
-		// 404 is a factory below 1.5.0, 405 a route that exists for other methods.
-		// Neither is a failure: it is what most deployments look like.
+		// An authenticated factory has to issue tokens: 404 and 405 mean it predates them and has to be
+		// upgraded, and a transient failure is reported rather than papered over with the credentials
+		// Omni holds, which would put them into a link handed out to a user.
 		for name, err := range map[string]error{
-			"404": &client.HTTPError{Code: http.StatusNotFound, Message: "not found"},
-			"405": &client.HTTPError{Code: http.StatusMethodNotAllowed, Message: "method not allowed"},
-			// A transient problem must not fail the resolve, since falling back is never worse than what a
-			// factory without token support gets.
+			"404":                 &client.HTTPError{Code: http.StatusNotFound, Message: "not found"},
+			"405":                 &client.HTTPError{Code: http.StatusMethodNotAllowed, Message: "method not allowed"},
 			"a transient failure": errors.New("connection reset"),
 		} {
 			t.Run(name, func(t *testing.T) {
@@ -1113,16 +1108,12 @@ func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 
 				st := authenticatedState(ctx, t)
 
-				standalone, resolveErr := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", err), 0))
-				require.NoError(t, resolveErr)
-				require.Equal(t, "https://user:hunter2@factory.example.org"+mediaPath, standalone.URL)
-				require.Zero(t, standalone.ExpiresAt)
-
-				withHeaders, resolveErr := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer("", err), 0))
-				require.NoError(t, resolveErr)
-				require.Equal(t, primaryURL+mediaPath, withHeaders.URL)
-				require.Equal(t, authorization, withHeaders.Headers.Get("Authorization"))
-				require.Zero(t, withHeaders.ExpiresAt)
+				for _, standalone := range []bool{true, false} {
+					_, resolveErr := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, standalone, withIssuer(t, st, newIssuer("", err), 0))
+					require.Error(t, resolveErr)
+					require.NotErrorIs(t, resolveErr, imagefactory.ErrInvalidInput, "the caller did nothing wrong")
+					require.NotContains(t, resolveErr.Error(), "hunter2")
+				}
 			})
 		}
 	})
@@ -1146,44 +1137,37 @@ func TestResolveInstallationMediaDownloadToken(t *testing.T) {
 
 		st := authenticatedState(ctx, t)
 
-		// Omni's own guess is not the caller's request, so a factory whose bounds exclude it falls back
-		// rather than failing a provision over a value the caller never chose.
-		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false,
+		// Omni's own guess is not the caller's request, so the failure is not reported as the caller's
+		// invalid input. It is still a failure: the credentials never stand in for a token.
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false,
 			withIssuer(t, st, newIssuer("", &client.InvalidSchematicError{}), 0))
 
-		require.NoError(t, err)
-		require.Equal(t, authorization, media.Headers.Get("Authorization"))
-		require.Zero(t, media.ExpiresAt)
+		require.Error(t, err)
+		require.NotErrorIs(t, err, imagefactory.ErrInvalidInput)
 	})
 
-	t.Run("a 200 carrying no token falls back", func(t *testing.T) {
+	t.Run("a 200 carrying no token is an error", func(t *testing.T) {
 		t.Parallel()
 
 		st := authenticatedState(ctx, t)
 
 		// Placing an empty token would build a URL with no credentials anywhere, which only fails at the
 		// download, with nothing in Omni's logs pointing at the token.
-		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", nil), 0))
-		require.NoError(t, err)
-
-		require.Equal(t, "https://user:hunter2@factory.example.org"+mediaPath, media.URL)
-		require.NotContains(t, media.URL, "token=")
-		require.Zero(t, media.ExpiresAt)
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", nil), 0))
+		require.ErrorContains(t, err, "empty download token")
 	})
 
-	t.Run("an unroutable factory falls back", func(t *testing.T) {
+	t.Run("an unroutable factory is an error", func(t *testing.T) {
 		t.Parallel()
 
 		st := authenticatedState(ctx, t)
 
 		// A token must come from the factory serving the medium and no other, so a client set with nothing
-		// configured for it issues nothing at all.
+		// configured for it cannot issue one.
 		issuer := &fakeFactoryClient{url: "https://other.example.org", token: token}
 
-		media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
-		require.NoError(t, err)
-
-		require.Equal(t, authorization, media.Headers.Get("Authorization"))
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.ErrorContains(t, err, "no image factory client is configured")
 		require.Empty(t, issuer.calls())
 	})
 
@@ -1263,4 +1247,69 @@ func TestResolveInstallationMediaNegativeTokenLifetime(t *testing.T) {
 			require.Empty(t, issuer.calls(), "a lifetime that cannot be honored must not reach the factory")
 		})
 	}
+}
+
+// tokenAuthenticatedState is a primary factory Omni authenticates to with an API token, the shape
+// every SaaS Omni runs against the enterprise factory in.
+func tokenAuthenticatedState(ctx context.Context, t *testing.T) state.State {
+	t.Helper()
+
+	st := newTestState(t)
+
+	createFeaturesConfig(ctx, t, st, nil)
+
+	auth := omni.NewImageFactoryAuth(primaryURL)
+	auth.TypedSpec().Value.ApiToken = "omni-token"
+	require.NoError(t, st.Create(ctx, auth))
+
+	return st
+}
+
+// TestResolveInstallationMediaTokenFactory covers a factory Omni holds an API token for: the download is
+// authenticated by a download token and nothing else, and there is no credential to fall back to.
+func TestResolveInstallationMediaTokenFactory(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	const token = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+
+	mediaPath := "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz"
+
+	t.Run("the download token authenticates the download", func(t *testing.T) {
+		t.Parallel()
+
+		st := tokenAuthenticatedState(ctx, t)
+
+		for _, standalone := range []bool{true, false} {
+			media, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, standalone, withIssuer(t, st, newIssuer(token, nil), 0))
+			require.NoError(t, err)
+
+			require.Equal(t, primaryURL+mediaPath+"?token="+url.QueryEscape(token), media.URL)
+			require.Empty(t, media.Headers)
+			require.NotContains(t, media.URL, "omni-token", "Omni's own token must never travel in a URL")
+		}
+	})
+
+	t.Run("a failed token request is an error", func(t *testing.T) {
+		t.Parallel()
+
+		st := tokenAuthenticatedState(ctx, t)
+
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", errors.New("connection reset")), 0))
+		require.Error(t, err)
+		require.NotContains(t, err.Error(), "omni-token")
+	})
+
+	t.Run("without a token client there is nothing to authenticate with", func(t *testing.T) {
+		t.Parallel()
+
+		st := tokenAuthenticatedState(ctx, t)
+
+		// The provider-side fallback against an Omni that predates the installation media API. Such an
+		// Omni holds no token, so this cannot happen in practice, and it must not hand out an
+		// unauthenticated URL if it ever does.
+		_, err := imagefactory.ResolveInstallationMedia(ctx, st, "1.13.0", diskSpec(), schematicID, true)
+		require.ErrorContains(t, err, "requires a download token")
+	})
 }

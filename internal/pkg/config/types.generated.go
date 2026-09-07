@@ -289,19 +289,25 @@ type Factories struct {
 
 type Factory struct {
 	// Password is the password used to authenticate against the Image Factory
-	// Enterprise service.
+	// Enterprise service with basic auth.
 	Password *string `json:"password,omitempty,omitzero" yaml:"password,omitempty"`
 
 	// PxeURL is the base URL of the Image Factory PXE endpoint used to build custom
 	// PXE boot images.
 	PxeURL *string `json:"pxeURL,omitempty,omitzero" yaml:"pxeURL,omitempty"`
 
+	// TokenFile is the path of a file holding the API token used to authenticate
+	// against the Image Factory Enterprise service. It is an alternative to the
+	// username and password. The file is re-read when it changes, so the token can be
+	// rotated without a restart.
+	TokenFile *string `json:"tokenFile,omitempty,omitzero" yaml:"tokenFile,omitempty"`
+
 	// URL is the base URL of the Image Factory service used to build custom machine
 	// images.
 	Url *string `json:"url,omitempty,omitzero" yaml:"url,omitempty"`
 
 	// Username is the username used to authenticate against the Image Factory
-	// Enterprise service.
+	// Enterprise service with basic auth.
 	Username *string `json:"username,omitempty,omitzero" yaml:"username,omitempty"`
 }
 

@@ -64,7 +64,7 @@ func TestGenerateConfigs(t *testing.T) {
 	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
 
 	rt, err := omniruntime.NewRuntime(config.Default(), nil, nil, nil,
-		nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),
+		nil, nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),
 		nil, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
 	require.NoError(t, err)
 

@@ -39,8 +39,10 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/eula"
 	"github.com/siderolabs/omni/internal/pkg/features"
+	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokenfile"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -84,7 +86,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		}
 	}
 
-	imageFactoryClients, err := setupImageFactoryClients(cfg, state)
+	imageFactoryClients, factoryTokenFiles, err := setupImageFactoryClients(cfg, state, logger.With(logging.Component("image_factory_token")))
 	if err != nil {
 		return err
 	}
@@ -109,7 +111,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
-		imageFactoryClients, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
+		imageFactoryClients, factoryTokenFiles, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime,
 		lifecycleManager, logger.With(logging.Component("omni_runtime")),
 	)
@@ -217,11 +219,21 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
-	if err := server.Run(ctx); err != nil {
-		return fmt.Errorf("failed to run server: %w", err)
-	}
+	eg, ctx := errgroup.WithContext(ctx)
 
-	return nil
+	// The image factory token files are followed for the lifetime of the server, so that a rotated
+	// token reaches the factory clients and the machine configs without a restart.
+	eg.Go(func() error { return factoryTokenFiles.Run(ctx) })
+
+	eg.Go(func() error {
+		if err := server.Run(ctx); err != nil {
+			return fmt.Errorf("failed to run server: %w", err)
+		}
+
+		return nil
+	})
+
+	return eg.Wait()
 }
 
 // factoryURLs holds the image factory endpoints published to the frontend via FeaturesConfig.
@@ -271,17 +283,19 @@ func resolveFactories(registries *config.Registries) (factoryURLs, error) {
 	return res, nil
 }
 
-// setupImageFactoryClients builds the image factory clients for the primary and (optional) secondary factories.
-func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefactory.Clients, error) {
+// setupImageFactoryClients builds the image factory clients for the primary and (optional) secondary
+// factories, together with the token files they authenticate with, which the caller has to run.
+func setupImageFactoryClients(cfg *config.Params, state *omni.State, logger *zap.Logger) (*imagefactory.Clients, *tokenfile.Set, error) {
 	primaryFactory := cfg.Registries.GetPrimaryFactory()
 
-	imageFactoryClient, err := imagefactory.NewClient(
-		primaryFactory.GetUrl(),
-		primaryFactory.GetUsername(),
-		primaryFactory.GetPassword(),
-	)
+	primaryAuth, primaryToken, err := factoryAuth(primaryFactory, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
+		return nil, nil, err
+	}
+
+	imageFactoryClient, err := imagefactory.NewClient(primaryFactory.GetUrl(), primaryAuth)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to set up image factory client: %w", err)
 	}
 
 	clients := imagefactory.NewClients(
@@ -289,20 +303,42 @@ func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefact
 		imageFactoryClient,
 	)
 
-	if secondaryFactory, ok := cfg.Registries.GetSecondaryFactory(); ok {
-		var secondaryFactoryClient *imagefactory.Client
+	var secondaryToken *tokenfile.Token
 
-		secondaryFactoryClient, err = imagefactory.NewClient(
-			secondaryFactory.GetUrl(),
-			secondaryFactory.GetUsername(),
-			secondaryFactory.GetPassword(),
-		)
+	if secondaryFactory, ok := cfg.Registries.GetSecondaryFactory(); ok {
+		var secondaryAuth imagefactory.Auth
+
+		secondaryAuth, secondaryToken, err = factoryAuth(secondaryFactory, logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to set up secondary image factory client: %w", err)
+			return nil, nil, err
+		}
+
+		secondaryFactoryClient, err := imagefactory.NewClient(secondaryFactory.GetUrl(), secondaryAuth)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to set up secondary image factory client: %w", err)
 		}
 
 		clients.SetSecondary(secondaryFactoryClient)
 	}
 
-	return clients, nil
+	return clients, tokenfile.NewSet(primaryToken, secondaryToken), nil
+}
+
+// factoryAuth is what the configuration says Omni authenticates to the factory with, and the token
+// file behind it, if any. The file is loaded here, so that a factory Omni cannot authenticate to fails
+// at startup.
+func factoryAuth(factory config.Factory, logger *zap.Logger) (imagefactory.Auth, *tokenfile.Token, error) {
+	if path := factory.GetTokenFile(); path != "" {
+		token, err := tokenfile.Load(imagefactory.NormalizeFactoryURL(factory.GetUrl()), path, logger)
+		if err != nil {
+			return imagefactory.Auth{}, nil, fmt.Errorf("failed to load the token of image factory %q: %w", factory.GetUrl(), err)
+		}
+
+		return imagefactory.Auth{TokenSource: token.Get}, token, nil
+	}
+
+	return imagefactory.Auth{
+		Username: factory.GetUsername(),
+		Password: factory.GetPassword(),
+	}, nil, nil
 }

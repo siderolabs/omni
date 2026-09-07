@@ -49,7 +49,7 @@ type imageFactoryMock struct {
 	listener   net.Listener
 	schematics map[string]schematic.Schematic
 
-	// downloadToken decides what POST /download-token answers, returning a status and either the token
+	// downloadToken decides what POST /tokens answers, returning a status and either the token
 	// or an error body. Nil answers 404, which is what an unregistered route returns and so stands in for
 	// every factory that does not issue tokens.
 	downloadToken func(ttl string) (int, string)
@@ -57,7 +57,7 @@ type imageFactoryMock struct {
 	eg      errgroup.Group
 	address string
 
-	// tokenTTLs records the ttl query parameter of every request, so a test can check what Omni asked for.
+	// tokenTTLs records the ttl of every request, so a test can check what Omni asked for.
 	tokenTTLs []string
 
 	// tokenAuth records the Authorization header of every request, so a test can check that Omni
@@ -68,7 +68,7 @@ type imageFactoryMock struct {
 	tokenMu     sync.Mutex
 }
 
-// setDownloadToken installs what POST /download-token answers and forgets the requests so far, so each
+// setDownloadToken installs what POST /tokens answers and forgets the requests so far, so each
 // case reads only its own.
 func (m *imageFactoryMock) setDownloadToken(handler func(ttl string) (int, string)) {
 	m.tokenMu.Lock()
@@ -96,9 +96,29 @@ func (m *imageFactoryMock) downloadTokenAuth() []string {
 	return slices.Clone(m.tokenAuth)
 }
 
-func (m *imageFactoryMock) handleDownloadToken(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// handleTokens stands in for POST /tokens, which the client posts an ephemeral image:read token request
+// to when asked for a download token.
+func (m *imageFactoryMock) handleTokens(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var request struct {
+		TTL    string   `json:"ttl"`
+		Scopes []string `json:"scopes"`
+		Stored bool     `json:"stored"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	if request.Stored || !slices.Equal(request.Scopes, []string{"image:read"}) {
+		http.Error(rw, fmt.Sprintf("a download token is an unstored image:read token, got %+v", request), http.StatusBadRequest)
+
+		return
+	}
+
 	m.tokenMu.Lock()
-	m.tokenTTLs = append(m.tokenTTLs, r.URL.Query().Get("ttl"))
+	m.tokenTTLs = append(m.tokenTTLs, request.TTL)
 	m.tokenAuth = append(m.tokenAuth, r.Header.Get("Authorization"))
 	handler := m.downloadToken
 	m.tokenMu.Unlock()
@@ -109,7 +129,7 @@ func (m *imageFactoryMock) handleDownloadToken(rw http.ResponseWriter, r *http.R
 		return
 	}
 
-	code, body := handler(r.URL.Query().Get("ttl"))
+	code, body := handler(request.TTL)
 
 	if code != http.StatusOK {
 		rw.WriteHeader(code)
@@ -120,9 +140,9 @@ func (m *imageFactoryMock) handleDownloadToken(rw http.ResponseWriter, r *http.R
 
 	rw.Header().Add("Content-Type", "application/json")
 
-	// The shape the pinned client decodes. It reads access_token and discards the rest, which is why Omni
-	// derives the expiry from the lifetime it sent rather than from expires_in.
-	rw.Write(fmt.Appendf(nil, `{"access_token":%q,"token_type":"Bearer","expires_in":300}`, body)) //nolint:errcheck
+	// The shape the client decodes: it reads id and token and discards the rest, which is why Omni
+	// derives the expiry from the lifetime it sent rather than from expires_at.
+	rw.Write(fmt.Appendf(nil, `{"id":"0d1c","name":"","token":%q,"org_id":"user","stored":false}`, body)) //nolint:errcheck
 }
 
 func (m *imageFactoryMock) run(ctx context.Context) error {
@@ -143,7 +163,7 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 	router.POST("/schematics", m.handleSchematics)
 	router.GET("/schematics/:id", m.handleSchematicGet)
 	router.GET("/versions", m.handleVersions)
-	router.POST("/download-token", m.handleDownloadToken)
+	router.POST("/tokens", m.handleTokens)
 
 	server := http.Server{
 		Handler: router,
@@ -455,9 +475,9 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 	}
 }
 
-// TestMediaURL pins the server-side installation media build: Omni assembles the image factory filename
-// from the media spec, picks the factory serving that Talos version, and places the credentials where
-// the caller can use them.
+// TestMediaURL pins the server-side installation media build against a factory that needs no
+// authentication: Omni assembles the image factory filename from the media spec and picks the factory
+// serving that Talos version. Authentication is covered by TestMediaToken.
 func (suite *GrpcSuite) TestMediaURL() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
@@ -468,35 +488,27 @@ func (suite *GrpcSuite) TestMediaURL() {
 
 	suite.Require().NoError(suite.state.Create(ctx, features))
 
-	factoryAuth := omni.NewImageFactoryAuth("https://factory.example.org")
-	factoryAuth.TypedSpec().Value.Username = "user"
-	factoryAuth.TypedSpec().Value.Password = "hunter2"
-
-	suite.Require().NoError(suite.state.Create(ctx, factoryAuth))
-
 	client := management.NewManagementServiceClient(suite.conn)
 
 	const schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
 	for _, tt := range []struct {
-		name         string
-		request      *management.InstallationMediaURLRequest
-		expectedURL  string
-		expectHeader bool
+		name        string
+		request     *management.InstallationMediaURLRequest
+		expectedURL string
 	}{
 		{
-			name: "disk image with credentials in the headers",
+			name: "disk image",
 			request: &management.InstallationMediaURLRequest{
 				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
 				Platform:              "nocloud",
 				Architecture:          "amd64",
 				Format:                "raw.xz",
 			},
-			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
-			expectHeader: true,
+			expectedURL: "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
 		},
 		{
-			name: "standalone disk image carries them in the URL",
+			name: "standalone disk image",
 			request: &management.InstallationMediaURLRequest{
 				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_DISK,
 				Platform:              "nocloud",
@@ -504,7 +516,7 @@ func (suite *GrpcSuite) TestMediaURL() {
 				Format:                "qcow2",
 				StandaloneUrl:         true,
 			},
-			expectedURL: "https://user:hunter2@factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.qcow2",
+			expectedURL: "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.qcow2",
 		},
 		{
 			name: "secure boot ISO",
@@ -514,18 +526,16 @@ func (suite *GrpcSuite) TestMediaURL() {
 				Architecture:          "amd64",
 				SecureBoot:            true,
 			},
-			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/metal-amd64-secureboot.iso",
-			expectHeader: true,
+			expectedURL: "https://factory.example.org/image/" + schematicID + "/v1.13.0/metal-amd64-secureboot.iso",
 		},
 		{
-			// PXE firmware cannot send headers, so the URL carries the credentials even unasked.
-			name: "PXE is always standalone",
+			name: "PXE",
 			request: &management.InstallationMediaURLRequest{
 				InstallationMediaKind: management.InstallationMediaURLRequest_INSTALLATION_MEDIA_KIND_PXE,
 				Platform:              "metal",
 				Architecture:          "amd64",
 			},
-			expectedURL: "https://user:hunter2@pxe.factory.example.org/pxe/" + schematicID + "/v1.13.0/metal-amd64",
+			expectedURL: "https://pxe.factory.example.org/pxe/" + schematicID + "/v1.13.0/metal-amd64",
 		},
 	} {
 		suite.Run(tt.name, func() {
@@ -537,12 +547,8 @@ func (suite *GrpcSuite) TestMediaURL() {
 
 			suite.Require().Equal(tt.expectedURL, resp.Url)
 			suite.Require().Equal("factory.example.org", strings.TrimPrefix(resp.ImageFactoryHost, "pxe."))
-
-			if tt.expectHeader {
-				suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
-			} else {
-				suite.Require().Empty(resp.Headers)
-			}
+			suite.Require().Empty(resp.Headers)
+			suite.Require().Nil(resp.ExpiresAt)
 		})
 	}
 
@@ -606,12 +612,11 @@ func (suite *GrpcSuite) TestMediaURL() {
 	}
 }
 
-// TestMediaToken covers what a caller gets when the factory Omni is configured with issues download
-// tokens: a URL that expires and only downloads, instead of the long-lived credential that works on every
-// factory route.
+// TestMediaToken covers what a caller gets for an authenticated factory: a URL that expires and only
+// downloads, instead of the long-lived credential that works on every factory route, and an error
+// when the factory does not issue one.
 //
-// TestMediaURL points FeaturesConfig at a factory no client is configured for, so it pins the
-// credential fallback. This points it at the mock, so ForURL finds the client and the token is issued.
+// FeaturesConfig points at the mock, so ForURL finds the client and the token is requested from it.
 func (suite *GrpcSuite) TestMediaToken() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*30)
 	defer cancel()
@@ -727,9 +732,9 @@ func (suite *GrpcSuite) TestMediaToken() {
 		suite.Require().NotNil(resp.ExpiresAt)
 	})
 
-	suite.Run("a PXE script falls back to credentials when the factory issues no token", func() {
-		// An image factory below 1.6.0 rejects a token on /pxe/, and one below 1.5.0 or with its own
-		// authentication disabled issues none at all. Both answer 404 here.
+	suite.Run("a PXE script is refused when the factory issues no token", func() {
+		// An authenticated factory that answers 404 here predates download tokens and has to be
+		// upgraded. The credentials must not go into the boot script instead.
 		suite.imageFactory.setDownloadToken(nil)
 
 		request := newRequest()
@@ -737,13 +742,10 @@ func (suite *GrpcSuite) TestMediaToken() {
 		request.Platform = "metal"
 		request.Format = ""
 
-		resp, err := client.GetInstallationMediaURL(ctx, request)
-		suite.Require().NoError(err)
-
-		suite.Require().Equal("https://"+testFactoryUsername+":"+testFactoryPassword+"@pxe.factory.example.org/pxe/"+
-			schematicID+"/v1.13.0/metal-amd64", resp.Url)
-		suite.Require().Empty(resp.Headers)
-		suite.Require().Nil(resp.ExpiresAt)
+		_, err := client.GetInstallationMediaURL(ctx, request)
+		suite.Require().Error(err)
+		suite.Require().Contains(status.Convert(err).Message(), "does not issue download tokens")
+		suite.Require().NotContains(status.Convert(err).Message(), testFactoryPassword)
 	})
 
 	suite.Run("a refused lifetime is InvalidArgument", func() {
@@ -765,19 +767,17 @@ func (suite *GrpcSuite) TestMediaToken() {
 		suite.Require().Contains(status.Convert(err).Message(), "100h0m0s")
 	})
 
-	suite.Run("a rejected token request falls back to credentials", func() {
+	suite.Run("a rejected token request is an error", func() {
 		// The credentials Omni requests the token with come from its startup configuration. If a factory
-		// refuses them, the resolve must still answer rather than failing a provision.
+		// refuses them, the download would be refused too, so the resolve fails rather than handing out
+		// a URL that does not work.
 		suite.imageFactory.setDownloadToken(func(string) (int, string) {
 			return http.StatusUnauthorized, "unauthorized"
 		})
 
-		resp, err := client.GetInstallationMediaURL(ctx, newRequest())
-		suite.Require().NoError(err)
-
-		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)
-		suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
-		suite.Require().Nil(resp.ExpiresAt)
+		_, err := client.GetInstallationMediaURL(ctx, newRequest())
+		suite.Require().Error(err)
+		suite.Require().Contains(status.Convert(err).Message(), "401")
 	})
 
 	suite.Run("a negative lifetime is InvalidArgument", func() {
@@ -794,16 +794,14 @@ func (suite *GrpcSuite) TestMediaToken() {
 		suite.Require().Empty(suite.imageFactory.downloadTokenTTLs())
 	})
 
-	suite.Run("a factory that does not issue tokens falls back to credentials", func() {
-		// Nil answers 404, exactly as an unregistered route does: every build below 1.5.0, every community
-		// build, and any factory with its own authentication disabled.
+	suite.Run("a factory that does not issue tokens is an error", func() {
+		// Nil answers 404, exactly as an unregistered route does. An authenticated factory that answers
+		// that predates download tokens and has to be upgraded. A community factory never gets here,
+		// since Omni holds no credentials for it and asks for no token.
 		suite.imageFactory.setDownloadToken(nil)
 
-		resp, err := client.GetInstallationMediaURL(ctx, newRequest())
-		suite.Require().NoError(err)
-
-		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)
-		suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
-		suite.Require().Nil(resp.ExpiresAt, "a credential does not expire, so there is nothing to report")
+		_, err := client.GetInstallationMediaURL(ctx, newRequest())
+		suite.Require().Error(err)
+		suite.Require().Contains(status.Convert(err).Message(), "does not issue download tokens")
 	})
 }
