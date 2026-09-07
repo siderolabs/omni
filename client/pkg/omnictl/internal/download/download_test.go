@@ -5,6 +5,9 @@
 package download_test
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -407,4 +411,89 @@ func TestGrpcTunnelModeToString(t *testing.T) {
 	require.Equal(t, download.GrpcTunnelEnabled, download.GrpcTunnelModeToString(specs.GrpcTunnelMode_ENABLED))
 	require.Equal(t, download.GrpcTunnelDisabled, download.GrpcTunnelModeToString(specs.GrpcTunnelMode_DISABLED))
 	require.Equal(t, download.GrpcTunnelAuto, download.GrpcTunnelModeToString(specs.GrpcTunnelMode_UNSET))
+}
+
+func TestDownloadToFileRemovesIncompleteDownload(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", "100")
+
+		_, err := io.WriteString(w, "partial response")
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	dest := filepath.Join(t.TempDir(), "metal.iso")
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+
+	err = download.DownloadToFile(req, dest)
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	require.NoFileExists(t, dest)
+	require.NoFileExists(t, dest+".tmp")
+	require.NoError(t, download.MakePath(dest), "the destination should be reusable by the next attempt")
+}
+
+func TestDownloadToFileKeepsCompleteDownload(t *testing.T) {
+	t.Parallel()
+
+	const contents = "complete response"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, err := io.WriteString(w, contents)
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	dest := filepath.Join(t.TempDir(), "metal.iso")
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	require.NoError(t, download.DownloadToFile(req, dest))
+
+	actual, err := os.ReadFile(dest)
+	require.NoError(t, err)
+	require.Equal(t, contents, string(actual))
+	require.NoFileExists(t, dest+".tmp")
+}
+
+func TestDownloadResponseToRemovesTemporaryFileWhenRenameFails(t *testing.T) {
+	t.Parallel()
+
+	dest := filepath.Join(t.TempDir(), "metal.iso")
+	require.NoError(t, os.Mkdir(dest, 0o755))
+
+	resp := &http.Response{
+		Body: io.NopCloser(strings.NewReader("complete response")),
+	}
+
+	require.Error(t, download.DownloadResponseTo(dest, resp))
+	require.DirExists(t, dest)
+	require.NoFileExists(t, dest+".tmp")
+}
+
+func TestDownloadToFileOverwritesAbandonedTemporaryFile(t *testing.T) {
+	t.Parallel()
+
+	const contents = "complete response"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, err := io.WriteString(w, contents)
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	dest := filepath.Join(t.TempDir(), "metal.iso")
+
+	// left behind by a run that was killed before it could clean up
+	require.NoError(t, os.WriteFile(dest+".tmp", []byte("abandoned partial download"), 0o666))
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
+	require.NoError(t, download.DownloadToFile(req, dest))
+
+	actual, err := os.ReadFile(dest)
+	require.NoError(t, err)
+	require.Equal(t, contents, string(actual))
+	require.NoFileExists(t, dest+".tmp")
 }
