@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -82,6 +83,7 @@ func TestReconcile(t *testing.T) {
 		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
 		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+		schematicConfiguration.TypedSpec().Value.ImageFactoryUrl = "https://factory-test.talos.dev"
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
 
 		currentSchematicRaw, err := initialSchematic.Marshal()
@@ -225,6 +227,7 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
 		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+		schematicConfiguration.TypedSpec().Value.ImageFactoryUrl = "https://factory-test.talos.dev"
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
 
 		updatedSchematic := updateKernelArgs(ctx, t, st, initialSchematic, id, []string{"updated-arg"})
@@ -232,32 +235,7 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 		updatedSchematicID, err := updatedSchematic.ID()
 		require.NoError(t, err)
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
-			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
-
-			res.TypedSpec().Value.Maintenance = true
-			res.TypedSpec().Value.TalosVersion = talosVersion
-
-			res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
-				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/sda", SystemDisk: true}},
-			}
-
-			res.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
-
-			res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
-				Platform: talosconstants.PlatformMetal,
-			}
-
-			res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-				InitialSchematic: currentSchematicID,
-				KernelArgs:       initialSchematic.Customization.ExtraKernelArgs,
-				FullId:           currentSchematicID,
-				Raw:              string(currentSchematicRaw),
-			}
-
-			return nil
-		})
-		require.NoError(t, err)
+		markMaintenanceMachine(ctx, t, st, ms, talosVersion, initialSchematic, currentSchematicID, string(currentSchematicRaw))
 
 		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
@@ -308,4 +286,130 @@ func updateKernelArgs(ctx context.Context, t *testing.T, st state.State, schemat
 	require.NoError(t, err)
 
 	return updatedSchematic
+}
+
+// TestReconcileInstallImageFactory covers where the install image's factory host comes from: the factory
+// recorded as having issued the schematic, not the one serving the Talos version, and nothing happens until
+// that record exists.
+func TestReconcileInstallImageFactory(t *testing.T) {
+	for _, tt := range []struct {
+		name         string
+		recordedURL  string
+		expectedHost string
+	}{
+		{name: "the recorded factory", recordedURL: "https://issuing.factory.test", expectedHost: "issuing.factory.test"},
+		{name: "no record yet"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+
+			testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+				clients := testutils.NewImageFactoryClients(t, testContext.State)
+
+				secondary, err := imagefactory.NewClient("https://issuing.factory.test", "", "")
+				require.NoError(t, err)
+
+				clients.SetSecondary(secondary)
+
+				ctrl := machineupgrade.NewStatusController(clients, testutils.NewLifecycleManager(t, testContext.State, nil))
+
+				require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
+			}, func(ctx context.Context, testContext testutils.TestContext) {
+				const id = "test-factory"
+
+				st := testContext.State
+
+				machineServices := testutils.NewMachineServices(t, st)
+				machineService := machineServices.Create(ctx, id)
+
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
+
+				require.NoError(t, st.Create(ctx, ms))
+
+				initialSchematic := schematic.Schematic{
+					Customization: schematic.Customization{
+						ExtraKernelArgs: []string{"arg1"},
+					},
+				}
+
+				currentSchematicID, err := initialSchematic.ID()
+				require.NoError(t, err)
+
+				currentSchematicRaw, err := initialSchematic.Marshal()
+				require.NoError(t, err)
+
+				const talosVersion = "1.13.4"
+
+				schematicConfiguration := omni.NewSchematicConfiguration(id)
+				schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
+				schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+				schematicConfiguration.TypedSpec().Value.ImageFactoryUrl = tt.recordedURL
+
+				require.NoError(t, st.Create(ctx, schematicConfiguration))
+
+				updatedSchematic := updateKernelArgs(ctx, t, st, initialSchematic, id, []string{"updated-arg"})
+
+				updatedSchematicID, err := updatedSchematic.ID()
+				require.NoError(t, err)
+
+				markMaintenanceMachine(ctx, t, st, ms, talosVersion, initialSchematic, currentSchematicID, string(currentSchematicRaw))
+
+				if tt.recordedURL == "" {
+					rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+						assertion.Equal("waiting for the image factory of the schematic to be known", res.TypedSpec().Value.Status)
+					})
+
+					assert.Empty(t, machineService.GetLifecycleUpgradeRequests())
+
+					return
+				}
+
+				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+					assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
+				})
+
+				lifecycleUpgradeRequests := machineService.GetLifecycleUpgradeRequests()
+				require.Len(t, lifecycleUpgradeRequests, 1)
+
+				assert.Equal(t, fmt.Sprintf("%s/metal-installer/%s:v%s", tt.expectedHost, updatedSchematicID, talosVersion), lifecycleUpgradeRequests[0].GetSource().GetImageName())
+			})
+		})
+	}
+}
+
+// markMaintenanceMachine turns the machine status into a maintenance mode machine running the given schematic on
+// the given Talos version, ready for a schematic upgrade.
+func markMaintenanceMachine(
+	ctx context.Context, t *testing.T, st state.State, ms *omni.MachineStatus, talosVersion string, sch schematic.Schematic, schematicID, schematicRaw string,
+) {
+	t.Helper()
+
+	_, err := safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+		res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+
+		res.TypedSpec().Value.Maintenance = true
+		res.TypedSpec().Value.TalosVersion = talosVersion
+
+		res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+			Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/sda", SystemDisk: true}},
+		}
+
+		res.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+
+		res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+			Platform: talosconstants.PlatformMetal,
+		}
+
+		res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+			InitialSchematic: schematicID,
+			KernelArgs:       sch.Customization.ExtraKernelArgs,
+			FullId:           schematicID,
+			Raw:              schematicRaw,
+		}
+
+		return nil
+	})
+	require.NoError(t, err)
 }

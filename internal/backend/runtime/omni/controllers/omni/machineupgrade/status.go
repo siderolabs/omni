@@ -209,9 +209,13 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
-	imageFactoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-	if err != nil {
-		return fmt.Errorf("failed to get image factory client for Talos version %q: %w", talosVersion, err)
+	// The install image names the factory that issued the schematic.
+	imageFactoryClient := ctrl.imageFactoryClients.ForURL(schematicConfiguration.TypedSpec().Value.ImageFactoryUrl)
+	if imageFactoryClient == nil {
+		status.TypedSpec().Value.Status = "waiting for the image factory of the schematic to be known"
+		status.TypedSpec().Value.Error = ""
+
+		return nil
 	}
 
 	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{

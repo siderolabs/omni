@@ -10,8 +10,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -22,6 +24,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
+	ifclient "github.com/siderolabs/image-factory/pkg/client"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -39,8 +42,12 @@ import (
 const ConfigurationControllerName = "SchematicConfigurationController"
 
 // imageFactoryClientProvider resolves the image factory client that serves a given Talos version.
+// imageFactoryClientProvider resolves the factory a schematic is ensured on, and lists the configured factories
+// for finding the one that issued a schematic recorded without it.
 type imageFactoryClientProvider interface {
 	ForTalosVersion(ctx context.Context, version string) (factoryclient.FactoryClient, error)
+	Primary() factoryclient.FactoryClient
+	Secondary() (factoryclient.FactoryClient, bool)
 }
 
 // ConfigurationController combines MachineExtensions resource, MachineStatus overlay into SchematicConfiguration for each existing MachineStatus.
@@ -48,12 +55,18 @@ type imageFactoryClientProvider interface {
 type ConfigurationController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.SchematicConfiguration]
 	imageFactoryClients imageFactoryClientProvider
+
+	// lookups memoizes the factories found by lookupSchematicFactory, by schematic ID: many machines share
+	// an ID, and the answer does not change.
+	lookups   map[string]string
+	lookupsMu sync.Mutex
 }
 
 // NewConfigurationController initializes SchematicConfigurationController.
 func NewConfigurationController(imageFactoryClients imageFactoryClientProvider) *ConfigurationController {
 	ctrl := &ConfigurationController{
 		imageFactoryClients: imageFactoryClients,
+		lookups:             map[string]string{},
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -203,6 +216,7 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	if ms.TypedSpec().Value.Schematic.Invalid {
 		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 		schematicConfiguration.TypedSpec().Value.SchematicId = ""
+		schematicConfiguration.TypedSpec().Value.ImageFactoryUrl = ""
 
 		return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
 	}
@@ -254,9 +268,14 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	// The published ID is deliberately left alone in that case rather than reset to the machine's own
 	// Schematic.FullId: an Enterprise factory stamps an owner into the schematic, so its ID for the
 	// same content differs from the ID the machine reports, and overwriting would lose it.
+	//
+	// The factory that issued the ID is recorded next to it: an install image with the ID has to name
+	// that factory, whichever one serves the Talos version by now.
+	spec := schematicConfiguration.TypedSpec().Value
+
 	if !bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) ||
 		versionOutdated ||
-		schematicConfiguration.TypedSpec().Value.SchematicId == "" {
+		spec.SchematicId == "" {
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 
 		id, _, err := factoryClient.EnsureSchematic(factoryCtx, patched)
@@ -275,12 +294,67 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 			zap.String("schematic_id", id),
 		)
 
-		schematicConfiguration.TypedSpec().Value.SchematicId = id
+		spec.SchematicId = id
+		spec.ImageFactoryUrl = factoryClient.URL()
+	} else if spec.ImageFactoryUrl == "" {
+		// Written before the factory was recorded: find the one that knows the ID, the ID itself stays.
+		spec.ImageFactoryUrl = ctrl.lookupSchematicFactory(ctx, logger.With(zap.String("machine", ms.Metadata().ID())), spec.SchematicId)
 	}
 
 	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
 
 	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
+}
+
+// lookupSchematicFactory returns the URL of the configured factory that knows the schematic, empty when
+// none does or none could be asked. A factory that cannot be asked is skipped: a schematic both factories
+// know is served by either. An empty answer is not kept, the next reconcile asks again.
+func (ctrl *ConfigurationController) lookupSchematicFactory(ctx context.Context, logger *zap.Logger, id string) string {
+	ctrl.lookupsMu.Lock()
+	url, known := ctrl.lookups[id]
+	ctrl.lookupsMu.Unlock()
+
+	if known {
+		return url
+	}
+
+	candidates := []factoryclient.FactoryClient{ctrl.imageFactoryClients.Primary()}
+
+	if secondary, ok := ctrl.imageFactoryClients.Secondary(); ok {
+		candidates = append(candidates, secondary)
+	}
+
+	for _, candidate := range candidates {
+		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+		_, err := candidate.SchematicGet(factoryCtx, id)
+
+		cancel()
+
+		switch {
+		case err == nil:
+			url = candidate.URL()
+		case ifclient.IsHTTPErrorCode(err, http.StatusNotFound):
+			continue
+		default:
+			logger.Warn("failed to look up the schematic on the image factory", zap.String("image_factory", candidate.Host()), zap.String("schematic_id", id), zap.Error(err))
+
+			continue
+		}
+
+		break
+	}
+
+	if url == "" {
+		logger.Warn("no configured image factory knows the schematic", zap.String("schematic_id", id))
+
+		return ""
+	}
+
+	ctrl.lookupsMu.Lock()
+	ctrl.lookups[id] = url
+	ctrl.lookupsMu.Unlock()
+
+	return url
 }
 
 func (ctrl *ConfigurationController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {

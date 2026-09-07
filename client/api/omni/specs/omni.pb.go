@@ -6628,11 +6628,15 @@ func (x *TalosExtensionsSpec) GetItems() []*TalosExtensionsSpec_Info {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 type SchematicConfigurationSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SchematicId   string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
-	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SchematicId  string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	TalosVersion string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	// ImageFactoryUrl is the base URL of the image factory that issued SchematicId. An install image with this
+	// schematic has to name that factory: another factory does not know the ID, an Enterprise one stamps an owner
+	// into the schematic and issues a different ID for the same content.
+	ImageFactoryUrl string `protobuf:"bytes,4,opt,name=image_factory_url,json=imageFactoryUrl,proto3" json:"image_factory_url,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SchematicConfigurationSpec) Reset() {
@@ -6675,6 +6679,13 @@ func (x *SchematicConfigurationSpec) GetSchematicId() string {
 func (x *SchematicConfigurationSpec) GetTalosVersion() string {
 	if x != nil {
 		return x.TalosVersion
+	}
+	return ""
+}
+
+func (x *SchematicConfigurationSpec) GetImageFactoryUrl() string {
+	if x != nil {
+		return x.ImageFactoryUrl
 	}
 	return ""
 }
@@ -11068,8 +11079,8 @@ type MachineConfigGenOptionsSpec_InstallImage struct {
 	Platform string `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
 	// SecurityState is used to decide the secure boot enablement in the install image.
 	SecurityState *SecurityState `protobuf:"bytes,7,opt,name=security_state,json=securityState,proto3" json:"security_state,omitempty"`
-	// ImageFactoryHost is the host of the image factory to build the install image from.
-	// When empty, the primary factory is used as a fallback.
+	// ImageFactoryHost is the host of the image factory to build the install image from: the factory that issued
+	// SchematicId, recorded on the SchematicConfiguration. An install image with a schematic and no host is not built.
 	ImageFactoryHost string `protobuf:"bytes,8,opt,name=image_factory_host,json=imageFactoryHost,proto3" json:"image_factory_host,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -12713,10 +12724,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06digest\x18\x06 \x01(\tR\x06digest\"j\n" +
+	"\x06digest\x18\x06 \x01(\tR\x06digest\"\x96\x01\n" +
 	"\x1aSchematicConfigurationSpec\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12#\n" +
-	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersionJ\x04\b\x03\x10\x04\"=\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\x12*\n" +
+	"\x11image_factory_url\x18\x04 \x01(\tR\x0fimageFactoryUrlJ\x04\b\x03\x10\x04\"=\n" +
 	"\x1bExtensionsConfigurationSpec\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +

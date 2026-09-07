@@ -44,7 +44,7 @@ func TestBuildInstallImage(t *testing.T) {
 	t.Run("target install image takes precedence over the machine's current schematic", func(t *testing.T) {
 		t.Parallel()
 
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.13.1", &specs.MachineConfigGenOptionsSpec_InstallImage{
+		image, err := m.BuildInstallImageForTest("machine-1", ms, "1.13.1", &specs.MachineConfigGenOptionsSpec_InstallImage{
 			TalosVersion:         "1.14.0",
 			SchematicId:          "target-schematic",
 			SchematicInitialized: true,
@@ -57,22 +57,19 @@ func TestBuildInstallImage(t *testing.T) {
 		assert.Equal(t, "factory.talos.dev/metal-installer/target-schematic:v1.14.0", image)
 	})
 
-	// Regression test for https://github.com/siderolabs/omni/issues/3247: a machine enrolled before Omni
-	// started tracking the factory host per machine reaches this path with an empty host in its
-	// MachineConfigGenOptions, and the install fails with "has no image factory host set".
-	t.Run("a target with no factory host falls back to the configured factory", func(t *testing.T) {
+	// A target without a factory host is refused rather than pointed at a guessed factory: only the
+	// factory that issued the schematic knows it, and the host is recorded next to the schematic.
+	t.Run("a target with no factory host is refused", func(t *testing.T) {
 		t.Parallel()
 
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.13.1", &specs.MachineConfigGenOptionsSpec_InstallImage{
+		_, err := m.BuildInstallImageForTest("machine-1", ms, "1.13.1", &specs.MachineConfigGenOptionsSpec_InstallImage{
 			TalosVersion:         "1.14.0",
 			SchematicId:          "target-schematic",
 			SchematicInitialized: true,
 			Platform:             "metal",
 			SecurityState:        &specs.SecurityState{},
 		})
-		require.NoError(t, err)
-
-		assert.Equal(t, "factory.talos.dev/metal-installer/target-schematic:v1.14.0", image)
+		require.ErrorContains(t, err, "no image factory host")
 	})
 
 	t.Run("the target install image is not modified", func(t *testing.T) {
@@ -87,29 +84,18 @@ func TestBuildInstallImage(t *testing.T) {
 			ImageFactoryHost:     "factory.talos.dev",
 		}
 
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.13.1", target)
+		image, err := m.BuildInstallImageForTest("machine-1", ms, "1.13.1", target)
 		require.NoError(t, err)
 
 		assert.Equal(t, "factory.talos.dev/metal-installer/target-schematic:v1.13.1", image)
 		assert.Empty(t, target.TalosVersion)
 	})
 
-	t.Run("nil target falls back to the machine's current schematic", func(t *testing.T) {
+	t.Run("nil target is refused", func(t *testing.T) {
 		t.Parallel()
 
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.14.0", nil)
-		require.NoError(t, err)
-
-		assert.Equal(t, "factory.talos.dev/metal-installer/current-schematic:v1.14.0", image)
-	})
-
-	t.Run("nil target and empty version reuses the machine's running version", func(t *testing.T) {
-		t.Parallel()
-
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "", nil)
-		require.NoError(t, err)
-
-		assert.Equal(t, "factory.talos.dev/metal-installer/current-schematic:v1.13.1", image)
+		_, err := m.BuildInstallImageForTest("machine-1", ms, "1.14.0", nil)
+		require.ErrorContains(t, err, "install image target is required")
 	})
 
 	t.Run("missing platform metadata fails fast", func(t *testing.T) {
@@ -118,7 +104,7 @@ func TestBuildInstallImage(t *testing.T) {
 		bare := omni.NewMachineStatus("machine-bare")
 		bare.TypedSpec().Value.TalosVersion = "1.13.1"
 
-		_, err := m.BuildInstallImageForTest(t.Context(), "machine-bare", bare, "", nil)
+		_, err := m.BuildInstallImageForTest("machine-bare", bare, "", nil)
 		require.Error(t, err)
 	})
 }

@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -46,7 +45,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
-	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
@@ -58,7 +56,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(registryMirrors []string, talosRegistry string, registries omnicfg.Registries) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(registryMirrors []string, talosRegistry string) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -69,7 +67,7 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, talosRegistry, registries)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, talosRegistry)
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
@@ -154,7 +152,6 @@ func reconcileClusterMachineConfig(
 	machineConfig *omni.ClusterMachineConfig,
 	registryMirrors []string,
 	talosRegistry string,
-	registries omnicfg.Registries,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -337,7 +334,6 @@ func reconcileClusterMachineConfig(
 
 	helper := clusterMachineConfigControllerHelper{
 		talosRegistry: talosRegistry,
-		registries:    registries,
 	}
 
 	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
@@ -414,7 +410,6 @@ func grubUseUKICmdline(cfg config.Provider, initialTalosVersion string) (bool, e
 }
 
 type clusterMachineConfigControllerHelper struct {
-	registries    omnicfg.Registries
 	talosRegistry string
 }
 
@@ -500,33 +495,6 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	}
 
 	installImageSpec := configGenOptions.TypedSpec().Value.InstallImage
-
-	// Migration code, if the factory URL is not populated yet, use the secondary factory URL if configured
-	// As the second factory should be the old one we're migrating from
-	if installImageSpec.ImageFactoryHost == "" {
-		// Resolve the primary factory rather than reading registries.factories.primary directly: a
-		// deployment still using the deprecated flat imageFactory* config leaves that block empty, and
-		// falling back to an empty URL would yield an empty host and fail the install image build.
-		primaryFactory := helper.registries.GetPrimaryFactory()
-		fallbackURL := primaryFactory.GetUrl()
-
-		if f, ok := helper.registries.GetSecondaryFactory(); ok {
-			fallbackURL = f.GetUrl()
-		}
-
-		u, err := url.Parse(fallbackURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse image factory URL %q: %w", fallbackURL, err)
-		}
-
-		if u.Host == "" {
-			return nil, fmt.Errorf("image factory URL %q has no host", fallbackURL)
-		}
-
-		// Clone rather than writing through the pointer into the cached MachineConfigGenOptions spec.
-		installImageSpec = installImageSpec.CloneVT()
-		installImageSpec.ImageFactoryHost = u.Host
-	}
 
 	installImage, err := installimage.Build(configGenOptions.Metadata().ID(), installImageSpec, helper.talosRegistry)
 	if err != nil {

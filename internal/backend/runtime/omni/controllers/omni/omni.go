@@ -26,6 +26,7 @@ type ImageFactoryClientProvider interface {
 	Secondary() (imagefactory.FactoryClient, bool)
 	ForTalosVersion(ctx context.Context, version string) (imagefactory.FactoryClient, error)
 	ForHost(host string) imagefactory.FactoryClient
+	ForURL(url string) imagefactory.FactoryClient
 }
 
 type cleanupOptions struct {

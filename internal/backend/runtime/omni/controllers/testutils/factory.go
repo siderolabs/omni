@@ -8,6 +8,7 @@ package testutils
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -27,7 +28,7 @@ func NewFactoryClientSet(clients ...imagefactory.FactoryClient) *imagefactory.Cl
 
 	var primaryClient imagefactory.FactoryClient
 
-	if len(clients) == 1 {
+	if len(clients) >= 1 {
 		primaryClient = clients[0]
 	} else {
 		primaryClient = &ImageFactoryClientMock{}
@@ -45,8 +46,11 @@ func NewFactoryClientSet(clients ...imagefactory.FactoryClient) *imagefactory.Cl
 // ImageFactoryClientMock is a mock implementation of the ImageFactoryClient interface for testing purposes.
 type ImageFactoryClientMock struct {
 	schematics map[string]schematic.Schematic
-	Owner      string
-	mu         sync.Mutex
+	// FactoryURL is what URL and Host answer, https://image.factory.test when unset.
+	FactoryURL string
+
+	Owner string
+	mu    sync.Mutex
 }
 
 func (i *ImageFactoryClientMock) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
@@ -85,10 +89,19 @@ func (i *ImageFactoryClientMock) SchematicGet(_ context.Context, id string) (*sc
 }
 
 func (i *ImageFactoryClientMock) Host() string {
-	return "image.factory.test"
+	u, err := url.Parse(i.URL())
+	if err != nil {
+		panic(err)
+	}
+
+	return u.Host
 }
 
 func (i *ImageFactoryClientMock) URL() string {
+	if i.FactoryURL != "" {
+		return i.FactoryURL
+	}
+
 	return "https://image.factory.test"
 }
 

@@ -198,7 +198,7 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	defer m.release(op.MachineID)
 
-	installImageStr, err := m.buildInstallImage(ctx, op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
+	installImageStr, err := m.buildInstallImage(op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
 	if err != nil {
 		return WrapErr(err, "failed to build install image")
 	}

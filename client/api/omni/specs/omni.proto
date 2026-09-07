@@ -1316,8 +1316,8 @@ message MachineConfigGenOptionsSpec {
     string platform = 6;
     // SecurityState is used to decide the secure boot enablement in the install image.
     SecurityState security_state = 7;
-    // ImageFactoryHost is the host of the image factory to build the install image from.
-    // When empty, the primary factory is used as a fallback.
+    // ImageFactoryHost is the host of the image factory to build the install image from: the factory that issued
+    // SchematicId, recorded on the SchematicConfiguration. An install image with a schematic and no host is not built.
     string image_factory_host = 8;
   }
 
@@ -1410,6 +1410,10 @@ message SchematicConfigurationSpec {
   string schematic_id = 1;
   string talos_version = 2;
   reserved 3;
+  // ImageFactoryUrl is the base URL of the image factory that issued SchematicId. An install image with this
+  // schematic has to name that factory: another factory does not know the ID, an Enterprise one stamps an owner
+  // into the schematic and issues a different ID for the same content.
+  string image_factory_url = 4;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.

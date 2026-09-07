@@ -2331,6 +2331,7 @@ func (m *SchematicConfigurationSpec) CloneVT() *SchematicConfigurationSpec {
 	r := new(SchematicConfigurationSpec)
 	r.SchematicId = m.SchematicId
 	r.TalosVersion = m.TalosVersion
+	r.ImageFactoryUrl = m.ImageFactoryUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -6688,6 +6689,9 @@ func (this *SchematicConfigurationSpec) EqualVT(that *SchematicConfigurationSpec
 		return false
 	}
 	if this.TalosVersion != that.TalosVersion {
+		return false
+	}
+	if this.ImageFactoryUrl != that.ImageFactoryUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14769,6 +14773,13 @@ func (m *SchematicConfigurationSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ImageFactoryUrl) > 0 {
+		i -= len(m.ImageFactoryUrl)
+		copy(dAtA[i:], m.ImageFactoryUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryUrl)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.TalosVersion) > 0 {
 		i -= len(m.TalosVersion)
 		copy(dAtA[i:], m.TalosVersion)
@@ -20253,6 +20264,10 @@ func (m *SchematicConfigurationSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.TalosVersion)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ImageFactoryUrl)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -38091,6 +38106,38 @@ func (m *SchematicConfigurationSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.TalosVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryUrl = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

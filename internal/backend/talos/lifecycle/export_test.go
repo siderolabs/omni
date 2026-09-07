@@ -21,13 +21,12 @@ func RelayProgressForTest(progress *machineapi.LifecycleServiceInstallProgress, 
 
 // BuildInstallImageForTest exposes buildInstallImage to external tests.
 func (m *Manager) BuildInstallImageForTest(
-	ctx context.Context,
 	machineID string,
 	ms *omni.MachineStatus,
 	version string,
 	target *specs.MachineConfigGenOptionsSpec_InstallImage,
 ) (string, error) {
-	return m.buildInstallImage(ctx, machineID, ms, version, target)
+	return m.buildInstallImage(machineID, ms, version, target)
 }
 
 // AcquireForTest exposes acquire to external tests.

@@ -31,7 +31,7 @@ type AuditFunc func(ctx context.Context, fullMethodName, machineID string) error
 func NoAudit(_ context.Context, _, _ string) error { return nil }
 
 // buildInstallImage constructs the installer image reference.
-func (m *Manager) buildInstallImage(ctx context.Context, machineID string, ms *omni.MachineStatus, version string, target *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
+func (m *Manager) buildInstallImage(machineID string, ms *omni.MachineStatus, version string, target *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
 	spec := ms.TypedSpec().Value
 
 	if spec.GetPlatformMetadata().GetPlatform() == "" {
@@ -46,37 +46,22 @@ func (m *Manager) buildInstallImage(ctx context.Context, machineID string, ms *o
 		version = strings.TrimPrefix(spec.TalosVersion, "v")
 	}
 
-	if target != nil {
-		// The target is the spec of a cached resource, so patch a copy of it instead of writing through into the cache.
-		target = target.CloneVT()
-
-		if target.TalosVersion == "" {
-			target.TalosVersion = version
-		}
-
-		// A machine enrolled before Omni started tracking the image factory host per machine may still have none:
-		// resolve it the same way as for a machine without a target install image instead of failing the install.
-		// See https://github.com/siderolabs/omni/issues/3247.
-		if target.ImageFactoryHost == "" {
-			imageFactoryClient, err := m.imageFactoryClients.ForTalosVersion(ctx, target.TalosVersion)
-			if err != nil {
-				return "", fmt.Errorf("failed to get image factory client for Talos version %q: %w", target.TalosVersion, err)
-			}
-
-			target.ImageFactoryHost = imageFactoryClient.Host()
-		}
-
-		return installimage.Build(machineID, target, m.talosRegistry)
+	if target == nil {
+		// Every caller passes the install image it wants: it names the factory that issued its schematic,
+		// which is not something to guess from the machine's own schematic and the Talos version.
+		return "", status.Error(codes.InvalidArgument, "install image target is required")
 	}
 
-	imageFactoryClient, err := m.imageFactoryClients.ForTalosVersion(ctx, version)
-	if err != nil {
-		return "", fmt.Errorf("failed to get image factory client for Talos version %q: %w", version, err)
+	// The target is the spec of a cached resource, so patch a copy of it instead of writing through into the cache.
+	target = target.CloneVT()
+
+	if target.TalosVersion == "" {
+		target.TalosVersion = version
 	}
 
-	installImage := omni.NewInstallImage(ms, version, spec.Schematic.FullId, imageFactoryClient.Host(), true)
-
-	return installimage.Build(machineID, installImage, m.talosRegistry)
+	// The target names the factory that issued its schematic, or has no host yet: the build fails on
+	// that rather than guessing a factory that does not know the schematic.
+	return installimage.Build(machineID, target, m.talosRegistry)
 }
 
 // pullInstallerImage pulls the installer image into the machine's containerd and returns the resolved image name, as required by LifecycleService.{Install,Upgrade}'s InstallArtifactsSource.

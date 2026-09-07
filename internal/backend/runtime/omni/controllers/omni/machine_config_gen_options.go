@@ -12,9 +12,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -41,41 +41,46 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 					return err
 				}
 
-				var (
-					talosVersion string
-					schematicID  string
-				)
-
-				if clusterMachineTalosVersion != nil {
-					talosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
-					schematicID = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
-				}
-
-				imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-				if err != nil {
+				schematicConfiguration, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, r, machineStatus.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
-				imageFactoryHost := imageFactoryClient.Host()
-
-				// Migration code: do not change image factory URL if it was already set in the options and the Talos version and schematic ID match the cluster machine Talos version.
-				// Image factory URL will only be upgraded when the Talos version or schematic ID changes.
-				if options.TypedSpec().Value.InstallImage != nil && clusterMachineTalosVersion != nil &&
-					(options.TypedSpec().Value.InstallImage.TalosVersion == talosVersion &&
-						options.TypedSpec().Value.InstallImage.SchematicId == schematicID) {
-					imageFactoryHost = options.TypedSpec().Value.InstallImage.ImageFactoryHost
-				}
+				installImage := options.TypedSpec().Value.InstallImage
 
 				if clusterMachineTalosVersion == nil {
-					backfillImageFactoryHost(options.TypedSpec().Value.InstallImage, imageFactoryClients, imageFactoryHost)
+					// A free machine keeps its install image as the record of what it runs. A host missing from
+					// it (enrolled before the host was tracked) is filled in from the schematic's record.
+					if installImage != nil && installImage.ImageFactoryHost == "" {
+						installImage.ImageFactoryHost = schematicFactoryHost(schematicConfiguration, installImage.SchematicId, installImage.TalosVersion, imageFactoryClients)
+					}
 
 					return nil
 				}
 
+				talosVersion := clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
+				schematicID := clusterMachineTalosVersion.TypedSpec().Value.SchematicId
+
+				// The host is the factory that issued the schematic in use, recorded when it was ensured for the
+				// target Talos version. While the record covers another schematic or version (an upgrade in
+				// flight, a resource from before the record existed), the install image already published for
+				// this very schematic and version keeps its host. With neither, nothing is published rather
+				// than a guess: an install image naming a factory that does not know its schematic only fails
+				// the pull.
+				imageFactoryHost := schematicFactoryHost(schematicConfiguration, schematicID, talosVersion, imageFactoryClients)
+
+				if imageFactoryHost == "" && installImage != nil && installImage.SchematicId == schematicID && installImage.TalosVersion == talosVersion {
+					imageFactoryHost = installImage.ImageFactoryHost
+				}
+
+				if imageFactoryHost == "" && schematicID != "" {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the image factory of schematic %q is not known yet", schematicID)
+				}
+
 				options.TypedSpec().Value.InstallImage = omni.NewInstallImage(
 					machineStatus,
-					clusterMachineTalosVersion.TypedSpec().Value.TalosVersion,
-					clusterMachineTalosVersion.TypedSpec().Value.SchematicId,
+					talosVersion,
+					schematicID,
 					imageFactoryHost,
 					machineStatus.TypedSpec().Value.SchematicReady(),
 				)
@@ -86,22 +91,27 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineTalosVersion](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
+		qtransform.WithExtraMappedInput[*omni.SchematicConfiguration](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
 		qtransform.WithIgnoreTeardownUntil(), // keep the resource until everyone else is done with Machine
 	)
 }
 
-func backfillImageFactoryHost(installImage *specs.MachineConfigGenOptionsSpec_InstallImage, imageFactoryClients ImageFactoryClientProvider, fallbackHost string) {
-	if installImage == nil || installImage.ImageFactoryHost != "" {
-		return
+// schematicFactoryHost returns the host of the factory that issued the schematic for the Talos version, as
+// recorded on the SchematicConfiguration, or empty while the record covers another schematic ID or version, or
+// names no configured factory.
+func schematicFactoryHost(schematicConfiguration *omni.SchematicConfiguration, schematicID, talosVersion string, imageFactoryClients ImageFactoryClientProvider) string {
+	if schematicConfiguration == nil ||
+		schematicConfiguration.TypedSpec().Value.SchematicId != schematicID ||
+		schematicConfiguration.TypedSpec().Value.TalosVersion != talosVersion {
+		return ""
 	}
 
-	// The secondary factory is the one Omni is migrating away from, so it is the factory the schematic of a machine
-	// enrolled before the host was tracked was created on.
-	if secondary, ok := imageFactoryClients.Secondary(); ok {
-		installImage.ImageFactoryHost = secondary.Host()
-
-		return
+	imageFactoryClient := imageFactoryClients.ForURL(schematicConfiguration.TypedSpec().Value.ImageFactoryUrl)
+	if imageFactoryClient == nil {
+		return ""
 	}
 
-	installImage.ImageFactoryHost = fallbackHost
+	return imageFactoryClient.Host()
 }

@@ -217,11 +217,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineSetDestroyStatusController(),
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
-		omnictrl.NewClusterMachineConfigController(
-			cfg.Registries.Mirrors,
-			cfg.Registries.GetTalos(),
-			cfg.Registries,
-		),
+		omnictrl.NewClusterMachineConfigController(cfg.Registries.Mirrors, cfg.Registries.GetTalos()),
 		omnictrl.NewClusterMachineTeardownController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime)),
 		omnictrl.NewMachineConfigGenOptionsController(imageFactoryClients),
 		omnictrl.NewMachineStatusController(imageFactoryClients, exraKernelArgsInitializer),

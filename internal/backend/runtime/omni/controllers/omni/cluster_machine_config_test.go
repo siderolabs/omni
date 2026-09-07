@@ -48,7 +48,7 @@ var testMachineAPIURL = "http://127.0.0.1:8090"
 // config, so the real controllers have to produce it instead of a fixture.
 func registerClusterMachineConfigControllers(t *testing.T) testutils.TestFunc {
 	return func(_ context.Context, tc testutils.TestContext) {
-		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", conf.Registries{})))
+		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer")))
 		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(testMachineAPIURL, testSiderolinkCfg)))
 		require.NoError(t, tc.Runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
