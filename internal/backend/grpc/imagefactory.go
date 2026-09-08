@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	factoryclient "github.com/siderolabs/image-factory/pkg/client"
@@ -26,6 +27,7 @@ import (
 	imagefactorypb "github.com/siderolabs/omni/client/api/omni/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -39,12 +41,6 @@ var scanReportFilenames = map[imagefactorypb.VulnerabilityReportFormat]string{
 	imagefactorypb.VulnerabilityReportFormat_SARIF:     "report.sarif",
 	imagefactorypb.VulnerabilityReportFormat_CYCLONEDX: "report.cdx",
 	imagefactorypb.VulnerabilityReportFormat_TABLE:     "report.table",
-}
-
-// archNames is the name the factory knows each architecture by.
-var archNames = map[imagefactorypb.Arch]string{
-	imagefactorypb.Arch_AMD64: "amd64",
-	imagefactorypb.Arch_ARM64: "arm64",
 }
 
 const (
@@ -67,13 +63,15 @@ const (
 type imageFactoryServer struct {
 	imagefactorypb.UnimplementedImageFactoryServiceServer
 
+	state     state.State
 	clients   *imagefactory.Clients
 	artifacts *expirable.LRU[string, []byte]
 	logger    *zap.Logger
 }
 
-func newImageFactoryServer(clients *imagefactory.Clients, logger *zap.Logger) *imageFactoryServer {
+func newImageFactoryServer(st state.State, clients *imagefactory.Clients, logger *zap.Logger) *imageFactoryServer {
 	return &imageFactoryServer{
+		state:     st,
 		clients:   clients,
 		artifacts: expirable.NewLRU[string, []byte](artifactCacheSize, nil, artifactCacheTTL),
 		logger:    logger,
@@ -116,14 +114,14 @@ func (s *imageFactoryServer) VulnerabilityReport(
 		return nil, status.Errorf(codes.InvalidArgument, "invalid report format %s", req.Format)
 	}
 
-	key := strings.Join([]string{"scan", req.SchematicId, req.TalosVersion, archNames[req.Arch], filename}, "/")
+	key := strings.Join([]string{"scan", req.SchematicId, req.TalosVersion, imagefactoryinternal.ArchNames[req.Arch], filename}, "/")
 
 	if data, ok := s.artifacts.Get(key); ok {
 		return &imagefactorypb.VulnerabilityReportResponse{Data: data}, nil
 	}
 
 	data, err := s.fetch(ctx, "scan report", req.TalosVersion, func(ctx context.Context, client imagefactory.FactoryClient) ([]byte, error) {
-		return client.ScanReport(ctx, req.SchematicId, req.TalosVersion, archNames[req.Arch], filename)
+		return client.ScanReport(ctx, req.SchematicId, req.TalosVersion, imagefactoryinternal.ArchNames[req.Arch], filename)
 	})
 	if err != nil {
 		return nil, err
@@ -155,14 +153,14 @@ func (s *imageFactoryServer) SBOM(ctx context.Context, req *imagefactorypb.SBOMR
 		return nil, err
 	}
 
-	key := strings.Join([]string{"spdx", req.SchematicId, req.TalosVersion, archNames[req.Arch]}, "/")
+	key := strings.Join([]string{"spdx", req.SchematicId, req.TalosVersion, imagefactoryinternal.ArchNames[req.Arch]}, "/")
 
 	if data, ok := s.artifacts.Get(key); ok {
 		return &imagefactorypb.SBOMResponse{Data: data}, nil
 	}
 
 	data, err := s.fetch(ctx, "SBOM bundle", req.TalosVersion, func(ctx context.Context, client imagefactory.FactoryClient) ([]byte, error) {
-		return client.SPDXBundle(ctx, req.SchematicId, req.TalosVersion, archNames[req.Arch])
+		return client.SPDXBundle(ctx, req.SchematicId, req.TalosVersion, imagefactoryinternal.ArchNames[req.Arch])
 	})
 	if err != nil {
 		return nil, err
@@ -228,6 +226,30 @@ func (s *imageFactoryServer) DownloadToken(ctx context.Context, req *imagefactor
 	}
 
 	return &imagefactorypb.DownloadTokenResponse{Token: token}, nil
+}
+
+// ClusterArtifactTargets implements imagefactorypb.ImageFactoryServiceServer.
+//
+// The resolution itself - which (schematic, arch) pairs a cluster's machines are on, and which
+// Talos versions to fetch security artifacts for - lives in internal/backend/imagefactory, so it
+// stays reusable outside of the gRPC transport.
+func (s *imageFactoryServer) ClusterArtifactTargets(
+	ctx context.Context, req *imagefactorypb.ClusterArtifactTargetsRequest,
+) (*imagefactorypb.ClusterArtifactTargetsResponse, error) {
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		return nil, err
+	}
+
+	resp, err := imagefactoryinternal.ClusterArtifactTargets(ctx, s.state, req.ClusterId)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "cluster %q not found", req.ClusterId)
+		}
+
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // fetch implements the shape every artifact method shares: resolve the image factory client for the
@@ -344,10 +366,10 @@ func validSchematicID(value string) error {
 	return nil
 }
 
-// validArch rejects an architecture the factory has no name for. archNames holds that name, which
-// the caller builds the request path from.
+// validArch rejects an architecture the factory has no name for. imagefactoryinternal.ArchNames
+// holds that name, which the caller builds the request path from.
 func validArch(value imagefactorypb.Arch) error {
-	if _, ok := archNames[value]; !ok {
+	if _, ok := imagefactoryinternal.ArchNames[value]; !ok {
 		return status.Errorf(codes.InvalidArgument, "invalid architecture %s", value)
 	}
 

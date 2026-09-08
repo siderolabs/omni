@@ -56,7 +56,7 @@ func (u *upstreamFactory) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // factoryServer builds the service against a stand-in factory, and the context a request to it
 // arrives on once the auth interceptors have run.
-func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFactoryServer, context.Context) { //nolint:revive
+func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFactoryServer, state.State, context.Context) { //nolint:revive
 	t.Helper()
 
 	server := httptest.NewServer(factory)
@@ -65,11 +65,12 @@ func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFacto
 	client, err := imagefactory.NewClient(server.URL, imagefactory.Auth{})
 	require.NoError(t, err)
 
-	clients := imagefactory.NewClients(state.WrapCore(namespaced.NewState(inmem.Build)), client)
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	clients := imagefactory.NewClients(st, client)
 
 	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: false})
 
-	return grpcomni.NewImageFactoryServer(clients, zaptest.NewLogger(t)), ctx
+	return grpcomni.NewImageFactoryServer(st, clients, zaptest.NewLogger(t)), st, ctx
 }
 
 func TestArtifactsAreFetchedFromTheFactory(t *testing.T) {
@@ -131,7 +132,7 @@ func TestArtifactsAreFetchedFromTheFactory(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			factory := &upstreamFactory{}
-			server, ctx := factoryServer(t, factory)
+			server, _, ctx := factoryServer(t, factory)
 
 			data, err := test.call(ctx, server)
 
@@ -147,7 +148,7 @@ func TestArtifactsAreFetchedFromTheFactory(t *testing.T) {
 // would be worse than not caching at all.
 func TestArtifactsAreCached(t *testing.T) {
 	factory := &upstreamFactory{}
-	server, ctx := factoryServer(t, factory)
+	server, _, ctx := factoryServer(t, factory)
 
 	report := func(arch imagefactorypb.Arch, format imagefactorypb.VulnerabilityReportFormat) {
 		t.Helper()
@@ -270,7 +271,7 @@ func TestInvalidRequestsAreNotForwarded(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			factory := &upstreamFactory{}
-			server, ctx := factoryServer(t, factory)
+			server, _, ctx := factoryServer(t, factory)
 
 			err := test.call(ctx, server)
 
@@ -328,7 +329,7 @@ func TestFactoryFailuresAreMapped(t *testing.T) {
 				w.WriteHeader(test.factoryCode)
 			}}
 
-			server, ctx := factoryServer(t, factory)
+			server, _, ctx := factoryServer(t, factory)
 
 			_, err := server.VulnerabilityReport(ctx, &imagefactorypb.VulnerabilityReportRequest{
 				SchematicId:  schematicID,
@@ -359,7 +360,7 @@ func TestReaderRoleIsRequired(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			factory := &upstreamFactory{}
-			server, _ := factoryServer(t, factory)
+			server, _, _ := factoryServer(t, factory)
 
 			ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
 			if test.hasRole {
@@ -375,4 +376,17 @@ func TestReaderRoleIsRequired(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestClusterArtifactTargetsUnknownCluster covers that an unknown cluster is reported as
+// NotFound, not as an internal error. Resolving a known cluster's targets is covered where that
+// resolution actually lives, in internal/backend/imagefactory.
+func TestClusterArtifactTargetsUnknownCluster(t *testing.T) {
+	factory := &upstreamFactory{}
+	server, _, ctx := factoryServer(t, factory)
+
+	_, err := server.ClusterArtifactTargets(ctx, &imagefactorypb.ClusterArtifactTargetsRequest{ClusterId: "does-not-exist"})
+
+	require.Equal(t, grpccodes.NotFound, grpcstatus.Code(err))
+	require.Empty(t, factory.paths, "resolving targets must not reach the factory")
 }

@@ -86,8 +86,8 @@ func WithLifecycleManager(m LifecycleManager) ManagementServerOption {
 type ImageFactoryServer = imageFactoryServer
 
 // NewImageFactoryServer is exported for testing.
-func NewImageFactoryServer(clients *imagefactory.Clients, logger *zap.Logger) *ImageFactoryServer {
-	return newImageFactoryServer(clients, logger)
+func NewImageFactoryServer(st state.State, clients *imagefactory.Clients, logger *zap.Logger) *ImageFactoryServer {
+	return newImageFactoryServer(st, clients, logger)
 }
 
 func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {

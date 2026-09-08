@@ -51,3 +51,9 @@ func (TalosVersionExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		},
 	}
 }
+
+// TalosVersionAvailable returns true if the Talos version is safe to offer as an upgrade/install target,
+// i.e., it is neither deprecated nor unsupported.
+func TalosVersionAvailable(spec *specs.TalosVersionSpec) bool {
+	return !spec.GetDeprecated() && !spec.GetUnsupported()
+}
