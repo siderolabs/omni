@@ -31,7 +31,7 @@ func (suite *KubeconfigSuite) TestReconcile() {
 
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil, false)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterLoadBalancerController(1000, 2000)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewKubeconfigController(2 * time.Second)))
 

@@ -466,7 +466,7 @@ func init() {
 	setOwner[*omni.ClusterStatus](omnictrl.NewClusterStatusController(false).ControllerName)
 	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController().ControllerName)
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)
-	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil).ControllerName)
+	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil, false).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
 	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController(nil).ControllerName)
 	setOwner[*omni.MachineInstallDiskStatus](installdisk.NewStatusController().ControllerName)

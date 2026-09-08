@@ -84,8 +84,14 @@ export type KernelParamStatusSpec = {
   unsupported?: boolean
 }
 
+export type KmsgLogDestination = {
+  endpoint?: string
+  extraTags?: {[key: string]: string}
+}
+
 export type KmsgLogConfigSpec = {
   destinations?: string[]
+  taggedDestinations?: KmsgLogDestination[]
 }
 
 export type LoadedKernelModuleSpec = {
@@ -170,6 +176,7 @@ export type SecurityStateSpec = {
   fipsState?: string
   bootedWithUKI?: boolean
   moduleSignatureEnforced?: boolean
+  lockdownState?: string
 }
 
 export type ServicePIDSpec = {

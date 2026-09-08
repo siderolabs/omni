@@ -69,6 +69,7 @@ docker run --name "${TALEMU_CONTAINER_NAME}" \
   --omni-api-endpoint="https://${LOCAL_IP}:8099"
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
   "${ARTIFACTS}/integration-test-linux-amd64" \
   --omni.talos-version="${TALOS_VERSION}" \

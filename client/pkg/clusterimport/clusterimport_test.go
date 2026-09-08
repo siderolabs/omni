@@ -292,7 +292,7 @@ func (data *testData) prepareNodes(ctx context.Context, t *testing.T) {
 	version, err := machineryconfig.ParseContractFromVersion(data.talosVersion)
 	require.NoError(t, err)
 
-	bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), version)
+	bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), version, secrets.WithECDSAServiceAccountKey())
 	require.NoError(t, err)
 
 	data.bundle = bundle

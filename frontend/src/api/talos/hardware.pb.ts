@@ -3,6 +3,18 @@
 // Source of truth: yaml struct tags on the Go types in
 // github.com/siderolabs/talos/pkg/machinery/resources/
 
+export type BMCDeviceSpec = {
+  manufacturerID?: number
+  manufacturer?: string
+  productID?: number
+  firmwareVersion?: string
+  ipmiVersion?: string
+  channel?: number
+  address?: string
+  gateway?: string
+  hardwareAddr?: string
+}
+
 export type CPUCoreSpec = {
   socket?: string
   coreID?: string

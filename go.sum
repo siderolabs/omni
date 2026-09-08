@@ -481,8 +481,8 @@ github.com/siderolabs/protoenc v0.2.4 h1:D3Fpn2nQSQOhl8ZlAxijZAf7K6F8CM1uZq0afIG
 github.com/siderolabs/protoenc v0.2.4/go.mod h1:i5XLHjfv5vyi7LhQrSEo19HCA+lYtDd7CWxsoWp9XE8=
 github.com/siderolabs/siderolink v0.3.17 h1:XrHd9KTw1vecMdFw5kA+fIyH8/bGf9Yhp+IJJjbm+/Y=
 github.com/siderolabs/siderolink v0.3.17/go.mod h1:30KnTBfTrb02WAJDpXQicIZoLPjiZNSVjMP74VsIQh0=
-github.com/siderolabs/talos/pkg/machinery v1.14.1-0.20260903103040-09681e895fe6 h1:JAXXE1mmjdKUnmlejzVx5YYsRI4xugY7PNoTbeXurK4=
-github.com/siderolabs/talos/pkg/machinery v1.14.1-0.20260903103040-09681e895fe6/go.mod h1:8rhGLm+Se7X/VnTG6InEhagg7zCDUFRwfJjLcqGNw7w=
+github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.0.0.20260908133727-5c5fd29e95f7 h1:z/MuEXk8o4JS5/EybxT0Yd8EOIXMy9X1wcMqQJ1RA0g=
+github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.0.0.20260908133727-5c5fd29e95f7/go.mod h1:pZiBCjC6jCze9CH+HPx8TV2kCl9yKNfW9D/O2RbKdio=
 github.com/siderolabs/tcpproxy v0.1.0 h1:IbkS9vRhjMOscc1US3M5P1RnsGKFgB6U5IzUk+4WkKA=
 github.com/siderolabs/tcpproxy v0.1.0/go.mod h1:onn6CPPj/w1UNqQ0U97oRPF0CqbrgEApYCw4P9IiCW8=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=

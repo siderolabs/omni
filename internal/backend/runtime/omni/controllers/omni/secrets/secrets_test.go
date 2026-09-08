@@ -73,7 +73,7 @@ func TestNewSecrets(t *testing.T) {
 		t,
 		testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
-			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil)))
+			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil, false)))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
 			st := testContext.State
@@ -131,7 +131,7 @@ func TestSecretsFromBackup(t *testing.T) {
 		t,
 		testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
-			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(&mockBackupStoreFactory{})))
+			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(&mockBackupStoreFactory{}, false)))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
 			st := testContext.State
@@ -199,7 +199,7 @@ func TestImportedSecrets(t *testing.T) {
 		t,
 		testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) { // prepare - register controllers
-			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil)))
+			require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil, false)))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
 			st := testContext.State
@@ -251,7 +251,7 @@ func TestSecretRotation(t *testing.T) {
 	t.Parallel()
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
-		require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil)))
+		require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil, false)))
 	}
 
 	t.Run("trigger Talos CA rotation", func(t *testing.T) {

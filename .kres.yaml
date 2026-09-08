@@ -770,10 +770,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/5c5fd29e95f71d6a642f306e4326553bec164e39/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/5c5fd29e95f71d6a642f306e4326553bec164e39/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/09c012d09660f694167adc12ec8a1e81cdc1bb41/proto/v1alpha1/resource.proto
@@ -906,7 +906,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/5c5fd29e95f71d6a642f306e4326553bec164e39/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -924,7 +924,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/09681e895fe6/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/5c5fd29e95f71d6a642f306e4326553bec164e39/api/common/common.proto
       subdirectory: common/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/09c012d09660f694167adc12ec8a1e81cdc1bb41/proto/v1alpha1/resource.proto

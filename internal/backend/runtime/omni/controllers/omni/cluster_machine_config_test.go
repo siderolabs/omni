@@ -600,6 +600,7 @@ func assertFinalConfigFeatures(t *testing.T, finalConfig config.Provider, initia
 	case "1.12.1":
 	case "1.13.1":
 	case "1.14.1":
+	case "1.15.1":
 	default:
 		t.Fatalf("untested initial version: %s", initialVersion)
 	}

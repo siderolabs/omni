@@ -5,7 +5,7 @@
 
 // Package testsecrets provides Talos secrets bundles for tests.
 //
-// Generating a bundle costs around a second of CPU because of the RSA service account key.
+// Generating a bundle costs CPU.
 // Because of this, bundles are generated once per version contract per test process and shared.
 // Tests do not need unique secrets.
 package testsecrets
@@ -50,7 +50,7 @@ func BundleData(vc *config.VersionContract) ([]byte, error) {
 		return bytes.Clone(data), nil
 	}
 
-	bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), vc)
+	bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), vc, secrets.WithECDSAServiceAccountKey())
 	if err != nil {
 		return nil, err
 	}

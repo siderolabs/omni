@@ -247,7 +247,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{}),
 		schematic.NewConfigurationController(imageFactoryClients),
-		secrets.NewSecretsController(etcdBackupStoreFactory),
+		secrets.NewSecretsController(etcdBackupStoreFactory, useECDSAServiceAccountKeys(logger)),
 		&secrets.ImportedClusterSecretsCleanupController{},
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClients),
@@ -769,4 +769,23 @@ func (it *item) Unwrap() any {
 // NewItem creates new runtime.ListItem from the resource.
 func NewItem(res *runtime.Resource) pkgruntime.ListItem {
 	return &item{BasicItem: runtime.MakeBasicItem(res.Metadata.ID, res.Metadata.Namespace, res)}
+}
+
+// devECDSAServiceAccountKeyEnvVar switches the service account keys of new clusters from RSA to ECDSA, in debug builds only.
+const devECDSAServiceAccountKeyEnvVar = "OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY"
+
+func useECDSAServiceAccountKeys(logger *zap.Logger) bool {
+	if os.Getenv(devECDSAServiceAccountKeyEnvVar) == "" {
+		return false
+	}
+
+	if !constants.IsDebugBuild {
+		logger.Warn("environment variable is set, but this is not a debug build, ignoring", zap.String("variable", devECDSAServiceAccountKeyEnvVar))
+
+		return false
+	}
+
+	logger.Warn("generating ECDSA service account keys because of the environment variable. THIS IS NOT RECOMMENDED FOR PRODUCTION USE.", zap.String("variable", devECDSAServiceAccountKeyEnvVar))
+
+	return true
 }

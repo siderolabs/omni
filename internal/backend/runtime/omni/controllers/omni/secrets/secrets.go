@@ -43,8 +43,14 @@ type Controller struct {
 // NewSecretsController instantiates the secrets' controller.
 //
 //nolint:gocognit,gocyclo,cyclop
-func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
+func NewSecretsController(etcdBackupStoreFactory store.Factory, useECDSAServiceAccountKeys bool) *Controller {
 	ctrl := &Controller{}
+
+	var bundleOptions []talossecrets.Option
+
+	if useECDSAServiceAccountKeys {
+		bundleOptions = append(bundleOptions, talossecrets.WithECDSAServiceAccountKey())
+	}
 
 	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
@@ -125,7 +131,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 					return nil
 				}
 
-				bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), versionContract)
+				bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), versionContract, bundleOptions...)
 				if err != nil {
 					return fmt.Errorf("error generating secrets: %w", err)
 				}

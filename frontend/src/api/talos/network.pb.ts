@@ -186,13 +186,25 @@ export type VLANSpec = {
   vlanProtocol?: string
 }
 
+export type MacVLANSpec = {
+  mode?: string
+}
+
+export type VXLANSpec = {
+  id?: number
+  local?: string
+  group?: string
+  port?: number
+  learning?: boolean
+}
+
 export type BondMasterSpec = {
   mode?: string
   xmitHashPolicy?: string
   lacpRate?: string
   arpValidate?: string
   arpAllTargets?: string
-  primary?: number
+  primaryIndex?: number
   primaryReselect?: string
   failOverMac?: string
   adSelect?: string
@@ -215,6 +227,7 @@ export type BondMasterSpec = {
   nsIp6Targets?: string[]
   adLacpActive?: string
   missedMax?: number
+  primary?: string
 }
 
 export type STPSpec = {
@@ -287,11 +300,13 @@ export type LinkSpecSpec = {
   bridgeSlave?: BridgeSlave
   vrfSlave?: VRFSlave
   vlan?: VLANSpec
+  macvlan?: MacVLANSpec
   bondMaster?: BondMasterSpec
   bridgeMaster?: BridgeMasterSpec
   vrfMaster?: VRFMasterSpec
   wireguard?: WireguardSpec
   veth?: VethSpec
+  vxlan?: VXLANSpec
   layer?: string
   multicast?: boolean
 }
@@ -326,6 +341,8 @@ export type LinkStatusSpec = {
   port?: string
   duplex?: string
   vlan?: VLANSpec
+  macvlan?: MacVLANSpec
+  vxlan?: VXLANSpec
   bridgeMaster?: BridgeMasterSpec
   bondMaster?: BondMasterSpec
   vrfMaster?: VRFMasterSpec
