@@ -77,7 +77,7 @@ services:
 
   # The launcher is needed regardless of WITH_DEBUG.
   runtime-tools-init:
-    image: golang:1.26-alpine
+    image: ${TOOLCHAIN}
     restart: on-failure
     volumes:
       - dlv-tools:/output
@@ -91,7 +91,7 @@ services:
         case '${WITH_DEBUG:-false}' in
           true|1)
             test -f /output/dlv || \
-              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@v1.26.3 && cp /go/bin/dlv /output/)
+              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@v1.27.1 && cp /go/bin/dlv /output/)
             ;;
         esac
 
