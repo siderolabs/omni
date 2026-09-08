@@ -6205,7 +6205,9 @@ func (x *MachineClassSpec) GetAutoProvision() *MachineClassSpec_Provision {
 type MachineConfigGenOptionsSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
-	InstallImage  *MachineConfigGenOptionsSpec_InstallImage `protobuf:"bytes,2,opt,name=install_image,json=installImage,proto3" json:"install_image,omitempty"`
+	InstallImage *MachineConfigGenOptionsSpec_InstallImage `protobuf:"bytes,2,opt,name=install_image,json=installImage,proto3" json:"install_image,omitempty"`
+	// TalosVersion is the Talos version the machine runs.
+	TalosVersion  string `protobuf:"bytes,3,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6245,6 +6247,13 @@ func (x *MachineConfigGenOptionsSpec) GetInstallImage() *MachineConfigGenOptions
 		return x.InstallImage
 	}
 	return nil
+}
+
+func (x *MachineConfigGenOptionsSpec) GetTalosVersion() string {
+	if x != nil {
+		return x.TalosVersion
+	}
+	return ""
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.
@@ -12664,9 +12673,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xc1\x03\n" +
+	"grpcTunnel\"\xe6\x03\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12T\n" +
-	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x1a\xc5\x02\n" +
+	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x12#\n" +
+	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x1a\xc5\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +

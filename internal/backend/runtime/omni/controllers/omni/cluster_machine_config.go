@@ -285,24 +285,9 @@ func reconcileClusterMachineConfig(
 		installDiskStatus,
 	}
 
-	var imageFactories safe.List[*omni.ImageFactoryAuth]
-
-	initialTalosVersion := clusterConfigVersion.TypedSpec().Value.Version
-
-	if quirks.New(initialTalosVersion).SupportsMultidoc() {
-		var vc *config.VersionContract
-
-		vc, err = config.ParseContractFromVersion(initialTalosVersion)
-		if err != nil {
-			return fmt.Errorf("failed to parse contract from version: %w", err)
-		}
-
-		if vc.MultidocNetworkConfigSupported() {
-			imageFactories, err = safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, r)
-			if err != nil {
-				return err
-			}
-		}
+	imageFactories, err := safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, r)
+	if err != nil {
+		return err
 	}
 
 	for imageFactory := range imageFactories.All() {
@@ -384,7 +369,7 @@ func reconcileClusterMachineConfig(
 		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
-	useUKICmdline, err := grubUseUKICmdline(conf, initialTalosVersion)
+	useUKICmdline, err := grubUseUKICmdline(conf, clusterConfigVersion.TypedSpec().Value.Version)
 	if err != nil {
 		return err
 	}
@@ -418,9 +403,25 @@ type clusterMachineConfigControllerHelper struct {
 	talosRegistry string
 }
 
-func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch(creds safe.List[*omni.ImageFactoryAuth]) (string, error) {
+// buildRegistryAuthPatch builds the registry auth documents for the image factories, if all the given Talos versions support them.
+func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch(creds safe.List[*omni.ImageFactoryAuth], talosVersions ...string) (string, error) {
 	if creds.Len() == 0 {
 		return "", nil
+	}
+
+	for _, talosVersion := range talosVersions {
+		if talosVersion == "" { // not known yet
+			continue
+		}
+
+		vc, err := config.ParseContractFromVersion(talosVersion)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse contract from version %q: %w", talosVersion, err)
+		}
+
+		if !vc.MultidocNetworkConfigSupported() {
+			return "", nil
+		}
 	}
 
 	authDocs, err := imagefactoryauth.BuildDocs(slices.Collect(creds.All()))
@@ -612,7 +613,8 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		patchList = append(patchList, machineJoinConfig.TypedSpec().Value.Config.Config)
 	}
 
-	authPatch, authErr := helper.buildRegistryAuthPatch(imageFactories)
+	// the version the machine runs, when known, and the one it installs must both know the document
+	authPatch, authErr := helper.buildRegistryAuthPatch(imageFactories, configGenOptions.TypedSpec().Value.TalosVersion, installImageSpec.TalosVersion)
 	if authErr != nil {
 		return nil, authErr
 	}

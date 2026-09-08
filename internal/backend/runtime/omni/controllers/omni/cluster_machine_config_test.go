@@ -796,3 +796,76 @@ func TestClusterMachineConfigInstallDiskOverride(t *testing.T) {
 		})
 	}
 }
+
+// TestClusterMachineConfigRegistryAuthFollowsRunningVersion checks that the image factory registry auth
+// document is generated when both the Talos version the machine runs and the one it installs support it,
+// regardless of the version the cluster was created with.
+func TestClusterMachineConfigRegistryAuthFollowsRunningVersion(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			const factoryHost = "factory.example.com"
+
+			auth := omni.NewImageFactoryAuth("https://" + factoryHost)
+			auth.TypedSpec().Value.Username = "omni"
+			auth.TypedSpec().Value.Password = "secret"
+			require.NoError(t, tc.State.Create(ctx, auth))
+
+			// created at 1.11, which does not know the registry auth document
+			_, machines := createConfigTestCluster(ctx, t, tc.State, "registry-auth", 0, "1.11.0")
+			machineID := machines[0].Metadata().ID()
+
+			setVersions := func(running, target string) {
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, tc.State, options.WithID(machineID), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+					res.TypedSpec().Value.TalosVersion = running
+					res.TypedSpec().Value.InstallImage.TalosVersion = target
+
+					return nil
+				}))
+			}
+
+			assertRegistryAuth := func(installVersion string, expectDocument bool) {
+				rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+					cfg := machineConfigOf(t, res)
+
+					assertions.Contains(cfg.Machine().Install().Image(), ":v"+installVersion)
+
+					registryAuth, ok := cfg.RegistryAuthConfigs()[factoryHost]
+					if !expectDocument {
+						assertions.False(ok, "unexpected registry auth for %q", factoryHost)
+
+						return
+					}
+
+					if assertions.True(ok, "no registry auth for %q", factoryHost) {
+						assertions.Equal("omni", registryAuth.Username())
+						assertions.Equal("secret", registryAuth.Password())
+					}
+				})
+			}
+
+			assertRegistryAuth("1.11.0", false)
+
+			// not installed yet, the target version decides
+			setVersions("", "1.12.0")
+			assertRegistryAuth("1.12.0", true)
+
+			// upgrade to 1.12: the machine still runs 1.11, no document yet
+			setVersions("1.11.0", "1.12.0")
+			assertRegistryAuth("1.12.0", false)
+
+			// the machine runs 1.12 now, the document is added although the cluster was created at 1.11
+			setVersions("1.12.0", "1.12.0")
+			assertRegistryAuth("1.12.0", true)
+
+			// downgrade back to 1.11: the document must not reach the 1.11 install
+			setVersions("1.12.0", "1.11.0")
+			assertRegistryAuth("1.11.0", false)
+		},
+	)
+}

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -204,6 +205,7 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 
 					rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
 						assertions.Equal(tt.expectedFactoryHost, res.TypedSpec().Value.InstallImage.GetImageFactoryHost())
+						assertions.Equal(constants.DefaultTalosVersion, res.TypedSpec().Value.TalosVersion)
 					})
 				},
 			)

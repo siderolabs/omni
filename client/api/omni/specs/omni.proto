@@ -1325,6 +1325,9 @@ message MachineConfigGenOptionsSpec {
 
   // InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
   InstallImage install_image = 2;
+
+  // TalosVersion is the Talos version the machine runs.
+  string talos_version = 3;
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.

@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -65,6 +66,8 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 						options.TypedSpec().Value.InstallImage.SchematicId == schematicID) {
 					imageFactoryHost = options.TypedSpec().Value.InstallImage.ImageFactoryHost
 				}
+
+				options.TypedSpec().Value.TalosVersion = strings.TrimPrefix(machineStatus.TypedSpec().Value.TalosVersion, "v")
 
 				if clusterMachineTalosVersion == nil {
 					backfillImageFactoryHost(options.TypedSpec().Value.InstallImage, imageFactoryClients, imageFactoryHost)
