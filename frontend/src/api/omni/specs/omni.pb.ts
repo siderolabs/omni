@@ -859,6 +859,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 
 export type MachineConfigGenOptionsSpec = {
   install_image?: MachineConfigGenOptionsSpecInstallImage
+  talos_version?: string
 }
 
 export type EtcdAuditResultSpec = {
@@ -924,6 +925,7 @@ export type TalosExtensionsSpec = {
 export type SchematicConfigurationSpec = {
   schematic_id?: string
   talos_version?: string
+  schematic_hash?: string
 }
 
 export type ExtensionsConfigurationSpec = {
