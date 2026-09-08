@@ -83,7 +83,8 @@ func (ctrl *NodeUniqueTokenCleanupController) MapInput(ctx context.Context, _ *z
 func (ctrl *NodeUniqueTokenCleanupController) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	nodeUniqueToken, err := safe.ReaderGet[*siderolink.NodeUniqueToken](ctx, r, siderolink.NewNodeUniqueToken(ptr.ID()).Metadata())
+	// uncached: a stale tearing-down phase would destroy a token recreated under the same ID
+	nodeUniqueToken, err := safe.ReaderGetByID[*siderolink.NodeUniqueToken](ctx, uncached.Reader(r), ptr.ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
