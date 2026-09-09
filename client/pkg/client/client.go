@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/siderolabs/omni/client/pkg/client/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/client/oidc"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
@@ -142,6 +143,11 @@ func (c *Client) Omni() *omni.Client {
 // Management provides access to the management API.
 func (c *Client) Management() *management.Client {
 	return management.NewClient(c.conn)
+}
+
+// ImageFactory provides access to the image factory artifact proxy API.
+func (c *Client) ImageFactory() *imagefactory.Client {
+	return imagefactory.NewClient(c.conn)
 }
 
 // OIDC provides access to the OIDC API.

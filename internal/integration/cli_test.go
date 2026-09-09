@@ -10,6 +10,7 @@ package integration_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -23,6 +24,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/api/omni/management"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
@@ -330,6 +332,110 @@ func AssertInstallationMediaPresetCLI(testCtx context.Context, client *client.Cl
 		res, err = os.Stat(archOverrideOutput)
 		require.NoError(t, err)
 		require.Greater(t, res.Size(), int64(1024*1024))
+	}
+}
+
+// AssertSecurityCLI verifies the `omnictl security` CLI (scan/sbom/vex) against a real schematic
+// known to the enterprise image factory: the empty schematic (no extensions/overlay) for the
+// default Talos version, which every base image build in this suite already resolves, so its
+// scan/SBOM/VEX are real factory data, not stubs.
+//
+// Only meaningful against an enterprise factory - the suite this belongs to,
+// testSecurityArtifacts, is only ever selected by the enterprise-cron workflow, so there's no
+// runtime enterprise check here.
+func AssertSecurityCLI(testCtx context.Context, client *client.Client, omnictlPath, httpEndpoint string) TestFunc {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		if omnictlPath == "" {
+			t.Skip()
+		}
+
+		resp, err := client.Management().CreateSchematic(testCtx, &management.CreateSchematicRequest{
+			TalosVersion: clientconstants.DefaultTalosVersion,
+		})
+		require.NoError(t, err, "failed to create the empty schematic")
+
+		schematicID := resp.SchematicId
+
+		name := "test-" + uuid.NewString()
+		key := createServiceAccount(testCtx, t, client, name, role.Admin)
+
+		t.Run("Scan", func(t *testing.T) {
+			t.Parallel()
+
+			// Default output is the severity table.
+			stdout, stderr, err := runCmd(
+				testCtx, omnictlPath, httpEndpoint, key,
+				"security", "scan",
+				"--schematic", schematicID,
+				"--talos-version", clientconstants.DefaultTalosVersion,
+				"--arch", "amd64",
+			)
+			require.NoErrorf(t, err, "stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+			require.Contains(t, stdout.String(), "CRITICAL")
+
+			// -o json always prints a JSON array of {schematicId, arch, version, report,
+			// upgradeCandidates}, one entry per target fetched - here, one.
+			stdout, stderr, err = runCmd(
+				testCtx, omnictlPath, httpEndpoint, key,
+				"security", "scan",
+				"--schematic", schematicID,
+				"--talos-version", clientconstants.DefaultTalosVersion,
+				"--arch", "amd64",
+				"-o", "json",
+			)
+			require.NoErrorf(t, err, "stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+
+			var results []struct {
+				Report struct {
+					Matches []any `json:"matches"`
+				} `json:"report"`
+			}
+			require.NoError(t, json.Unmarshal(stdout.Bytes(), &results), "not a JSON array of scan results: %s", stdout.String())
+			require.Len(t, results, 1)
+		})
+
+		t.Run("SBOM", func(t *testing.T) {
+			t.Parallel()
+
+			stdout, stderr, err := runCmd(
+				testCtx, omnictlPath, httpEndpoint, key,
+				"security", "sbom",
+				"--schematic", schematicID,
+				"--talos-version", clientconstants.DefaultTalosVersion,
+				"--arch", "amd64",
+			)
+			require.NoErrorf(t, err, "stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+
+			// Always a JSON array of {schematicId, arch, version, sbom}, one entry per bundle
+			// fetched - here, one.
+			var results []struct {
+				SBOM json.RawMessage `json:"sbom"`
+			}
+			require.NoError(t, json.Unmarshal(stdout.Bytes(), &results), "not a JSON array of SBOM results: %s", stdout.String())
+			require.Len(t, results, 1)
+			require.NotEmpty(t, results[0].SBOM)
+		})
+
+		t.Run("VEX", func(t *testing.T) {
+			t.Parallel()
+
+			stdout, stderr, err := runCmd(
+				testCtx, omnictlPath, httpEndpoint, key,
+				"security", "vex",
+				"--talos-version", clientconstants.DefaultTalosVersion,
+			)
+			require.NoErrorf(t, err, "stdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+
+			// Always a JSON array of {version, vex}, one entry per version fetched - here, one.
+			var results []struct {
+				VEX json.RawMessage `json:"vex"`
+			}
+			require.NoError(t, json.Unmarshal(stdout.Bytes(), &results), "not a JSON array of VEX results: %s", stdout.String())
+			require.Len(t, results, 1)
+			require.NotEmpty(t, results[0].VEX)
+		})
 	}
 }
 

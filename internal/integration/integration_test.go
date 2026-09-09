@@ -221,6 +221,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("Suites", func(t *testing.T) {
 		t.Run("CleanState", testCleanState(testOptions))
 		t.Run("TalosImageGeneration", testImageGeneration(testOptions))
+		t.Run("SecurityArtifacts", testSecurityArtifacts(testOptions))
 		t.Run("CLICommands", testCLICommands(testOptions))
 		t.Run("AccountLimits", testAccountLimits(testOptions))
 		t.Run("KubernetesNodeAudit", testKubernetesNodeAudit(testOptions))

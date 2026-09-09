@@ -133,6 +133,25 @@ Generate various Talos images with Omni and try to download them.`)
 	}
 }
 
+// testSecurityArtifacts verifies `omnictl security` (scan/sbom/vex) against real vulnerability
+// scans/SBOMs/VEX documents. Those only exist for schematics served by an enterprise factory, so
+// unlike testImageGeneration this suite is only ever selected in the enterprise-cron run (see
+// .kres.yaml's e2e-enterprise job) - it isn't in any other workflow's INTEGRATION_TEST_ARGS, and
+// carries no runtime enterprise check of its own.
+func testSecurityArtifacts(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		t.Log(`
+Fetch vulnerability scans, SBOMs and VEX documents via omnictl security.`)
+
+		t.Run(
+			"OmnictlSecurityShouldWork",
+			AssertSecurityCLI(t.Context(), options.omniClient, options.OmnictlPath, options.HTTPEndpoint),
+		)
+	}
+}
+
 func testCLICommands(options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		t.Parallel()

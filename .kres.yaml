@@ -642,7 +642,7 @@ spec:
           skipArtifactDownload: true
         environmentOverride:
           WITH_IMAGE_FACTORY_ENTERPRISE: "true"
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|TalosUpgrades|KernelArgsUpdate)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|TalosUpgrades|KernelArgsUpdate|SecurityArtifacts)$"
 ---
 kind: common.Build
 spec:
