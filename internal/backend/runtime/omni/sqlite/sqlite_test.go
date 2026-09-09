@@ -6,6 +6,7 @@
 package sqlite_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -50,6 +51,38 @@ func TestOpenDBSetsSynchronousNormal(t *testing.T) {
 
 		db.Put(conn)
 	}
+}
+
+// TestOpenDBExtraParams checks that the extra params reach SQLite as URI parameters.
+func TestOpenDBExtraParams(t *testing.T) {
+	t.Parallel()
+
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(filepath.Join(t.TempDir(), "test.db"))
+	conf.SetCachedPoolSize(16)
+	conf.SetPoolSize(16)
+	conf.SetExtraParams("vfs=unix-excl")
+
+	db, err := sqlite.OpenDB(conf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, sqlite.CloseDB(db, 5*time.Second))
+	})
+
+	conn, err := db.Take(t.Context())
+	require.NoError(t, err)
+
+	require.NoError(t, sqlitex.ExecuteTransient(conn, "CREATE TABLE test (id INTEGER)", nil))
+
+	db.Put(conn)
+
+	// the unix-excl VFS keeps the WAL index in heap memory instead of the shm file
+	_, err = os.Stat(conf.GetPath() + "-wal")
+	require.NoError(t, err)
+
+	_, err = os.Stat(conf.GetPath() + "-shm")
+	require.ErrorIs(t, err, os.ErrNotExist)
 }
 
 func readPragma(t *testing.T, conn *zombiesqlite.Conn, name string) string {

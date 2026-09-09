@@ -28,6 +28,9 @@ func OpenDB(config config.SQLite) (*sqlitexx.Pool, error) {
 	}
 
 	dsn := "file:" + configPath
+	if extraParams := config.GetExtraParams(); extraParams != "" {
+		dsn += "?" + extraParams
+	}
 
 	db, err := sqlitexx.NewPool(
 		dsn,

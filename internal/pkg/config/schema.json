@@ -1598,12 +1598,11 @@
           }
         },
         "extraParams": {
-          "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection.\n\nDeprecated: unused, has no effect.",
+          "description": "ExtraParams contains the extra SQLite URI parameters to be used when opening the SQLite database connection, e.g., vfs=unix-excl. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with a question mark (?) or an ampersand (&).",
           "x-cli-flag": "sqlite-storage-extra-params",
-          "deprecated": true,
           "type": "string",
-          "pattern": "^(?:$|[^&].*)",
-          "x-pattern-message": "must not start with '&'"
+          "pattern": "^(?:$|[^?&].*)",
+          "x-pattern-message": "must not start with '?' or '&'"
         },
         "cachedPoolSize" : {
           "description": "CachedPoolSize controls the number of cached connections in the SQLite connection pool. The overall number of connections is limited by poolSize. CachedPoolSize should be less or equal to poolSize.",

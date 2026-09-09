@@ -724,10 +724,10 @@ type SQLite struct {
 	// Deprecated: unused, has no effect.
 	ExperimentalBaseParams *string `json:"experimentalBaseParams,omitempty,omitzero" yaml:"experimentalBaseParams,omitempty"`
 
-	// ExtraParams contains the extra parameters to be used when opening the SQLite
-	// database connection.
-	//
-	// Deprecated: unused, has no effect.
+	// ExtraParams contains the extra SQLite URI parameters to be used when opening
+	// the SQLite database connection, e.g., vfs=unix-excl. This can cause data
+	// corruption if set incorrectly, modify at your own risk. It must not start with
+	// a question mark (?) or an ampersand (&).
 	ExtraParams *string `json:"extraParams,omitempty,omitzero" yaml:"extraParams,omitempty"`
 
 	// Metrics corresponds to the JSON schema field "metrics".

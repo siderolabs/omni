@@ -467,9 +467,9 @@ config:
       #
       # Deprecated: unused, has no effect.
       #experimentalBaseParams: ""
-      # ExtraParams contains the extra parameters to be used when opening the SQLite database connection.
-      #
-      # Deprecated: unused, has no effect.
+      # ExtraParams contains the extra SQLite URI parameters to be used when opening the SQLite database connection,
+      # e.g., vfs=unix-excl. This can cause data corruption if set incorrectly, modify at your own risk. It must not
+      # start with a question mark (?) or an ampersand (&).
       #extraParams: ""
       # CachedPoolSize controls the number of cached connections in the SQLite connection pool. The overall number of
       # connections is limited by poolSize. CachedPoolSize should be less or equal to poolSize.

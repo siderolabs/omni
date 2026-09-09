@@ -296,7 +296,14 @@ func TestValidateConfig(t *testing.T) {
 			config: []byte(`storage:
   sqlite:
     extraParams: "&bad"`),
-			validateErr: `config value ".storage.sqlite.extraParams" or flag "--sqlite-storage-extra-params": must not start with '&'`,
+			validateErr: `config value ".storage.sqlite.extraParams" or flag "--sqlite-storage-extra-params": must not start with '?' or '&'`,
+		},
+		{
+			name: "pattern: sqlite extra params starts with ?",
+			config: []byte(`storage:
+  sqlite:
+    extraParams: "?bad"`),
+			validateErr: `config value ".storage.sqlite.extraParams" or flag "--sqlite-storage-extra-params": must not start with '?' or '&'`,
 		},
 
 		// --- if/then/else + not (kept as-is for now, TODO: move to Go validation) ---
