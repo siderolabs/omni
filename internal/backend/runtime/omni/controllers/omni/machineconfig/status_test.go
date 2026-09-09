@@ -410,7 +410,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	})
 
 	// Creates a cluster with a single node, changes the schematic, checks that schematic is updated.
-	// Updates the machine status to have invalid schematic, checks that the install image is using ghcr.io registry image.
+	// Updates the machine status to have an invalid schematic with a differing id, checks that no upgrade follows.
 	t.Run("schematicChange", func(t *testing.T) {
 		t.Parallel()
 
@@ -448,21 +448,25 @@ func TestMachineConfigStatusController(t *testing.T) {
 				assert.Equal("bbbb", res.TypedSpec().Value.Schematic.FullId)
 			})
 
+			machineServices.Get(ids[0]).ClearUpgradeRequests()
+
 			rmock.Mock[*omni.MachineStatus](
 				ctx, t, testContext.State,
 				options.WithID(ids[0]),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
+					res.TypedSpec().Value.Schematic.FullId = "cccc"
 
 					return nil
 				}),
 			)
 
-			// With invalid schematic, upgrade() is no longer called — instead, the controller
-			// clears configStatus.SchematicId directly. Verify that.
+			// a schematic difference never upgrades an invalid machine, the recorded schematic id is cleared instead
 			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 				assert.Empty(res.TypedSpec().Value.SchematicId)
 			})
+
+			assert.Empty(t, machineServices.Get(ids[0]).GetUpgradeRequests())
 		})
 	})
 
@@ -492,13 +496,13 @@ func TestMachineConfigStatusController(t *testing.T) {
 				assert.NotEmpty(res.TypedSpec().Value.ImageFactoryHost)
 			})
 
-			// Mark the machine as having an invalid schematic
+			// Mark the machine as having an invalid schematic, with an id differing from the published one
 			rmock.Mock[*omni.MachineStatus](
 				ctx, t, testContext.State,
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.FullId = ""
+					res.TypedSpec().Value.Schematic.FullId = "not-the-published-one"
 
 					return nil
 				}),
@@ -591,7 +595,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.FullId = ""
+					res.TypedSpec().Value.Schematic.FullId = "not-the-published-one"
 
 					return nil
 				}),

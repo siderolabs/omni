@@ -196,18 +196,6 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 
 	machineExtensionsStatus.TypedSpec().Value.TalosVersion = "v" + talosVersion
 
-	// Invalid machines bypassed the image factory entirely (extensions baked into a custom Talos build).
-	// They have no usable schematic info, but downstream controllers still need a SchematicConfiguration
-	// resource to exist so the install image / config generation pipeline runs. Emit a minimal one and
-	// let the downstream's existing Invalid handling (installimage.Build falls back to talosRegistry:version,
-	// ReconciliationContext skips schematic mismatch) take over.
-	if ms.TypedSpec().Value.Schematic.Invalid {
-		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
-		schematicConfiguration.TypedSpec().Value.SchematicId = ""
-
-		return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
-	}
-
 	rawSchematic := ms.TypedSpec().Value.Schematic.GetRaw()
 	if rawSchematic == "" {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic raw YAML is not yet available")
@@ -265,7 +253,8 @@ func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, log
 	talosInstalled := omni.GetMachineStatusSystemDisk(ms) != ""
 
 	switch {
-	case runsDesired && talosInstalled && !installPending:
+	// an invalid machine reports an id it computed itself, no factory issued it, so its published id must come from the factory, see the next case
+	case runsDesired && talosInstalled && !installPending && !ms.TypedSpec().Value.Schematic.Invalid:
 		// the machine runs what it should, whichever factory issued it - the factory serving the version would answer with a different id for the same content
 		schematicConfiguration.TypedSpec().Value.SchematicId = ms.TypedSpec().Value.Schematic.FullId
 	default:

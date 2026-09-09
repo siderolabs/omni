@@ -38,13 +38,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
-// SchematicInfo contains all collected schematic information.
-type SchematicInfo struct {
-	talosschematic.SchematicInfo
-
-	Invalid bool
-}
-
 // Info contains information gathered about a machine.
 type Info struct { //nolint:govet
 	TalosVersion       *string
@@ -65,7 +58,7 @@ type Info struct { //nolint:govet
 	Blockdevices  []*specs.MachineStatusSpec_HardwareStatus_BlockDevice
 
 	PlatformMetadata *specs.MachineStatusSpec_PlatformMetadata
-	Schematic        *SchematicInfo
+	Schematic        *talosschematic.SchematicInfo
 
 	LastError       error
 	MachineID       string

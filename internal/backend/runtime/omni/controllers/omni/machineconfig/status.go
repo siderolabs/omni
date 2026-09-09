@@ -63,7 +63,6 @@ type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
-	TalosRegistry() string
 }
 
 // StatusController manages the ClusterMachineConfigStatus resource lifecycle.
@@ -557,7 +556,7 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have image factory host", rc.ID()))
 	}
 
-	image, err := installimage.Build(rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
+	image, err := installimage.Build(rc.ID(), rc.installImage)
 	if err != nil {
 		return false, err
 	}
@@ -873,33 +872,27 @@ func (ctrl *StatusController) checkInstalledImage(
 		return installedImage{}, err
 	}
 
-	// compatibility code for the machines running extensions installed bypassing image factory make schematic play no role in the checks
-	if rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
-		return installedImage{
-			version:          actualVersion,
-			schematic:        "",
-			factoryHost:      "",
-			atTarget:         actualVersion == rc.installImage.TalosVersion,
-			currentSchematic: "",
-		}, nil
-	}
+	var schematicInfo talosutils.SchematicInfo
 
-	// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
-	fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
+	invalid := rc.machineStatus.TypedSpec().Value.Schematic.Invalid
+	if !invalid { // the machine status may not have caught up with the machine yet
+		// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
+		fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
 
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, nodeClient.COSI, fallbackKernelArgs)
-	if err != nil {
-		if errors.Is(err, talosutils.ErrInvalidSchematic) {
-			return installedImage{
-				version:          actualVersion,
-				schematic:        "",
-				factoryHost:      "",
-				atTarget:         actualVersion == rc.installImage.TalosVersion,
-				currentSchematic: "",
-			}, nil
+		schematicInfo, err = talosutils.GetSchematicInfo(ctx, nodeClient.COSI, fallbackKernelArgs)
+		if err != nil {
+			return installedImage{}, err
 		}
 
-		return installedImage{}, err
+		invalid = schematicInfo.Invalid
+	}
+
+	// the schematic plays no role in the checks for the machines running extensions installed bypassing the image factory
+	if invalid {
+		return installedImage{
+			version:  actualVersion,
+			atTarget: actualVersion == rc.installImage.TalosVersion,
+		}, nil
 	}
 
 	return installedImage{

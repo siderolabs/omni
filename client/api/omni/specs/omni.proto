@@ -1309,9 +1309,7 @@ message MachineConfigGenOptionsSpec {
     string schematic_id = 2;
     // SchematicInitialized is true if the schematic is initialized.
     bool schematic_initialized = 3;
-    // SchematicInvalid is true if the schematic is invalid.
-    bool schematic_invalid = 4;
-    reserved 5;
+    reserved 4, 5;
     // Platform is the machine platform to use for the install image.
     string platform = 6;
     // SecurityState is used to decide the secure boot enablement in the install image.

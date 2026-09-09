@@ -553,6 +553,8 @@ config:
   # Registries contains container image registries configuration.
   registries:
     # Talos is the Talos installer registry configuration.
+    #
+    # Deprecated: unused, Omni always installs from an image factory.
     #talos: ghcr.io/siderolabs/installer
     # Kubernetes is the Kubernetes container registry configuration.
     #kubernetes: ghcr.io/siderolabs/kubelet

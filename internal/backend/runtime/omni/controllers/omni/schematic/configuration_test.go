@@ -628,16 +628,17 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 	)
 }
 
-// TestSchematicConfigurationRepublishesAfterInvalid covers the invalid -> valid transition: the
-// Invalid branch resets SchematicId to "", and the next reconcile must ensure the schematic on the image
-// factory again, as ReconciliationContext compares the ID against the machine's own FullId.
-func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
+// TestSchematicConfigurationInvalid covers a machine provisioned bypassing the image factory: the schematic registered
+// with the factory carries only the join kernel args and no extensions, and the published id is always the one the
+// factory issued, never the one the machine computed for itself.
+func TestSchematicConfigurationInvalid(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
 	factory := &testutils.ImageFactoryClientMock{}
+	factory.SetOwner("customer") // the factory's id differs from the machine's own
 
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
@@ -650,59 +651,82 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 			r := require.New(t)
 
 			const (
-				machineName  = "invalid-then-valid-machine"
-				talosVersion = "1.10.0"
+				machineName  = "invalid-machine"
+				clusterName  = "invalid-cluster"
+				talosVersion = "1.13.10"
 			)
 
-			rawSchematic := schematic.Schematic{
+			joinArgs := []string{
+				"siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken",
+				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+			}
+
+			synthesized := schematic.Schematic{
 				Customization: schematic.Customization{
-					ExtraKernelArgs: []string{"console=ttyS0"},
-					SystemExtensions: schematic.SystemExtensions{
-						OfficialExtensions: []string{"siderolabs/hello-world-service"},
-					},
+					ExtraKernelArgs: joinArgs,
 				},
 			}
 
-			rawYAML, err := rawSchematic.Marshal()
+			synthesizedYAML, err := synthesized.Marshal()
 			r.NoError(err)
 
-			rawSchematicID, err := rawSchematic.ID()
+			synthesizedID, err := synthesized.ID()
 			r.NoError(err)
 
+			// Talos installed, in maintenance mode, not allocated
 			machineStatus := omni.NewMachineStatus(machineName)
 			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
-
-			// An invalid machine bypassed the image factory (extensions baked into a custom Talos build),
-			// so it has no schematic identity to report: no full id, no initial schematic, no raw YAML.
+			machineStatus.TypedSpec().Value.Maintenance = true
 			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-				Invalid:    true,
-				Extensions: []string{"siderolabs/hello-world-service"},
-				KernelArgs: []string{"console=ttyS0"},
+				Invalid:      true,
+				FullId:       synthesizedID,
+				Raw:          string(synthesizedYAML),
+				KernelArgs:   joinArgs,
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 			}
-			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
+			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
+			}
 			r.NoError(st.Create(ctx, machineStatus))
 
-			// While invalid the controller publishes a minimal resource: TalosVersion set, no schematic ID.
+			var publishedID string
+
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
 					assertion.Equal(talosVersion, sc.TypedSpec().Value.TalosVersion)
-					assertion.Empty(sc.TypedSpec().Value.SchematicId)
+					assertion.NotEmpty(sc.TypedSpec().Value.SchematicId)
+					assertion.NotEqual(synthesizedID, sc.TypedSpec().Value.SchematicId)
+
+					publishedID = sc.TypedSpec().Value.SchematicId
 				},
 			)
 
-			// The machine is reinstalled and reports a usable schematic. Its desired schematic ID must be set again,
-			// although the Talos version did not move and it already runs with the desired schematic.
+			stored, ok := factory.Get(publishedID)
+			r.True(ok, "schematic %q was not uploaded to the factory", publishedID)
+
+			assert.Empty(t, stored.Customization.SystemExtensions.OfficialExtensions)
+			assert.Equal(t, joinArgs, stored.Customization.ExtraKernelArgs)
+
+			// the machine becomes a running cluster member at the same version: it runs the desired content, and the
+			// published id must stay the factory's one
+			cluster := omni.NewCluster(clusterName)
+			cluster.TypedSpec().Value.TalosVersion = talosVersion
+			r.NoError(st.Create(ctx, cluster))
+
+			clusterMachine := omni.NewClusterMachine(machineName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			r.NoError(st.Create(ctx, clusterMachine))
+
 			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.Schematic.Invalid = false
-				res.TypedSpec().Value.Schematic.Raw = string(rawYAML)
-				res.TypedSpec().Value.Schematic.FullId = rawSchematicID
-				res.TypedSpec().Value.Schematic.InitialSchematic = rawSchematicID
+				res.TypedSpec().Value.Maintenance = false
 
 				return nil
 			})
@@ -711,14 +735,12 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(rawSchematicID, sc.TypedSpec().Value.SchematicId,
-						"schematic ID was not republished after the machine became valid")
+					_, hasCluster := sc.Metadata().Labels().Get(omni.LabelCluster)
+
+					assertion.True(hasCluster)
+					assertion.Equal(publishedID, sc.TypedSpec().Value.SchematicId)
 				},
 			)
-
-			// The ID came from the image factory, not from a local computation.
-			_, ok := factory.Get(rawSchematicID)
-			assert.True(t, ok, "schematic %q was not uploaded to the factory", rawSchematicID)
 		},
 	)
 }

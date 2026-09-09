@@ -19,15 +19,14 @@ import (
 	"github.com/siderolabs/omni/internal/backend/extensions"
 )
 
-// ErrInvalidSchematic means that the machine has extensions installed bypassing the image factory.
-var ErrInvalidSchematic = fmt.Errorf("invalid schematic")
-
 // SchematicInfo contains the information about the schematic observed on a machine.
 type SchematicInfo struct {
-	FullID      string
-	Raw         string
-	Extensions  []string
-	KernelArgs  []string
+	FullID     string
+	Raw        string
+	Extensions []string
+	KernelArgs []string
+	// Invalid is set when the machine has extensions installed bypassing the image factory. They cannot be managed, so none are reported.
+	Invalid     bool
 	InAgentMode bool
 }
 
@@ -38,7 +37,8 @@ type SchematicInfo struct {
 // we take the extension list from it directly instead of reconstructing it from the extension status resources, so virtual and meta extensions cannot leak into it.
 //
 // The argument fallbackKernelArgs is only used if the machine doesn't have the schematic meta extension, i.e., its installation media was created bypassing image factory -
-// in that case, we synthesize the schematic ID in a best-effort way (only if it doesn't have any extensions), and use the provided fallback kernel args as the current args of the machine.
+// in that case, we synthesize the schematic (and its ID) in a best-effort way and use the provided fallback kernel args as the current args of the machine.
+// If such a machine also has extensions, the synthesized schematic carries none of them and the machine is marked invalid.
 func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackKernelArgs []string) (SchematicInfo, error) {
 	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosState)
 	if err != nil {
@@ -99,11 +99,12 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 		}, nil
 	}
 
-	if fullID == "" && len(exts) > 0 {
-		return SchematicInfo{}, ErrInvalidSchematic
-	}
-
 	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it (and the raw YAML) using the default args
+		invalid := len(exts) > 0
+		if invalid {
+			exts = nil
+		}
+
 		synthesized := schematic.Schematic{
 			Customization: schematic.Customization{
 				SystemExtensions: schematic.SystemExtensions{
@@ -128,6 +129,7 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 			Extensions: exts,
 			KernelArgs: fallbackKernelArgs,
 			Raw:        string(raw),
+			Invalid:    invalid,
 		}, nil
 	}
 

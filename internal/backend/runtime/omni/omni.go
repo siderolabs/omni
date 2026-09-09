@@ -220,7 +220,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(
 			cfg.Registries.Mirrors,
-			cfg.Registries.GetTalos(),
 			cfg.Registries,
 		),
 		omnictrl.NewClusterMachineTeardownController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime)),

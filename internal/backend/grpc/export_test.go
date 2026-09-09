@@ -44,7 +44,7 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
 		auditLogFollowLease: auditLogFollowDefaultLease,
-		lifecycleManager:    lifecycle.NewManager(logger, imageFactoryClients, "ghcr.io/siderolabs/installer", nil, nil, nil),
+		lifecycleManager:    lifecycle.NewManager(logger, imageFactoryClients, nil, nil, nil),
 	}
 
 	for _, opt := range opts {

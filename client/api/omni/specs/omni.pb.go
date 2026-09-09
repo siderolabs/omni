@@ -11094,8 +11094,6 @@ type MachineConfigGenOptionsSpec_InstallImage struct {
 	SchematicId string `protobuf:"bytes,2,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
 	// SchematicInitialized is true if the schematic is initialized.
 	SchematicInitialized bool `protobuf:"varint,3,opt,name=schematic_initialized,json=schematicInitialized,proto3" json:"schematic_initialized,omitempty"`
-	// SchematicInvalid is true if the schematic is invalid.
-	SchematicInvalid bool `protobuf:"varint,4,opt,name=schematic_invalid,json=schematicInvalid,proto3" json:"schematic_invalid,omitempty"`
 	// Platform is the machine platform to use for the install image.
 	Platform string `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
 	// SecurityState is used to decide the secure boot enablement in the install image.
@@ -11154,13 +11152,6 @@ func (x *MachineConfigGenOptionsSpec_InstallImage) GetSchematicId() string {
 func (x *MachineConfigGenOptionsSpec_InstallImage) GetSchematicInitialized() bool {
 	if x != nil {
 		return x.SchematicInitialized
-	}
-	return false
-}
-
-func (x *MachineConfigGenOptionsSpec_InstallImage) GetSchematicInvalid() bool {
-	if x != nil {
-		return x.SchematicInvalid
 	}
 	return false
 }
@@ -12696,18 +12687,17 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xe6\x03\n" +
+	"grpcTunnel\"\xbf\x03\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12T\n" +
 	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x12#\n" +
-	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x1a\xc5\x02\n" +
+	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x1a\x9e\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +
-	"\x15schematic_initialized\x18\x03 \x01(\bR\x14schematicInitialized\x12+\n" +
-	"\x11schematic_invalid\x18\x04 \x01(\bR\x10schematicInvalid\x12\x1a\n" +
+	"\x15schematic_initialized\x18\x03 \x01(\bR\x14schematicInitialized\x12\x1a\n" +
 	"\bplatform\x18\x06 \x01(\tR\bplatform\x12;\n" +
 	"\x0esecurity_state\x18\a \x01(\v2\x14.specs.SecurityStateR\rsecurityState\x12,\n" +
-	"\x12image_factory_host\x18\b \x01(\tR\x10imageFactoryHostJ\x04\b\x05\x10\x06J\x04\b\x01\x10\x02\"=\n" +
+	"\x12image_factory_host\x18\b \x01(\tR\x10imageFactoryHostJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x01\x10\x02\"=\n" +
 	"\x13EtcdAuditResultSpec\x12&\n" +
 	"\x0fetcd_member_ids\x18\x01 \x03(\x04R\retcdMemberIds\"$\n" +
 	"\x0eKubeconfigSpec\x12\x12\n" +

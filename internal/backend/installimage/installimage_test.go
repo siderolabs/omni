@@ -15,10 +15,7 @@ import (
 )
 
 func TestBuild(t *testing.T) {
-	const (
-		factoryHost   = "factory.example.com"
-		talosRegistry = "ghcr.io/siderolabs/installer"
-	)
+	const factoryHost = "factory.example.com"
 
 	for _, tt := range []struct {
 		name         string
@@ -63,21 +60,30 @@ func TestBuild(t *testing.T) {
 			expected: "factory.example.com/installer-secureboot/abc:v1.9.0",
 		},
 		{
-			name: "invalid schematic falls back to the Talos registry",
+			name: "empty image factory host is an error",
 			installImage: &specs.MachineConfigGenOptionsSpec_InstallImage{
 				TalosVersion:         "1.9.0",
 				SchematicId:          "abc",
 				SchematicInitialized: true,
-				SchematicInvalid:     true,
+				Platform:             "metal",
+				SecurityState:        &specs.SecurityState{},
+			},
+			expectErr: true,
+		},
+		{
+			name: "empty schematic ID is an error, there is no plain installer to fall back to",
+			installImage: &specs.MachineConfigGenOptionsSpec_InstallImage{
+				TalosVersion:         "1.9.0",
+				SchematicInitialized: true,
 				Platform:             "metal",
 				SecurityState:        &specs.SecurityState{},
 				ImageFactoryHost:     factoryHost,
 			},
-			expected: talosRegistry + ":v1.9.0",
+			expectErr: true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := installimage.Build("machine-1", tt.installImage, talosRegistry)
+			result, err := installimage.Build("machine-1", tt.installImage)
 			if tt.expectErr {
 				require.Error(t, err)
 

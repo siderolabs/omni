@@ -2065,7 +2065,6 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) CloneVT() *MachineConfigGenOp
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
 	r.SchematicInitialized = m.SchematicInitialized
-	r.SchematicInvalid = m.SchematicInvalid
 	r.Platform = m.Platform
 	r.SecurityState = m.SecurityState.CloneVT()
 	r.ImageFactoryHost = m.ImageFactoryHost
@@ -6341,9 +6340,6 @@ func (this *MachineConfigGenOptionsSpec_InstallImage) EqualVT(that *MachineConfi
 		return false
 	}
 	if this.SchematicInitialized != that.SchematicInitialized {
-		return false
-	}
-	if this.SchematicInvalid != that.SchematicInvalid {
 		return false
 	}
 	if this.Platform != that.Platform {
@@ -14093,16 +14089,6 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalToSizedBufferVT(dAtA [
 		i--
 		dAtA[i] = 0x32
 	}
-	if m.SchematicInvalid {
-		i--
-		if m.SchematicInvalid {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.SchematicInitialized {
 		i--
 		if m.SchematicInitialized {
@@ -20020,9 +20006,6 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.SchematicInitialized {
-		n += 2
-	}
-	if m.SchematicInvalid {
 		n += 2
 	}
 	l = len(m.Platform)
@@ -36439,26 +36422,6 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) UnmarshalVT(dAtA []byte) erro
 				}
 			}
 			m.SchematicInitialized = bool(v != 0)
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SchematicInvalid", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.SchematicInvalid = bool(v != 0)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Platform", wireType)

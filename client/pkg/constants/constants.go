@@ -27,9 +27,6 @@ const LatestSupportedTalosVersion = "1.14"
 const TalosEnterpriseVersionName = "Talos Enterprise"
 
 const (
-	// TalosRegistry is the default Talos repository URL.
-	TalosRegistry = "ghcr.io/siderolabs/installer"
-
 	// ImageFactoryBaseURL is the default Image Factory base URL.
 	ImageFactoryBaseURL = "https://factory.talos.dev"
 

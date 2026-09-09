@@ -851,7 +851,6 @@ export type MachineConfigGenOptionsSpecInstallImage = {
   talos_version?: string
   schematic_id?: string
   schematic_initialized?: boolean
-  schematic_invalid?: boolean
   platform?: string
   security_state?: SecurityState
   image_factory_host?: string
