@@ -7,28 +7,20 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type {
-  VulnerabilityReportRequest,
-  VulnerabilityReportResponse,
-} from '@/api/omni/imagefactory/imagefactory.pb'
-import type { ListRequest, ListResponse } from '@/api/omni/resources/resources.pb'
-import type {
-  ClusterMachineConfigStatusSpec,
-  ClusterStatusSpec,
-  FeaturesConfigSpec,
-  MachineStatusSpec,
-  TalosVersionSpec,
-} from '@/api/omni/specs/omni.pb'
 import {
-  ClusterMachineConfigStatusType,
-  ClusterStatusType,
+  Arch,
+  type ArtifactTarget,
+  type ClusterArtifactTargetsRequest,
+  type ClusterArtifactTargetsResponse,
+  type VulnerabilityReportRequest,
+  type VulnerabilityReportResponse,
+} from '@/api/omni/imagefactory/imagefactory.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
+import type { FeaturesConfigSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import {
   DefaultNamespace,
   FeaturesConfigID,
   FeaturesConfigType,
-  LabelCluster,
-  LabelControlPlaneRole,
-  LabelWorkerRole,
-  MachineStatusType,
   TalosVersionType,
 } from '@/api/resources'
 import ClusterSecurity from '@/views/ClusterSecurity/ClusterSecurity.vue'
@@ -97,31 +89,17 @@ function matchesForVersion(version: string): Match[] {
   }
 }
 
-function machineStatus(id: string, arch: string): Resource<MachineStatusSpec> {
-  return {
-    metadata: {
-      namespace: DefaultNamespace,
-      type: MachineStatusType,
-      id,
-      labels: { [LabelCluster]: CLUSTER },
-    },
-    spec: { hardware: { arch } },
-  }
-}
-
-function configStatus(
-  id: string,
+function artifactTarget(
   schematicId: string,
-  role: string,
-): Resource<ClusterMachineConfigStatusSpec> {
+  arch: Arch,
+  machineCount: number,
+  includesControlPlane: boolean,
+): ArtifactTarget {
   return {
-    metadata: {
-      namespace: DefaultNamespace,
-      type: ClusterMachineConfigStatusType,
-      id,
-      labels: { [LabelCluster]: CLUSTER, [role]: '' },
-    },
-    spec: { schematic_id: schematicId, talos_version: CURRENT_VERSION },
+    schematic_id: schematicId,
+    arch,
+    machine_count: machineCount,
+    includes_control_plane: includesControlPlane,
   }
 }
 
@@ -138,36 +116,47 @@ const featuresHandler = createWatchStreamHandler<FeaturesConfigSpec>({
   ],
 }).handler
 
-const clusterStatusHandler = createWatchStreamHandler<ClusterStatusSpec>({
-  expectedOptions: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-  initialResources: [
-    {
-      metadata: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-      spec: { talos_version: CURRENT_VERSION, available: true },
-    },
-  ],
-}).handler
-
-const TALOS_VERSIONS = ['1.8.5', CURRENT_VERSION, '1.9.1', PATCH_VERSION, '1.10.0', MINOR_VERSION]
-
-const talosVersionsHandler = http.post<never, ListRequest, ListResponse>(
-  '/omni.resources.ResourceService/List',
+// The single Talos version the page looks up to check it's served by the enterprise factory.
+const talosVersionHandler = http.post<never, GetRequest, GetResponse>(
+  '/omni.resources.ResourceService/Get',
   async ({ request }) => {
-    const { type, namespace } = await request.clone().json()
+    const { namespace, type, id } = await request.clone().json()
 
-    if (type !== TalosVersionType || namespace !== DefaultNamespace) return
+    if (namespace !== DefaultNamespace || type !== TalosVersionType) return
 
     return HttpResponse.json({
-      total: TALOS_VERSIONS.length,
-      items: TALOS_VERSIONS.map((version) =>
-        JSON.stringify({
-          metadata: { namespace, type, id: version },
-          spec: { version, is_enterprise: true },
-        } satisfies Resource<TalosVersionSpec>),
-      ),
+      body: JSON.stringify({
+        spec: {
+          version: id,
+          is_enterprise: true,
+        },
+        metadata: { namespace, type, id },
+      } satisfies Resource<TalosVersionSpec>),
     })
   },
 )
+
+// Resolves the cluster's installed (schematic, arch) targets and upgrade paths.
+function artifactTargetsHandler(
+  targets: ArtifactTarget[],
+  currentTalosVersion: string,
+  upgradeTargetVersions: string[] = [],
+) {
+  return http.post<never, ClusterArtifactTargetsRequest, ClusterArtifactTargetsResponse>(
+    '/imagefactory.ImageFactoryService/ClusterArtifactTargets',
+    async ({ request }) => {
+      const { cluster_id } = await request.clone().json()
+
+      if (cluster_id !== CLUSTER) return
+
+      return HttpResponse.json({
+        targets,
+        current_talos_version: currentTalosVersion,
+        upgrade_target_versions: upgradeTargetVersions,
+      })
+    },
+  )
+}
 
 // Resolves a vulnerability report for any (schematic, version, arch) the page asks for.
 const scanHandler = http.post<never, VulnerabilityReportRequest, VulnerabilityReportResponse>(
@@ -198,32 +187,11 @@ export const Default: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      clusterStatusHandler,
-      talosVersionsHandler,
-      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: ClusterMachineConfigStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [
-          configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
-          configStatus('machine-2', SCHEMATIC_CP, LabelWorkerRole),
-          configStatus('machine-3', SCHEMATIC_CP, LabelWorkerRole),
-        ],
-      }).handler,
-      createWatchStreamHandler<MachineStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: MachineStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [
-          machineStatus('machine-1', 'amd64'),
-          machineStatus('machine-2', 'amd64'),
-          machineStatus('machine-3', 'amd64'),
-        ],
-      }).handler,
+      talosVersionHandler,
+      artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
+        PATCH_VERSION,
+        MINOR_VERSION,
+      ]),
       scanHandler,
     )
   },
@@ -234,32 +202,15 @@ export const HeterogeneousCluster: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      clusterStatusHandler,
-      talosVersionsHandler,
-      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: ClusterMachineConfigStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [
-          configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
-          configStatus('machine-2', SCHEMATIC_WORKER, LabelWorkerRole),
-          configStatus('machine-3', SCHEMATIC_WORKER, LabelWorkerRole),
+      talosVersionHandler,
+      artifactTargetsHandler(
+        [
+          artifactTarget(SCHEMATIC_CP, Arch.AMD64, 1, true),
+          artifactTarget(SCHEMATIC_WORKER, Arch.ARM64, 2, false),
         ],
-      }).handler,
-      createWatchStreamHandler<MachineStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: MachineStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [
-          machineStatus('machine-1', 'amd64'),
-          machineStatus('machine-2', 'arm64'),
-          machineStatus('machine-3', 'arm64'),
-        ],
-      }).handler,
+        CURRENT_VERSION,
+        [PATCH_VERSION, MINOR_VERSION],
+      ),
       scanHandler,
     )
   },
@@ -270,32 +221,8 @@ export const NoUpgradesAvailable: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      createWatchStreamHandler<ClusterStatusSpec>({
-        expectedOptions: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-        initialResources: [
-          {
-            metadata: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-            spec: { talos_version: MINOR_VERSION, available: true },
-          },
-        ],
-      }).handler,
-      talosVersionsHandler,
-      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: ClusterMachineConfigStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole)],
-      }).handler,
-      createWatchStreamHandler<MachineStatusSpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: MachineStatusType,
-          selectors: { [LabelCluster]: CLUSTER },
-        },
-        initialResources: [machineStatus('machine-1', 'amd64')],
-      }).handler,
+      talosVersionHandler,
+      artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 1, true)], MINOR_VERSION),
       scanHandler,
     )
   },

@@ -12,20 +12,27 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import VulnerabilityList from '@/views/ClusterSecurity/components/VulnerabilityList.vue'
-import type { UpgradeDiff, UpgradeTarget } from '@/views/ClusterSecurity/util/vulnerabilityDiff'
+import { diffMatches } from '@/views/ClusterSecurity/util/matchUtils'
+import type { ScanResult } from '@/views/ClusterSecurity/util/useClusterVulnerabilityScans'
 
-const { target, diff, loading, error } = defineProps<{
-  target: UpgradeTarget
-  diff?: UpgradeDiff
-  loading: boolean
-  error?: string
+const { currentVersionScan, scan, version, isPatch } = defineProps<{
+  currentVersionScan: ScanResult
+  scan: ScanResult
+  version: string
+  isPatch?: boolean
 }>()
 
 const expanded = ref(false)
 
-const kindLabel = computed(() => (target.kind === 'patch' ? 'Latest patch' : 'Next minor version'))
+const diff = computed(() =>
+  currentVersionScan.matches && scan.matches
+    ? diffMatches(currentVersionScan.matches, scan.matches)
+    : undefined,
+)
 
-const canExpand = computed(() => !!diff && (diff.resolved.length > 0 || diff.introduced.length > 0))
+const canExpand = computed(
+  () => !!diff.value && (diff.value.resolved.length > 0 || diff.value.introduced.length > 0),
+)
 </script>
 
 <template>
@@ -34,11 +41,13 @@ const canExpand = computed(() => !!diff && (diff.resolved.length > 0 || diff.int
       <TIcon icon="upgrade" class="size-5 shrink-0 text-naturals-n11" aria-hidden="true" />
 
       <div class="flex flex-1 flex-col">
-        <span class="text-sm font-medium text-naturals-n14">Upgrade to {{ target.version }}</span>
-        <span class="text-xs text-naturals-n11">{{ kindLabel }}</span>
+        <span class="text-sm font-medium text-naturals-n14">Upgrade to {{ version }}</span>
+        <span class="text-xs text-naturals-n11">
+          {{ isPatch ? 'Latest patch' : 'Next version' }}
+        </span>
       </div>
 
-      <TSpinner v-if="loading" class="size-4" />
+      <TSpinner v-if="scan.loading" class="size-4" />
 
       <template v-else-if="diff">
         <ul class="flex flex-wrap items-center gap-1.5 text-xs">
@@ -78,7 +87,9 @@ const canExpand = computed(() => !!diff && (diff.resolved.length > 0 || diff.int
       </template>
     </div>
 
-    <TAlert v-if="error" type="error" title="Scan failed" class="mx-4 mb-3">{{ error }}</TAlert>
+    <TAlert v-if="scan.error" type="error" title="Scan failed" class="mx-4 mb-3">
+      {{ scan.error }}
+    </TAlert>
 
     <div
       v-else-if="expanded && diff"

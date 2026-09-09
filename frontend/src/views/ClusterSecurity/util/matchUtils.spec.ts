@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
 
-import { computeUpgradeTargets, diffMatches } from './vulnerabilityDiff'
+import { diffMatches } from './matchUtils'
 
 function match(cve: string, pkg: string): Match {
   return {
@@ -19,46 +19,6 @@ function match(cve: string, pkg: string): Match {
     artifact: { name: pkg, version: '1.0.0' },
   } as unknown as Match
 }
-
-describe('computeUpgradeTargets', () => {
-  const available = ['1.8.0', '1.8.3', '1.8.4', '1.9.0', '1.9.2', '1.10.0', '1.10.1']
-
-  it('returns latest patch of current minor and latest patch of next minor', () => {
-    expect(computeUpgradeTargets('1.9.0', available)).toEqual([
-      { version: '1.9.2', kind: 'patch' },
-      { version: '1.10.1', kind: 'minor' },
-    ])
-  })
-
-  it('omits the patch target when already on the latest patch of the minor', () => {
-    expect(computeUpgradeTargets('1.9.2', available)).toEqual([
-      { version: '1.10.1', kind: 'minor' },
-    ])
-  })
-
-  it('omits the minor target when on the newest minor', () => {
-    expect(computeUpgradeTargets('1.10.0', available)).toEqual([
-      { version: '1.10.1', kind: 'patch' },
-    ])
-  })
-
-  it('handles gaps in available minors', () => {
-    expect(computeUpgradeTargets('1.8.4', ['1.8.4', '1.10.0', '1.10.2'])).toEqual([
-      { version: '1.10.2', kind: 'minor' },
-    ])
-  })
-
-  it('tolerates leading v prefixes', () => {
-    expect(computeUpgradeTargets('v1.9.0', ['v1.9.1', 'v1.10.0'])).toEqual([
-      { version: 'v1.9.1', kind: 'patch' },
-      { version: 'v1.10.0', kind: 'minor' },
-    ])
-  })
-
-  it('returns nothing for an unparseable current version', () => {
-    expect(computeUpgradeTargets('garbage', available)).toEqual([])
-  })
-})
 
 describe('diffMatches', () => {
   it('partitions findings into resolved, remaining and introduced', () => {

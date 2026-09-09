@@ -7,6 +7,7 @@ import { type MaybeRefOrGetter, ref, toValue } from 'vue'
 
 import {
   Arch,
+  type ClusterArtifactTargetsResponse,
   ImageFactoryService,
   VulnerabilityReportFormat,
 } from '@/api/omni/imagefactory/imagefactory.pb'
@@ -26,6 +27,17 @@ export function archFromConfigArch(arch: PlatformConfigSpecArch) {
   }
 }
 
+export function configArchFromArch(arch: Arch) {
+  switch (arch) {
+    case Arch.ARM64:
+      return PlatformConfigSpecArch.ARM64
+    case Arch.AMD64:
+      return PlatformConfigSpecArch.AMD64
+    default:
+      throw new Error(`Unexpected arch "${arch}" received`)
+  }
+}
+
 export function archToString(arch: PlatformConfigSpecArch) {
   switch (arch) {
     case PlatformConfigSpecArch.ARM64:
@@ -34,17 +46,6 @@ export function archToString(arch: PlatformConfigSpecArch) {
       return 'amd64'
     default:
       throw new Error(`Unexpected arch "${arch}" received`)
-  }
-}
-
-export function archFromString(arch?: string) {
-  switch (arch) {
-    case 'arm64':
-      return PlatformConfigSpecArch.ARM64
-    case 'amd64':
-      return PlatformConfigSpecArch.AMD64
-    default:
-      return undefined
   }
 }
 
@@ -60,6 +61,42 @@ export function artifactText(data?: Uint8Array) {
   // The bytes are UTF-8, and atob yields one character per byte, so they have to be decoded as such
   // - a report describing a CVE in anything but ASCII would otherwise come back mojibake.
   return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)))
+}
+
+/**
+ * Resolves a cluster's installed (schematic, arch) targets and the Talos versions to fetch
+ * security artifacts for, via ImageFactoryService.ClusterArtifactTargets.
+ */
+export function useClusterArtifactTargets(
+  opts: MaybeRefOrGetter<{
+    clusterId: string
+    skip?: boolean
+  }>,
+) {
+  const loading = ref(false)
+  const err = ref<Error>()
+
+  const data = computedAsync<ClusterArtifactTargetsResponse | undefined>(
+    async () => {
+      const { clusterId, skip } = toValue(opts)
+
+      err.value = undefined
+
+      if (skip) return undefined
+
+      try {
+        return await ImageFactoryService.ClusterArtifactTargets({ cluster_id: clusterId })
+      } catch (e) {
+        err.value = e instanceof Error ? e : new Error(String(e))
+
+        return undefined
+      }
+    },
+    undefined,
+    loading,
+  )
+
+  return { data, loading, err }
 }
 
 /** Fetches the vulnerability scan report of a schematic, as the JSON the report views render. */

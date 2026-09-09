@@ -63,6 +63,27 @@ export function matchKey(m: Match): string {
   return `${getCveId(m)}::${m.artifact.name}`
 }
 
+export interface MatchDiff {
+  /** Findings present in the current version but gone after the upgrade. */
+  resolved: Match[]
+  /** Findings present both before and after the upgrade. */
+  remaining: Match[]
+  /** Findings not present in the current version but introduced by the upgrade. */
+  introduced: Match[]
+}
+
+/** Diff a target version's findings against the current version's findings. */
+export function diffMatches(current: Match[], target: Match[]): MatchDiff {
+  const currentKeys = new Set(current.map(matchKey))
+  const targetKeys = new Set(target.map(matchKey))
+
+  return {
+    resolved: current.filter((m) => !targetKeys.has(matchKey(m))),
+    remaining: current.filter((m) => targetKeys.has(matchKey(m))),
+    introduced: target.filter((m) => !currentKeys.has(matchKey(m))),
+  }
+}
+
 /** Sort matches by CVSS score (desc), then severity, then CVE id for stable ordering. */
 export function sortMatches(matches: Match[]): Match[] {
   return matches.toSorted((a, b) => {
