@@ -6,34 +6,13 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.10.0"
+previous = "v1.11.0"
 
-[notes.frontend-qol]
-title = "Frontend Quality-of-Life Improvements"
+[notes.image-factory-api-token]
+title = "Image Factory API Token Authentication"
 description = """\
-Align the UI features on the Cluster scale and Cluster create pages. Support searching by labels on Cluster scaling/create pages.
-"""
-
-[notes.install-disk-resource]
-title = "Install Disk Configs"
-description = """\
-Config Patches can no longer be used for setting Talos install disk. Starting from Talos 1.14 installation flow was changed a lot \
-so setting the install disk in the configs will no longer work. Install disk is now defined in a separate resource and works differently for \
-the older Talos versions.
-"""
-
-[notes.kubernetes-signing-keys]
-title = "Kubernetes Token Signing Keys"
-description = """\
-Admins can now list the keys that sign Kubernetes access tokens and delete them. Deleting one immediately invalidates every kubeconfig and OIDC token \
-it signed, which is what it takes to pull a long-lived service account kubeconfig out of circulation before it expires.
-See [documentation](https://docs.siderolabs.com/omni/security-and-authentication/revoke-kubernetes-access-tokens) for more details.
-"""
-
-[notes.saml-recovery-admin]
-title = "Recovery Admin for SAML Lockouts"
-description = """\
-`auth.recoveryAdmin` config, or the `--recovery-admin` flag can be used to elevate a user to Admin on every Omni start.
-It also blocks user demotion through SAML label rules. \
-This is the way back in when a SAML rule strips Admin from everyone. Only existing users can be promoted.
+Omni can now authenticate to the image factory with an API token instead of the deprecated download and node tokens. \
+Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--primary-factory-token-file`), pointing to a file \
+containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
+self-hosted factories using htpasswd.
 """
