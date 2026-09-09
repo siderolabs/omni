@@ -776,7 +776,7 @@ func (s *managementServer) ensureSchematic(ctx context.Context, talosVersion str
 
 	id := schematicSpec.GetFullId()
 
-	if schematicSpec.GetFullId() != "" && schematicSpec.GetRaw() != "" && !schematicSpec.GetInvalid() && !schematicSpec.GetInAgentMode() {
+	if schematicSpec.GetFullId() != "" && schematicSpec.GetRaw() != "" && !schematicSpec.GetInAgentMode() {
 		patched, patchErr := imagefactoryinternal.PatchSchematic(schematicSpec.GetRaw(), schematicSpec.GetExtensions(), schematicSpec.GetKernelArgs())
 		if patchErr != nil {
 			return "", "", fmt.Errorf("failed to patch schematic: %w", patchErr)
@@ -861,13 +861,12 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		TalosVersion:         req.Version,
 		SchematicId:          schematicID,
 		SchematicInitialized: true,
-		SchematicInvalid:     machineStatus.TypedSpec().Value.Schematic.Invalid,
 		Platform:             platform,
 		SecurityState:        securityState,
 		ImageFactoryHost:     factoryURLParsed.Host,
 	}
 
-	installImageStr, err := installimage.Build(req.MachineId, installImage, s.cfg.Registries.GetTalos())
+	installImageStr, err := installimage.Build(req.MachineId, installImage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build install image: %w", err)
 	}

@@ -58,7 +58,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(registryMirrors []string, talosRegistry string, registries omnicfg.Registries) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(registryMirrors []string, registries omnicfg.Registries) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -69,7 +69,7 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, talosRegistry, registries)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, registries)
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
@@ -153,7 +153,6 @@ func reconcileClusterMachineConfig(
 	clusterMachine *omni.ClusterMachine,
 	machineConfig *omni.ClusterMachineConfig,
 	registryMirrors []string,
-	talosRegistry string,
 	registries omnicfg.Registries,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -307,8 +306,8 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("install image is not set yet"))
 	}
 
-	// skip if the machine schematic information is not yet detected
-	if !installImage.SchematicInitialized {
+	// skip if the machine schematic is not yet detected or not yet published
+	if !installImage.SchematicInitialized || installImage.SchematicId == "" {
 		logger.Error("machine schematic is not set, skip reconcile")
 
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("machine schematic is not set detected"))
@@ -321,8 +320,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	helper := clusterMachineConfigControllerHelper{
-		talosRegistry: talosRegistry,
-		registries:    registries,
+		registries: registries,
 	}
 
 	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
@@ -399,8 +397,7 @@ func grubUseUKICmdline(cfg config.Provider, initialTalosVersion string) (bool, e
 }
 
 type clusterMachineConfigControllerHelper struct {
-	registries    omnicfg.Registries
-	talosRegistry string
+	registries omnicfg.Registries
 }
 
 // buildRegistryAuthPatch builds the registry auth documents for the image factories, if all the given Talos versions support them.
@@ -529,7 +526,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		installImageSpec.ImageFactoryHost = u.Host
 	}
 
-	installImage, err := installimage.Build(configGenOptions.Metadata().ID(), installImageSpec, helper.talosRegistry)
+	installImage, err := installimage.Build(configGenOptions.Metadata().ID(), installImageSpec)
 	if err != nil {
 		return nil, err
 	}

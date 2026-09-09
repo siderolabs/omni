@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 	machinectrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
 )
@@ -347,7 +348,7 @@ func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r
 // Any other error (network, auth, marshal failure) is propagated so the reconcile retries.
 //
 // Raw and FullID are always written together, never out of sync.
-func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, info *machinetask.SchematicInfo, existing *omni.MachineStatus, logger *zap.Logger) error {
+func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, info *talosutils.SchematicInfo, existing *omni.MachineStatus, logger *zap.Logger) error {
 	if info == nil || info.FullID == "" || info.Raw != "" || info.InAgentMode || info.Invalid {
 		return nil
 	}

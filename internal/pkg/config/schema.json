@@ -156,8 +156,9 @@
       "properties": {
         "talos": {
           "type": "string",
-          "description": "Talos is the Talos installer registry configuration.",
+          "description": "Talos is the Talos installer registry configuration.\n\nDeprecated: unused, Omni always installs from an image factory.",
           "x-cli-flag": "talos-installer-registry",
+          "deprecated": true,
           "minLength": 1,
           "default": "ghcr.io/siderolabs/installer",
           "goJSONSchema": {

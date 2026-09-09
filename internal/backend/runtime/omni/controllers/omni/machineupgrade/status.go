@@ -34,7 +34,6 @@ import (
 type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
-	TalosRegistry() string
 }
 
 type StatusController struct {
@@ -84,6 +83,15 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 	schematicSpec := ms.TypedSpec().Value.Schematic
 
 	status.TypedSpec().Value.CurrentSchematicId = schematicSpec.FullId
+
+	// only a Talos version change may upgrade an invalid machine, never a schematic change
+	if schematicSpec.Invalid {
+		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
+		status.TypedSpec().Value.Status = "machine was not provisioned using an image factory image, schematic changes are not managed"
+		status.TypedSpec().Value.Error = ""
+
+		return nil
+	}
 
 	if schematicSpec.Raw == "" {
 		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
@@ -334,7 +342,7 @@ func (ctrl *StatusController) lifecycleUpgrade(ctx context.Context, logger *zap.
 func (ctrl *StatusController) legacyUpgrade(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) error {
 	machineID := ms.Metadata().ID()
 
-	installImageStr, err := installimage.Build(machineID, installImage, ctrl.lifecycleManager.TalosRegistry())
+	installImageStr, err := installimage.Build(machineID, installImage)
 	if err != nil {
 		return fmt.Errorf("failed to build install image: %w", err)
 	}

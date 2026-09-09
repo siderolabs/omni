@@ -498,7 +498,6 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.FullId = ""
 
 					return nil
 				}),
@@ -591,7 +590,6 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.FullId = ""
 
 					return nil
 				}),

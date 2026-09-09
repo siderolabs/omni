@@ -671,6 +671,8 @@ type Registries struct {
 	Mirrors []string `json:"mirrors,omitempty,omitzero" yaml:"mirrors,omitempty" merge:"replace"`
 
 	// Talos is the Talos installer registry configuration.
+	//
+	// Deprecated: unused, Omni always installs from an image factory.
 	Talos *string `json:"talos" yaml:"talos"`
 }
 

@@ -16,8 +16,8 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 )
 
-// Build builds the install image for the provided properties.
-func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosRegistry string) (string, error) {
+// Build builds the install image for the provided properties. The image always comes from an image factory.
+func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
 	if installImage == nil {
 		return "", fmt.Errorf("install image is nil for machine %q", resID)
 	}
@@ -26,7 +26,13 @@ func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_In
 		return "", fmt.Errorf("machine %q has no schematic information set", resID)
 	}
 
-	schematicID := installImage.SchematicId
+	if installImage.SchematicId == "" {
+		return "", fmt.Errorf("machine %q has no schematic ID set", resID)
+	}
+
+	if installImage.ImageFactoryHost == "" {
+		return "", fmt.Errorf("machine %q has no image factory host set", resID)
+	}
 
 	securityState := installImage.SecurityState
 	if securityState == nil { // should never happen - must have been handled before entering this function
@@ -36,10 +42,6 @@ func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_In
 	installerName := "installer"
 	if securityState.SecureBoot {
 		installerName = "installer-secureboot"
-	}
-
-	if installImage.SchematicInvalid {
-		schematicID = ""
 	}
 
 	desiredTalosVersion := installImage.TalosVersion
@@ -65,13 +67,5 @@ func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_In
 		desiredTalosVersion = "v" + desiredTalosVersion
 	}
 
-	if schematicID != "" {
-		if installImage.ImageFactoryHost == "" {
-			return "", fmt.Errorf("machine %q has no image factory host set", resID)
-		}
-
-		return installImage.ImageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
-	}
-
-	return talosRegistry + ":" + desiredTalosVersion, nil
+	return installImage.ImageFactoryHost + "/" + installerName + "/" + installImage.SchematicId + ":" + desiredTalosVersion, nil
 }
