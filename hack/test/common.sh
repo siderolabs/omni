@@ -115,11 +115,10 @@ export REGISTRY_MIRROR_CONFIG=""
 export REGISTRY_MIRRORS_BODY=""
 export IMPORTED_CLUSTER_ARGS=()
 export IMAGE_FACTORY_PUBLIC_URL="https://factory.talos.dev"
-export IMAGE_FACTORY_ENTERPRISE_URL="https://factory.siderolabs.com"
 export WITH_IMAGE_FACTORY_ENTERPRISE="${WITH_IMAGE_FACTORY_ENTERPRISE:-false}"
+export IMAGE_FACTORY_ENTERPRISE_ENV="${IMAGE_FACTORY_ENTERPRISE_ENV:-staging}" # staging or prod, selects the enterprise factory URL and its token
 export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_PUBLIC_URL}"
 export FACTORY_API_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
-export FACTORY_IMAGE_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
 export FACTORY_CURL_AUTH="${FACTORY_CURL_AUTH:-}"
 # Basic-auth args for curl calls against the factory schematic API. Empty for the public factory, so it expands to nothing when unset.
 FACTORY_CURL_ARGS=()
@@ -174,6 +173,7 @@ function configure_registry_mirrors() {
 function common_cleanup() {
   cd "${RUN_DIR}"
   rm -rf "${ARTIFACTS}/omni.db" "${ARTIFACTS}/etcd/"
+  [[ -z "${OMNI_IMAGE_FACTORY_TOKEN_DIR:-}" ]] || rm -rf "${OMNI_IMAGE_FACTORY_TOKEN_DIR}"
 
   if [[ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]]; then
     kill -9 "$PARTIAL_CONFIG_SERVER_PID" || true
@@ -359,11 +359,16 @@ function minio_cleanup() {
 }
 
 function prepare_omni_config() {
-  # Credentials are passed to Omni via OMNI_IMAGE_FACTORY_USERNAME/PASSWORD so they stay out of the config.yaml that is uploaded as a CI artifact.
+  # The config.yaml is uploaded as a CI artifact, so the factory token stays in a file outside the uploaded directories.
   local registries_body=""
 
-  if [[ -n "${OMNI_IMAGE_FACTORY_BASE_URL:-}" ]]; then
-    registries_body+="  imageFactoryBaseURL: ${OMNI_IMAGE_FACTORY_BASE_URL}"$'\n'
+  registries_body+="  factories:"$'\n'
+  registries_body+="    primary:"$'\n'
+  registries_body+="      url: ${OMNI_IMAGE_FACTORY_BASE_URL}"$'\n'
+
+  if [[ -n "${OMNI_IMAGE_FACTORY_TOKEN_FILE:-}" ]]; then
+    registries_body+="      tokenFile: ${OMNI_IMAGE_FACTORY_TOKEN_FILE}"$'\n'
+    registries_body+="      machineTokenTTL: 8h"$'\n' # short-lived machine tokens, so that the test runs do not fill the factory's token limit
   fi
 
   registries_body+="${REGISTRY_MIRRORS_BODY}"
@@ -507,10 +512,10 @@ function create_machines() {
     cluster_create_args+=(
       "--with-tpm2"
       "--disk-encryption-key-types=tpm"
-      "--iso-path=${FACTORY_IMAGE_URL}/image/${schematic_id}/v${talos_version}/metal-amd64-secureboot.iso"
+      "--iso-path=$(download_factory_image "${schematic_id}" "${talos_version}" metal-amd64-secureboot.iso)"
     )
   else
-    cluster_create_args+=("--iso-path=${FACTORY_IMAGE_URL}/image/${schematic_id}/v${talos_version}/metal-amd64.iso")
+    cluster_create_args+=("--iso-path=$(download_factory_image "${schematic_id}" "${talos_version}" metal-amd64.iso)")
   fi
 
   "${ARTIFACTS}/talosctl" cluster create dev \
@@ -598,24 +603,48 @@ function set_factory_curl_args() {
   fi
 }
 
+# Downloads an image from the factory once and prints its path, so that the factory credentials stay out of the
+# URLs given to talosctl, which names its cache files after them.
+function download_factory_image() { # args: schematic_id, talos_version, file_name
+  local path="${ARTIFACTS}/images/$1-v$2-$3"
+
+  if [[ ! -f "${path}" ]]; then
+    mkdir -p "${ARTIFACTS}/images"
+    set_factory_curl_args
+    curl -fsSL "${FACTORY_CURL_ARGS[@]}" -o "${path}.tmp" "${FACTORY_API_URL}/image/$1/v$2/$3" || return 1
+    mv "${path}.tmp" "${path}"
+  fi
+
+  echo "${path}"
+}
+
 function configure_image_factory() {
   if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" != "true" ]]; then
     return
   fi
 
-  # Configure env vars for Image Factory Enterprise
-  : "${IMAGE_FACTORY_ENTERPRISE_USERNAME:?IMAGE_FACTORY_ENTERPRISE_USERNAME must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
-  : "${IMAGE_FACTORY_ENTERPRISE_PASSWORD:?IMAGE_FACTORY_ENTERPRISE_PASSWORD must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
-  export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_ENTERPRISE_URL}"
-  export OMNI_IMAGE_FACTORY_USERNAME="${IMAGE_FACTORY_ENTERPRISE_USERNAME}"
-  export OMNI_IMAGE_FACTORY_PASSWORD="${IMAGE_FACTORY_ENTERPRISE_PASSWORD}"
+  case "${IMAGE_FACTORY_ENTERPRISE_ENV}" in
+    staging) export OMNI_IMAGE_FACTORY_BASE_URL="https://factory-enterprise.staging.talos.dev" ;;
+    prod) export OMNI_IMAGE_FACTORY_BASE_URL="https://factory.siderolabs.com" ;;
+    *)
+      echo "unknown image factory enterprise environment: ${IMAGE_FACTORY_ENTERPRISE_ENV}" >&2
+      return 1
+      ;;
+  esac
 
+  local token_var="IMAGE_FACTORY_ENTERPRISE_${IMAGE_FACTORY_ENTERPRISE_ENV^^}_TOKEN"
+  local token="${!token_var:?${token_var} must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
+
+  # Omni reads the token from a file and watches its directory, so the file gets a directory of its own, outside the
+  # directories uploaded as CI artifacts.
+  OMNI_IMAGE_FACTORY_TOKEN_DIR=$(mktemp -d)
+  export OMNI_IMAGE_FACTORY_TOKEN_DIR
+  export OMNI_IMAGE_FACTORY_TOKEN_FILE="${OMNI_IMAGE_FACTORY_TOKEN_DIR}/token"
+  printf '%s' "${token}" >"${OMNI_IMAGE_FACTORY_TOKEN_FILE}"
+
+  # The factory accepts the token as the basic auth password, the username is ignored.
   export FACTORY_API_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
-  export FACTORY_CURL_AUTH="${OMNI_IMAGE_FACTORY_USERNAME}:${OMNI_IMAGE_FACTORY_PASSWORD}"
-
-  local proto="${OMNI_IMAGE_FACTORY_BASE_URL%%://*}"
-  local host="${OMNI_IMAGE_FACTORY_BASE_URL#*://}"
-  export FACTORY_IMAGE_URL="${proto}://${OMNI_IMAGE_FACTORY_USERNAME}:${OMNI_IMAGE_FACTORY_PASSWORD}@${host}"
+  export FACTORY_CURL_AUTH="token:${token}"
 }
 
 # No cleanup here, as it runs in the CI as a container in a pod.
