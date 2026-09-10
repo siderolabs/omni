@@ -13,6 +13,9 @@ replace (
 	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
 )
 
+// TODO: remove me, this imports https://github.com/siderolabs/siderolink/pull/55
+replace github.com/siderolabs/siderolink => github.com/smira/siderolink v0.0.0-20260910153647-773b6da25915
+
 tool github.com/atombender/go-jsonschema
 
 require (

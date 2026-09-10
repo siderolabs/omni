@@ -16,10 +16,12 @@ import (
 )
 
 // PeerID describes the ID which is used to uniquely identify the peers in the pool.
-type PeerID struct {
-	key             string
-	virtualAddrport string
-}
+//
+// PeerID matches the public key of the Wireguard peer, the same key Wireguard uses
+// to identify the peer.
+//
+// This is used to deduplicate peers in the pool and to remove them when they are no longer needed.
+type PeerID string
 
 type peer struct {
 	link   *specs.SiderolinkSpec
@@ -30,6 +32,10 @@ type ownerID struct {
 	id           string
 	resourceType string
 	namespace    string
+}
+
+func (o ownerID) String() string {
+	return o.resourceType + "/" + o.namespace + "/" + o.id
 }
 
 func getOwnerID(md *resource.Metadata) ownerID {
@@ -60,14 +66,10 @@ type PeersPool struct {
 
 // GetPeerID returns the peer id.
 func GetPeerID(spec interface {
-	GetVirtualAddrport() string
 	GetNodePublicKey() string
 },
 ) PeerID {
-	return PeerID{
-		virtualAddrport: spec.GetVirtualAddrport(),
-		key:             spec.GetNodePublicKey(),
-	}
+	return PeerID(spec.GetNodePublicKey())
 }
 
 // Add a wireguard peer.
@@ -78,16 +80,24 @@ func (pool *PeersPool) Add(ctx context.Context, spec *specs.SiderolinkSpec, owne
 
 	oid := getOwnerID(owner)
 
-	if existing, ok := pool.peers[GetPeerID(spec)]; ok {
-		existing.owners[oid] = struct{}{}
-
-		pool.logger.Info("reference existing wireguard peer", zap.String("public_key", spec.NodePublicKey), zap.String("owner", owner.String()))
-
-		return nil
-	}
-
 	if err := pool.wgHandler.PeerEvent(ctx, spec, false); err != nil {
 		return err
+	}
+
+	if existing, ok := pool.peers[GetPeerID(spec)]; ok {
+		_, alreadyExists := existing.owners[oid]
+
+		if !alreadyExists {
+			pool.logger.Info(
+				"reference existing wireguard peer",
+				zap.String("public_key", spec.NodePublicKey),
+				zap.String("new_owner", oid.String()),
+			)
+		}
+
+		existing.owners[oid] = struct{}{}
+
+		return nil
 	}
 
 	pool.peers[GetPeerID(spec)] = peer{
@@ -95,7 +105,7 @@ func (pool *PeersPool) Add(ctx context.Context, spec *specs.SiderolinkSpec, owne
 		owners: map[ownerID]struct{}{oid: {}},
 	}
 
-	pool.logger.Info("added wireguard peer", zap.String("public_key", spec.NodePublicKey), zap.String("owner", owner.String()))
+	pool.logger.Info("added wireguard peer", zap.String("public_key", spec.NodePublicKey), zap.String("owner", oid.String()))
 
 	return nil
 }
@@ -105,12 +115,19 @@ func (pool *PeersPool) Remove(ctx context.Context, peerID PeerID, owner *resourc
 	pool.peersMu.Lock()
 	defer pool.peersMu.Unlock()
 
+	oid := getOwnerID(owner)
+
 	existing, ok := pool.peers[peerID]
 	if !ok {
 		return nil
 	}
 
-	delete(existing.owners, getOwnerID(owner))
+	_, ownerExists := existing.owners[oid]
+	if !ownerExists {
+		pool.logger.Warn("owner does not exist for wireguard peer", zap.String("public_key", string(peerID)), zap.String("owner", oid.String()))
+	}
+
+	delete(existing.owners, oid)
 
 	if len(existing.owners) > 0 {
 		return nil
@@ -122,7 +139,7 @@ func (pool *PeersPool) Remove(ctx context.Context, peerID PeerID, owner *resourc
 
 	delete(pool.peers, peerID)
 
-	pool.logger.Info("removing wireguard peer", zap.String("public_key", peerID.key), zap.String("owner", owner.String()))
+	pool.logger.Info("removing wireguard peer", zap.String("public_key", string(peerID)), zap.String("owner", oid.String()))
 
 	return nil
 }
