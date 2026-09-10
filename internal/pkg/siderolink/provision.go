@@ -277,7 +277,7 @@ func updateResource[T res](ctx context.Context,
 
 		s.NodePublicKey = provisionContext.request.NodePublicKey
 
-		s.VirtualAddrport, err = generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
+		s.VirtualAddrport, err = resolveVirtualAddrPort(provisionContext)
 		if err != nil {
 			return err
 		}
@@ -561,7 +561,7 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error parsing Wireguard key: %s", err))
 	}
 
-	virtualAddrPort, err := generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
+	virtualAddrPort, err := resolveVirtualAddrPort(provisionContext)
 	if err != nil {
 		return nil, err
 	}
@@ -574,11 +574,30 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 	}, nil
 }
 
-func generateVirtualAddrPort(generate bool) (string, error) {
-	if !generate {
+// resolveVirtualAddrPort returns the virtual address-port for the machine's WireGuard peer.
+//
+// The virtual address-port should not change when transitioning from PendingMachine to Link,
+// so we try to preserve it in that specific case.
+//
+// Other than that, we should be changing the virtual address-port every time the machine goes
+// via provisioning flow to workaround a bug in Talos (https://github.com/siderolabs/talos/pull/14335).
+func resolveVirtualAddrPort(provisionContext *provisionContext) (string, error) {
+	if !provisionContext.useWireguardOverGRPC {
 		return "", nil
 	}
 
+	if provisionContext.pendingMachine != nil {
+		spec := provisionContext.pendingMachine.TypedSpec().Value
+
+		if spec.NodePublicKey == provisionContext.request.NodePublicKey && spec.VirtualAddrport != "" {
+			return spec.VirtualAddrport, nil
+		}
+	}
+
+	return generateVirtualAddrPort()
+}
+
+func generateVirtualAddrPort() (string, error) {
 	generated, err := wireguard.GenerateRandomNodeAddr(wireguard.VirtualNetworkPrefix())
 	if err != nil {
 		return "", fmt.Errorf("error generating random virtual node address: %w", err)

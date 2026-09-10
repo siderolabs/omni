@@ -33,7 +33,7 @@ require (
 	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/image-factory v1.7.0
 	github.com/siderolabs/proto-codec v0.1.4
-	github.com/siderolabs/siderolink v0.3.17
+	github.com/siderolabs/siderolink v0.3.18
 	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.0.0.20260915151949-0e1fdd26a1a6
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
@@ -128,7 +128,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
+	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
