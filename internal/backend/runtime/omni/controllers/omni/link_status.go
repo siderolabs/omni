@@ -81,9 +81,6 @@ func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, r con
 	}
 
 	if grpcTunnelConfig != nil {
-		// If link.TypedSpec().Value.VirtualAddrport != "" then the machine is expected to use
-		// a WireGuard over gRPC tunnel.
-		//
 		// If the existing link's tunnel mode does not match grpcTunnelConfig, we remove the
 		// peer without recreating it. This forces the machine to reconnect after 4 minutes
 		// and 35 seconds. During that reconnect, the machine will call the provision API again,
@@ -92,11 +89,11 @@ func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, r con
 		//
 		// If grpcTunnelConfig is reverted within that 4 minute 35 second window, the controller
 		// will recreate the peer using the old mode, and the machine will become reachable again.
-		if err := handler.peers.Remove(ctx, siderolink.GetPeerID(linkStatus.TypedSpec().Value), link.Metadata()); err != nil {
-			return err
-		}
-
 		if (link.TypedSpec().Value.VirtualAddrport != "") != grpcTunnelConfig.TypedSpec().Value.Enabled {
+			if err := handler.peers.Remove(ctx, siderolink.GetPeerID(link.TypedSpec().Value), link.Metadata()); err != nil {
+				return err
+			}
+
 			return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("removed peer")
 		}
 	}
@@ -128,10 +125,6 @@ func (handler *linkStatusHandler[T]) reconcileTearingDown(ctx context.Context, _
 }
 
 func (handler *linkStatusHandler[T]) needsPeerUpdate(oldSpec, newSpec linkSpec) bool {
-	if oldSpec.GetVirtualAddrport() != "" && oldSpec.GetVirtualAddrport() != newSpec.GetVirtualAddrport() {
-		return true
-	}
-
 	if oldSpec.GetNodePublicKey() != "" && oldSpec.GetNodePublicKey() != newSpec.GetNodePublicKey() {
 		return true
 	}

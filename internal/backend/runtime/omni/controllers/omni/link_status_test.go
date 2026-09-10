@@ -7,7 +7,6 @@ package omni_test
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"sync"
 	"testing"
@@ -54,10 +53,6 @@ func (h *fakeWireguardHandler) PeerEvent(_ context.Context, spec *specs.Sideroli
 	if deleted {
 		delete(h.peers, spec.NodePublicKey)
 	} else {
-		if _, ok := h.peers[spec.NodePublicKey]; ok {
-			return fmt.Errorf("peer already exists")
-		}
-
 		h.peers[spec.NodePublicKey] = wgtypes.Peer{}
 	}
 
