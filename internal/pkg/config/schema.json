@@ -237,7 +237,8 @@
             "pxeURL": { "x-cli-flag": "primary-factory-pxe-url" },
             "username": { "x-cli-flag": "primary-factory-username" },
             "password": { "x-cli-flag": "primary-factory-password" },
-            "tokenFile": { "x-cli-flag": "primary-factory-token-file" }
+            "tokenFile": { "x-cli-flag": "primary-factory-token-file" },
+            "machineTokenTTL": { "x-cli-flag": "primary-factory-machine-token-ttl" }
           }
         },
         "secondary": {
@@ -248,7 +249,8 @@
             "pxeURL": { "x-cli-flag": "secondary-factory-pxe-url" },
             "username": { "x-cli-flag": "secondary-factory-username" },
             "password": { "x-cli-flag": "secondary-factory-password" },
-            "tokenFile": { "x-cli-flag": "secondary-factory-token-file" }
+            "tokenFile": { "x-cli-flag": "secondary-factory-token-file" },
+            "machineTokenTTL": { "x-cli-flag": "secondary-factory-machine-token-ttl" }
           }
         }
       }
@@ -289,6 +291,16 @@
         "tokenFile": {
           "description": "TokenFile is the path of a file holding the API token used to authenticate against the Image Factory Enterprise service. It is an alternative to the username and password. The file is re-read when it changes, so the token can be rotated without a restart.",
           "type": "string"
+        },
+        "machineTokenTTL": {
+          "description": "MachineTokenTTL is the lifetime of the tokens Omni creates for the machines to pull images from the Image Factory Enterprise service. When it is not set, the factory records the token, gives it the default lifetime and counts it against the token limit of the organization. When it is set, the token is short-lived and the factory does not record it. This is meant for test setups where Omni instances come and go.",
+          "type": "string",
+          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
+          "goJSONSchema": {
+            "type": "time.Duration",
+            "pointer": true
+          }
         }
       }
     },

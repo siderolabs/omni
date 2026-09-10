@@ -32,6 +32,7 @@ func (s *Registries) GetPrimaryFactory() Factory {
 
 	resolved.SetUrl(s.GetImageFactoryBaseURL())
 	resolved.SetPxeURL(firstNonEmpty(primary.GetPxeURL(), s.GetImageFactoryPXEBaseURL()))
+	resolved.MachineTokenTTL = primary.MachineTokenTTL
 
 	// A token file and a basic auth pair never go together.
 	if tokenFile := primary.GetTokenFile(); tokenFile != "" {

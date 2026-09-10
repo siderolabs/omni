@@ -490,6 +490,17 @@ func (s *EulaAccept) SetName(v string) {
 	s.Name = &v
 }
 
+func (s *Factory) GetMachineTokenTTL() time.Duration {
+	if s == nil || s.MachineTokenTTL == nil {
+		return *new(time.Duration)
+	}
+	return *s.MachineTokenTTL
+}
+
+func (s *Factory) SetMachineTokenTTL(v time.Duration) {
+	s.MachineTokenTTL = &v
+}
+
 func (s *Factory) GetPassword() string {
 	if s == nil || s.Password == nil {
 		return *new(string)

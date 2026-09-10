@@ -711,6 +711,23 @@ registries:
 		assert.False(t, hasSecondary)
 	})
 
+	t.Run("machine token lifetime with the deprecated URL", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  imageFactoryBaseURL: https://old.example.com
+  factories:
+    primary:
+      tokenFile: /run/secrets/factory-token
+      machineTokenTTL: 4h
+`))
+		require.NoError(t, err)
+
+		primary := p.Registries.GetPrimaryFactory()
+		assert.Equal(t, "https://old.example.com", primary.GetUrl())
+		assert.Equal(t, "/run/secrets/factory-token", primary.GetTokenFile())
+		assert.Equal(t, 4*time.Hour, primary.GetMachineTokenTTL())
+	})
+
 	t.Run("primary wins over deprecated", func(t *testing.T) {
 		p, err := config.FromBytes([]byte(`
 registries:

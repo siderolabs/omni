@@ -215,8 +215,41 @@ func TestImageFactoryAuthToken(t *testing.T) {
 			request := factory.last.Load()
 			require.NotNil(t, request)
 			assert.Equal(t, []string{"image:read"}, request.Scopes, "the machine token pulls images and nothing else")
-			assert.False(t, request.Ephemeral, "the machine token must be stored: an ephemeral one lives hours, a stored one a year")
+			assert.False(t, request.Ephemeral, "without a configured lifetime the machine token is stored: an ephemeral one lives hours, a stored one a year")
+			assert.Zero(t, request.TTL, "without a configured lifetime the factory's default applies")
 			assert.Equal(t, "omni-machines-my-omni-"+time.Now().UTC().Format(time.DateOnly), request.Name)
+		},
+	)
+}
+
+// TestImageFactoryAuthMachineTokenTTL covers a configured machine token lifetime: the token is
+// requested short-lived, so the factory does not record it and it does not count against the
+// token limit of the organization.
+func TestImageFactoryAuthMachineTokenTTL(t *testing.T) {
+	t.Parallel()
+
+	factory := newTokenFactory(t, nil)
+
+	testutils.WithRuntime(
+		t.Context(), t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			registries, tokens := testTokenRegistries(t, testOmniToken)
+			registries.Factories.Primary.SetMachineTokenTTL(2 * time.Hour)
+
+			registerImageFactoryAuthControllerWithFactory(t, tc, registries, tokens, factory.ImageFactoryClientMock)
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			rtestutils.AssertResources(
+				ctx, t, tc.State, []string{testFactoryURL},
+				func(res *omni.ImageFactoryAuth, assert *assert.Assertions) {
+					assert.NotEmpty(res.TypedSpec().Value.GetMachineToken())
+				},
+			)
+
+			request := factory.last.Load()
+			require.NotNil(t, request)
+			assert.True(t, request.Ephemeral)
+			assert.Equal(t, 2*time.Hour, request.TTL)
 		},
 	)
 }

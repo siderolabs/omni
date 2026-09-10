@@ -288,6 +288,14 @@ type Factories struct {
 }
 
 type Factory struct {
+	// MachineTokenTTL is the lifetime of the tokens Omni creates for the machines to
+	// pull images from the Image Factory Enterprise service. When it is not set, the
+	// factory records the token, gives it the default lifetime and counts it against
+	// the token limit of the organization. When it is set, the token is short-lived
+	// and the factory does not record it. This is meant for test setups where Omni
+	// instances come and go.
+	MachineTokenTTL *time.Duration `json:"machineTokenTTL,omitempty,omitzero" yaml:"machineTokenTTL,omitempty"`
+
 	// Password is the password used to authenticate against the Image Factory
 	// Enterprise service with basic auth.
 	Password *string `json:"password,omitempty,omitzero" yaml:"password,omitempty"`

@@ -57,8 +57,9 @@ const (
 // Omni's own credentials come from its configuration (the basic auth pair as values, the API token
 // from a file that is followed as it changes) and are copied into the ImageFactoryAuth resource. For
 // a factory Omni authenticates to with an API token, the controller also creates the machine token
-// on the factory: a stored, pull-only token that goes into the machine configs, and that the
-// controller replaces before it expires.
+// on the factory: a pull-only token that goes into the machine configs, and that the controller
+// replaces before it expires. The factory records it. With a configured lifetime, the token is
+// short-lived instead and the factory does not record it.
 //
 // The set of factories comes from Omni's configuration rather than from a resource, so the
 // controller has no inputs: it reconciles once, and comes back for a pending removal, a rotated
@@ -236,7 +237,7 @@ func (ctrl *AuthController) reconcileFactory(
 	if apiToken != "" {
 		// On a failure the current machine token is kept, which is none on a cold start. The resource
 		// is written either way, the error is returned after that.
-		machineToken, renewIn, ensureErr = ctrl.ensureMachineToken(ctx, logger, factoryURL, machineToken)
+		machineToken, renewIn, ensureErr = ctrl.ensureMachineToken(ctx, logger, factoryURL, machineToken, factory.GetMachineTokenTTL())
 	} else {
 		// Basic auth: the machines use the same credentials as Omni, no machine token is needed.
 		machineToken = ""
@@ -264,7 +265,9 @@ func (ctrl *AuthController) reconcileFactory(
 //
 // A failed request is an error, and the current token is returned with it: the machines keep it,
 // it works until it expires, and the runtime retries with its backoff.
-func (ctrl *AuthController) ensureMachineToken(ctx context.Context, logger *zap.Logger, factoryURL, current string) (string, time.Duration, error) {
+func (ctrl *AuthController) ensureMachineToken(
+	ctx context.Context, logger *zap.Logger, factoryURL, current string, ttl time.Duration,
+) (string, time.Duration, error) {
 	now := time.Now()
 
 	if current != "" {
@@ -281,7 +284,7 @@ func (ctrl *AuthController) ensureMachineToken(ctx context.Context, logger *zap.
 		return current, 0, fmt.Errorf("no image factory client is configured for %q", factoryURL)
 	}
 
-	token, err := ctrl.createMachineToken(ctx, factoryClient, now)
+	token, err := ctrl.createMachineToken(ctx, factoryClient, now, ttl)
 	if err != nil {
 		return current, 0, fmt.Errorf("failed to create the machine token: %w", err)
 	}
@@ -296,17 +299,20 @@ func (ctrl *AuthController) ensureMachineToken(ctx context.Context, logger *zap.
 	// A token that is already due when it arrives (the factory's clock behind Omni's by most of the
 	// token's lifetime) schedules nothing, so the renewal waits for the next restart. Creating another
 	// token right away would only produce another one already due, and burn the per-org cap.
-	return token, lifetime.renewIn(now), nil
+	return token, lifetime.renewIn(time.Now()), nil
 }
 
-// createMachineToken creates the stored, pull-only token the machines authenticate with.
-func (ctrl *AuthController) createMachineToken(ctx context.Context, factoryClient imagefactory.FactoryClient, now time.Time) (string, error) {
+// createMachineToken creates the pull-only token the machines authenticate with. With a lifetime
+// configured, the token is short-lived and the factory does not record it.
+func (ctrl *AuthController) createMachineToken(ctx context.Context, factoryClient imagefactory.FactoryClient, now time.Time, ttl time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, machineTokenRequestTimeout)
 	defer cancel()
 
 	_, token, err := factoryClient.TokenCreate(ctx, client.TokenCreateOptions{
-		Name:   fmt.Sprintf("omni-machines-%s-%s", ctrl.accountName, now.UTC().Format(time.DateOnly)),
-		Scopes: []string{machineTokenScope},
+		Name:      fmt.Sprintf("omni-machines-%s-%s", ctrl.accountName, now.UTC().Format(time.DateOnly)),
+		Scopes:    []string{machineTokenScope},
+		TTL:       ttl,
+		Ephemeral: ttl != 0,
 	})
 	if err != nil {
 		return "", err
