@@ -42,7 +42,6 @@ type Manager struct {
 	inFlight                 map[string]struct{}
 	installEventCh           chan<- resource.ID
 	imageFactoryClients      *imagefactory.Clients
-	talosRegistry            string
 	mu                       sync.Mutex
 }
 
@@ -51,7 +50,6 @@ type Manager struct {
 func NewManager(
 	logger *zap.Logger,
 	imageFactoryClients *imagefactory.Clients,
-	talosRegistry string,
 	kubernetesClientProvider KubernetesClientProvider,
 	talosClientFactory TalosClientFactory,
 	installEventCh chan<- resource.ID,
@@ -59,7 +57,6 @@ func NewManager(
 	return &Manager{
 		logger:                   logger,
 		imageFactoryClients:      imageFactoryClients,
-		talosRegistry:            talosRegistry,
 		kubernetesClientProvider: kubernetesClientProvider,
 		talosClientFactory:       talosClientFactory,
 		containerdInstance: &common.ContainerdInstance{
@@ -69,12 +66,6 @@ func NewManager(
 		inFlight:       map[string]struct{}{},
 		installEventCh: installEventCh,
 	}
-}
-
-// TalosRegistry is the Talos installer registry used when a machine has no schematic, shared by every
-// caller so they don't each need their own copy of what is really a single deployment-wide setting.
-func (m *Manager) TalosRegistry() string {
-	return m.talosRegistry
 }
 
 // clientset resolves the cluster's Kubernetes clientset, erroring when no provider was configured.

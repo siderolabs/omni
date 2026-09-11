@@ -309,3 +309,70 @@ func updateKernelArgs(ctx context.Context, t *testing.T, st state.State, schemat
 
 	return updatedSchematic
 }
+
+// TestReconcileInvalidSchematic covers a machine provisioned bypassing the image factory, with Talos on disk, in
+// maintenance mode, and a reported schematic ID different from the published one: a schematic difference must never
+// upgrade such a machine.
+func TestReconcileInvalidSchematic(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		ctrl := machineupgrade.NewStatusController(testutils.NewImageFactoryClients(t, testContext.State), testutils.NewLifecycleManager(t, testContext.State, nil))
+
+		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		const id = "invalid"
+
+		st := testContext.State
+
+		machineServices := testutils.NewMachineServices(t, st)
+		machineService := machineServices.Create(ctx, id)
+
+		synthesized := schematic.Schematic{
+			Customization: schematic.Customization{
+				ExtraKernelArgs: []string{"siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken"},
+			},
+		}
+
+		synthesizedID, err := synthesized.ID()
+		require.NoError(t, err)
+
+		synthesizedRaw, err := synthesized.Marshal()
+		require.NoError(t, err)
+
+		const talosVersion = "v1.13.10"
+
+		schematicConfiguration := omni.NewSchematicConfiguration(id)
+		schematicConfiguration.TypedSpec().Value.SchematicId = "published-by-the-factory"
+		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+		require.NoError(t, st.Create(ctx, schematicConfiguration))
+
+		ms := omni.NewMachineStatus(id)
+		ms.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+		ms.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
+		ms.TypedSpec().Value.Maintenance = true
+		ms.TypedSpec().Value.TalosVersion = talosVersion
+		ms.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+			Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/sda", SystemDisk: true}},
+		}
+		ms.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+		ms.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+		ms.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+			Invalid:      true,
+			FullId:       synthesizedID,
+			Raw:          string(synthesizedRaw),
+			KernelArgs:   synthesized.Customization.ExtraKernelArgs,
+			InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
+		}
+
+		require.NoError(t, st.Create(ctx, ms))
+
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.MachineUpgradeStatusSpec_Unknown, res.TypedSpec().Value.Phase)
+			assertion.Contains(res.TypedSpec().Value.Status, "not provisioned using an image factory image")
+			assertion.Equal(synthesizedID, res.TypedSpec().Value.CurrentSchematicId)
+			assertion.Empty(res.TypedSpec().Value.Error)
+		})
+	})
+}

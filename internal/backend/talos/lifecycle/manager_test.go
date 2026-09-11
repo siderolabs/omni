@@ -30,7 +30,7 @@ func newManagerForTest(t *testing.T) *lifecycle.Manager {
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
 		state.WrapCore(namespaced.NewState(inmem.Build)),
 		c,
-	), "ghcr.io/siderolabs/installer", nil, nil, nil)
+	), nil, nil, nil)
 }
 
 func TestCheckTalosVersion(t *testing.T) {

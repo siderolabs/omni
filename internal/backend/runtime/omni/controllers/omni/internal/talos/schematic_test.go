@@ -6,7 +6,6 @@
 package talos_test
 
 import (
-	"errors"
 	"strconv"
 	"testing"
 
@@ -148,17 +147,26 @@ func TestGetSchematicInfo(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to unmarshal schematic manifest")
 	})
 
-	t.Run("extensions without meta extension produce ErrInvalidSchematic", func(t *testing.T) {
+	t.Run("extensions without meta extension synthesize a schematic without them and mark the machine invalid", func(t *testing.T) {
 		t.Parallel()
 
-		// Extensions baked into a custom Talos build bypassing the factory: no schematic meta extension.
+		// extensions baked into a custom Talos build, no schematic meta extension
 		st := buildState(t, []extension{
 			{name: "siderolabs/some-custom-thing"},
 		})
 
-		_, err := talos.GetSchematicInfo(t.Context(), st, nil)
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, talos.ErrInvalidSchematic), "expected ErrInvalidSchematic, got %v", err)
+		fallbackArgs := []string{"siderolink.api=grpc://omni:8090?jointoken=abc", "talos.events.sink=[fdae::1]:8090"}
+
+		info, err := talos.GetSchematicInfo(t.Context(), st, fallbackArgs)
+		require.NoError(t, err)
+
+		expected := schematic.Schematic{Customization: schematic.Customization{ExtraKernelArgs: fallbackArgs}}
+
+		assert.True(t, info.Invalid)
+		assert.Equal(t, schematicID(t, expected), info.FullID)
+		assert.Equal(t, schematicYAML(t, expected), info.Raw)
+		assert.Equal(t, fallbackArgs, info.KernelArgs)
+		assert.Empty(t, info.Extensions)
 	})
 
 	t.Run("no extensions and no fallback args synthesizes empty schematic", func(t *testing.T) {

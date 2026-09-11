@@ -7,7 +7,6 @@ package machine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -573,20 +572,10 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 
 	schematicInfo, err := talos.GetSchematicInfo(ctx, c.COSI, info.DefaultKernelArgs)
 	if err != nil {
-		if errors.Is(err, talos.ErrInvalidSchematic) {
-			info.Schematic = &SchematicInfo{
-				Invalid: true,
-			}
-
-			return nil
-		}
-
 		return err
 	}
 
-	info.Schematic = &SchematicInfo{
-		SchematicInfo: schematicInfo,
-	}
+	info.Schematic = &schematicInfo
 
 	return nil
 }

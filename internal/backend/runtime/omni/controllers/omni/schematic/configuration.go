@@ -195,18 +195,6 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 
 	machineExtensionsStatus.TypedSpec().Value.TalosVersion = "v" + talosVersion
 
-	// Invalid machines bypassed the image factory entirely (extensions baked into a custom Talos build).
-	// They have no usable schematic info, but downstream controllers still need a SchematicConfiguration
-	// resource to exist so the install image / config generation pipeline runs. Emit a minimal one and
-	// let the downstream's existing Invalid handling (installimage.Build falls back to talosRegistry:version,
-	// ReconciliationContext skips schematic mismatch) take over.
-	if ms.TypedSpec().Value.Schematic.Invalid {
-		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
-		schematicConfiguration.TypedSpec().Value.SchematicId = ""
-
-		return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
-	}
-
 	rawSchematic := ms.TypedSpec().Value.Schematic.GetRaw()
 	if rawSchematic == "" {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic raw YAML is not yet available")
@@ -246,10 +234,9 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	}
 
 	// Only go to the factory when the desired schematic actually differs from the one the machine
-	// booted with, or the Talos version moved, or nothing has been published yet (the Invalid branch
-	// above resets SchematicId, so a machine that turns valid again must get a fresh ID rather than
-	// keep the empty one). Otherwise no Omni-driven customization changed anything and the ID
-	// published by the previous reconcile still applies, so the round-trip is skipped.
+	// booted with, or the Talos version moved, or nothing has been published yet. Otherwise no
+	// Omni-driven customization changed anything and the ID published by the previous reconcile
+	// still applies, so the round-trip is skipped.
 	//
 	// The published ID is deliberately left alone in that case rather than reset to the machine's own
 	// Schematic.FullId: an Enterprise factory stamps an owner into the schematic, so its ID for the

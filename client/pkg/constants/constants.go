@@ -28,6 +28,8 @@ const TalosEnterpriseVersionName = "Talos Enterprise"
 
 const (
 	// TalosRegistry is the default Talos repository URL.
+	//
+	// Deprecated: unused, Omni always installs from an image factory.
 	TalosRegistry = "ghcr.io/siderolabs/installer"
 
 	// ImageFactoryBaseURL is the default Image Factory base URL.
