@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -986,15 +987,18 @@ func provisionFixture(
 //
 // Unlike fakeWireguardHandler it requires every spec to carry a parseable node address.
 type testDeviceHandler struct {
+	peers     map[string]*specs.SiderolinkSpec
 	ownerOf   map[netip.Addr]string
 	addrOf    map[string]netip.Addr
 	allowed   *wggrpc.AllowedPeers
+	log       []string
 	evictions []string
 	mu        sync.Mutex
 }
 
 func newTestDeviceHandler() *testDeviceHandler {
 	return &testDeviceHandler{
+		peers:   map[string]*specs.SiderolinkSpec{},
 		ownerOf: map[netip.Addr]string{},
 		addrOf:  map[string]netip.Addr{},
 		allowed: wggrpc.NewAllowedPeers(),
@@ -1030,6 +1034,7 @@ func (h *testDeviceHandler) PeerEvent(_ context.Context, spec *specs.SiderolinkS
 	defer h.mu.Unlock()
 
 	if deleted {
+		delete(h.peers, spec.NodePublicKey)
 		h.allowed.RemoveToken(pubKey)
 
 		if h.ownerOf[addr] == spec.NodePublicKey {
@@ -1038,8 +1043,12 @@ func (h *testDeviceHandler) PeerEvent(_ context.Context, spec *specs.SiderolinkS
 
 		delete(h.addrOf, spec.NodePublicKey)
 
+		h.log = append(h.log, "remove "+spec.NodePublicKey+" ")
+
 		return nil
 	}
+
+	h.peers[spec.NodePublicKey] = spec
 
 	// ReplaceAllowedIPs on a /128 that another peer already holds moves it: the previous owner is
 	// left with no allowed IPs at all.
@@ -1059,9 +1068,22 @@ func (h *testDeviceHandler) PeerEvent(_ context.Context, spec *specs.SiderolinkS
 		}
 
 		h.allowed.AddToken(pubKey, addrPort.Addr().String())
+	} else {
+		h.allowed.RemoveToken(pubKey)
 	}
 
+	h.log = append(h.log, "add "+spec.NodePublicKey+" va="+spec.VirtualAddrport)
+
 	return nil
+}
+
+func (h *testDeviceHandler) hasPeer(pubKey string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	_, ok := h.peers[pubKey]
+
+	return ok
 }
 
 // owner returns the public key that currently owns the address, or "" if nobody does.
@@ -1089,6 +1111,38 @@ func (h *testDeviceHandler) evictionLog() []string {
 	return append([]string(nil), h.evictions...)
 }
 
+func (h *testDeviceHandler) eventLog() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	return append([]string(nil), h.log...)
+}
+
+// countEvents counts device events of the given kind ("add" or "remove") for the given public key.
+func (h *testDeviceHandler) countEvents(kind, pubKey string) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	count := 0
+
+	for _, line := range h.log {
+		if strings.HasPrefix(line, kind+" "+pubKey+" ") {
+			count++
+		}
+	}
+
+	return count
+}
+
+func tokenOf(t *testing.T, virtualAddrPort string) string {
+	t.Helper()
+
+	addrPort, err := netip.ParseAddrPort(virtualAddrPort)
+	require.NoError(t, err)
+
+	return addrPort.Addr().String()
+}
+
 func retryDestroy(ctx context.Context, st state.State, md *resource.Metadata) error {
 	for {
 		err := st.Destroy(ctx, md)
@@ -1102,6 +1156,215 @@ func retryDestroy(ctx context.Context, st state.State, md *resource.Metadata) er
 		case <-time.After(50 * time.Millisecond):
 		}
 	}
+}
+
+// Regression test for the WireGuard-over-gRPC pending-to-link handoff.
+//
+// The pending machine and the link it hands off to share a public key, and the WireGuard device
+// tracks peers by that key alone. The test drives the full handoff with
+// the real controllers and asserts that the peer survives the cleanup.
+func TestGrpcTunnelPendingHandoffKeepsLinkPeer(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	defer cancel()
+
+	validFingerprint := uuid.NewString()
+
+	validToken, err := jointoken.NewNodeUniqueToken(validFingerprint, "validToken").Encode()
+	require.NoError(t, err)
+
+	device := newTestDeviceHandler()
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, validToken, device, func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	nodeUUID := "tunnel-handoff-machine"
+	pubKey := genPublicKey(t)
+
+	// Step 1: the machine boots from tunnel-mode boot media and provisions with
+	// no node unique token yet. This creates a PendingMachine and installs its
+	// peer with a fresh virtual address-port.
+	resp1, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:          nodeUUID,
+		NodePublicKey:     pubKey,
+		TalosVersion:      new("v1.9.0"),
+		JoinToken:         new(validToken),
+		WireguardOverGrpc: new(true),
+	})
+	require.NoError(t, err)
+
+	pendingVA := resp1.GrpcPeerAddrPort
+	require.NotEmpty(t, pendingVA)
+
+	require.True(t, device.hasPeer(pubKey), "the pending machine's device peer must exist after the first provision")
+	require.True(t, device.allowed.CheckToken(tokenOf(t, pendingVA)), "the pending tunnel token must be allowed")
+
+	// Step 2: the unique token is delivered to the machine and it re-provisions
+	// carrying it. This creates the Link: same public key, inherited node
+	// subnet, and a new virtual address-port.
+	resp2, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:          nodeUUID,
+		NodePublicKey:     pubKey,
+		TalosVersion:      new("v1.9.0"),
+		JoinToken:         new(validToken),
+		NodeUniqueToken:   new(validToken),
+		WireguardOverGrpc: new(true),
+	})
+	require.NoError(t, err)
+
+	linkVA := resp2.GrpcPeerAddrPort
+	assert.NotEqual(t, pendingVA, linkVA, "the link must get a fresh virtual address-port")
+	require.Equal(t, resp1.NodeAddressPrefix, resp2.NodeAddressPrefix, "the link must have inherited the pending machine's node address")
+
+	// Wait for the link's LinkStatus: at that point the link's peer reference is registered.
+	linkStatusID := siderolinkres.NewLinkStatus(siderolinkres.NewLink(nodeUUID, nil)).Metadata().ID()
+	rtestutils.AssertResources(
+		ctx, t, st, []resource.ID{linkStatusID},
+		func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+			assertion.Equal(linkVA, r.TypedSpec().Value.VirtualAddrport)
+		},
+	)
+
+	require.True(t, device.hasPeer(pubKey))
+	require.True(t, device.allowed.CheckToken(tokenOf(t, linkVA)), "the link tunnel token must be allowed")
+
+	// Step 3: the pending machine's grace period expires and the provision
+	// handler cleans it up, exactly like removePendingMachine does: teardown,
+	// wait for the finalizers, destroy.
+	pendingMD := siderolinkres.NewPendingMachine(pubKey, nil).Metadata()
+
+	_, err = st.Teardown(ctx, pendingMD)
+	require.NoError(t, err)
+
+	require.NoError(t, retryDestroy(ctx, st, pendingMD))
+
+	// The pending machine's LinkStatus is gone: its peer reference was dropped.
+	pendingLinkStatusID := siderolinkres.NewLinkStatus(siderolinkres.NewPendingMachine(pubKey, nil)).Metadata().ID()
+	rtestutils.AssertNoResource[*siderolinkres.LinkStatus](ctx, t, st, pendingLinkStatusID)
+
+	// The link is untouched, and so are its device peer and tunnel token.
+	rtestutils.AssertResources(
+		ctx, t, st, []resource.ID{linkStatusID},
+		func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+			assertion.Equal(linkVA, r.TypedSpec().Value.VirtualAddrport)
+		},
+	)
+
+	assert.True(t, device.hasPeer(pubKey), "the live link's device peer must survive the pending machine cleanup")
+	assert.True(t, device.allowed.CheckToken(tokenOf(t, linkVA)), "the link's tunnel token must stay allowed")
+
+	// Step 4: a later re-provision with the same key: the peer is not torn down and re-created.
+	resp3, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:          nodeUUID,
+		NodePublicKey:     pubKey,
+		TalosVersion:      new("v1.9.0"),
+		JoinToken:         new(validToken),
+		NodeUniqueToken:   new(validToken),
+		WireguardOverGrpc: new(true),
+	})
+	require.NoError(t, err)
+
+	assert.NotEqual(t, linkVA, resp3.GrpcPeerAddrPort, "the link must get a fresh virtual address-port")
+
+	linkVA = resp3.GrpcPeerAddrPort
+
+	// Wait for the link's LinkStatus: at that point the link's peer reference is registered.
+	rtestutils.AssertResources(
+		ctx, t, st, []resource.ID{linkStatusID},
+		func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+			assertion.Equal(linkVA, r.TypedSpec().Value.VirtualAddrport)
+		},
+	)
+
+	assert.True(t, device.hasPeer(pubKey))
+	assert.True(t, device.allowed.CheckToken(tokenOf(t, linkVA)))
+
+	// Across handoff, cleanup, and same-key re-provision the device must have
+	// seen exactly ONE add and NO removal for the key: the peer is never torn
+	// down and re-created. The settle delay lets any in-flight reconcile land
+	// before the negative assertion.
+	time.Sleep(250 * time.Millisecond)
+
+	assert.GreaterOrEqual(t, device.countEvents("add", pubKey), 1, "one ore more device adds for the key through handoff, cleanup and re-provision")
+	assert.Zero(t, device.countEvents("remove", pubKey), "no device removal for the key through handoff, cleanup and re-provision")
+
+	// Step 5: the machine reboots. Talos generates a fresh WireGuard key on
+	// every boot, so the re-provision carries a new key: it must get a fresh
+	// virtual address-port, the peer must be re-created under the new key, the
+	// old token revoked and the new one allowed.
+	rotatedKey := genPublicKey(t)
+
+	resp4, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:          nodeUUID,
+		NodePublicKey:     rotatedKey,
+		TalosVersion:      new("v1.9.0"),
+		JoinToken:         new(validToken),
+		NodeUniqueToken:   new(validToken),
+		WireguardOverGrpc: new(true),
+	})
+	require.NoError(t, err)
+
+	rotatedVA := resp4.GrpcPeerAddrPort
+	require.NotEmpty(t, rotatedVA)
+	require.NotEqual(t, linkVA, rotatedVA, "a key rotation must produce a fresh virtual address-port")
+
+	rtestutils.AssertResources(
+		ctx, t, st, []resource.ID{linkStatusID},
+		func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+			assertion.Equal(rotatedVA, r.TypedSpec().Value.VirtualAddrport)
+			assertion.Equal(rotatedKey, r.TypedSpec().Value.NodePublicKey)
+		},
+	)
+
+	assert.True(t, device.hasPeer(rotatedKey), "the rotated key's device peer must exist")
+	assert.False(t, device.hasPeer(pubKey), "the old key's device peer must be gone")
+	assert.True(t, device.allowed.CheckToken(tokenOf(t, rotatedVA)), "the rotated key's tunnel token must be allowed")
+	assert.False(t, device.allowed.CheckToken(tokenOf(t, linkVA)), "the old tunnel token must be revoked")
+
+	// The old public key should be removed from the peers.
+	time.Sleep(250 * time.Millisecond)
+
+	assert.Equal(t, 1, device.countEvents("remove", pubKey), "old public key is removed from WireGuard device after key rotation")
+
+	// Step 6: tunnel mode switched off: the virtual address-port is cleared,
+	// not kept.
+	resp5, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        nodeUUID,
+		NodePublicKey:   rotatedKey,
+		TalosVersion:    new("v1.9.0"),
+		JoinToken:       new(validToken),
+		NodeUniqueToken: new(validToken),
+	})
+	require.NoError(t, err)
+	require.Empty(t, resp5.GrpcPeerAddrPort, "disabling the tunnel must clear the virtual address-port")
+
+	rtestutils.AssertResources(
+		ctx, t, st, []resource.ID{linkStatusID},
+		func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+			assertion.Empty(r.TypedSpec().Value.VirtualAddrport)
+			assertion.Equal(rotatedKey, r.TypedSpec().Value.NodePublicKey)
+		},
+	)
+
+	assert.False(t, device.allowed.CheckToken(tokenOf(t, rotatedVA)), "the rotated key's tunnel token must be denied now")
+
+	// Step 7: tunnel mode switched back on: a FRESH virtual address-port is
+	// generated, the old one is not resurrected.
+	resp6, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:          nodeUUID,
+		NodePublicKey:     rotatedKey,
+		TalosVersion:      new("v1.9.0"),
+		JoinToken:         new(validToken),
+		NodeUniqueToken:   new(validToken),
+		WireguardOverGrpc: new(true),
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, resp6.GrpcPeerAddrPort)
+	require.NotEqual(t, rotatedVA, resp6.GrpcPeerAddrPort, "re-enabling the tunnel must generate a fresh virtual address-port")
+
+	t.Logf("device event log:\n%s", strings.Join(device.eventLog(), "\n"))
 }
 
 // Regression test for the duplicate-UUID address collision.

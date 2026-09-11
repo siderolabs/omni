@@ -106,7 +106,7 @@ func NewManager(
 		}),
 		deltaCh:             deltaCh,
 		allowedPeers:        wggrpc.NewAllowedPeers(),
-		peerTraffic:         wgbind.NewPeerTraffic(maxPendingClientMessages),
+		peerTraffic:         wgbind.NewPeerTraffic(maxPendingClientMessages, logger),
 		virtualPrefix:       wireguard.VirtualNetworkPrefix(),
 		disableLastEndpoint: params.DisableLastEndpoint,
 		provisionServer: NewProvisionHandler(
@@ -675,6 +675,9 @@ type peerHandler struct {
 func (p *peerHandler) HandlePeerAdded(event wireguard.PeerEvent) error {
 	if event.VirtualAddr.IsValid() {
 		p.allowedPeers.AddToken(event.PubKey, event.VirtualAddr.String())
+	} else {
+		// clean up the token if the peer is added without a virtual address
+		p.allowedPeers.RemoveToken(event.PubKey)
 	}
 
 	return nil
