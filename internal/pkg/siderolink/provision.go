@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -48,6 +49,10 @@ type provisionContext struct {
 	requestNodeUniqueToken *jointoken.NodeUniqueToken
 	linkNodeUniqueToken    *jointoken.NodeUniqueToken
 	request                *pb.ProvisionRequest
+
+	// resolvedJoinTokenID is the ID of the JoinToken resource the request was validated against.
+	// It is empty for the provider tokens, which are signed with the per provider secret.
+	resolvedJoinTokenID string
 
 	// flags
 	hasValidJoinToken         bool
@@ -468,17 +473,74 @@ func establishLink[T res](ctx context.Context, h *ProvisionHandler, logger *zap.
 	}
 
 	if link.Metadata().Type() == siderolinkres.LinkType {
-		err = safe.StateModify(ctx, st, siderolinkres.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolinkres.JoinTokenUsage) error {
-			res.TypedSpec().Value.TokenId = provisionContext.request.GetJoinToken()
-
-			return nil
-		})
-		if err != nil {
+		if err = recordJoinedMachine(ctx, st, logger, provisionContext, link.Metadata().ID()); err != nil {
 			return nil, err
 		}
 	}
 
 	return genProvisionResponse(ctx, logger, st, provisionContext, link, link.TypedSpec().Value)
+}
+
+// recordJoinedMachine stores what the join token said about a machine which has just got its Link:
+// the initial labels, and which join token it joined with.
+func recordJoinedMachine(ctx context.Context, st state.State, logger *zap.Logger, provisionContext *provisionContext, machineID string) error {
+	if provisionContext.token != nil {
+		if err := seedMachineLabels(ctx, st, logger, machineID, provisionContext.token.Labels); err != nil {
+			return err
+		}
+	}
+
+	// record the ID of the join token, not the string the machine sent: a signed token is a whole
+	// encoded blob, which would never match a JoinToken and would leave the machine out of that
+	// token's use count
+	tokenID := provisionContext.resolvedJoinTokenID
+	if tokenID == "" {
+		tokenID = provisionContext.request.GetJoinToken()
+	}
+
+	return safe.StateModify(ctx, st, siderolinkres.NewJoinTokenUsage(machineID), func(res *siderolinkres.JoinTokenUsage) error {
+		res.TypedSpec().Value.TokenId = tokenID
+
+		return nil
+	})
+}
+
+// seedMachineLabels turns the labels carried by the join token into the user editable
+// MachineLabels resource.
+//
+// The resource is created without an owner, so from here on the labels belong to the user: they
+// are seeded once, and a machine re-joining later never overwrites what the user has changed
+// since. If the machine already has a MachineLabels resource, the token labels are ignored.
+// MachineLabels is torn down together with the Link by LinkCleanupController, so a machine that
+// is removed from Omni and joins again is seeded afresh.
+func seedMachineLabels(ctx context.Context, st state.State, logger *zap.Logger, machineID string, labels map[string]string) error {
+	if len(labels) == 0 {
+		return nil
+	}
+
+	machineLabels := omni.NewMachineLabels(machineID)
+
+	// drops anything system prefixed: the encoder rejects those, but a token is only as
+	// trustworthy as whoever holds the join token secret
+	helpers.CopyUserLabels(machineLabels, labels)
+
+	keys := machineLabels.Metadata().Labels().Keys()
+	if len(keys) == 0 {
+		return nil
+	}
+
+	if err := st.Create(ctx, machineLabels); err != nil {
+		if state.IsConflictError(err) {
+			// the machine already has its labels, they are the user's to change now
+			return nil
+		}
+
+		return err
+	}
+
+	logger.Info("seeded the machine labels from the join token", zap.Strings("labels", keys))
+
+	return nil
 }
 
 func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.State,
@@ -600,7 +662,6 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 	}
 
 	var (
-		requestJoinToken       *jointoken.JoinToken
 		requestNodeUniqueToken *jointoken.NodeUniqueToken
 		linkNodeUniqueToken    *jointoken.NodeUniqueToken
 		pendingMachineStatus   *siderolinkres.PendingMachineStatus
@@ -614,7 +675,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 		return nil, err
 	}
 
-	requestJoinToken, err = h.getJoinToken(ctx, logger, req.GetJoinToken())
+	requestJoinToken, resolvedJoinTokenID, err := h.getJoinToken(ctx, logger, req.GetJoinToken())
 	if err != nil {
 		return nil, err
 	}
@@ -698,6 +759,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 		pendingMachine:            pendingMachine,
 		pendingMachineStatus:      pendingMachineStatus,
 		token:                     requestJoinToken,
+		resolvedJoinTokenID:       resolvedJoinTokenID,
 		request:                   req,
 		requestNodeUniqueToken:    requestNodeUniqueToken,
 		linkNodeUniqueToken:       linkNodeUniqueToken,
@@ -711,55 +773,121 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 	}, nil
 }
 
-func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, logger *zap.Logger, linkToken jointoken.JoinToken) (*jointoken.JoinToken, error) {
-	var joinToken string
+// validateTokenWithExtraData verifies the signature of a token which carries extra data.
+//
+// It returns the validated token, and the ID of the JoinToken resource which signed it when that
+// is known. The ID is empty for provider tokens: those are signed with the per provider secret,
+// which is not a JoinToken of its own.
+func (h *ProvisionHandler) validateTokenWithExtraData(
+	ctx context.Context, logger *zap.Logger, linkToken jointoken.JoinToken,
+) (*jointoken.JoinToken, string, error) {
+	var (
+		// secret is the value the signature is verified against
+		secret string
+		// resolvedID is the ID of the JoinToken resource behind the secret, when there is one
+		resolvedID string
+	)
 
-	// if the token version is V2, we should validate against the individual join token
-	if providerID, ok := linkToken.ExtraData[omni.LabelInfraProviderID]; ok && linkToken.Version == jointoken.Version2 {
+	providerID, isProviderToken := linkToken.ExtraData[omni.LabelInfraProviderID]
+
+	switch {
+	// starting from V2, a provider token is validated against the individual provider join token
+	case isProviderToken && linkToken.Version != jointoken.Version1:
 		providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, h.state, providerID)
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				logger.Warn("machine join token rejected: the provider is not registered in the system", zap.Error(err))
 
-				return nil, nil //nolint:nilnil
+				return nil, "", nil
 			}
 
-			return nil, err
+			return nil, "", err
 		}
 
-		joinToken = providerJoinConfig.TypedSpec().Value.JoinToken
-	} else {
+		secret = providerJoinConfig.TypedSpec().Value.JoinToken
+	// starting from V3, a token points at the join token which signed it by its fingerprint,
+	// which lets any join token carry extra data, not just the default one
+	case linkToken.Version == jointoken.Version3 && linkToken.TokenFingerprint != "":
+		var err error
+
+		if secret, err = h.resolveJoinTokenByFingerprint(ctx, logger, linkToken); err != nil || secret == "" {
+			return nil, "", err
+		}
+
+		resolvedID = secret
+	default:
 		defaultJoinToken, err := safe.ReaderGetByID[*siderolinkres.DefaultJoinToken](ctx, h.state, siderolinkres.DefaultJoinTokenID)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		var joinTokenStatus *siderolinkres.JoinTokenStatus
 
 		joinTokenStatus, err = safe.ReaderGetByID[*siderolinkres.JoinTokenStatus](ctx, h.state, defaultJoinToken.TypedSpec().Value.TokenId)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		if joinTokenStatus.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
 			logger.Warn("machine join token rejected: the default join token is not active")
 
-			return nil, nil //nolint:nilnil
+			return nil, "", nil
 		}
 
-		joinToken = joinTokenStatus.Metadata().ID()
+		secret = joinTokenStatus.Metadata().ID()
+		resolvedID = secret
 	}
 
-	if !linkToken.IsValid(joinToken) {
-		return nil, nil //nolint:nilnil
+	if !linkToken.IsValid(secret) {
+		return nil, "", nil
 	}
 
-	return &linkToken, nil
+	return &linkToken, resolvedID, nil
 }
 
-func (h *ProvisionHandler) getJoinToken(ctx context.Context, logger *zap.Logger, tokenString string) (*jointoken.JoinToken, error) {
+// resolveJoinTokenByFingerprint finds the join token which signed the data by its fingerprint.
+//
+// The fingerprint is a non-secret handle published as a label on JoinTokenStatus, so a machine can
+// point at its join token without the secret ever being transmitted. It returns an empty string
+// when no usable token matches, which the caller turns into a rejection.
+func (h *ProvisionHandler) resolveJoinTokenByFingerprint(ctx context.Context, logger *zap.Logger, linkToken jointoken.JoinToken) (string, error) {
+	statuses, err := safe.StateListAll[*siderolinkres.JoinTokenStatus](
+		ctx,
+		h.state,
+		state.WithLabelQuery(resource.LabelEqual(siderolinkres.LabelJoinTokenFingerprint, linkToken.TokenFingerprint)),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	for status := range statuses.All() {
+		// the fingerprint is truncated, so more than one token can match it: the signature decides
+		if !linkToken.IsValid(status.Metadata().ID()) {
+			continue
+		}
+
+		if status.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
+			logger.Warn(
+				"machine join token rejected: the join token is not active",
+				zap.Stringer("join_token_state", status.TypedSpec().Value.State),
+			)
+
+			return "", nil
+		}
+
+		return status.Metadata().ID(), nil
+	}
+
+	logger.Warn("machine join token rejected: no join token matches the token fingerprint")
+
+	return "", nil
+}
+
+// getJoinToken validates the join token coming from the machine, returning it together with the ID
+// of the JoinToken resource it was validated against, when that is known.
+func (h *ProvisionHandler) getJoinToken(ctx context.Context, logger *zap.Logger, tokenString string) (*jointoken.JoinToken, string, error) {
 	if tokenString == "" {
-		return nil, nil //nolint:nilnil
+		return nil, "", nil
 	}
 
 	var linkToken jointoken.JoinToken
@@ -768,7 +896,7 @@ func (h *ProvisionHandler) getJoinToken(ctx context.Context, logger *zap.Logger,
 	if err != nil {
 		logger.Warn("machine join token rejected: invalid join token", zap.Error(err))
 
-		return nil, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
+		return nil, "", status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
 	}
 
 	// verify the token against the default token or provider token if using v1 version
@@ -780,12 +908,12 @@ func (h *ProvisionHandler) getJoinToken(ctx context.Context, logger *zap.Logger,
 
 	tokenStatus, err = safe.ReaderGetByID[*siderolinkres.JoinTokenStatus](ctx, h.state, tokenString)
 	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
+		return nil, "", err
 	}
 
 	if tokenStatus == nil || tokenStatus.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
-		return nil, nil //nolint:nilnil
+		return nil, "", nil
 	}
 
-	return &linkToken, nil
+	return &linkToken, tokenStatus.Metadata().ID(), nil
 }

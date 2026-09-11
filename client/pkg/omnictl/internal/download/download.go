@@ -722,20 +722,20 @@ func filterMedia[T any](ctx context.Context, client *client.Client, check func(v
 }
 
 // ParseLabelPairs converts label key=value pairs into a map.
+//
+// Only the first separator splits the pair, so a value may itself contain "=", as label values are
+// allowed to.
 func ParseLabelPairs(labelPairs []string) (map[string]string, error) {
 	labels := map[string]string{}
 
 	for _, l := range labelPairs {
-		parts := strings.Split(l, "=")
+		key, value, _ := strings.Cut(l, "=")
 
-		switch len(parts) {
-		case 1:
-			labels[parts[0]] = ""
-		case 2:
-			labels[parts[0]] = parts[1]
-		default:
+		if key == "" {
 			return nil, fmt.Errorf("invalid label format %q, expected key=value", l)
 		}
+
+		labels[key] = value
 	}
 
 	return labels, nil

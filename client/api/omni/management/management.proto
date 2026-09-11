@@ -415,6 +415,10 @@ message MaintenanceLifecycleResponse {
 message GetMachineJoinConfigRequest {
   bool use_grpc_tunnel = 1;
   string join_token = 2;
+  // machine_labels are the initial labels to assign to any machine joining with this config.
+  // They are signed into the join token, and behave like the labels read from the META partition:
+  // the user can override them afterwards.
+  map<string, string> machine_labels = 3;
 }
 
 message GetMachineJoinConfigResponse {

@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/siderolabs/talos/pkg/machinery/config/config"
@@ -16,6 +18,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
@@ -414,4 +417,119 @@ certificates: ""
 			}
 		})
 	}
+}
+
+// parseTokenFromArgs pulls the join token back out of the rendered siderolink kernel argument.
+func parseTokenFromArgs(t *testing.T, args []string) jointoken.JoinToken {
+	t.Helper()
+
+	for _, arg := range args {
+		value, ok := strings.CutPrefix(arg, "siderolink.api=")
+		if !ok {
+			continue
+		}
+
+		u, err := url.Parse(value)
+		require.NoError(t, err)
+
+		token, err := jointoken.Parse(u.Query().Get("jointoken"))
+		require.NoError(t, err)
+
+		return token
+	}
+
+	t.Fatal("no siderolink.api kernel argument was rendered")
+
+	return jointoken.JoinToken{}
+}
+
+func TestMachineLabels(t *testing.T) {
+	t.Parallel()
+
+	baseOpts := func(opts ...siderolink.JoinConfigOption) []siderolink.JoinConfigOption {
+		return append([]siderolink.JoinConfigOption{
+			siderolink.WithMachineAPIURL("https://127.0.0.1:8099"),
+			siderolink.WithJoinToken("abcd"),
+			siderolink.WithEventSinkPort(8091),
+			siderolink.WithLogServerPort(8092),
+		}, opts...)
+	}
+
+	t.Run("labels are signed into the token", func(t *testing.T) {
+		t.Parallel()
+
+		opts, err := siderolink.NewJoinOptions(baseOpts(
+			siderolink.WithMachineLabels(map[string]string{"env": "prod", "rack": "a12"}),
+		)...)
+		require.NoError(t, err)
+
+		token := parseTokenFromArgs(t, opts.GetKernelArgs())
+
+		require.Equal(t, jointoken.Version3, token.Version)
+		require.Equal(t, map[string]string{"env": "prod", "rack": "a12"}, token.Labels)
+		require.Equal(t, jointoken.Fingerprint("abcd"), token.TokenFingerprint)
+		require.True(t, token.IsValid("abcd"))
+	})
+
+	t.Run("no labels keeps the token plain", func(t *testing.T) {
+		t.Parallel()
+
+		opts, err := siderolink.NewJoinOptions(baseOpts()...)
+		require.NoError(t, err)
+
+		token := parseTokenFromArgs(t, opts.GetKernelArgs())
+
+		require.Equal(t, jointoken.VersionPlain, token.Version)
+	})
+
+	t.Run("provider tokens keep resolving by the provider ID", func(t *testing.T) {
+		t.Parallel()
+
+		opts, err := siderolink.NewJoinOptions(baseOpts(
+			siderolink.WithProvider(infra.NewProvider("test")),
+			siderolink.WithMachineLabels(map[string]string{"env": "prod"}),
+		)...)
+		require.NoError(t, err)
+
+		token := parseTokenFromArgs(t, opts.GetKernelArgs())
+
+		require.Equal(t, "test", token.ExtraData[omni.LabelInfraProviderID])
+		require.Empty(t, token.TokenFingerprint)
+	})
+
+	// the encoded token is signed with a secret this package does not have, so labels cannot be
+	// added to it: dropping them silently would hand back a token that does not match the request
+	t.Run("labels on an already encoded token are rejected", func(t *testing.T) {
+		t.Parallel()
+
+		signed, err := jointoken.NewWithExtraData("abcd", jointoken.Version2, map[string]string{
+			omni.LabelInfraProviderID: "test",
+		})
+		require.NoError(t, err)
+
+		encoded, err := signed.Encode()
+		require.NoError(t, err)
+
+		_, err = siderolink.NewJoinOptions(
+			siderolink.WithMachineAPIURL("https://127.0.0.1:8099"),
+			siderolink.WithJoinToken(encoded),
+			siderolink.WithEventSinkPort(8091),
+			siderolink.WithLogServerPort(8092),
+			siderolink.WithMachineLabels(map[string]string{"env": "prod"}),
+		)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, jointoken.ErrInvalidLabels)
+	})
+
+	t.Run("system labels are rejected", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := siderolink.NewJoinOptions(baseOpts(
+			siderolink.WithMachineLabels(map[string]string{omni.LabelCluster: "c1"}),
+		)...)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "reserved for the system labels")
+	})
 }
