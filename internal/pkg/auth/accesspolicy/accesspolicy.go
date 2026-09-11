@@ -137,6 +137,26 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 				validationErrs = multierror.Append(validationErrs, fmt.Errorf("role %q cannot be assigned by an access policy", parsedRole))
 			}
 		}
+
+		for _, ruleUser := range rule.GetUsers() {
+			if strings.HasPrefix(ruleUser, GroupPrefix) {
+				groupName := ruleUser[len(GroupPrefix):]
+				if _, ok := accessPolicySpec.GetUserGroups()[groupName]; !ok {
+					validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+						"rule references undefined user group %q", groupName))
+				}
+			}
+		}
+
+		for _, ruleCluster := range rule.GetClusters() {
+			if strings.HasPrefix(ruleCluster, GroupPrefix) {
+				groupName := ruleCluster[len(GroupPrefix):]
+				if _, ok := accessPolicySpec.GetClusterGroups()[groupName]; !ok {
+					validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+						"rule references undefined cluster group %q", groupName))
+				}
+			}
+		}
 	}
 
 	// check tests
