@@ -1144,8 +1144,14 @@ func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *ma
 		siderolink.WithGRPCTunnel(request.UseGrpcTunnel),
 		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),
 		siderolink.WithLogServerPort(int(apiConfig.TypedSpec().Value.LogsPort)),
+		siderolink.WithMachineLabels(request.MachineLabels),
 	)
 	if err != nil {
+		// the only way the options can fail here is the caller passing labels Omni won't accept
+		if len(request.MachineLabels) > 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid machine labels: %s", err)
+		}
+
 		return nil, err
 	}
 

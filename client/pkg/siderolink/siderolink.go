@@ -8,6 +8,7 @@ package siderolink
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/netip"
 	"net/url"
@@ -30,6 +31,7 @@ import (
 // JoinConfigOptions is the struct with all optional args for the RenderJoinConfig function.
 type JoinConfigOptions struct {
 	extraTokenData              map[string]string
+	machineLabels               map[string]string
 	joinToken                   string
 	machineAPIURL               string
 	version                     string
@@ -73,6 +75,26 @@ func WithMachine(machine *omni.Machine) JoinConfigOption {
 		if providerID, ok := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); ok {
 			opts.extraTokenData[omni.LabelInfraProviderID] = providerID
 		}
+	}
+}
+
+// WithMachineLabels encodes the user defined machine labels into the join token.
+//
+// A machine joining with them is seeded with a MachineLabels resource, which the user owns and can
+// change afterwards. They are only applied to a machine Omni does not know yet: a machine that
+// already has MachineLabels keeps what it has. Keys carrying the omni.sidero.dev/ prefix are
+// rejected.
+func WithMachineLabels(labels map[string]string) JoinConfigOption {
+	return func(opts *JoinConfigOptions) {
+		if len(labels) == 0 {
+			return
+		}
+
+		if opts.machineLabels == nil {
+			opts.machineLabels = map[string]string{}
+		}
+
+		maps.Copy(opts.machineLabels, labels)
 	}
 }
 
@@ -313,6 +335,16 @@ func encodeToken(options JoinConfigOptions) (string, error) {
 	// if the token is already encoded do nothing
 	if token.Version != jointoken.VersionPlain {
 		return options.joinToken, nil
+	}
+
+	// labels are only supported starting from v3, so requesting them pins the version
+	if len(options.machineLabels) != 0 {
+		jt, err := jointoken.NewWithLabels(options.joinToken, options.machineLabels, options.extraTokenData)
+		if err != nil {
+			return "", err
+		}
+
+		return jt.Encode()
 	}
 
 	if len(options.extraTokenData) != 0 {
