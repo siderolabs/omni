@@ -44,6 +44,8 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 		return nil, fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
+	defer talosCli.Close() //nolint:errcheck
+
 	stream, err := talosCli.ImageClient.List(ctx, &machine.ImageServiceListRequest{
 		Containerd: &common.ContainerdInstance{
 			Driver:    common.ContainerDriver_CRI,
@@ -106,6 +108,8 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 	if err != nil {
 		return fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
+
+	defer talosCli.Close() //nolint:errcheck
 
 	stream, err := talosCli.ImageClient.Pull(ctx, &machine.ImageServicePullRequest{
 		ImageRef: image,

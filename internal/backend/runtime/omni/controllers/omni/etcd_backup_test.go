@@ -929,6 +929,10 @@ func (m *mockTalosClient) EtcdSnapshot(context.Context, *machine.EtcdSnapshotReq
 	return io.NopCloser(strings.NewReader("Hello World")), nil
 }
 
+func (m *mockTalosClient) Close() error {
+	return nil
+}
+
 func startFactory(ctx context.Context, t *testing.T, factory store.Factory, st state.State, logger *zap.Logger) store.Factory {
 	ctx, cancel := context.WithCancel(ctx)
 
