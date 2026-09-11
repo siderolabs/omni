@@ -6,8 +6,9 @@
 package schematic
 
 import (
-	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"slices"
@@ -203,6 +204,7 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	if ms.TypedSpec().Value.Schematic.Invalid {
 		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 		schematicConfiguration.TypedSpec().Value.SchematicId = ""
+		schematicConfiguration.TypedSpec().Value.SchematicHash = ""
 
 		return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
 	}
@@ -245,18 +247,18 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return fmt.Errorf("failed to marshal patched schematic: %w", err)
 	}
 
-	// Only go to the factory when the desired schematic actually differs from the one the machine
-	// booted with, or the Talos version moved, or nothing has been published yet (the Invalid branch
-	// above resets SchematicId, so a machine that turns valid again must get a fresh ID rather than
-	// keep the empty one). Otherwise no Omni-driven customization changed anything and the ID
-	// published by the previous reconcile still applies, so the round-trip is skipped.
-	//
-	// The published ID is deliberately left alone in that case rather than reset to the machine's own
-	// Schematic.FullId: an Enterprise factory stamps an owner into the schematic, so its ID for the
-	// same content differs from the ID the machine reports, and overwriting would lose it.
+	// The factory is skipped while the desired schematic is the one the published ID was generated for. The ID is
+	// never the machine's own Schematic.FullId: an Enterprise factory stamps an owner in, so its ID for the same content differs.
 	installPending := ms.TypedSpec().Value.Maintenance && cluster != nil // the install re-images anyway, use the factory serving the target version
 
-	if !bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) ||
+	patchedHash := schematicHash(patchedRaw)
+
+	generatedFor := schematicConfiguration.TypedSpec().Value.SchematicHash
+	if generatedFor == "" { // published before the hash was recorded, taken to be the booted schematic
+		generatedFor = schematicHash([]byte(ms.TypedSpec().Value.Schematic.Raw))
+	}
+
+	if generatedFor != patchedHash ||
 		versionOutdated ||
 		installPending ||
 		schematicConfiguration.TypedSpec().Value.SchematicId == "" {
@@ -279,6 +281,7 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		)
 
 		schematicConfiguration.TypedSpec().Value.SchematicId = id
+		schematicConfiguration.TypedSpec().Value.SchematicHash = patchedHash
 	}
 
 	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
@@ -526,4 +529,10 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machi
 	}
 
 	return statusExtensions
+}
+
+func schematicHash(raw []byte) string {
+	sum := sha256.Sum256(raw)
+
+	return hex.EncodeToString(sum[:])
 }
