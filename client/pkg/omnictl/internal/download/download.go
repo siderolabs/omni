@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -829,16 +830,40 @@ func downloadToFile(req *http.Request, dest string) error {
 }
 
 func downloadResponseTo(dest string, resp *http.Response) error {
-	f, err := os.Create(dest)
+	tempFilePath := dest + ".tmp"
+
+	// A leftover from an interrupted run is overwritten instead of blocking the retry.
+	tempFile, err := os.Create(tempFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create temporary download file: %w", err)
 	}
 
-	defer checkCloser(f)
+	tempFileCloser := sync.OnceValue(tempFile.Close)
+	tempFileRenamed := false
 
-	_, err = io.Copy(f, resp.Body)
+	defer func() {
+		tempFileCloser() //nolint:errcheck
 
-	return err
+		if !tempFileRenamed {
+			os.Remove(tempFilePath) //nolint:errcheck
+		}
+	}()
+
+	if _, err = io.Copy(tempFile, resp.Body); err != nil {
+		return fmt.Errorf("failed to write download: %w", err)
+	}
+
+	if err = tempFileCloser(); err != nil {
+		return fmt.Errorf("failed to close temporary download file: %w", err)
+	}
+
+	if err = os.Rename(tempFilePath, dest); err != nil {
+		return fmt.Errorf("failed to move download into place: %w", err)
+	}
+
+	tempFileRenamed = true
+
+	return nil
 }
 
 func checkCloser(c io.Closer) {
