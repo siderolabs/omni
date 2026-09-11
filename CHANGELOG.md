@@ -1,3 +1,164 @@
+## [Omni 1.12.0](https://github.com/siderolabs/omni/releases/tag/v1.12.0) (2026-09-11)
+
+Welcome to the v1.12.0 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Image Factory API Token Authentication
+
+Omni can now authenticate to the image factory with an API token. The token is read from a file, so it can be rotated without a restart. Basic auth is still supported for self-hosted factories using htpasswd.
+
+For such a factory, Omni creates a machine token and puts it into the registry auth config of every machine, so that the machines can pull images from the factory.
+
+The token file is configured under `registries.factories.<primary|secondary>` in the config file:
+```yaml
+registries:
+  factories:
+    primary:
+      url: https://factory.example.com
+      tokenFile: /run/secrets/factory-token
+```
+
+The equivalent flags are `--primary-factory-token-file` and `--secondary-factory-token-file`.
+
+
+### Security Scans in omnictl
+
+The new `omnictl security` command fetches the security artifacts of a Talos schematic from the enterprise image factory:
+
+- `scan`: the vulnerability scan report.
+- `sbom`: the SPDX SBOM.
+- `vex`: the VEX document.
+
+It takes either a cluster ID, covering every schematic and architecture the cluster runs, or an explicit combination of Talos version, architecture and schematic. The scan output also shows the available Talos upgrade paths and the vulnerability diff for each of them.
+
+These artifacts are only available on the enterprise image factory, so the command requires Omni to be configured with one.
+
+
+### Contributors
+
+* Utku Ozdemir
+* Edward Sammut Alessi
+* Mateusz Urbanek
+* Andrey Smirnov
+* Dmitrii Sharshakov
+* Immanuel Tikhonov
+* Mateusz Urbanek
+* Noel Georgi
+
+### Changes
+<details><summary>26 commits</summary>
+<p>
+
+* [`6192a145`](https://github.com/siderolabs/omni/commit/6192a1450f38f0b3bbd6bfa3cdb00e2e7d8e5963) feat: add security scans to omnictl
+* [`6cdda713`](https://github.com/siderolabs/omni/commit/6cdda713c8cdcb4280581d7ccb4bd95a9549bc92) fix: revert stabilizing the tunnel peer address across provisions
+* [`c4a37d55`](https://github.com/siderolabs/omni/commit/c4a37d55e725a700a5ebc2b7266c2891b37ba9e8) test: run the enterprise image factory tests against the staging factory
+* [`c832a504`](https://github.com/siderolabs/omni/commit/c832a504f976afd792d9d197cf3335fa7c34382c) feat: make the lifetime of the image factory machine tokens configurable
+* [`70814f39`](https://github.com/siderolabs/omni/commit/70814f39c6671a975afd0e7a289a9b0f6eafe248) refactor(frontend): make frontend obtain artifact targets from backend
+* [`d525fda6`](https://github.com/siderolabs/omni/commit/d525fda6cc2c32910e5b8f9b6e793de6926e710c) feat: implement ClusterArtifactTargets rpc call
+* [`ccc80d25`](https://github.com/siderolabs/omni/commit/ccc80d2544dff7b17583480907ae1b4a3a755acf) feat: add ClusterArtifactTargets rpc method
+* [`af65853e`](https://github.com/siderolabs/omni/commit/af65853e04af6505049af50ecce7d483a396c9e4) release(v1.12.0-beta.0): prepare release
+* [`72366668`](https://github.com/siderolabs/omni/commit/72366668668d760e46374df0cb6118b391dacfba) fix: restore the extra parameters of the sqlite connection string
+* [`08695407`](https://github.com/siderolabs/omni/commit/08695407d899af9a0bac848852cbad374104aebe) fix: read the node unique token uncached in the cleanup controller
+* [`9ddfa524`](https://github.com/siderolabs/omni/commit/9ddfa5246a0f8714afa96d511098f299ab669fe2) feat: authenticate to the image factory with an API token
+* [`800bcac1`](https://github.com/siderolabs/omni/commit/800bcac1943b6041f04ffae490daa1953b5a2bfb) test: use ECDSA service account keys for the clusters in the tests
+* [`cd859872`](https://github.com/siderolabs/omni/commit/cd8598724a40d19554347df0f5ef658a79975cab) fix: generate the registry auth document by the running Talos version
+* [`acc0c4f4`](https://github.com/siderolabs/omni/commit/acc0c4f40ae5aac7e140781a01de53acccb9ae18) chore: bump delve version in compose
+* [`6692b2c0`](https://github.com/siderolabs/omni/commit/6692b2c0b0038e6dcc0aadddaffb5e91e91ef3bd) fix: ensure the schematic on the target factory before an install
+* [`8c7699a7`](https://github.com/siderolabs/omni/commit/8c7699a774a010d220027b13a313fa63b1734562) fix: run the sqlite database with the NORMAL synchronous mode
+* [`d8a281c4`](https://github.com/siderolabs/omni/commit/d8a281c4293dfd8341a5ce73a7fcb06571c6257d) chore(frontend): bump deps
+* [`49861a25`](https://github.com/siderolabs/omni/commit/49861a25ed38441925fc4a64d175ccd991967cfa) fix: reuse the node unique token already written to the machine
+* [`74003273`](https://github.com/siderolabs/omni/commit/74003273c2afe670d8b29d1e0daca7b648ca39c0) chore: bump deps, rekres, Talos 1.13.10
+* [`0a6d296f`](https://github.com/siderolabs/omni/commit/0a6d296fdc85e6adba82067319511de22faa1cdc) test: poll for Vault readiness instead of sleeping in the tests
+* [`d411b255`](https://github.com/siderolabs/omni/commit/d411b2554b615963c75c0d24cbe46e243257733b) test: increase the timeout of the node label check
+* [`46e112ac`](https://github.com/siderolabs/omni/commit/46e112ac4b6221e24f28b834545f270b7e0f1a78) chore(frontend): remove factory urls from csp
+* [`8cbf034b`](https://github.com/siderolabs/omni/commit/8cbf034bef896c3ae1fdff21bc7015a99f6b8eff) fix: keep the machine extensions consistent across extensions configurations
+* [`0a22ac7a`](https://github.com/siderolabs/omni/commit/0a22ac7afdbb11405b2a483387302b5e27846071) fix(frontend): distinguish initial log fetch failures
+* [`4c833c7e`](https://github.com/siderolabs/omni/commit/4c833c7e1d7b620c498ba38c59f4628f7ddadafc) fix: apply the registry mirrors to machines in maintenance mode
+* [`edcad276`](https://github.com/siderolabs/omni/commit/edcad27693e7e2791da7974b15c6a7df92c5fac6) fix: retry the installer image pull in the maintenance lifecycle API
+</p>
+</details>
+
+### Changes since v1.12.0-beta.0
+<details><summary>7 commits</summary>
+<p>
+
+* [`6192a145`](https://github.com/siderolabs/omni/commit/6192a1450f38f0b3bbd6bfa3cdb00e2e7d8e5963) feat: add security scans to omnictl
+* [`6cdda713`](https://github.com/siderolabs/omni/commit/6cdda713c8cdcb4280581d7ccb4bd95a9549bc92) fix: revert stabilizing the tunnel peer address across provisions
+* [`c4a37d55`](https://github.com/siderolabs/omni/commit/c4a37d55e725a700a5ebc2b7266c2891b37ba9e8) test: run the enterprise image factory tests against the staging factory
+* [`c832a504`](https://github.com/siderolabs/omni/commit/c832a504f976afd792d9d197cf3335fa7c34382c) feat: make the lifetime of the image factory machine tokens configurable
+* [`70814f39`](https://github.com/siderolabs/omni/commit/70814f39c6671a975afd0e7a289a9b0f6eafe248) refactor(frontend): make frontend obtain artifact targets from backend
+* [`d525fda6`](https://github.com/siderolabs/omni/commit/d525fda6cc2c32910e5b8f9b6e793de6926e710c) feat: implement ClusterArtifactTargets rpc call
+* [`ccc80d25`](https://github.com/siderolabs/omni/commit/ccc80d2544dff7b17583480907ae1b4a3a755acf) feat: add ClusterArtifactTargets rpc method
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>2 commits</summary>
+<p>
+
+* [`865fb4f`](https://github.com/siderolabs/discovery-service/commit/865fb4f9b47d93d3b94df0dba03361361147265c) release(v1.1.1): prepare release
+* [`270f977`](https://github.com/siderolabs/discovery-service/commit/270f977dc5c4ee6aa4e84d611842782fec0b299c) feat: rekres and update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-debug
+<details><summary>1 commit</summary>
+<p>
+
+* [`44d6398`](https://github.com/siderolabs/go-debug/commit/44d639874ed86ee9ef005e700143d3a5b60bc518) feat: support Go 1.27
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>12 commits</summary>
+<p>
+
+* [`4520b38`](https://github.com/siderolabs/image-factory/commit/4520b38a89a68ce0be0b0fa7b1deb6fa20d0f8d8) fix(enterprise): evaluate VEX against Talos kernel
+* [`a27dfe6`](https://github.com/siderolabs/image-factory/commit/a27dfe64b2bd2837ec4d461ab40c6d1c1dc5a857) feat: enforce public API with OpenAPI
+* [`773ba3c`](https://github.com/siderolabs/image-factory/commit/773ba3c277979a239f1c902f903f10953d1498e3) fix(ui): gate token create modal on the in-flight POST
+* [`2e149c8`](https://github.com/siderolabs/image-factory/commit/2e149c84e9facb75761cf2016c6b2ccdba1b10f0) fix(auth0): drop Bearer challenge from 401 response
+* [`9f82dde`](https://github.com/siderolabs/image-factory/commit/9f82dde3576d4593fc2f49ff311cbefa54143eae) fix: rename registryClientRefreshInterval to refreshInterval
+* [`f4f79db`](https://github.com/siderolabs/image-factory/commit/f4f79dbe47b51ad17d59ad52eda7297680d485b1) feat(enterprise): repo-per-org token storage, url-safe stored tokens
+* [`f4e4d01`](https://github.com/siderolabs/image-factory/commit/f4e4d013eedeaa2c404d36cb14e631dcaf0b305e) feat(enterprise): expose actor profiles for token creation UI
+* [`8a77753`](https://github.com/siderolabs/image-factory/commit/8a77753c5487f1609bcdbbd62248f6d060385362) feat(enterprise): replace scope enum with route-defined capability scopes
+* [`4d9710f`](https://github.com/siderolabs/image-factory/commit/4d9710fa70ae1b81ac3cb98e1a3eb362cfdbb2d5) feat(enterprise): add CLI-only admin token scope
+* [`4286666`](https://github.com/siderolabs/image-factory/commit/42866667e4b9ec73d6d8b01057214acd6c1dab1c) feat(enterprise): unify download and node tokens as scoped API tokens
+* [`4becd5d`](https://github.com/siderolabs/image-factory/commit/4becd5d03bafb316ea38b89c3c062f37b47ea453) release(v1.6.1): prepare release
+* [`e5ff748`](https://github.com/siderolabs/image-factory/commit/e5ff748cb65d95fd4522ce692fe29a25a2e81724) fix: pull in Talos for the SBC/GRUB/EFI fix
+</p>
+</details>
+
+### Dependency Changes
+
+* **filippo.io/age**                                           v1.3.1 -> v1.3.2
+* **github.com/aws/aws-sdk-go-v2**                             v1.44.0 -> v1.46.0
+* **github.com/aws/aws-sdk-go-v2/config**                      v1.32.40 -> v1.33.3
+* **github.com/aws/aws-sdk-go-v2/credentials**                 v1.19.39 -> v1.20.3
+* **github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager**  v0.3.17 -> v0.4.3
+* **github.com/aws/aws-sdk-go-v2/service/s3**                  v1.108.0 -> v1.111.0
+* **github.com/coreos/go-oidc/v3**                             v3.20.0 -> v3.21.0
+* **github.com/cosi-project/state-sqlite**                     v0.4.0 -> v0.5.0
+* **github.com/fluxcd/cli-utils**                              v1.2.2 -> v1.3.0
+* **github.com/go-jose/go-jose/v4**                            v4.1.4 -> v4.1.5
+* **github.com/google/go-containerregistry**                   v0.22.0 -> v0.22.1
+* **github.com/grpc-ecosystem/go-grpc-middleware/v2**          v2.3.3 -> v2.3.4
+* **github.com/prometheus/client_model**                       v0.6.2 -> v0.6.3
+* **github.com/prometheus/common**                             v0.70.1 -> v0.71.0
+* **github.com/siderolabs/discovery-service**                  v1.1.0 -> v1.1.1
+* **github.com/siderolabs/go-debug**                           v0.6.2 -> v0.6.3
+* **github.com/siderolabs/image-factory**                      v1.6.0 -> 4520b38a89a6
+* **github.com/siderolabs/omni/client**                        v1.9.3 -> 000000000000
+* **github.com/siderolabs/talos/pkg/machinery**                322de8bf2974 -> 5c5fd29e95f7
+* **github.com/zitadel/oidc/v3**                               v3.49.3 -> v3.49.6
+* **golang.org/x/crypto**                                      v0.55.0 -> v0.56.0
+* **sigs.k8s.io/controller-runtime**                           v0.24.1 -> v0.25.0
+
+Previous release can be found at [v1.11.0](https://github.com/siderolabs/omni/releases/tag/v1.11.0)
+
 ## [Omni 1.12.0-beta.0](https://github.com/siderolabs/omni/releases/tag/v1.12.0-beta.0) (2026-09-09)
 
 Welcome to the v1.12.0-beta.0 release of Omni!  

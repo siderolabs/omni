@@ -5,14 +5,41 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v1.11.0"
 
 [notes.image-factory-api-token]
 title = "Image Factory API Token Authentication"
 description = """\
-Omni can now authenticate to the image factory with an API token instead of the deprecated download and node tokens. \
-Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--primary-factory-token-file`), pointing to a file \
-containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
-self-hosted factories using htpasswd.
+Omni can now authenticate to the image factory with an API token. \
+The token is read from a file, so it can be rotated without a restart. \
+Basic auth is still supported for self-hosted factories using htpasswd.
+
+For such a factory, Omni creates a machine token and puts it into the registry auth config of every machine, so that the machines can pull images from the factory.
+
+The token file is configured under `registries.factories.<primary|secondary>` in the config file:
+```yaml
+registries:
+  factories:
+    primary:
+      url: https://factory.example.com
+      tokenFile: /run/secrets/factory-token
+```
+
+The equivalent flags are `--primary-factory-token-file` and `--secondary-factory-token-file`.
+"""
+
+[notes.omnictl-security]
+title = "Security Scans in omnictl"
+description = """\
+The new `omnictl security` command fetches the security artifacts of a Talos schematic from the enterprise image factory:
+
+- `scan`: the vulnerability scan report.
+- `sbom`: the SPDX SBOM.
+- `vex`: the VEX document.
+
+It takes either a cluster ID, covering every schematic and architecture the cluster runs, or an explicit combination of Talos version, architecture and schematic. \
+The scan output also shows the available Talos upgrade paths and the vulnerability diff for each of them.
+
+These artifacts are only available on the enterprise image factory, so the command requires Omni to be configured with one.
 """
