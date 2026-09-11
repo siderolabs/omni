@@ -16,6 +16,30 @@ dotenv.config({ quiet: true })
 const permissions = ['clipboard-read', 'clipboard-write']
 
 /**
+ * Specs that only make sense against one kind of image factory are tagged, so the same
+ * `talemu/` directory can serve both the community and the enterprise run. Untagged specs
+ * run in both.
+ */
+const ENTERPRISE_ONLY = /@enterprise-factory/
+const COMMUNITY_ONLY = /@community-factory/
+
+const chrome = {
+  ...devices['Desktop Chrome'],
+}
+
+const firefox = {
+  ...devices['Desktop Firefox'],
+  // Firefox does not support clipboard permissions
+  permissions: permissions.filter((p) => !p.startsWith('clipboard')),
+  launchOptions: {
+    firefoxUserPrefs: {
+      // Firefox specific flag to always allow clipboard access
+      'dom.events.testing.asyncClipboard': true,
+    },
+  },
+}
+
+/**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
@@ -68,32 +92,43 @@ export default defineConfig({
     },
     {
       name: 'talemu-chrome',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
+      use: chrome,
       testMatch: 'talemu/**/*.spec.ts',
+      grepInvert: ENTERPRISE_ONLY,
       dependencies: ['eula', 'talemu-setup'],
     },
     {
       name: 'talemu-firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        // Firefox does not support clipboard permissions
-        permissions: permissions.filter((p) => !p.startsWith('clipboard')),
-        launchOptions: {
-          firefoxUserPrefs: {
-            // Firefox specific flag to always allow clipboard access
-            'dom.events.testing.asyncClipboard': true,
-          },
-        },
-      },
+      use: firefox,
       testMatch: 'talemu/**/*.spec.ts',
+      grepInvert: ENTERPRISE_ONLY,
       dependencies: ['eula', 'talemu-setup'],
     },
     {
       name: 'talemu',
       testMatch: /(?!)/,
       dependencies: ['talemu-chrome', 'talemu-firefox'],
+    },
+    {
+      name: 'talemu-enterprise-chrome',
+      use: chrome,
+      testMatch: 'talemu/**/*.spec.ts',
+      grepInvert: COMMUNITY_ONLY,
+      dependencies: ['eula', 'talemu-setup'],
+    },
+    {
+      name: 'talemu-enterprise-firefox',
+      use: firefox,
+      testMatch: 'talemu/**/*.spec.ts',
+      grepInvert: COMMUNITY_ONLY,
+      dependencies: ['eula', 'talemu-setup'],
+    },
+    {
+      // Same specs as `talemu`, run against an Omni pointed at the enterprise image factory.
+      // See hack/test/e2e-talemu.sh.
+      name: 'talemu-enterprise',
+      testMatch: /(?!)/,
+      dependencies: ['talemu-enterprise-chrome', 'talemu-enterprise-firefox'],
     },
     {
       name: 'qemu',

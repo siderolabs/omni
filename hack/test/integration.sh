@@ -32,6 +32,11 @@ case "$TEST_CLASS" in
   ./hack/test/e2e-talemu.sh
   ;;
 
+"e2e-talemu-enterprise")
+  echo "Starting End-to-End Tests with talemu against the enterprise image factory..."
+  WITH_IMAGE_FACTORY_ENTERPRISE=true ./hack/test/e2e-talemu.sh
+  ;;
+
 "e2e-auth0")
   echo "Starting End-to-End Tests with the Auth0 login path..."
   ./hack/test/e2e-auth0.sh
@@ -49,7 +54,7 @@ case "$TEST_CLASS" in
 
 *)
   # The catch-all (default) case if nothing matches
-  echo "Error: Unknown TEST_CLASS '$TEST_CLASS'. Please use integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-auth0, e2e-saml or e2e-helm."
+  echo "Error: Unknown TEST_CLASS '$TEST_CLASS'. Please use integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-talemu-enterprise, e2e-auth0, e2e-saml or e2e-helm."
   exit 1
   ;;
 esac
