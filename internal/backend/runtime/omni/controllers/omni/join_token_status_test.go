@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -50,6 +51,12 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 			assert.Equal(specs.JoinTokenStatusSpec_ACTIVE, res.TypedSpec().Value.State)
 			assert.Equal(token.TypedSpec().Value.Name, res.TypedSpec().Value.Name)
 			assert.False(res.TypedSpec().Value.IsDefault)
+
+			// every non provider v3 token is resolved through this label, so it has to be published
+			fingerprint, ok := res.Metadata().Labels().Get(siderolink.LabelJoinTokenFingerprint)
+			assert.True(ok, "the join token fingerprint label is not published")
+			assert.Equal(jointoken.Fingerprint(token.Metadata().ID()), fingerprint)
+			assert.NotContains(fingerprint, token.Metadata().ID(), "the fingerprint must not leak the secret")
 		},
 	)
 

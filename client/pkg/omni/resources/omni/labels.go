@@ -4,6 +4,12 @@
 
 package omni
 
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
 const (
 	// SystemLabelPrefix is the prefix of all labels which are managed by the COSI controllers.
 	// tsgen:SystemLabelPrefix.
@@ -261,3 +267,56 @@ const (
 	// tsgen:LabelMachineRequestInUse
 	LabelMachineRequestInUse = SystemLabelPrefix + "machine-request-in-use"
 )
+
+// The caps below bound the metadata a resource may carry. They are enforced by the Omni state
+// layer on every resource, and by anything which produces labels before they reach it, so that a
+// label is rejected where it is set instead of where it lands.
+const (
+	// MaxLabelKeyLength caps the byte length of a label key.
+	MaxLabelKeyLength = 1024
+
+	// MaxLabelValueLength caps the byte length of a label value.
+	MaxLabelValueLength = 16 * 1024
+
+	// MaxAnnotationKeyLength caps the byte length of an annotation key.
+	MaxAnnotationKeyLength = MaxLabelKeyLength
+
+	// MaxAnnotationValueLength caps the byte length of an annotation value.
+	MaxAnnotationValueLength = MaxLabelValueLength
+)
+
+// ValidateLabel checks a single label key and value against the limits Omni enforces on resources.
+func ValidateLabel(key, value string) error {
+	return validateMetadataEntry("label", key, value, MaxLabelKeyLength, MaxLabelValueLength)
+}
+
+// ValidateAnnotation is ValidateLabel for annotations, differing only in the wording of the errors.
+func ValidateAnnotation(key, value string) error {
+	return validateMetadataEntry("annotation", key, value, MaxAnnotationKeyLength, MaxAnnotationValueLength)
+}
+
+// validateMetadataEntry carries the rule shared by the labels and the annotations; kind names the
+// entry in the errors.
+func validateMetadataEntry(kind, key, value string, maxKey, maxValue int) error {
+	if key == "" {
+		return fmt.Errorf("%s key must not be empty", kind)
+	}
+
+	if len(key) > maxKey {
+		return fmt.Errorf("%s key is too long: %d bytes (max %d)", kind, len(key), maxKey)
+	}
+
+	if strings.ContainsFunc(key, unicode.IsControl) {
+		return fmt.Errorf("%s key %q must not contain control characters", kind, key)
+	}
+
+	if len(value) > maxValue {
+		return fmt.Errorf("%s value for key %q is too long: %d bytes (max %d)", kind, key, len(value), maxValue)
+	}
+
+	if strings.ContainsFunc(value, unicode.IsControl) {
+		return fmt.Errorf("%s value for key %q must not contain control characters", kind, key)
+	}
+
+	return nil
+}

@@ -1143,8 +1143,15 @@ func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *ma
 		siderolink.WithGRPCTunnel(request.UseGrpcTunnel),
 		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),
 		siderolink.WithLogServerPort(int(apiConfig.TypedSpec().Value.LogsPort)),
+		siderolink.WithMachineLabels(request.MachineLabels),
 	)
 	if err != nil {
+		// NewJoinOptions also parses and encodes the join token, so only the label problems may be
+		// reported as a bad request: everything else keeps its own cause
+		if errors.Is(err, jointoken.ErrInvalidLabels) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+
 		return nil, err
 	}
 
