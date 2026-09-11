@@ -965,6 +965,7 @@ func provisionFixture(
 	tokenStatusRes.TypedSpec().Value.Name = "default"
 	tokenStatusRes.TypedSpec().Value.IsDefault = true
 	tokenStatusRes.TypedSpec().Value.State = specs.JoinTokenStatusSpec_ACTIVE
+	tokenStatusRes.Metadata().Labels().Set(siderolinkres.LabelJoinTokenFingerprint, jointoken.Fingerprint(joinToken))
 
 	require.NoError(t, st.Create(ctx, tokenStatusRes))
 
@@ -1235,4 +1236,300 @@ func TestUUIDConflictDoesNotStealLinkAddress(t *testing.T) {
 	if evictions := device.evictionLog(); len(evictions) > 0 {
 		t.Logf("allowed-IP evictions:\n%v", evictions)
 	}
+}
+
+// registerJoinToken adds an extra join token the way JoinTokenStatusController would, including the
+// fingerprint label the v3 provision flow resolves the token by.
+func registerJoinToken(ctx context.Context, t *testing.T, st state.State, id, name string, tokenState specs.JoinTokenStatusSpec_State) {
+	t.Helper()
+
+	token := siderolinkres.NewJoinToken(id)
+	token.TypedSpec().Value.Name = name
+
+	require.NoError(t, st.Create(ctx, token))
+
+	tokenStatus := siderolinkres.NewJoinTokenStatus(id)
+	tokenStatus.TypedSpec().Value.Name = name
+	tokenStatus.TypedSpec().Value.State = tokenState
+	tokenStatus.Metadata().Labels().Set(siderolinkres.LabelJoinTokenFingerprint, jointoken.Fingerprint(id))
+
+	require.NoError(t, st.Create(ctx, tokenStatus))
+}
+
+// TestProvisionWithLabels covers the v3 join tokens: the user labels they carry, and resolving the
+// join token which signed them by its fingerprint rather than by the secret.
+// labelsTestDefaultToken is the default join token the v3 fixtures below are built on.
+const labelsTestDefaultToken = "labels-test-default-token"
+
+func labelsTestSetup(ctx context.Context, t *testing.T) (state.State, *siderolink.ProvisionHandler) {
+	t.Helper()
+
+	return provisionFixture(
+		ctx, t, config.SiderolinkServiceJoinTokensModeStrict, labelsTestDefaultToken,
+		&fakeWireguardHandler{peers: map[string]wgtypes.Peer{}},
+		func(*siderolinkres.PendingMachine) bool { return true },
+	)
+}
+
+// labelsTestRequest builds the request a machine makes when it boots with a v3 join config.
+func labelsTestRequest(t *testing.T, uuid string, token jointoken.JoinToken) *pb.ProvisionRequest {
+	t.Helper()
+
+	encoded, encodeErr := token.Encode()
+	require.NoError(t, encodeErr)
+
+	uniqueToken, tokenErr := jointoken.NewNodeUniqueToken("fingerprint", uuid).Encode()
+	require.NoError(t, tokenErr)
+
+	return &pb.ProvisionRequest{
+		NodeUuid:        uuid,
+		NodePublicKey:   genPublicKey(t),
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       &encoded,
+		NodeUniqueToken: new(uniqueToken),
+	}
+}
+
+// TestProvisionWithLabels covers the user labels a v3 join token carries.
+func TestProvisionWithLabels(t *testing.T) {
+	t.Parallel()
+
+	// the point of the fingerprint: a token which is not the default one can carry labels
+	t.Run("labels on a non-default token", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		st, provisionHandler := labelsTestSetup(ctx, t)
+
+		otherToken := "other-join-token"
+		registerJoinToken(ctx, t, st, otherToken, "other", specs.JoinTokenStatusSpec_ACTIVE)
+
+		token, tokenErr := jointoken.NewWithLabels(otherToken, map[string]string{"env": "prod", "rack": "a12"}, nil)
+		require.NoError(t, tokenErr)
+
+		req := labelsTestRequest(t, "labeled-machine", token)
+
+		_, err := provisionHandler.Provision(ctx, req)
+		require.NoError(t, err)
+
+		// the labels are seeded onto the user owned resource, not onto the link
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *omni.MachineLabels, assertion *assert.Assertions) {
+				env, ok := r.Metadata().Labels().Get("env")
+				assertion.True(ok)
+				assertion.Equal("prod", env)
+
+				rack, ok := r.Metadata().Labels().Get("rack")
+				assertion.True(ok)
+				assertion.Equal("a12", rack)
+
+				assertion.Empty(r.Metadata().Owner(), "must be ownerless, so the user can edit it")
+			},
+		)
+
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *siderolinkres.Link, assertion *assert.Assertions) {
+				_, ok := r.Metadata().Labels().Get("env")
+				assertion.False(ok, "the link must not be cluttered with the user labels")
+			},
+		)
+
+		// the usage has to point at the join token itself, not at the encoded blob, otherwise the
+		// machine never counts towards that token's use count
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *siderolinkres.JoinTokenUsage, assertion *assert.Assertions) {
+				assertion.Equal(otherToken, r.TypedSpec().Value.TokenId)
+			},
+		)
+	})
+
+	// the token labels are a one shot seed: once the machine has them they are the user's to change
+	t.Run("existing machine labels are left alone", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		st, provisionHandler := labelsTestSetup(ctx, t)
+
+		machineID := "already-labeled-machine"
+
+		// the user has already curated the labels of this machine
+		existing := omni.NewMachineLabels(machineID)
+		existing.Metadata().Labels().Set("env", "staging")
+
+		require.NoError(t, st.Create(ctx, existing))
+
+		token, tokenErr := jointoken.NewWithLabels(labelsTestDefaultToken, map[string]string{"env": "prod", "rack": "a12"}, nil)
+		require.NoError(t, tokenErr)
+
+		_, err := provisionHandler.Provision(ctx, labelsTestRequest(t, machineID, token))
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(
+			ctx, t, st, []string{machineID},
+			func(r *omni.MachineLabels, assertion *assert.Assertions) {
+				env, ok := r.Metadata().Labels().Get("env")
+				assertion.True(ok)
+				assertion.Equal("staging", env, "the user value must win over the join token")
+
+				_, ok = r.Metadata().Labels().Get("rack")
+				assertion.False(ok, "no token label may be added once the machine has its labels")
+			},
+		)
+	})
+}
+
+// TestProvisionTokenFingerprint covers resolving which join token signed a v3 token, by the
+// non-secret fingerprint it carries.
+func TestProvisionTokenFingerprint(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name       string
+		tokenState specs.JoinTokenStatusSpec_State
+	}{
+		{name: "revoked", tokenState: specs.JoinTokenStatusSpec_REVOKED},
+		{name: "expired", tokenState: specs.JoinTokenStatusSpec_EXPIRED},
+	} {
+		t.Run("rejects a "+tt.name+" token", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+			defer cancel()
+
+			st, provisionHandler := labelsTestSetup(ctx, t)
+
+			inactive := "inactive-" + tt.name
+			registerJoinToken(ctx, t, st, inactive, tt.name, tt.tokenState)
+
+			token, tokenErr := jointoken.NewWithLabels(inactive, map[string]string{"env": "prod"}, nil)
+			require.NoError(t, tokenErr)
+
+			_, err := provisionHandler.Provision(ctx, labelsTestRequest(t, "machine-"+tt.name, token))
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+		})
+	}
+
+	// a provider signs with its own per provider secret, which is not the token the machine is
+	// handed, so a v3 provider token carries no fingerprint and still resolves by the provider ID
+	t.Run("provider tokens work on v3", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		st, provisionHandler := labelsTestSetup(ctx, t)
+
+		providerID := "test-provider"
+
+		require.NoError(t, st.Create(ctx, infra.NewProvider(providerID)))
+
+		var providerSecret string
+
+		rtestutils.AssertResources(ctx, t, st, []string{providerID}, func(cfg *siderolinkres.ProviderJoinConfig, assert *assert.Assertions) {
+			assert.NotEmpty(cfg.TypedSpec().Value.JoinToken)
+
+			providerSecret = cfg.TypedSpec().Value.JoinToken
+		})
+
+		token, tokenErr := jointoken.NewWithLabels(
+			providerSecret,
+			map[string]string{"env": "prod"},
+			map[string]string{omni.LabelInfraProviderID: providerID},
+		)
+		require.NoError(t, tokenErr)
+
+		require.Equal(t, jointoken.Version3, token.Version)
+		require.Empty(t, token.TokenFingerprint, "a provider token must not leak a fingerprint of the provider secret")
+
+		req := labelsTestRequest(t, "provider-machine", token)
+
+		_, err := provisionHandler.Provision(ctx, req)
+		require.NoError(t, err)
+
+		// the provider label still lands on the link, the way it does on v2
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *siderolinkres.Link, assertion *assert.Assertions) {
+				gotProvider, ok := r.Metadata().Labels().Get(omni.LabelInfraProviderID)
+				assertion.True(ok)
+				assertion.Equal(providerID, gotProvider)
+			},
+		)
+
+		// and the user labels the v3 token carried are seeded for the user
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *omni.MachineLabels, assertion *assert.Assertions) {
+				env, ok := r.Metadata().Labels().Get("env")
+				assertion.True(ok)
+				assertion.Equal("prod", env)
+			},
+		)
+	})
+
+	t.Run("rejects an unknown fingerprint", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		_, provisionHandler := labelsTestSetup(ctx, t)
+
+		token, tokenErr := jointoken.NewWithLabels("never-registered", map[string]string{"env": "prod"}, nil)
+		require.NoError(t, tokenErr)
+
+		_, err := provisionHandler.Provision(ctx, labelsTestRequest(t, "unknown-machine", token))
+		require.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	// the fingerprint is truncated, so two tokens can share one: the signature is what decides
+	t.Run("a fingerprint collision resolves by the signature", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		st, provisionHandler := labelsTestSetup(ctx, t)
+
+		realToken := "colliding-real"
+		decoyToken := "colliding-decoy"
+
+		registerJoinToken(ctx, t, st, realToken, "real", specs.JoinTokenStatusSpec_ACTIVE)
+		registerJoinToken(ctx, t, st, decoyToken, "decoy", specs.JoinTokenStatusSpec_ACTIVE)
+
+		// force both onto the same fingerprint, which is what a truncation collision looks like
+		fingerprint := jointoken.Fingerprint(realToken)
+
+		_, err := safe.StateUpdateWithConflicts(
+			ctx, st, siderolinkres.NewJoinTokenStatus(decoyToken).Metadata(),
+			func(res *siderolinkres.JoinTokenStatus) error {
+				res.Metadata().Labels().Set(siderolinkres.LabelJoinTokenFingerprint, fingerprint)
+
+				return nil
+			},
+		)
+		require.NoError(t, err)
+
+		token, tokenErr := jointoken.NewWithLabels(realToken, map[string]string{"env": "prod"}, nil)
+		require.NoError(t, tokenErr)
+
+		req := labelsTestRequest(t, "colliding-machine", token)
+
+		_, err = provisionHandler.Provision(ctx, req)
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(
+			ctx, t, st, []string{req.NodeUuid},
+			func(r *siderolinkres.JoinTokenUsage, assertion *assert.Assertions) {
+				assertion.Equal(realToken, r.TypedSpec().Value.TokenId)
+			},
+		)
+	})
 }

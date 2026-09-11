@@ -318,6 +318,7 @@ export type MaintenanceLifecycleResponse = {
 export type GetMachineJoinConfigRequest = {
   use_grpc_tunnel?: boolean
   join_token?: string
+  machine_labels?: {[key: string]: string}
 }
 
 export type GetMachineJoinConfigResponse = {
