@@ -15,20 +15,34 @@ interface Cluster {
 }
 
 interface ClusterFixtures {
+  /**
+   * The Talos version the {@link ClusterFixtures.cluster} is created with.
+   * Can be overriden with test.use({ talosVersion: 'v1.13.10' })`
+   */
+  talosVersion: string
+
+  /**
+   * The Talos version the {@link ClusterFixtures.cluster} is created with.
+   * Can be overriden with test.use({ k8sVersion: 'v1.36.4' })`
+   */
+  k8sVersion: string
+
   cluster: Cluster
 }
 
 const test = base.extend<ClusterFixtures>({
+  talosVersion: ['v1.13.10', { option: true }],
+  k8sVersion: ['v1.36.4', { option: true }],
   cluster: [
-    async ({ omnictl }, use, testInfo) => {
+    async ({ omnictl, talosVersion, k8sVersion }, use, testInfo) => {
       const clusterName = `e2e-cluster-${faker.string.alphanumeric(8)}`
 
       const clusterTemplate = [
         {
           kind: 'Cluster',
           name: clusterName,
-          kubernetes: { version: 'v1.35.0' },
-          talos: { version: 'v1.12.3' },
+          kubernetes: { version: k8sVersion },
+          talos: { version: talosVersion },
         },
         {
           kind: 'ControlPlane',

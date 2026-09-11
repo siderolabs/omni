@@ -29,6 +29,10 @@ trap cleanup EXIT SIGINT
 # Download required artifacts.
 prepare_artifacts
 
+# Select the public or enterprise image factory based on WITH_IMAGE_FACTORY_ENTERPRISE.
+# Must run before prepare_omni_config, which renders the resulting factory URL and token into the config.
+configure_image_factory
+
 # Build registry mirror args.
 configure_registry_mirrors
 
@@ -46,10 +50,29 @@ export MAX_SERVICE_ACCOUNTS=5
 
 prepare_omni_config
 
+# An infra provider needs no factory credentials, but talemu stands in for Talos: it reads schematics to report
+# the extensions and kernel args a real machine would, and an enterprise factory only answers that to a full
+# credential. Hand it the same token Omni holds, the way the local dev setup does.
+#
+# Read rather than echo into a variable, so the token stays out of the xtrace output. The file has no trailing
+# newline, so read reports EOF after assigning the token; the length check is what actually validates it, and
+# it traces as a number rather than the value.
+TALEMU_ENV_ARGS=()
+if [[ -n "${OMNI_IMAGE_FACTORY_TOKEN_FILE:-}" ]]; then
+  IFS= read -r TALEMU_IMAGE_FACTORY_TOKEN <"${OMNI_IMAGE_FACTORY_TOKEN_FILE}" || true
+  [[ ${#TALEMU_IMAGE_FACTORY_TOKEN} -gt 0 ]] || {
+    echo "Error: ${OMNI_IMAGE_FACTORY_TOKEN_FILE} is empty" >&2
+    exit 1
+  }
+  export TALEMU_IMAGE_FACTORY_TOKEN
+  TALEMU_ENV_ARGS+=(-e TALEMU_IMAGE_FACTORY_TOKEN)
+fi
+
 docker pull "${TALEMU_INFRA_PROVIDER_IMAGE}"
 docker run --name "${TALEMU_CONTAINER_NAME}" \
   --network host --cap-add=NET_ADMIN \
   -it -d \
+  "${TALEMU_ENV_ARGS[@]}" \
   "${TALEMU_INFRA_PROVIDER_IMAGE}" \
   --create-service-account \
   --omni-api-endpoint="https://${LOCAL_IP}:8099"
@@ -68,6 +91,14 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
 # network interfaces, and Chromium aborts every in-flight request (including the resource
 # watch streams feeding the UI) with ERR_NETWORK_CHANGED when it sees an interface change
 # in its own network namespace, so on the host network the UI tests randomly flake.
+#
+# The enterprise run executes the same specs, minus the ones tagged @community-factory, and plus the
+# ones tagged @enterprise-factory. See frontend/playwright.config.ts.
+PLAYWRIGHT_PROJECT="talemu"
+if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" == "true" ]]; then
+  PLAYWRIGHT_PROJECT="talemu-enterprise"
+fi
+
 cd frontend/
 docker buildx build --load . -t e2etest
 docker run --rm \
@@ -75,7 +106,7 @@ docker run --rm \
   -e AUTH_PASSWORD="$AUTH_PASSWORD" \
   -e AUTH_USERNAME="$AUTH_USERNAME" \
   -e BASE_URL="$BASE_URL" \
-  -e PROJECT="talemu" \
+  -e PROJECT="${PLAYWRIGHT_PROJECT}" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
   --add-host="${OMNI_HOST}:host-gateway" \
   e2etest

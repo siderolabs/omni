@@ -81,7 +81,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
 
           <DialogClose
             class="size-6 shrink-0 text-naturals-n10 transition-colors hover:text-naturals-n14 active:text-naturals-n9"
-            aria-label="Close"
+            aria-label="Close dialog"
           >
             <TIcon class="size-full" icon="close" />
           </DialogClose>

@@ -154,7 +154,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
 </script>
 
 <template>
-  <Modal v-model:open="open" title="Download">
+  <Modal v-model:open="open" title="Download" cancel-label="Close">
     <template #description>Files for {{ id }}</template>
 
     <div class="flex flex-col gap-4">
