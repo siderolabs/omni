@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useMounted } from '@vueuse/core'
-import { compare } from 'semver'
+import { compare, major, minor } from 'semver'
 import { computed, onBeforeMount, useId } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -22,6 +22,8 @@ import {
 import FormLabel from '@/components/FormLabel/FormLabel.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import SelectContent from '@/components/SelectList/components/SelectContent.vue'
+import SelectGroup from '@/components/SelectList/components/SelectGroup.vue'
+import SelectGroupLabel from '@/components/SelectList/components/SelectGroupLabel.vue'
 import SelectIcon from '@/components/SelectList/components/SelectIcon.vue'
 import SelectItemType from '@/components/SelectList/components/SelectItem.vue'
 import SelectItemIndicator from '@/components/SelectList/components/SelectItemIndicator.vue'
@@ -125,6 +127,30 @@ const selectItems = computed(() => {
   )
 })
 
+interface SelectGroupType {
+  label?: string
+  items: SelectItemType[]
+}
+
+const selectGroups = computed(() => {
+  const groups: SelectGroupType[] = []
+
+  for (const item of selectItems.value) {
+    // Items without a real version (e.g. Automatic) stay in their own unlabelled group
+    const label =
+      item.value === AUTOMATIC_VERSION ? undefined : `${major(item.value)}.${minor(item.value)}`
+    const last = groups.at(-1)
+
+    if (last && last.label === label && typeof label !== 'undefined') {
+      last.items.push(item)
+    } else {
+      groups.push({ label, items: [item] })
+    }
+  }
+
+  return groups
+})
+
 function labelForItem(item?: string) {
   return selectItems.value.find((i) => i.value === item)?.label ?? ''
 }
@@ -176,32 +202,42 @@ function isItemEnterprise(item?: string) {
           </SelectScrollUpButton>
 
           <SelectViewport>
-            <Tooltip
-              v-for="item in selectItems"
-              :key="item.value"
-              :description="item.tooltip"
-              :disabled="!item.tooltip"
-              placement="right"
+            <SelectGroup
+              v-for="(group, index) in selectGroups"
+              :key="group.label ?? index"
+              class="not-first:mt-2"
             >
-              <SelectItemType :value="item.value" :disabled="item.disabled">
-                <span class="size-3">
-                  <SelectItemIndicator as-child>
-                    <TIcon icon="check" class="size-full" />
-                  </SelectItemIndicator>
-                </span>
+              <SelectGroupLabel v-if="group.label">
+                {{ group.label }}
+              </SelectGroupLabel>
 
-                <SelectItemText class="flex grow items-center justify-between gap-2">
-                  {{ item.label }}
-
-                  <span
-                    v-if="isItemEnterprise(item.value)"
-                    class="resource-label label-violet text-[0.625rem] font-normal"
-                  >
-                    enterprise
+              <Tooltip
+                v-for="item in group.items"
+                :key="item.value"
+                :description="item.tooltip"
+                :disabled="!item.tooltip"
+                placement="right"
+              >
+                <SelectItemType :value="item.value" :disabled="item.disabled">
+                  <span class="size-3">
+                    <SelectItemIndicator as-child>
+                      <TIcon icon="check" class="size-full" />
+                    </SelectItemIndicator>
                   </span>
-                </SelectItemText>
-              </SelectItemType>
-            </Tooltip>
+
+                  <SelectItemText class="flex grow items-center justify-between gap-2">
+                    {{ item.label }}
+
+                    <span
+                      v-if="isItemEnterprise(item.value)"
+                      class="resource-label label-violet text-[0.625rem] font-normal"
+                    >
+                      enterprise
+                    </span>
+                  </SelectItemText>
+                </SelectItemType>
+              </Tooltip>
+            </SelectGroup>
           </SelectViewport>
 
           <SelectScrollDownButton>
