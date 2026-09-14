@@ -1413,6 +1413,8 @@ message SchematicConfigurationSpec {
   string schematic_id = 1;
   string talos_version = 2;
   reserved 3;
+  // SchematicHash is the hash of the schematic the ID was generated for.
+  string schematic_hash = 4;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.

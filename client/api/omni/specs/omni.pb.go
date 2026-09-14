@@ -6637,9 +6637,11 @@ func (x *TalosExtensionsSpec) GetItems() []*TalosExtensionsSpec_Info {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 type SchematicConfigurationSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SchematicId   string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
-	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SchematicId  string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	TalosVersion string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	// SchematicHash is the hash of the schematic the ID was generated for.
+	SchematicHash string `protobuf:"bytes,4,opt,name=schematic_hash,json=schematicHash,proto3" json:"schematic_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6684,6 +6686,13 @@ func (x *SchematicConfigurationSpec) GetSchematicId() string {
 func (x *SchematicConfigurationSpec) GetTalosVersion() string {
 	if x != nil {
 		return x.TalosVersion
+	}
+	return ""
+}
+
+func (x *SchematicConfigurationSpec) GetSchematicHash() string {
+	if x != nil {
+		return x.SchematicHash
 	}
 	return ""
 }
@@ -12746,10 +12755,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06digest\x18\x06 \x01(\tR\x06digest\"j\n" +
+	"\x06digest\x18\x06 \x01(\tR\x06digest\"\x91\x01\n" +
 	"\x1aSchematicConfigurationSpec\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12#\n" +
-	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersionJ\x04\b\x03\x10\x04\"=\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\x12%\n" +
+	"\x0eschematic_hash\x18\x04 \x01(\tR\rschematicHashJ\x04\b\x03\x10\x04\"=\n" +
 	"\x1bExtensionsConfigurationSpec\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +

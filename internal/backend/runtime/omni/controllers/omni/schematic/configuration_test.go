@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/imager/imageropts"
@@ -34,8 +35,9 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 
 	factory := &testutils.ImageFactoryClientMock{}
 
+	// the machine status cache lags on purpose, so a reconcile triggered by another input reads a stale one
 	testutils.WithRuntime(
-		ctx, t, testutils.TestOptions{},
+		ctx, t, testutils.TestOptions{StateBuilder: testutils.LaggingStateBuilder(50*time.Millisecond, omni.MachineStatusType)},
 		func(_ context.Context, testContext testutils.TestContext) {
 			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
@@ -809,6 +811,171 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
 			})
+		},
+	)
+}
+
+func TestSchematicConfigurationRevertBeforeReboot(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			const (
+				machineName  = "machine1"
+				clusterName  = "cluster"
+				talosVersion = "1.7.0"
+			)
+
+			cluster := omni.NewCluster(clusterName)
+			cluster.TypedSpec().Value.TalosVersion = talosVersion
+
+			r.NoError(st.Create(ctx, cluster))
+
+			booted := schematic.Schematic{}
+			booted.Customization.SystemExtensions.OfficialExtensions = []string{"siderolabs/a"}
+
+			bootedID, err := booted.ID()
+			r.NoError(err)
+
+			bootedRaw, err := booted.Marshal()
+			r.NoError(err)
+
+			machineStatus := omni.NewMachineStatus(machineName)
+			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				FullId:           bootedID,
+				Raw:              string(bootedRaw),
+				Extensions:       []string{"siderolabs/a"},
+				InitialSchematic: bootedID,
+				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{Extensions: []string{"siderolabs/a"}},
+			}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+
+			r.NoError(st.Create(ctx, machineStatus))
+
+			clusterMachine := omni.NewClusterMachine(machineName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machineset")
+
+			r.NoError(st.Create(ctx, clusterMachine))
+
+			assertSchematicID := func(id string) {
+				t.Helper()
+
+				rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+					assertion.Equal(id, schematicConfiguration.TypedSpec().Value.SchematicId)
+				})
+			}
+
+			extensionsConfiguration := omni.NewExtensionsConfiguration("test")
+			extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			extensionsConfiguration.Metadata().Labels().Set(omni.LabelClusterMachine, machineName)
+			extensionsConfiguration.TypedSpec().Value.Extensions = []string{"siderolabs/a"}
+
+			r.NoError(st.Create(ctx, extensionsConfiguration))
+
+			assertSchematicID(bootedID)
+
+			other := schematic.Schematic{}
+			other.Customization.SystemExtensions.OfficialExtensions = []string{"siderolabs/b"}
+
+			otherID, err := other.ID()
+			r.NoError(err)
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
+				res.TypedSpec().Value.Extensions = []string{"siderolabs/b"}
+
+				return nil
+			})
+			r.NoError(err)
+
+			assertSchematicID(otherID)
+
+			// revert while the machine still runs the booted schematic
+			_, err = safe.StateUpdateWithConflicts(ctx, st, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
+				res.TypedSpec().Value.Extensions = []string{"siderolabs/a"}
+
+				return nil
+			})
+			r.NoError(err)
+
+			assertSchematicID(bootedID)
+		},
+	)
+}
+
+func TestSchematicConfigurationPublishedBeforeHash(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	const (
+		machineName  = "machine1"
+		talosVersion = "1.7.0"
+		legacyID     = "legacy-id"
+	)
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+
+			schematicConfiguration := omni.NewSchematicConfiguration(machineName)
+			schematicConfiguration.TypedSpec().Value.SchematicId = legacyID
+			schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+
+			require.NoError(t, testContext.State.Create(ctx, schematicConfiguration, state.WithCreateOwner(schematicctrl.ConfigurationControllerName)))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			booted := schematic.Schematic{}
+			booted.Customization.SystemExtensions.OfficialExtensions = []string{"siderolabs/a"}
+
+			bootedRaw, err := booted.Marshal()
+			r.NoError(err)
+
+			machineStatus := omni.NewMachineStatus(machineName)
+			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				FullId:     "booted-id",
+				Raw:        string(bootedRaw),
+				Extensions: []string{"siderolabs/a"},
+			}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+
+			r.NoError(st.Create(ctx, machineStatus))
+
+			// written at the end of the reconcile
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(*omni.MachineExtensionsStatus, *assert.Assertions) {})
+
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(legacyID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Empty(schematicConfiguration.TypedSpec().Value.SchematicHash)
+			})
+
+			r.Zero(factory.EnsureCalls.Load())
 		},
 	)
 }
