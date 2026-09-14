@@ -16,7 +16,7 @@ source ./hack/test/common.sh
 function cleanup() {
   common_cleanup
   vault_cleanup
-  minio_cleanup
+  s3_cleanup
 }
 
 trap cleanup EXIT SIGINT
@@ -30,8 +30,8 @@ configure_registry_mirrors
 # Start Vault.
 prepare_vault
 
-# Start MinIO server.
-prepare_minio access_key="access" secret_key="secret123"
+# Start the S3 server.
+prepare_s3 access_key="access" secret_key="secret123"
 
 export MAX_USERS=5
 export MAX_SERVICE_ACCOUNTS=5

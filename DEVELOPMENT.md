@@ -229,7 +229,7 @@ Keep in mind that jitter applied as delta to the backup time, so if you set jitt
 
 For s3 you should also create `EtcdBackupS3Configs.omni.sidero.dev` resource in the default namespace, since this is
 the place where Omni gets s3 credentials and options from.
-For example, for minio s3 with bucket `mybucket` and operating locally on port `9000` that would be:
+For example, for the SeaweedFS s3 from the compose setup, with bucket `mybucket` and operating locally on port `9000` that would be:
 
 ```yaml
 metadata:
