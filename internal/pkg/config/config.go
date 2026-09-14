@@ -24,6 +24,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/internal/pkg/config/validations"
 	"github.com/siderolabs/omni/internal/pkg/jsonschema"
@@ -122,6 +123,7 @@ func Init(schema *jsonschema.Schema, params ...*Params) (*Params, error) {
 	}
 
 	config.PopulateFallbacks()
+	config.NormalizeFactoryURLs()
 	config.applyEnvOverrides()
 
 	if err := config.Validate(schema); err != nil {
@@ -294,6 +296,30 @@ func (p *Params) PopulateFallbacks() {
 
 	if p.Auth.Auth0.InitialUsers != nil && p.Auth.InitialUsers == nil {
 		p.Auth.InitialUsers = p.Auth.Auth0.InitialUsers
+	}
+}
+
+// NormalizeFactoryURLs strips the trailing slash off every Image Factory URL the config carries, the
+// deprecated flat fields included.
+func (p *Params) NormalizeFactoryURLs() {
+	registries := &p.Registries
+
+	for _, factory := range []*Factory{&registries.Factories.Primary, &registries.Factories.Secondary} {
+		if url := factory.GetUrl(); url != "" {
+			factory.SetUrl(imagefactory.NormalizeFactoryURL(url))
+		}
+
+		if pxe := factory.GetPxeURL(); pxe != "" {
+			factory.SetPxeURL(imagefactory.NormalizeFactoryURL(pxe))
+		}
+	}
+
+	if url := registries.GetImageFactoryBaseURL(); url != "" {
+		registries.SetImageFactoryBaseURL(imagefactory.NormalizeFactoryURL(url))
+	}
+
+	if pxe := registries.GetImageFactoryPXEBaseURL(); pxe != "" {
+		registries.SetImageFactoryPXEBaseURL(imagefactory.NormalizeFactoryURL(pxe))
 	}
 }
 

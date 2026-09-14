@@ -9,7 +9,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/go-logr/zapr"
@@ -267,7 +266,7 @@ func resolveFactories(registries *config.Registries) (factoryURLs, error) {
 		return res, nil
 	}
 
-	if strings.TrimRight(primary.GetUrl(), "/") == strings.TrimRight(secondary.GetUrl(), "/") {
+	if primary.GetUrl() == secondary.GetUrl() {
 		return factoryURLs{}, fmt.Errorf("primary and secondary image factory URLs cannot be the same: %q", primary.GetUrl())
 	}
 
@@ -329,7 +328,7 @@ func setupImageFactoryClients(cfg *config.Params, state *omni.State, logger *zap
 // at startup.
 func factoryAuth(factory config.Factory, logger *zap.Logger) (imagefactory.Auth, *tokenfile.Token, error) {
 	if path := factory.GetTokenFile(); path != "" {
-		token, err := tokenfile.Load(imagefactory.NormalizeFactoryURL(factory.GetUrl()), path, logger)
+		token, err := tokenfile.Load(factory.GetUrl(), path, logger)
 		if err != nil {
 			return imagefactory.Auth{}, nil, fmt.Errorf("failed to load the token of image factory %q: %w", factory.GetUrl(), err)
 		}

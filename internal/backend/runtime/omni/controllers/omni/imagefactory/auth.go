@@ -159,11 +159,11 @@ func (ctrl *AuthController) reconcile(ctx context.Context, r controller.Runtime,
 			continue
 		}
 
-		factoryURL := imagefactory.NormalizeFactoryURL(factory.GetUrl())
+		factoryURL := factory.GetUrl()
 
 		authenticated = append(authenticated, factoryURL)
 
-		renewIn, err := ctrl.reconcileFactory(ctx, r, logger.With(zap.String("factory", factoryURL)), factory, factoryURL)
+		renewIn, err := ctrl.reconcileFactory(ctx, r, logger.With(zap.String("factory", factoryURL)), factory)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("image factory %q: %w", factoryURL, err))
 		}
@@ -201,8 +201,10 @@ func (ctrl *AuthController) reconcile(ctx context.Context, r controller.Runtime,
 // machine token could not be created yet: the machine configs refuse a factory in that state, rather
 // than being generated without registry credentials for a factory that needs them.
 func (ctrl *AuthController) reconcileFactory(
-	ctx context.Context, r controller.Runtime, logger *zap.Logger, factory config.Factory, factoryURL string,
+	ctx context.Context, r controller.Runtime, logger *zap.Logger, factory config.Factory,
 ) (time.Duration, error) {
+	factoryURL := factory.GetUrl()
+
 	existing, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, r, factoryURL)
 	if err != nil && !state.IsNotFoundError(err) {
 		return 0, err

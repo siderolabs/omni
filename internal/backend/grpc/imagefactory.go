@@ -209,9 +209,11 @@ func (s *imageFactoryServer) DownloadToken(ctx context.Context, req *imagefactor
 		return nil, status.Error(codes.InvalidArgument, "duration must be positive")
 	}
 
-	logger := s.logger.With(zap.String("factory_url", req.FactoryUrl), zap.Int32("duration", req.Duration))
+	factoryURL := imagefactory.NormalizeFactoryURL(req.FactoryUrl)
 
-	client := s.clients.ForURL(req.FactoryUrl)
+	logger := s.logger.With(zap.String("factory_url", factoryURL), zap.Int32("duration", req.Duration))
+
+	client := s.clients.ForURL(factoryURL)
 	if client == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "no factory client found for %s", req.FactoryUrl)
 	}

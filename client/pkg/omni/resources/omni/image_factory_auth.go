@@ -5,8 +5,6 @@
 package omni
 
 import (
-	"strings"
-
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -19,7 +17,7 @@ import (
 // NewImageFactoryAuth creates a new ImageFactoryAuth resource.
 func NewImageFactoryAuth(id string) *ImageFactoryAuth {
 	return typed.NewResource[ImageFactoryAuthSpec, ImageFactoryAuthExtension](
-		resource.NewMetadata(resources.DefaultNamespace, ImageFactoryAuthType, strings.TrimRight(id, "/"), resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ImageFactoryAuthType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ImageFactoryAuthSpec{}),
 	)
 }

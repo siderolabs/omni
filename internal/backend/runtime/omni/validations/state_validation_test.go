@@ -2722,6 +2722,58 @@ func TestExtensionsCatalogValidation(t *testing.T) {
 		return innerSt
 	}
 
+	// A preset can be written by hand, so its factory URL is user input. Every factory URL Omni stores
+	// is canonical, so a non-canonical one is rejected rather than stored to match nothing later.
+	t.Run("installation media config factory URL", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tt := range []struct {
+			name        string
+			factoryURL  string
+			errContains string
+		}{
+			{name: "canonical", factoryURL: "https://factory.example.org"},
+			{name: "secondary", factoryURL: "https://secondary.example.org"},
+			{name: "unset", factoryURL: ""},
+			{name: "trailing slash", factoryURL: "https://factory.example.org/", errContains: "must not end with a slash"},
+			{name: "unconfigured factory", factoryURL: "https://other.example.org", errContains: "is not configured in Omni"},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+				t.Cleanup(cancel)
+
+				innerSt := setupBaseState(t)
+
+				featuresConfig := omnires.NewFeaturesConfig(omnires.FeaturesConfigID)
+				featuresConfig.TypedSpec().Value.ImageFactoryBaseUrl = "https://factory.example.org"
+				featuresConfig.TypedSpec().Value.SecondaryImageFactoryBaseUrl = "https://secondary.example.org"
+				require.NoError(t, innerSt.Create(ctx, featuresConfig))
+
+				st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
+
+				media := omnires.NewInstallationMediaConfig("test")
+				media.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
+				media.TypedSpec().Value.ImageFactoryUrl = tt.factoryURL
+
+				err := st.Create(ctx, media)
+				if tt.errContains != "" {
+					assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+					assert.ErrorContains(t, err, tt.errContains)
+
+					return
+				}
+
+				require.NoError(t, err)
+
+				stored, err := safe.StateGetByID[*omnires.InstallationMediaConfig](ctx, innerSt, "test")
+				require.NoError(t, err)
+				assert.Equal(t, tt.factoryURL, stored.TypedSpec().Value.GetImageFactoryUrl())
+			})
+		}
+	})
+
 	t.Run("installation media config", func(t *testing.T) {
 		t.Parallel()
 

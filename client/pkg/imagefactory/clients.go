@@ -126,7 +126,7 @@ func credentialsAllowingDenied(ctx context.Context, st state.State, factoryURL s
 // Credentials returns what Omni authenticates to the image factory at the given URL with, or a zero Auth
 // when that factory has none configured.
 func Credentials(ctx context.Context, st state.State, factoryURL string) (Auth, error) {
-	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, NormalizeFactoryURL(factoryURL))
+	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, factoryURL)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return Auth{}, nil
@@ -158,11 +158,7 @@ func NormalizeFactoryURL(url string) string {
 }
 
 // ForURL returns the image factory client configured for the given URL, or nil when no client is configured for that URL.
-//
-// The URL may come straight from a client request, so it is normalized before comparing.
 func (c *Clients) ForURL(url string) FactoryClient {
-	url = NormalizeFactoryURL(url)
-
 	clients := []FactoryClient{c.primary}
 	if c.secondary != nil {
 		clients = append(clients, c.secondary)
@@ -207,8 +203,7 @@ func recordedFactoryURLForVersion(ctx context.Context, st state.State, talosVers
 		return "", err
 	}
 
-	// The recorded URL may predate the canonicalization in NewClient, so normalize both sides.
-	return NormalizeFactoryURL(version.TypedSpec().Value.GetImageFactoryUrl()), nil
+	return version.TypedSpec().Value.GetImageFactoryUrl(), nil
 }
 
 // ForTalosVersion returns the image factory client configured for the given Talos version, falling back to the primary client when no version is found or the version does not specify a factory URL.
@@ -228,7 +223,7 @@ func (c *Clients) ForTalosVersion(ctx context.Context, v string) (FactoryClient,
 	}
 
 	for _, client := range clients {
-		if NormalizeFactoryURL(client.URL()) == recordedURL {
+		if client.URL() == recordedURL {
 			return client, nil
 		}
 	}

@@ -89,13 +89,7 @@ func (a Auth) IsZero() bool {
 }
 
 // NewClient creates a new image factory client.
-//
-// The base URL is canonicalized by stripping any trailing slash, so that the URL reported by
-// [Client.URL] can be compared to a factory URL from any other source (a configured factory, a
-// TalosVersion resource, a client request) without each comparison having to normalize first.
 func NewClient(imageFactoryBaseURL string, auth Auth) (*Client, error) {
-	imageFactoryBaseURL = NormalizeFactoryURL(imageFactoryBaseURL)
-
 	sniffer := &serverSnifferTransport{wrapped: http.DefaultTransport}
 
 	clientOptions := []client.Option{
@@ -145,8 +139,7 @@ func (cli *Client) Host() string {
 	return cli.host
 }
 
-// URL returns the canonical base URL of the image factory client: as it was configured, with any
-// trailing slash stripped.
+// URL returns the canonical base URL of the image factory client as it was configured.
 func (cli *Client) URL() string {
 	if cli == nil {
 		return ""
