@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 )
@@ -66,10 +67,20 @@ func (t *serverSnifferTransport) isDetected() bool {
 type Client struct {
 	*client.Client
 
-	sniffer *serverSnifferTransport
-	host    string
-	url     string
+	sniffer        *serverSnifferTransport
+	schematicCache *lru.Cache[string, ensuredSchematic]
+	host           string
+	url            string
 }
+
+// ensuredSchematic is what the factory answered for a schematic, cached by the id of the schematic as sent.
+type ensuredSchematic struct {
+	schematic *schematic.Schematic
+	id        string
+}
+
+// schematicCacheSize bounds the distinct schematics remembered per factory.
+const schematicCacheSize = 1024
 
 // Auth is what Omni authenticates to an image factory with: an API token, or basic auth credentials.
 // The zero value is anonymous access, for a factory that requires no authentication.
@@ -128,11 +139,17 @@ func NewClient(imageFactoryBaseURL string, auth Auth) (*Client, error) {
 		return nil, fmt.Errorf("failed to parse image factory base URL %q: %w", imageFactoryBaseURL, err)
 	}
 
+	schematicCache, err := lru.New[string, ensuredSchematic](schematicCacheSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create schematic cache: %w", err)
+	}
+
 	return &Client{
-		Client:  factoryClient,
-		host:    baseURL.Host,
-		url:     imageFactoryBaseURL,
-		sniffer: sniffer,
+		Client:         factoryClient,
+		host:           baseURL.Host,
+		url:            imageFactoryBaseURL,
+		sniffer:        sniffer,
+		schematicCache: schematicCache,
 	}, nil
 }
 
@@ -185,7 +202,9 @@ func (cli *Client) detectEnterprise(ctx context.Context) error {
 // along with the normalized schematic as the factory persisted it.
 //
 // The factory deduplicates by content: if the same schematic was uploaded before, it returns
-// the existing ID without creating a new one.
+// the existing ID without creating a new one. The factory never forgets a schematic, so the answer is
+// cached and the factory is not asked again for the same schematic. The returned schematic is shared
+// with the cache and must not be modified.
 func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
 	if err := cli.detectEnterprise(ctx); err != nil {
 		return "", nil, fmt.Errorf("failed to detect image factory enterprise status: %w", err)
@@ -196,10 +215,21 @@ func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic
 		inputSchematic.Owner = ""
 	}
 
+	key, err := inputSchematic.ID()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to compute schematic ID: %w", err)
+	}
+
+	if cached, ok := cli.schematicCache.Get(key); ok {
+		return cached.id, cached.schematic, nil
+	}
+
 	id, data, err := cli.SchematicCreate(ctx, inputSchematic)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
+
+	cli.schematicCache.Add(key, ensuredSchematic{id: id, schematic: data})
 
 	return id, data, nil
 }
