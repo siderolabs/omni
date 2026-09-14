@@ -40,7 +40,6 @@ interface Props extends DateRangePickerRootProps {
   inlineTitle?: boolean
 }
 
-// eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<Props>()
 const emit = defineEmits<DateRangePickerRootEmits>()
 

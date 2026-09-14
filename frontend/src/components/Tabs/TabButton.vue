@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { TabsTrigger, type TabsTriggerProps, useForwardPropsEmits } from 'reka-ui'
 
-// eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<TabsTriggerProps>()
 const forwarded = useForwardPropsEmits(props)
 </script>
