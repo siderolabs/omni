@@ -24,7 +24,7 @@ function cleanup() {
 
   common_cleanup
   vault_cleanup
-  minio_cleanup
+  s3_cleanup
   dex_cleanup
 }
 
@@ -39,8 +39,8 @@ configure_registry_mirrors
 # Start Vault.
 prepare_vault
 
-# Start MinIO server.
-prepare_minio access_key="access" secret_key="secret123"
+# Start the S3 server.
+prepare_s3 access_key="access" secret_key="secret123"
 
 # Start Dex (local OIDC provider) before Omni, which discovers it at startup.
 prepare_dex

@@ -134,7 +134,7 @@ mkdir -p "$TEST_OUTPUTS_DIR"
 
 export ENABLE_TALOS_PRERELEASE_VERSIONS=true
 VAULT_DOCKER_IMAGE=hashicorp/vault:1.18
-MINIO_DOCKER_IMAGE=minio/minio
+SEAWEEDFS_DOCKER_IMAGE=chrislusf/seaweedfs:4.47
 export WIREGUARD_IP=$LOCAL_IP
 
 if [[ "${CI:-false}" == "true" ]]; then
@@ -186,9 +186,6 @@ function common_cleanup() {
 
 function prepare_artifacts() {
   [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C "${ARTIFACTS}")
-  [[ -f "${ARTIFACTS}/mc" ]] || curl -Lo "${ARTIFACTS}/mc" https://dl.min.io/client/mc/release/linux-amd64/mc
-  chmod +x "${ARTIFACTS}/mc"
-
   echo "talosctl version:"
   "${ARTIFACTS}/talosctl" version --client
 
@@ -278,7 +275,7 @@ function prepare_keycloak() {
     <hack/test/templates/keycloak-realm.json >"${keycloak_dir}/omni-realm.json"
 
   # Publish a single port instead of joining the host network: Keycloak also binds a
-  # management listener on 9000, which MinIO already owns in these suites.
+  # management listener on 9000, which the S3 server already owns in these suites.
   docker run --rm -d -p 8080:8080 \
     -e KC_HOSTNAME="${KEYCLOAK_URL}" \
     -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
@@ -312,8 +309,14 @@ function keycloak_cleanup() {
   docker rm -f "${KEYCLOAK_CONTAINER_NAME}" || true
 }
 
-MINIO_CONTAINER_NAME=minio-dev
-function prepare_minio() {
+S3_CONTAINER_NAME=seaweedfs-dev
+S3_BUCKET=mybucket
+
+# prepare_s3 starts the S3 server the etcd backup tests run against, and creates their bucket.
+#
+# SeaweedFS serves S3 on 8333, published here on 9000, which is the endpoint the tests are
+# configured with.
+function prepare_s3() {
   # args: access_key, secret_key
   declare -A args
   for arg in "$@"; do
@@ -324,38 +327,65 @@ function prepare_minio() {
 
   local access_key="${args[access_key]}"
   local secret_key="${args[secret_key]}"
+  local s3_dir="${TEST_OUTPUTS_DIR}/seaweedfs"
 
-  mkdir -p "${TEST_OUTPUTS_DIR}/minio/data"
+  mkdir -p "${s3_dir}/data"
 
-  docker run --rm -d -p 9000:9000 \
-    -v "${TEST_OUTPUTS_DIR}/minio/data:/data" -e MINIO_ROOT_USER="$access_key" -e MINIO_ROOT_PASSWORD="$secret_key" \
-    --name "${MINIO_CONTAINER_NAME}" "${MINIO_DOCKER_IMAGE}" \
-    server /data
+  # SeaweedFS takes its S3 credentials from a config file. Without one it serves anonymously,
+  # so the tests would pass regardless of what they authenticate with.
+  cat >"${s3_dir}/s3.json" <<EOF
+{
+  "identities": [
+    {
+      "name": "test",
+      "credentials": [{"accessKey": "${access_key}", "secretKey": "${secret_key}"}],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}
+EOF
 
-  # Wait for MinIO to accept connections before configuring it. A fixed sleep races
-  # startup and intermittently fails the first request with "connection reset by peer",
-  # so retry the alias set until it succeeds.
-  local i
-  for i in $(seq 1 30); do
-    if "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key" >/dev/null 2>&1; then
+  docker run --rm -d -p 9000:8333 \
+    -v "${s3_dir}/data:/data" -v "${s3_dir}/s3.json:/etc/seaweedfs/s3.json:ro" \
+    --name "${S3_CONTAINER_NAME}" "${SEAWEEDFS_DOCKER_IMAGE}" \
+    server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+
+  # Wait for the S3 endpoint to answer before creating the bucket. It replies 403 to an
+  # unauthenticated request, so any status code means it is serving.
+  local i code
+  for i in $(seq 1 60); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:9000" || true)"
+
+    if [[ -n "$code" && "$code" != "000" ]]; then
       break
     fi
 
-    if [[ "$i" -eq 30 ]]; then
-      echo "Error: MinIO did not become ready in time" >&2
-      # Run once more without silencing output so the actual error is surfaced.
-      "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key"
+    if [[ "$i" -eq 60 ]]; then
+      echo "Error: the S3 server did not become ready in time" >&2
+      docker logs "${S3_CONTAINER_NAME}" >&2 || true
+
       return 1
     fi
 
     sleep 1
   done
 
-  "${ARTIFACTS}/mc" mb myminio/mybucket || true
+  # Creating a bucket that is already there succeeds, so this stays correct when the data
+  # directory survives a rerun.
+  #
+  # weed shell waits for the master rather than failing fast, which covers the master lagging
+  # the S3 port, but means a master that never answers would hang here: bound it instead.
+  if ! timeout 60 docker exec -i "${S3_CONTAINER_NAME}" \
+    weed shell -master=localhost:9333 <<<"s3.bucket.create -name ${S3_BUCKET}"; then
+    echo "Error: failed to create the ${S3_BUCKET} bucket" >&2
+    docker logs "${S3_CONTAINER_NAME}" >&2 || true
+
+    return 1
+  fi
 }
 
-function minio_cleanup() {
-  docker rm -f "${MINIO_CONTAINER_NAME}" || true
+function s3_cleanup() {
+  docker rm -f "${S3_CONTAINER_NAME}" || true
 }
 
 function prepare_omni_config() {

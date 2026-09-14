@@ -16,7 +16,7 @@ source ./hack/test/common.sh
 function cleanup() {
   common_cleanup
   vault_cleanup
-  minio_cleanup
+  s3_cleanup
   keycloak_cleanup
 }
 
@@ -31,8 +31,8 @@ configure_registry_mirrors
 # Start Vault.
 prepare_vault
 
-# Start MinIO server.
-prepare_minio access_key="access" secret_key="secret123"
+# Start the S3 server.
+prepare_s3 access_key="access" secret_key="secret123"
 
 # Start Keycloak (local SAML IdP) before Omni, which fetches its metadata at startup.
 prepare_keycloak

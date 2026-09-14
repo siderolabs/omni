@@ -13,7 +13,7 @@ services:
         condition: service_started
       node-dev:
         condition: service_started
-      minio-mc:
+      seaweedfs-bucket:
         condition: service_started
       runtime-tools-init:
         condition: service_completed_successfully
@@ -133,16 +133,17 @@ services:
     command: sh -c 'npm i && npm run serve'
     stop_signal: SIGKILL
 
-  minio-server:
-    image: minio/minio:latest
+  # SeaweedFS serves S3 on 8333, published on 9000, which is the endpoint the tests are
+  # configured with. The credentials come from a config file: without one it serves anonymously.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
+    container_name: seaweedfs
     volumes:
-      - minio:/minio-server
+      - seaweedfs:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
     ports:
-      - "127.0.0.1:9000:9000"
-    environment:
-      MINIO_ROOT_USER: access
-      MINIO_ROOT_PASSWORD: secret123
-    command: server /minio-server/export
+      - "127.0.0.1:9000:8333"
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
 
   prometheus:
     network_mode: host
@@ -154,14 +155,19 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
 
-  minio-mc:
-    image: minio/mc:latest
-    container_name: minio-mc
+  # Creates the bucket the etcd backup tests write to. Creating one that already exists succeeds,
+  # so this is a no-op once the seaweedfs volume has been through a down/up.
+  #
+  # weed shell waits for the master rather than failing fast, so bound it and let the restart
+  # policy come back around if the master is not up yet.
+  seaweedfs-bucket:
+    image: chrislusf/seaweedfs:4.47
+    container_name: seaweedfs-bucket
     depends_on:
-      - minio-server
+      - seaweedfs
     entrypoint: /bin/sh
     restart: on-failure
-    command: -c "mc alias set myminio http://minio-server:9000 access secret123 && mc mb --ignore-existing myminio/mybucket"
+    command: -c "echo 's3.bucket.create -name mybucket' | timeout 60 weed shell -master=seaweedfs:9333"
 
   omni-inspector:
     image: ghcr.io/siderolabs/omni-inspector:latest
@@ -188,7 +194,7 @@ services:
 volumes:
   etcd:
   logs:
-  minio:
+  seaweedfs:
   secondary-storage:
   etcd-backup:
   audit-logs:
