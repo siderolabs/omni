@@ -33,6 +33,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
+import { useIsEnterprise } from '@/methods/features'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
@@ -76,6 +77,7 @@ const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
 
 const { url: factoryUrl } = useResolvedFactory(() => talosVersion.value?.spec.image_factory_url)
 
+const isEnterprise = useIsEnterprise()
 const isEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
 
 const { data: talosctlPaths } = useTalosctlDownloads(resolvedTalosVersion)
@@ -140,7 +142,12 @@ const resolvedPreset = computed(() => ({
 const { schematic, schematicLoading, schematicError } = usePresetSchematic(resolvedPreset)
 const schematicId = computed(() => schematic.value?.id ?? '')
 
-const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
+const {
+  links,
+  loading: linksLoading,
+  error: linksError,
+  orphaned,
+} = usePresetDownloadLinks(schematicId, resolvedPreset)
 
 const factoryHost = computed(() => (factoryUrl.value ? new URL(factoryUrl.value).host : ''))
 
@@ -164,7 +171,12 @@ const installerImage = computed(() => {
 
     <template v-else>
       <h3 class="text-sm text-naturals-n14">Vulnerability Scan</h3>
-      <p>
+      <p v-if="isEnterprise">
+        The configured enterprise factory does not support talos version v{{
+          resolvedTalosVersion
+        }}.
+      </p>
+      <p v-else>
         Vulnerability scan reports are only available through the Talos Linux Image Factory
         Enterprise.
       </p>
@@ -195,6 +207,15 @@ const installerImage = computed(() => {
       <TAlert v-if="orphaned" title="Orphaned" type="warn">
         The factory used to create this preset is no longer configured with Omni
       </TAlert>
+
+      <TAlert v-else-if="linksError" title="Failed to generate download links" type="error">
+        {{ linksError.message }}
+      </TAlert>
+
+      <p v-else-if="linksLoading" class="flex items-center gap-1.5">
+        <TSpinner class="size-4" />
+        Generating links...
+      </p>
 
       <template
         v-for="{ label, link, linkBare, linkSha256, linkSha512, documentation, copyOnly } in links"

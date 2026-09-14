@@ -23,9 +23,11 @@ import {
 import IconButton from '@/components/Button/IconButton.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
+import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -153,7 +155,7 @@ const resolvedPreset = computed<InstallationMediaConfigSpec>(() => {
 const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { schematic } = usePresetSchematic(resolvedPreset)
-const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
+const { links, loading, error, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
 const orphanedError = 'The factory used to create this preset is no longer configured with Omni'
 </script>
@@ -235,6 +237,15 @@ const orphanedError = 'The factory used to create this preset is no longer confi
           </TableRow>
         </template>
       </TableRoot>
+
+      <TAlert v-if="error" title="Failed to generate download links" type="error">
+        {{ error.message }}
+      </TAlert>
+
+      <p v-else-if="loading" class="flex items-center gap-1.5 text-xs">
+        <TSpinner class="size-4" />
+        Generating links...
+      </p>
     </div>
   </Modal>
 </template>

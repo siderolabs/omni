@@ -9,6 +9,10 @@ import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import type {
+  DownloadTokenRequest,
+  DownloadTokenResponse,
+} from '@/api/omni/imagefactory/imagefactory.pb'
+import type {
   CreateSchematicRequest,
   CreateSchematicResponse,
 } from '@/api/omni/management/management.pb'
@@ -69,6 +73,14 @@ export const handlers = [
           },
           { lineWidth: Number.MAX_SAFE_INTEGER },
         ),
+      })
+    },
+  ),
+  http.post<never, DownloadTokenRequest, DownloadTokenResponse>(
+    '/imagefactory.ImageFactoryService/DownloadToken',
+    () => {
+      return HttpResponse.json({
+        token: faker.string.alphanumeric(32),
       })
     },
   ),

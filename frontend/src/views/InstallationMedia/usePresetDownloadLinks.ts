@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import { computedAsync } from '@vueuse/core'
 import { milliseconds, millisecondsToSeconds } from 'date-fns'
-import { computed, type MaybeRefOrGetter, toValue } from 'vue'
+import { computed, type MaybeRefOrGetter, ref, toValue } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ImageFactoryService } from '@/api/omni/imagefactory/imagefactory.pb'
@@ -78,16 +78,32 @@ export function usePresetDownloadLinks(
     requiresAuth,
   } = useResolvedFactory(() => toValue(presetRef).image_factory_url)
 
-  const downloadToken = computedAsync(async () => {
-    if (!requiresAuth.value) return
+  const error = ref<Error>()
+  const loading = ref(false)
 
-    const { token } = await ImageFactoryService.DownloadToken({
-      factory_url: factoryBaseURL.value,
-      duration: millisecondsToSeconds(milliseconds({ minutes: 10 })),
-    })
+  const downloadToken = computedAsync(
+    async () => {
+      error.value = undefined
 
-    return token
-  })
+      if (!requiresAuth.value) return
+
+      const { token } = await ImageFactoryService.DownloadToken({
+        factory_url: factoryBaseURL.value,
+        duration: millisecondsToSeconds(milliseconds({ minutes: 10 })),
+      })
+
+      return token
+    },
+    undefined,
+    {
+      evaluating: loading,
+      onError(e) {
+        const err = e instanceof Error ? e : new Error(String(e))
+
+        error.value = new Error(`Failed to obtain a download token: ${err.message}`, { cause: err })
+      },
+    },
+  )
 
   // If the resolved factory is no longer configured in Omni, this preset is orphaned
   const orphaned = computed(() => !factoryBaseURL.value)
@@ -194,7 +210,7 @@ export function usePresetDownloadLinks(
 
   const links = computed<DownloadLink[]>(() => {
     // Delay link generation until we have a token
-    if (requiresAuth.value && !downloadToken.value) return []
+    if (loading.value) return []
 
     const preset = toValue(presetRef)
 
@@ -337,5 +353,5 @@ export function usePresetDownloadLinks(
       })
   })
 
-  return { links, orphaned }
+  return { links, loading, error, orphaned }
 }

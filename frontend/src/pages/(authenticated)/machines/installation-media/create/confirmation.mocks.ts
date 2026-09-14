@@ -9,6 +9,8 @@ import { delay, http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import type {
+  DownloadTokenRequest,
+  DownloadTokenResponse,
   VulnerabilityReportRequest,
   VulnerabilityReportResponse,
 } from '@/api/omni/imagefactory/imagefactory.pb'
@@ -257,6 +259,14 @@ export const handlers = (enterprise = true) => [
           },
           { lineWidth: Number.MAX_SAFE_INTEGER },
         ),
+      })
+    },
+  ),
+  http.post<never, DownloadTokenRequest, DownloadTokenResponse>(
+    '/imagefactory.ImageFactoryService/DownloadToken',
+    () => {
+      return HttpResponse.json({
+        token: faker.string.alphanumeric(32),
       })
     },
   ),
