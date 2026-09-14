@@ -812,3 +812,154 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 		},
 	)
 }
+
+// TestSchematicConfigurationRevertKeepsMachineSchematic covers canceling an upgrade after the primary factory became an Enterprise one:
+// a machine still running the previous version keeps its own schematic, a machine that finished the upgrade after the cancel gets one from the factory.
+func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			const (
+				machineName = "revert-machine"
+				clusterName = "revert-cluster"
+				fromVersion = "1.13.9"
+				toVersion   = "1.13.10"
+			)
+
+			// same content as Omni computes for the machine, so only the factory decides the id
+			extensions := []string{"siderolabs/hello-world-service"}
+
+			rawSchematic := schematic.Schematic{
+				Customization: schematic.Customization{
+					ExtraKernelArgs: []string{"console=ttyS0"},
+					SystemExtensions: schematic.SystemExtensions{
+						OfficialExtensions: extensions,
+					},
+				},
+			}
+
+			rawYAML, err := rawSchematic.Marshal()
+			r.NoError(err)
+
+			rawSchematicID, err := rawSchematic.ID()
+			r.NoError(err)
+
+			cluster := omni.NewCluster(clusterName)
+			cluster.TypedSpec().Value.TalosVersion = fromVersion
+			r.NoError(st.Create(ctx, cluster))
+
+			clusterMachine := omni.NewClusterMachine(machineName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			r.NoError(st.Create(ctx, clusterMachine))
+
+			kernelArgs := omni.NewKernelArgs(machineName)
+			kernelArgs.TypedSpec().Value.Args = []string{"console=ttyS0"}
+			r.NoError(st.Create(ctx, kernelArgs))
+
+			machineStatus := omni.NewMachineStatus(machineName)
+			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			machineStatus.TypedSpec().Value.TalosVersion = fromVersion
+			machineStatus.TypedSpec().Value.InitialTalosVersion = fromVersion
+			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				FullId:           rawSchematicID,
+				Raw:              string(rawYAML),
+				Extensions:       extensions,
+				KernelArgs:       []string{"console=ttyS0"},
+				InitialSchematic: rawSchematicID,
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
+					Extensions: extensions,
+				},
+			}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+				Platform: talosconstants.PlatformMetal,
+			}
+			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
+			}
+			r.NoError(st.Create(ctx, machineStatus))
+
+			// the machine runs what it should, its own id is published without asking the factory
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
+				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+			})
+
+			r.Zero(factory.EnsureCalls.Load())
+
+			// the primary factory becomes an Enterprise one
+			factory.SetOwner("customer")
+
+			// the upgrade moves the machine to the Enterprise schematic with the same content
+			_, err = safe.StateUpdateWithConflicts(ctx, st, cluster.Metadata(), func(res *omni.Cluster) error {
+				res.TypedSpec().Value.TalosVersion = toVersion
+
+				return nil
+			})
+			r.NoError(err)
+
+			var enterpriseSchematicID string
+
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(toVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
+				assertion.NotEqual(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+
+				enterpriseSchematicID = schematicConfiguration.TypedSpec().Value.SchematicId
+			})
+
+			stored, ok := factory.Get(enterpriseSchematicID)
+			r.True(ok)
+			r.Equal("customer", stored.Owner)
+
+			// the upgrade is canceled before this machine was touched, it keeps its own schematic
+			_, err = safe.StateUpdateWithConflicts(ctx, st, cluster.Metadata(), func(res *omni.Cluster) error {
+				res.TypedSpec().Value.TalosVersion = fromVersion
+
+				return nil
+			})
+			r.NoError(err)
+
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
+				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+			})
+
+			// the upgrade of this machine was already running at the cancel and finishes anyway,
+			// going back needs an id the Enterprise factory serves, not the public id taken from the machine before
+			enterpriseRaw, err := stored.Marshal()
+			r.NoError(err)
+
+			ensureCalls := factory.EnsureCalls.Load()
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.TalosVersion = toVersion
+				res.TypedSpec().Value.Schematic.FullId = enterpriseSchematicID
+				res.TypedSpec().Value.Schematic.Raw = string(enterpriseRaw)
+
+				return nil
+			})
+			r.NoError(err)
+
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
+				assertion.Equal(enterpriseSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+			})
+
+			r.Greater(factory.EnsureCalls.Load(), ensureCalls, "the id should come from the factory")
+		},
+	)
+}
