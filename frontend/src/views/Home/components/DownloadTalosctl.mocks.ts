@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createResourceListHandler } from '@msw/helpers'
 import { http, HttpResponse } from 'msw'
 import { compare } from 'semver'
 
@@ -53,16 +53,20 @@ export const handlers = [
       })
     },
   ),
-  createWatchStreamHandler<TalosVersionSpec>({
+  createResourceListHandler<TalosVersionSpec>({
     expectedOptions: {
       type: TalosVersionType,
       namespace: DefaultNamespace,
     },
-    initialResources: versions.map((version) => ({
-      spec: { version, deprecated: faker.datatype.boolean() },
+    resources: versions.map((version) => ({
+      spec: {
+        version,
+        deprecated: faker.datatype.boolean(),
+        is_enterprise: faker.datatype.boolean(),
+      },
       metadata: { id: version },
     })),
-  }).handler,
+  }),
   http.get<{ version: string }>('/api/talosctl/downloads/:version', ({ params: { version } }) => {
     const downloads = faker.helpers
       .multiple(faker.hacker.noun, { count: 5 })

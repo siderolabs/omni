@@ -4,6 +4,17 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script lang="ts">
+export interface SelectItemObject<T extends string | number | undefined> {
+  label: string
+  value?: T
+  disabled?: boolean
+  tooltip?: string
+}
+
+export type SelectItemType<T extends string | number | undefined> = T | SelectItemObject<T>
+</script>
+
 <script setup lang="ts" generic="T extends string | number | undefined">
 import { useMounted } from '@vueuse/core'
 import {
@@ -28,15 +39,6 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
-type Item =
-  | T
-  | {
-      label: string
-      value?: T
-      disabled?: boolean
-      tooltip?: string
-    }
-
 const {
   variant = 'default',
   title = '',
@@ -47,7 +49,7 @@ const {
   variant?: 'default' | 'breadcrumb'
   title?: string
   defaultValue?: T
-  values: Item[]
+  values: SelectItemType<T>[]
   disabled?: boolean
   searcheable?: boolean
   hideSelectedSmallScreens?: boolean
@@ -113,7 +115,7 @@ function itemLabel(item: T | { label: string }) {
   }
 }
 
-function itemValue(item?: Item) {
+function itemValue(item?: SelectItemType<T>) {
   switch (typeof item) {
     case 'undefined':
       // undefined and '' are invalid values for reka-ui's Select
@@ -126,11 +128,11 @@ function itemValue(item?: Item) {
   }
 }
 
-function itemDisabled(item?: Item) {
+function itemDisabled(item?: SelectItemType<T>) {
   return typeof item === 'object' && !!item.disabled
 }
 
-function itemTooltip(item?: Item) {
+function itemTooltip(item?: SelectItemType<T>) {
   return typeof item === 'object' ? item.tooltip : undefined
 }
 

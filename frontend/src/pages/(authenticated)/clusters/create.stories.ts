@@ -3,7 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import {
+  createResourceGetHandler,
+  createResourceListHandler,
+  createWatchStreamHandler,
+} from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
@@ -56,34 +60,44 @@ type Story = StoryObj<typeof meta>
 
 const machineIDs = faker.helpers.multiple(() => faker.string.uuid(), { count: 8 })
 
+const talosVersions = faker.helpers
+  .uniqueArray<string>(
+    () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .concat(DefaultTalosVersion)
+  .map<Resource<TalosVersionSpec>>((version) => ({
+    spec: {
+      version,
+      deprecated: faker.datatype.boolean(),
+      unsupported: faker.datatype.boolean(),
+      is_enterprise: faker.datatype.boolean(),
+      compatible_kubernetes_versions: ['1.32.0', '1.33.0', '1.34.0'],
+    },
+    metadata: {
+      id: version,
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+  }))
+
 export const Data: Story = {
   beforeEach({ msw }) {
     msw.use(
-      createWatchStreamHandler<TalosVersionSpec>({
+      createResourceListHandler<TalosVersionSpec>({
         expectedOptions: {
           type: TalosVersionType,
           namespace: DefaultNamespace,
         },
-        initialResources: faker.helpers
-          .uniqueArray<string>(
-            () =>
-              `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
-            40,
-          )
-          .concat(DefaultTalosVersion)
-          .map((version) => ({
-            spec: {
-              version,
-              deprecated: faker.datatype.boolean(),
-              unsupported: faker.datatype.boolean(),
-            },
-            metadata: {
-              id: version,
-              type: TalosVersionType,
-              namespace: DefaultNamespace,
-            },
-          })),
-      }).handler,
+        resources: talosVersions,
+      }),
+      createResourceGetHandler<TalosVersionSpec>({
+        expectedOptions: {
+          type: TalosVersionType,
+          namespace: DefaultNamespace,
+        },
+        resources: talosVersions,
+      }),
       createWatchStreamHandler<MachineInstallDiskConfigSpec>({
         expectedOptions: {
           type: MachineInstallDiskConfigType,

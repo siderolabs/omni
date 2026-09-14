@@ -3,7 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import {
+  createResourceGetHandler,
+  createResourceListHandler,
+  createWatchStreamHandler,
+} from '@msw/helpers'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
@@ -20,6 +24,27 @@ import {
   JoinTokenStatusType,
   TalosVersionType,
 } from '@/api/resources'
+
+const talosVersions = faker.helpers
+  .uniqueArray<string>(
+    () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .concat(DefaultTalosVersion)
+  .map<Resource<TalosVersionSpec>>((version) => ({
+    spec: {
+      version,
+      deprecated: faker.datatype.boolean(),
+      unsupported: faker.datatype.boolean(),
+      is_enterprise: faker.datatype.boolean(),
+      image_factory_url: 'https://factory.talos.dev',
+    },
+    metadata: {
+      id: version,
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+  }))
 
 export const handlers = [
   createWatchStreamHandler<FeaturesConfigSpec>({
@@ -39,30 +64,20 @@ export const handlers = [
       },
     ],
   }).handler,
-  createWatchStreamHandler<TalosVersionSpec>({
+  createResourceListHandler({
     expectedOptions: {
       type: TalosVersionType,
       namespace: DefaultNamespace,
     },
-    initialResources: faker.helpers
-      .uniqueArray<string>(
-        () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
-        40,
-      )
-      .concat(DefaultTalosVersion)
-      .map<Resource<TalosVersionSpec>>((version) => ({
-        spec: {
-          version,
-          deprecated: faker.datatype.boolean(),
-          unsupported: faker.datatype.boolean(),
-        },
-        metadata: {
-          id: version,
-          type: TalosVersionType,
-          namespace: DefaultNamespace,
-        },
-      })),
-  }).handler,
+    resources: talosVersions,
+  }),
+  createResourceGetHandler({
+    expectedOptions: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+    resources: talosVersions,
+  }),
   createWatchStreamHandler<JoinTokenStatusSpec>({
     expectedOptions: {
       type: JoinTokenStatusType,

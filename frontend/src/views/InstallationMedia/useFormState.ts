@@ -43,7 +43,11 @@ export function useFormState() {
       case 'InstallationMediaCreateEntry':
         return !!formState.value.hardwareType
       case 'InstallationMediaCreateTalosVersion':
-        return !!formState.value.talosVersion && !!formState.value.joinToken
+        return (
+          !!formState.value.talosVersion &&
+          !!formState.value.joinToken &&
+          !!formState.value.imageFactoryUrl
+        )
       case 'InstallationMediaCreateCloudProvider':
         return !!formState.value.cloudPlatform
       case 'InstallationMediaCreateSBCType':

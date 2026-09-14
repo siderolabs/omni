@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { compare } from 'semver'
 import { computed, onBeforeMount, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -20,8 +19,10 @@ import {
 import GrpcTunnelCheckbox from '@/components/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
 import Labels from '@/components/Labels/Labels.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
+import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import {
   AUTOMATIC_VERSION,
@@ -35,14 +36,17 @@ const formState = defineModel<FormState>({ required: true })
 
 const { data: features } = useFeatures()
 
-const { data: talosVersionList, loading: talosVersionsLoading } =
-  useResourceWatch<TalosVersionSpec>({
-    runtime: Runtime.Omni,
-    resource: {
-      type: TalosVersionType,
-      namespace: DefaultNamespace,
-    },
-  })
+const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion))
+
+const { data: resolvedTalosVersionSpec } = useResourceGet<TalosVersionSpec>(() => ({
+  skip: !resolvedTalosVersion.value,
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+    id: resolvedTalosVersion.value!,
+  },
+}))
 
 const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<JoinTokenStatusSpec>({
   runtime: Runtime.Omni,
@@ -51,19 +55,6 @@ const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<Joi
     namespace: DefaultNamespace,
   },
 })
-
-const talosVersions = computed(() => [
-  { label: 'Automatic', value: AUTOMATIC_VERSION },
-  ...talosVersionList.value
-    .filter((v) => !v.spec.deprecated)
-    .map(({ spec: { version, unsupported = false } }) => ({
-      label: version!,
-      value: version!,
-      disabled: unsupported,
-      tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
-    }))
-    .sort((a, b) => compare(b.value, a.value)),
-])
 
 const joinTokens = computed(() => [
   { label: 'Automatic', value: AUTOMATIC_VERSION },
@@ -80,14 +71,14 @@ const joinTokens = computed(() => [
     })),
 ])
 
-const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion))
-
 // Track which factory serves the selected version (the primary factory wins on the merged list), so
 // the preset records its factory and downloads can be blocked once that factory is deconfigured.
-const resolvedFactoryURL = computed(
-  () =>
-    talosVersionList.value.find((v) => v.spec.version === resolvedTalosVersion.value)?.spec
-      .image_factory_url,
+// Includes metadata id check to prevent stale data till useResourceGet updates
+const resolvedFactoryURL = computed(() =>
+  resolvedTalosVersion.value &&
+  resolvedTalosVersionSpec.value?.metadata.id === resolvedTalosVersion.value
+    ? resolvedTalosVersionSpec.value.spec.image_factory_url
+    : undefined,
 )
 
 watch(
@@ -107,12 +98,11 @@ onBeforeMount(() => {
 
 <template>
   <div class="flex flex-col items-start gap-4">
-    <TSelectList
+    <TalosVersionSelect
       v-model="formState.talosVersion"
-      :disabled="talosVersionsLoading"
-      :values="talosVersions"
       title="Choose Talos Linux Version"
       overhead-title
+      include-automatic
     />
 
     <p class="text-xs">

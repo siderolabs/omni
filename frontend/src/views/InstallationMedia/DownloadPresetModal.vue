@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { compare } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -28,6 +27,7 @@ import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import TAlert from '@/components/TAlert.vue'
+import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -53,16 +53,6 @@ const { data } = useResourceGet<InstallationMediaConfigSpec>(() => ({
 
 const { copy } = useClipboard({ copiedDuring: 1000 })
 
-// Fetch available versions and tokens for pickers
-const { data: talosVersionList } = useResourceWatch<TalosVersionSpec>(() => ({
-  skip: !open.value,
-  runtime: Runtime.Omni,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
-}))
-
 const { data: joinTokenList } = useResourceWatch<JoinTokenStatusSpec>(() => ({
   skip: !open.value,
   runtime: Runtime.Omni,
@@ -77,9 +67,23 @@ const selectedVersion = ref<string>()
 const selectedToken = ref<string>()
 const selectedArch = ref<PlatformConfigSpecArch>()
 
+const talosVersion = computed(
+  () => selectedVersion.value ?? resolveTalosVersion(data.value?.spec.talos_version),
+)
+
 const defaultTokenId = computed(
   () => joinTokenList.value.find((t) => t.spec.is_default)?.metadata.id,
 )
+
+const { data: talosVersionSpec } = useResourceGet<TalosVersionSpec>(() => ({
+  skip: !open.value || !talosVersion.value,
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+    id: talosVersion.value,
+  },
+}))
 
 watchEffect(() => {
   // Reset modal state on close
@@ -96,14 +100,6 @@ watchEffect(() => {
     selectedArch.value = data.value.spec.architecture
   }
 })
-
-// Picker options
-const talosVersionOptions = computed(() =>
-  talosVersionList.value
-    .filter((v) => !v.spec.deprecated)
-    .map((v) => v.spec.version!)
-    .sort((a, b) => compare(b, a)),
-)
 
 const joinTokenOptions = computed(() =>
   joinTokenList.value
@@ -136,16 +132,13 @@ const archOptions = computed(() => {
 const resolvedPreset = computed<InstallationMediaConfigSpec>(() => {
   const spec = data.value?.spec ?? {}
 
-  const talosVersion = selectedVersion.value ?? resolveTalosVersion(spec.talos_version)
-
   // The selected Talos version determines which factory serves the image (primary wins on the merged
   // list). Fall back to the preset's stored factory URL for versions no longer listed.
-  const versionFactoryURL = talosVersionList.value.find((v) => v.spec.version === talosVersion)
-    ?.spec.image_factory_url
+  const versionFactoryURL = talosVersionSpec.value?.spec.image_factory_url
 
   return {
     ...spec,
-    talos_version: talosVersion,
+    talos_version: talosVersion.value,
     join_token: selectedToken.value ?? spec.join_token,
     architecture: selectedArch.value ?? spec.architecture,
     image_factory_url: versionFactoryURL || spec.image_factory_url,
@@ -176,12 +169,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
       </div>
 
       <div class="flex flex-wrap gap-4">
-        <TSelectList
-          v-model="selectedVersion"
-          :values="talosVersionOptions"
-          title="Talos Version"
-          overhead-title
-        />
+        <TalosVersionSelect v-model="selectedVersion" title="Talos Version" overhead-title />
 
         <TSelectList
           v-model="selectedToken"
