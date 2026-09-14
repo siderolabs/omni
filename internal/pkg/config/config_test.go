@@ -829,6 +829,37 @@ registries:
 		require.NoError(t, err)
 		assert.Equal(t, "https://pxe.factory.example.com", u.String())
 	})
+
+	t.Run("trailing slashes are stripped", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  imageFactoryBaseURL: https://old.example.com/
+  imageFactoryPXEBaseURL: https://pxe.old.example.com/
+  factories:
+    primary:
+      url: https://primary.example.com/
+      pxeURL: https://pxe.primary.example.com/
+    secondary:
+      url: https://secondary.example.com/
+`))
+		require.NoError(t, err)
+
+		p.NormalizeFactoryURLs()
+
+		assert.Equal(t, "https://old.example.com", p.Registries.GetImageFactoryBaseURL())
+		assert.Equal(t, "https://pxe.old.example.com", p.Registries.GetImageFactoryPXEBaseURL())
+
+		primary := p.Registries.GetPrimaryFactory()
+		assert.Equal(t, "https://primary.example.com", primary.GetUrl())
+
+		pxe, err := primary.PXEBaseURL()
+		require.NoError(t, err)
+		assert.Equal(t, "https://pxe.primary.example.com", pxe.String())
+
+		secondary, ok := p.Registries.GetSecondaryFactory()
+		require.True(t, ok)
+		assert.Equal(t, "https://secondary.example.com", secondary.GetUrl())
+	})
 }
 
 // TestFactoryCredentialEnvOverrides verifies that the per-factory environment variables reach the

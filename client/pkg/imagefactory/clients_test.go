@@ -55,7 +55,7 @@ func TestCredentials(t *testing.T) {
 		require.True(t, auth.IsZero())
 	})
 
-	t.Run("stored credentials, trailing slash trimmed", func(t *testing.T) {
+	t.Run("stored credentials", func(t *testing.T) {
 		t.Parallel()
 
 		st := newTestState(t)
@@ -65,7 +65,7 @@ func TestCredentials(t *testing.T) {
 		auth.TypedSpec().Value.Password = "pass"
 		require.NoError(t, st.Create(ctx, auth))
 
-		creds, err := imagefactory.Credentials(ctx, st, "https://factory.example.org/")
+		creds, err := imagefactory.Credentials(ctx, st, "https://factory.example.org")
 		require.NoError(t, err)
 		require.Equal(t, imagefactory.Auth{Username: "user", Password: "pass"}, creds)
 	})
@@ -91,27 +91,20 @@ func TestCredentials(t *testing.T) {
 	})
 }
 
-func TestClientURLIsCanonical(t *testing.T) {
+func TestClientURL(t *testing.T) {
 	t.Parallel()
 
-	for _, configured := range []string{
-		"https://factory.example.org",
-		"https://factory.example.org/",
-		"https://factory.example.org///",
-	} {
-		client, err := imagefactory.NewClient(configured, imagefactory.Auth{})
-		require.NoError(t, err)
+	client, err := imagefactory.NewClient("https://factory.example.org", imagefactory.Auth{})
+	require.NoError(t, err)
 
-		require.Equal(t, "https://factory.example.org", client.URL(), "configured as %q", configured)
-		require.Equal(t, "factory.example.org", client.Host(), "configured as %q", configured)
-	}
+	require.Equal(t, "https://factory.example.org", client.URL())
+	require.Equal(t, "factory.example.org", client.Host())
 }
 
 func TestClientsForURL(t *testing.T) {
 	t.Parallel()
 
-	// The primary is configured with a trailing slash, the secondary without: both forms must resolve.
-	primary, err := imagefactory.NewClient("https://factory.example.org/", imagefactory.Auth{})
+	primary, err := imagefactory.NewClient("https://factory.example.org", imagefactory.Auth{})
 	require.NoError(t, err)
 
 	secondary, err := imagefactory.NewClient("https://secondary.example.org", imagefactory.Auth{})
@@ -125,10 +118,8 @@ func TestClientsForURL(t *testing.T) {
 		name     string
 		url      string
 	}{
-		{name: "primary, no trailing slash", url: "https://factory.example.org", expected: primary},
-		{name: "primary, trailing slash", url: "https://factory.example.org/", expected: primary},
-		{name: "secondary, no trailing slash", url: "https://secondary.example.org", expected: secondary},
-		{name: "secondary, trailing slash", url: "https://secondary.example.org/", expected: secondary},
+		{name: "primary", url: "https://factory.example.org", expected: primary},
+		{name: "secondary", url: "https://secondary.example.org", expected: secondary},
 		{name: "unconfigured factory", url: "https://other.example.org", expected: nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,9 +149,8 @@ func TestClientsForTalosVersion(t *testing.T) {
 
 	st := newTestState(t)
 
-	// A version recorded with a trailing slash still has to route to the secondary factory.
 	secondaryOnly := omni.NewTalosVersion("1.13.0")
-	secondaryOnly.TypedSpec().Value.ImageFactoryUrl = "https://secondary.example.org/"
+	secondaryOnly.TypedSpec().Value.ImageFactoryUrl = "https://secondary.example.org"
 	require.NoError(t, st.Create(ctx, secondaryOnly))
 
 	primaryVersion := omni.NewTalosVersion("1.14.0")
@@ -178,7 +168,7 @@ func TestClientsForTalosVersion(t *testing.T) {
 		name     string
 		version  string
 	}{
-		{name: "secondary-only version recorded with a trailing slash", version: "1.13.0", expected: secondary},
+		{name: "secondary-only version", version: "1.13.0", expected: secondary},
 		{name: "strips the v prefix", version: "v1.13.0", expected: secondary},
 		{name: "primary version", version: "1.14.0", expected: primary},
 		{name: "version without a recorded factory falls back to the primary", version: "1.12.0", expected: primary},

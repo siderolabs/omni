@@ -18,6 +18,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -87,6 +88,13 @@ func installationMediaConfigValidationOptions(st state.State) []validated.StateO
 		}
 
 		if factoryURL := spec.GetImageFactoryUrl(); factoryURL != "" {
+			// Every factory URL Omni stores is canonical, so a preset holding one that is not would
+			// match no configured factory and report its downloads as orphaned. Rejecting it names the
+			// problem, where storing it would surface much later as a download that cannot be resolved.
+			if factoryURL != imagefactory.NormalizeFactoryURL(factoryURL) {
+				return fmt.Errorf("image factory URL %q must not end with a slash", factoryURL)
+			}
+
 			featuresConfig, err := safe.StateGet[*omni.FeaturesConfig](ctx, st, omni.NewFeaturesConfig(omni.FeaturesConfigID).Metadata())
 			if err != nil && !state.IsNotFoundError(err) {
 				return fmt.Errorf("failed to look up features config: %w", err)
@@ -94,11 +102,11 @@ func installationMediaConfigValidationOptions(st state.State) []validated.StateO
 
 			if featuresConfig != nil {
 				configured := []string{
-					strings.TrimRight(featuresConfig.TypedSpec().Value.GetImageFactoryBaseUrl(), "/"),
-					strings.TrimRight(featuresConfig.TypedSpec().Value.GetSecondaryImageFactoryBaseUrl(), "/"),
+					featuresConfig.TypedSpec().Value.GetImageFactoryBaseUrl(),
+					featuresConfig.TypedSpec().Value.GetSecondaryImageFactoryBaseUrl(),
 				}
 
-				if !slices.Contains(configured, strings.TrimRight(factoryURL, "/")) {
+				if !slices.Contains(configured, factoryURL) {
 					return fmt.Errorf("image factory %q is not configured in Omni", factoryURL)
 				}
 			}

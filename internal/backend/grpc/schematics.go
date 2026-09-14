@@ -115,7 +115,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	var imageFactoryClient imagefactory.FactoryClient
 
 	if request.ImageFactoryUrl != "" {
-		imageFactoryClient = s.imageFactoryClients.ForURL(request.ImageFactoryUrl)
+		imageFactoryClient = s.imageFactoryClients.ForURL(imagefactory.NormalizeFactoryURL(request.ImageFactoryUrl))
 
 		if imageFactoryClient == nil {
 			return nil, fmt.Errorf("no image factory client configured for the given URL %q", request.ImageFactoryUrl)

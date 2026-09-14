@@ -217,8 +217,7 @@ func TestResolveInstallationMediaRouting(t *testing.T) {
 	st := newTestState(t)
 
 	createFeaturesConfig(ctx, t, st, func(config *omni.FeaturesConfig) {
-		// configured with a trailing slash, to check that the comparison against the recorded URL normalizes
-		config.TypedSpec().Value.SecondaryImageFactoryBaseUrl = secondaryURL + "/"
+		config.TypedSpec().Value.SecondaryImageFactoryBaseUrl = secondaryURL
 		config.TypedSpec().Value.SecondaryImageFactoryPxeBaseUrl = secondaryPXEURL
 	})
 
@@ -408,16 +407,6 @@ func TestResolveInstallationMediaStorageKey(t *testing.T) {
 		} {
 			require.NotEqual(t, base, key, "a different %s must produce a different key", name)
 		}
-	})
-
-	t.Run("ignores a trailing slash on the factory URL", func(t *testing.T) {
-		t.Parallel()
-
-		withSlash := keyFor(t, func(config *omni.FeaturesConfig) {
-			config.TypedSpec().Value.ImageFactoryBaseUrl = primaryURL + "/"
-		}, "1.13.0", diskSpec(), schematicID)
-
-		require.Equal(t, base, withSlash)
 	})
 }
 

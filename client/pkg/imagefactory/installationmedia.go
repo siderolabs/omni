@@ -197,7 +197,7 @@ func (a InstallationMedia) String() string {
 // re-download everything they already store.
 func storageKey(factoryBaseURL, pathPrefix, schematicID, version, filename string) string {
 	digest := sha256.Sum256([]byte(strings.Join([]string{
-		NormalizeFactoryURL(factoryBaseURL), pathPrefix, schematicID, version, filename,
+		factoryBaseURL, pathPrefix, schematicID, version, filename,
 	}, "\x00")))
 
 	return hex.EncodeToString(digest[:])
@@ -458,7 +458,7 @@ func resolveEndpoint(ctx context.Context, st state.State, talosVersion string) (
 		}
 
 		// A version Omni doesn't know about counts as primary, the same fallback ForTalosVersion makes.
-		if recordedURL != "" && recordedURL == NormalizeFactoryURL(secondary) {
+		if recordedURL != "" && recordedURL == secondary {
 			baseURL, pxeBaseURL = secondary, spec.GetSecondaryImageFactoryPxeBaseUrl()
 		}
 	}
