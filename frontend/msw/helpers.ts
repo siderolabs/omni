@@ -6,7 +6,13 @@ import isMatch from 'lodash/isMatch'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type { WatchResponse } from '@/api/omni/resources/resources.pb'
+import type {
+  GetRequest,
+  GetResponse,
+  ListRequest,
+  ListResponse,
+  WatchResponse,
+} from '@/api/omni/resources/resources.pb'
 import type { WatchRequest } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
 
@@ -162,6 +168,57 @@ function createWatchResponse(
     },
     total,
   }
+}
+
+export interface ResourceHandlerOptions<T, S> {
+  expectedOptions?: Partial<ListRequest & GetRequest>
+  resources: Resource<T, S>[]
+}
+
+/**
+ * Serves a one-off `List` of the given resources, for requests matching `expectedOptions`.
+ */
+export function createResourceListHandler<T = unknown, S = unknown>({
+  expectedOptions = {},
+  resources,
+}: ResourceHandlerOptions<T, S>) {
+  return http.post<never, ListRequest, ListResponse>(
+    '/omni.resources.ResourceService/List',
+    async ({ request }) => {
+      const options = await request.clone().json()
+
+      if (!isMatch(options, expectedOptions)) return
+
+      return HttpResponse.json({
+        total: resources.length,
+        items: resources.map((resource) => JSON.stringify(resource)),
+      })
+    },
+  )
+}
+
+/**
+ * Serves single-resource `Get` requests matching `expectedOptions` out of the given resources,
+ * falling through for ids that are not among them.
+ */
+export function createResourceGetHandler<T = unknown, S = unknown>({
+  expectedOptions = {},
+  resources,
+}: ResourceHandlerOptions<T, S>) {
+  return http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const options = await request.clone().json()
+
+      if (!isMatch(options, expectedOptions)) return
+
+      const resource = resources.find(({ metadata }) => metadata.id === options.id)
+
+      if (!resource) return
+
+      return HttpResponse.json({ body: JSON.stringify(resource) })
+    },
+  )
 }
 
 export function createBootstrapEvent(total?: number) {

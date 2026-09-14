@@ -6,26 +6,15 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computedAsync } from '@vueuse/core'
-import { compare } from 'semver'
 import { computed, ref, toValue, watchEffect } from 'vue'
 
-import { Runtime } from '@/api/common/omni.pb'
-import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import type { QuirksSpec } from '@/api/omni/specs/virtual.pb'
-import {
-  DefaultNamespace,
-  DefaultTalosVersion,
-  QuirksType,
-  TalosVersionType,
-  VirtualNamespace,
-} from '@/api/resources'
+import { DefaultTalosVersion } from '@/api/resources'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TAlert from '@/components/TAlert.vue'
+import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import { getDocsLink, getPlatform } from '@/methods'
-import { useResourceList } from '@/methods/useResourceList'
-import { useResourceWatch } from '@/methods/useResourceWatch'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 
 const open = defineModel<boolean>('open', { default: false })
@@ -34,28 +23,6 @@ const platform = computedAsync(getPlatform)
 
 const selectedVersion = ref<string>()
 const selectedBinary = ref<string>()
-
-const { data: quirks } = useResourceList<QuirksSpec>(() => ({
-  skip: !open.value,
-  runtime: Runtime.Omni,
-  resource: {
-    type: QuirksType,
-    namespace: VirtualNamespace,
-  },
-}))
-
-const {
-  data: versions,
-  loading: versionsLoading,
-  err: versionsErr,
-} = useResourceWatch<TalosVersionSpec>(() => ({
-  skip: !open.value,
-  runtime: Runtime.Omni,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
-}))
 
 const {
   data: binaries,
@@ -66,17 +33,6 @@ const {
 function getBinaryNameFromURL(url: string) {
   return new URL(url).pathname.split('/').pop()
 }
-
-const versionsList = computed(() =>
-  versions.value
-    .filter(
-      (v) =>
-        !v.spec.deprecated &&
-        quirks.value.find((q) => q.metadata.id === v.spec.version)?.spec.supports_factory_talosctl,
-    )
-    .map((v) => v.spec.version!)
-    .sort((a, b) => compare(b, a)),
-)
 
 const binariesList = computed(() =>
   binaries.value.map((b) => ({
@@ -145,8 +101,7 @@ const defaultBinary = computed(() => {
 
     <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
 
-    <TAlert v-if="versionsErr || binariesErr" title="Failed to get talosctl versions" type="error">
-      {{ versionsErr }}
+    <TAlert v-if="binariesErr" title="Failed to get talosctl versions" type="error">
       {{ binariesErr }}
     </TAlert>
 
@@ -159,12 +114,11 @@ const defaultBinary = computed(() => {
     </TAlert>
 
     <div class="mt-2 mb-5 flex flex-wrap gap-4">
-      <TSelectList
-        v-if="!versionsLoading && !versionsErr"
+      <TalosVersionSelect
         v-model="selectedVersion"
         title="Talos version"
         :default-value="DefaultTalosVersion"
-        :values="versionsList"
+        requires-talosctl-support
       />
 
       <TSelectList

@@ -114,7 +114,12 @@ describe('useFormState', () => {
     ['InstallationMediaCreateTalosVersion', {}, false],
     ['InstallationMediaCreateTalosVersion', { talosVersion: '1.2.3' }, false],
     ['InstallationMediaCreateTalosVersion', { joinToken: 'xyz' }, false],
-    ['InstallationMediaCreateTalosVersion', { talosVersion: '1.2.3', joinToken: 'xyz' }, true],
+    ['InstallationMediaCreateTalosVersion', { talosVersion: '1.2.3', joinToken: 'xyz' }, false],
+    [
+      'InstallationMediaCreateTalosVersion',
+      { talosVersion: '1.2.3', joinToken: 'xyz', imageFactoryUrl: 'https://factory.talos.dev' },
+      true,
+    ],
     ['InstallationMediaCreateCloudProvider', {}, false],
     ['InstallationMediaCreateCloudProvider', { cloudPlatform: 'aws' }, true],
     ['InstallationMediaCreateSBCType', {}, false],

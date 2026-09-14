@@ -3,7 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import {
+  createResourceGetHandler,
+  createResourceListHandler,
+  createWatchStreamHandler,
+} from '@msw/helpers'
 import { dump } from 'js-yaml'
 import { http, HttpResponse } from 'msw'
 
@@ -17,7 +21,11 @@ import type {
   CreateSchematicResponse,
 } from '@/api/omni/management/management.pb'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
-import type { FeaturesConfigSpec, InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  FeaturesConfigSpec,
+  InstallationMediaConfigSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
@@ -25,14 +33,35 @@ import {
 } from '@/api/omni/specs/virtual.pb'
 import {
   DefaultNamespace,
+  DefaultTalosVersion,
   FeaturesConfigID,
   FeaturesConfigType,
   InstallationMediaConfigType,
   LabelsMeta,
   MetalPlatformConfigType,
   PlatformMetalID,
+  TalosVersionType,
   VirtualNamespace,
 } from '@/api/resources'
+
+const talosVersions = faker.helpers
+  .uniqueArray<string>(
+    () => `1.${faker.number.int({ min: 8, max: 13 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    20,
+  )
+  .concat(DefaultTalosVersion)
+  .map<Resource<TalosVersionSpec>>((version) => ({
+    spec: {
+      version,
+      is_enterprise: faker.datatype.boolean(),
+      image_factory_url: 'https://factory.talos.dev',
+    },
+    metadata: {
+      id: version,
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+  }))
 
 export const handlers = [
   http.post<never, GetRequest, GetResponse>(
@@ -45,7 +74,7 @@ export const handlers = [
       return HttpResponse.json({
         body: JSON.stringify({
           metadata: {},
-          spec: {},
+          spec: { talos_version: DefaultTalosVersion },
         } satisfies Resource<InstallationMediaConfigSpec>),
       })
     },
@@ -140,4 +169,18 @@ export const handlers = [
       })
     },
   ),
+  createResourceListHandler<TalosVersionSpec>({
+    expectedOptions: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+    resources: talosVersions,
+  }),
+  createResourceGetHandler<TalosVersionSpec>({
+    expectedOptions: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+    resources: talosVersions,
+  }),
 ]

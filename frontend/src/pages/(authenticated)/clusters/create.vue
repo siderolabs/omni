@@ -44,6 +44,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TAlert from '@/components/TAlert.vue'
+import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { setupBackupStatus } from '@/methods'
@@ -106,13 +107,15 @@ const router = useRouter()
 
 const kubernetesVersionSelector = useTemplateRef('kubernetesVersionSelector')
 
-const { data: talosVersionsList } = useResourceWatch<TalosVersionSpec>({
+const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
+  skip: !state.value.cluster.talosVersion,
   runtime: Runtime.Omni,
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
+    id: state.value.cluster.talosVersion!,
   },
-})
+}))
 
 const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
   skip: !state.value.cluster.talosVersion,
@@ -126,15 +129,11 @@ const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
 
 const reset = ref(0)
 
-const kubernetesVersions: Ref<string[]> = computed(() => {
-  for (const version of talosVersionsList.value) {
-    if (version.spec.version === state.value.cluster.talosVersion) {
-      return version.spec.compatible_kubernetes_versions?.sort((a, b) => compare(b, a)) ?? []
-    }
-  }
-
-  return []
-})
+const kubernetesVersions = computed(
+  () =>
+    talosVersion.value?.spec.compatible_kubernetes_versions?.toSorted((a, b) => compare(b, a)) ??
+    [],
+)
 
 watch(kubernetesVersions, (k8sVersions) => {
   if (k8sVersions.length === 0) {
@@ -287,18 +286,6 @@ const diskConfigMap = computed(() =>
   Object.fromEntries(installDiskConfigs.value.map((d) => [d.metadata.id!, d])),
 )
 
-const talosVersions = computed(() =>
-  talosVersionsList.value
-    .filter((v) => !v.spec.deprecated)
-    .map(({ spec: { version, unsupported = false } }) => ({
-      label: version!,
-      value: version!,
-      disabled: unsupported,
-      tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
-    }))
-    .sort((a, b) => compare(b.value, a.value)),
-)
-
 const hasConfigs = computed(() => {
   return Object.keys(state.value.cluster.patches).length > 0
 })
@@ -338,9 +325,8 @@ const { match, completions } = useLabelCompletions({
           :model-value="state.cluster.name ?? ''"
           @update:model-value="(value) => (state.cluster.name = value)"
         />
-        <TSelectList
+        <TalosVersionSelect
           title="Talos Version"
-          :values="talosVersions"
           :default-value="state.cluster.talosVersion"
           @checked-value="(value) => (state.cluster.talosVersion = value)"
         />
