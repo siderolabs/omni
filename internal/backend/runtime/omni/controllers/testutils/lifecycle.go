@@ -27,10 +27,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
-const (
-	testImageFactoryHost = "factory-test.talos.dev"
-	testTalosRegistry    = "ghcr.io/siderolabs/installer"
-)
+const testImageFactoryHost = "factory-test.talos.dev"
 
 // NewImageFactoryClients builds an image factory client set with a single primary factory at the test
 // host, backed by the given state (used to resolve the per-Talos-version factory via ForTalosVersion).
@@ -116,7 +113,6 @@ func NewLifecycleManager(t *testing.T, st state.State, k8sProvider lifecycle.Kub
 	return lifecycle.NewManager(
 		zap.NewNop(),
 		NewImageFactoryClients(t, st),
-		testTalosRegistry,
 		k8sProvider,
 		socketTalosClientFactory{st: st},
 		nil,

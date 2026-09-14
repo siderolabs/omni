@@ -103,7 +103,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	lifecycleManager := lifecycle.NewManager(
 		logger.With(logging.Component("talos_lifecycle")),
 		imageFactoryClients,
-		cfg.Registries.GetTalos(),
 		kubernetesRuntime,
 		talosClientFactory,
 		installEventCh,

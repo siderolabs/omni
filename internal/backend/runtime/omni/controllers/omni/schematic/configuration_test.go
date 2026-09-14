@@ -630,12 +630,9 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 	)
 }
 
-// TestSchematicConfigurationRepublishesAfterInvalid covers the invalid -> valid transition: the
-// Invalid branch resets SchematicId to "" while leaving TalosVersion set, so the next reconcile sees
-// versionOutdated == false. If the machine's schematic is also content-equal to what Omni wants, the
-// factory round-trip would be skipped and the empty SchematicId would survive - which
-// ReconciliationContext then compares against the machine's own FullId.
-func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
+// TestSchematicConfigurationInvalid covers a machine provisioned bypassing the image factory: the schematic registered
+// with the factory carries only the join kernel args and no extensions.
+func TestSchematicConfigurationInvalid(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -654,80 +651,58 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 			r := require.New(t)
 
 			const (
-				machineName  = "invalid-then-valid-machine"
-				talosVersion = "1.10.0"
+				machineName  = "invalid-machine"
+				talosVersion = "1.13.10"
 			)
 
-			// The machine is unallocated, so Omni preserves its own extensions and kernel args
-			// verbatim. Feeding a raw schematic that already carries exactly those makes the patched
-			// schematic content-equal to the raw one, which is what triggers the skip branch.
-			rawSchematic := schematic.Schematic{
+			joinArgs := []string{
+				"siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken",
+				"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+			}
+
+			synthesized := schematic.Schematic{
 				Customization: schematic.Customization{
-					ExtraKernelArgs: []string{"console=ttyS0"},
-					SystemExtensions: schematic.SystemExtensions{
-						OfficialExtensions: []string{"siderolabs/hello-world-service"},
-					},
+					ExtraKernelArgs: joinArgs,
 				},
 			}
 
-			rawYAML, err := rawSchematic.Marshal()
+			synthesizedYAML, err := synthesized.Marshal()
 			r.NoError(err)
 
-			rawSchematicID, err := rawSchematic.ID()
+			synthesizedID, err := synthesized.ID()
 			r.NoError(err)
 
 			machineStatus := omni.NewMachineStatus(machineName)
 			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
-
-			// An invalid machine bypassed the image factory (extensions baked into a custom Talos build),
-			// so it has no schematic identity to report: no full id, no initial schematic, no raw YAML.
 			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-				Invalid:    true,
-				Extensions: []string{"siderolabs/hello-world-service"},
-				KernelArgs: []string{"console=ttyS0"},
+				Invalid:      true,
+				FullId:       synthesizedID,
+				Raw:          string(synthesizedYAML),
+				KernelArgs:   joinArgs,
+				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 			}
-			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
 			r.NoError(st.Create(ctx, machineStatus))
 
-			// While invalid the controller publishes a minimal resource: TalosVersion set, no schematic ID.
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
 					assertion.Equal(talosVersion, sc.TypedSpec().Value.TalosVersion)
-					assertion.Empty(sc.TypedSpec().Value.SchematicId)
+					assertion.Equal(synthesizedID, sc.TypedSpec().Value.SchematicId)
 				},
 			)
 
-			// The machine is reinstalled through the factory and now reports a usable schematic. The
-			// controller must publish an id even though the Talos version did not move and the reported
-			// schematic is content-equal to what Omni wants, which on its own would skip the factory.
-			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.Schematic.Invalid = false
-				res.TypedSpec().Value.Schematic.Raw = string(rawYAML)
-				res.TypedSpec().Value.Schematic.FullId = rawSchematicID
-				res.TypedSpec().Value.Schematic.InitialSchematic = rawSchematicID
+			stored, ok := factory.Get(synthesizedID)
+			r.True(ok, "schematic %q was not uploaded to the factory", synthesizedID)
 
-				return nil
-			})
-			r.NoError(err)
-
-			rtestutils.AssertResources(
-				ctx, t, st, []string{machineName},
-				func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(rawSchematicID, sc.TypedSpec().Value.SchematicId,
-						"schematic ID was not republished after the machine became valid")
-				},
-			)
-
-			// The id came from the factory rather than from a local computation, i.e. the round-trip that
-			// the content-equality check would otherwise have skipped did happen.
-			_, ok := factory.Get(rawSchematicID)
-			assert.True(t, ok, "schematic %q was not uploaded to the factory", rawSchematicID)
+			assert.Empty(t, stored.Customization.SystemExtensions.OfficialExtensions)
+			assert.Equal(t, joinArgs, stored.Customization.ExtraKernelArgs)
 		},
 	)
 }

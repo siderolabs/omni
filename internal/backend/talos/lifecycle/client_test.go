@@ -31,7 +31,7 @@ func TestBuildInstallImage(t *testing.T) {
 	m := lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
 		state.WrapCore(namespaced.NewState(inmem.Build)),
 		c,
-	), "ghcr.io/siderolabs/installer", nil, nil, nil)
+	), nil, nil, nil)
 
 	ms := omni.NewMachineStatus("machine-1")
 	ms.TypedSpec().Value.TalosVersion = "1.13.1"
@@ -94,22 +94,11 @@ func TestBuildInstallImage(t *testing.T) {
 		assert.Empty(t, target.TalosVersion)
 	})
 
-	t.Run("nil target falls back to the machine's current schematic", func(t *testing.T) {
+	t.Run("nil target is an error", func(t *testing.T) {
 		t.Parallel()
 
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.14.0", nil)
-		require.NoError(t, err)
-
-		assert.Equal(t, "factory.talos.dev/metal-installer/current-schematic:v1.14.0", image)
-	})
-
-	t.Run("nil target and empty version reuses the machine's running version", func(t *testing.T) {
-		t.Parallel()
-
-		image, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "", nil)
-		require.NoError(t, err)
-
-		assert.Equal(t, "factory.talos.dev/metal-installer/current-schematic:v1.13.1", image)
+		_, err := m.BuildInstallImageForTest(t.Context(), "machine-1", ms, "1.14.0", nil)
+		require.Error(t, err)
 	})
 
 	t.Run("missing platform metadata fails fast", func(t *testing.T) {

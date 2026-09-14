@@ -63,7 +63,6 @@ type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
-	TalosRegistry() string
 }
 
 // StatusController manages the ClusterMachineConfigStatus resource lifecycle.
@@ -557,7 +556,7 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have image factory host", rc.ID()))
 	}
 
-	image, err := installimage.Build(rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
+	image, err := installimage.Build(rc.ID(), rc.installImage)
 	if err != nil {
 		return false, err
 	}
@@ -889,17 +888,17 @@ func (ctrl *StatusController) checkInstalledImage(
 
 	schematicInfo, err := talosutils.GetSchematicInfo(ctx, nodeClient.COSI, fallbackKernelArgs)
 	if err != nil {
-		if errors.Is(err, talosutils.ErrInvalidSchematic) {
-			return installedImage{
-				version:          actualVersion,
-				schematic:        "",
-				factoryHost:      "",
-				atTarget:         actualVersion == rc.installImage.TalosVersion,
-				currentSchematic: "",
-			}, nil
-		}
-
 		return installedImage{}, err
+	}
+
+	if schematicInfo.Invalid {
+		return installedImage{
+			version:          actualVersion,
+			schematic:        "",
+			factoryHost:      "",
+			atTarget:         actualVersion == rc.installImage.TalosVersion,
+			currentSchematic: "",
+		}, nil
 	}
 
 	return installedImage{

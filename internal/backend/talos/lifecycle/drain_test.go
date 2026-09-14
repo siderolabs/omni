@@ -46,7 +46,7 @@ func newDrainTestManager(t *testing.T, clientset k8s.Interface) *lifecycle.Manag
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
 		state.WrapCore(namespaced.NewState(inmem.Build)),
 		c,
-	), "ghcr.io/siderolabs/installer", fixedClientsetProvider{clientset: clientset}, nil, nil)
+	), fixedClientsetProvider{clientset: clientset}, nil, nil)
 }
 
 // TestCordonAndDrain verifies the two cordon/drain modes: the normal mode cordons and drains with

@@ -340,6 +340,8 @@ func defineEtcdClassWriteRateLimitFlags(b *FlagBinder, class string, cls *config
 
 func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.talos", &flagConfig.Registries.Talos)
+	//nolint:errcheck
+	b.cmd.Flags().MarkDeprecated(b.mustFlagName("registries.talos"), "unused, Omni always installs from an image factory")
 	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
 
 	// Deprecated image factory flags, superseded by the --primary-factory-* flags below.

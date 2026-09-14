@@ -620,8 +620,12 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 					},
 				},
 			},
+			// the synthesized schematic carries only the join kernel args, i.e., it is the vanilla one
 			expected: &specs.MachineStatusSpec_Schematic{
 				Invalid:      true,
+				FullId:       vanillaID,
+				Raw:          string(vanillaRaw),
+				KernelArgs:   kernelArgs,
 				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 			},
 		},
