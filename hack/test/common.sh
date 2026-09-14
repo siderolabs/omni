@@ -388,7 +388,9 @@ function s3_cleanup() {
   docker rm -f "${S3_CONTAINER_NAME}" || true
 }
 
-function prepare_omni_config() {
+function prepare_omni_config() { # args: output path (default: OMNI_CONFIG)
+  local output="${1:-${OMNI_CONFIG}}"
+
   # The config.yaml is uploaded as a CI artifact, so the factory token stays in a file outside the uploaded directories.
   local registries_body=""
 
@@ -401,6 +403,16 @@ function prepare_omni_config() {
     registries_body+="      machineTokenTTL: 8h"$'\n' # short-lived machine tokens, so that the test runs do not fill the factory's token limit
   fi
 
+  if [[ -n "${OMNI_IMAGE_FACTORY_SECONDARY_URL:-}" ]]; then
+    registries_body+="    secondary:"$'\n'
+    registries_body+="      url: ${OMNI_IMAGE_FACTORY_SECONDARY_URL}"$'\n'
+
+    if [[ -n "${OMNI_IMAGE_FACTORY_SECONDARY_TOKEN_FILE:-}" ]]; then
+      registries_body+="      tokenFile: ${OMNI_IMAGE_FACTORY_SECONDARY_TOKEN_FILE}"$'\n'
+      registries_body+="      machineTokenTTL: 8h"$'\n'
+    fi
+  fi
+
   registries_body+="${REGISTRY_MIRRORS_BODY}"
 
   if [[ -n "${registries_body}" ]]; then
@@ -411,7 +423,7 @@ function prepare_omni_config() {
 
   export REGISTRY_MIRROR_CONFIG
 
-  envsubst <hack/test/templates/omni-config.yaml >"${OMNI_CONFIG}"
+  envsubst <hack/test/templates/omni-config.yaml >"${output}"
 }
 
 PARTIAL_CONFIG_SERVER_PID=0
@@ -648,14 +660,12 @@ function download_factory_image() { # args: schematic_id, talos_version, file_na
   echo "${path}"
 }
 
-function configure_image_factory() {
-  if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" != "true" ]]; then
-    return
-  fi
-
+# resolve_enterprise_image_factory picks the enterprise factory by IMAGE_FACTORY_ENTERPRISE_ENV and writes its token to a file.
+# It switches nothing to that factory, the callers decide what uses it.
+function resolve_enterprise_image_factory() {
   case "${IMAGE_FACTORY_ENTERPRISE_ENV}" in
-    staging) export OMNI_IMAGE_FACTORY_BASE_URL="https://factory-enterprise.staging.talos.dev" ;;
-    prod) export OMNI_IMAGE_FACTORY_BASE_URL="https://factory.siderolabs.com" ;;
+    staging) export IMAGE_FACTORY_ENTERPRISE_URL="https://factory-enterprise.staging.talos.dev" ;;
+    prod) export IMAGE_FACTORY_ENTERPRISE_URL="https://factory.siderolabs.com" ;;
     *)
       echo "unknown image factory enterprise environment: ${IMAGE_FACTORY_ENTERPRISE_ENV}" >&2
       return 1
@@ -663,18 +673,30 @@ function configure_image_factory() {
   esac
 
   local token_var="IMAGE_FACTORY_ENTERPRISE_${IMAGE_FACTORY_ENTERPRISE_ENV^^}_TOKEN"
-  local token="${!token_var:?${token_var} must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
+  IMAGE_FACTORY_ENTERPRISE_TOKEN="${!token_var:?${token_var} must be set for the enterprise image factory}"
 
   # Omni reads the token from a file and watches its directory, so the file gets a directory of its own, outside the
   # directories uploaded as CI artifacts.
   OMNI_IMAGE_FACTORY_TOKEN_DIR=$(mktemp -d)
   export OMNI_IMAGE_FACTORY_TOKEN_DIR
-  export OMNI_IMAGE_FACTORY_TOKEN_FILE="${OMNI_IMAGE_FACTORY_TOKEN_DIR}/token"
-  printf '%s' "${token}" >"${OMNI_IMAGE_FACTORY_TOKEN_FILE}"
+  export IMAGE_FACTORY_ENTERPRISE_TOKEN_FILE="${OMNI_IMAGE_FACTORY_TOKEN_DIR}/token"
+  printf '%s' "${IMAGE_FACTORY_ENTERPRISE_TOKEN}" >"${IMAGE_FACTORY_ENTERPRISE_TOKEN_FILE}"
+}
+
+# configure_image_factory switches Omni, the media and the schematics of the tests to the enterprise factory.
+function configure_image_factory() {
+  if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" != "true" ]]; then
+    return
+  fi
+
+  resolve_enterprise_image_factory
+
+  export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_ENTERPRISE_URL}"
+  export OMNI_IMAGE_FACTORY_TOKEN_FILE="${IMAGE_FACTORY_ENTERPRISE_TOKEN_FILE}"
 
   # The factory accepts the token as the basic auth password, the username is ignored.
   export FACTORY_API_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
-  export FACTORY_CURL_AUTH="token:${token}"
+  export FACTORY_CURL_AUTH="token:${IMAGE_FACTORY_ENTERPRISE_TOKEN}"
 }
 
 # No cleanup here, as it runs in the CI as a container in a pod.

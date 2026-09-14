@@ -13,6 +13,7 @@ source ./hack/test/common.sh
 
 QEMU_TALOS_VERSION="${TALOS_VERSION}"
 WITH_QEMU_TALOS_VERSION_OVERRIDE="${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}"
+WITH_FACTORY_MIGRATION="${WITH_FACTORY_MIGRATION:-false}"
 if [[ "${WITH_QEMU_TALOS_VERSION_OVERRIDE}" == "true" ]]; then
   QEMU_TALOS_VERSION="${STABLE_TALOS_VERSION}"
 fi
@@ -152,26 +153,60 @@ if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
 fi
 
-# Run the integration test.
-SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
-  OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
-  SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
-  "${ARTIFACTS}/integration-test-linux-amd64" \
-  --omni.talos-version="${TALOS_VERSION}" \
-  --omni.stable-talos-version="${STABLE_TALOS_VERSION}" \
-  --omni.kubernetes-version="${KUBERNETES_VERSION}" \
-  --omni.another-kubernetes-version="${ANOTHER_KUBERNETES_VERSION}" \
-  --omni.omnictl-path="${ARTIFACTS}/omnictl-linux-amd64" \
-  --omni.expected-machines="${TOTAL_MACHINES}" \
-  --omni.embedded \
-  --omni.config-path="${OMNI_CONFIG}" \
-  --omni.output-dir="${TEST_OUTPUTS_DIR}" \
-  --omni.log-output="${TEST_OUTPUTS_DIR}/omni-integration.log" \
-  --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
-  --test.failfast \
-  --test.coverprofile="${ARTIFACTS}/coverage-integration.txt" \
-  --test.v \
-  "${IMPORTED_CLUSTER_ARGS[@]}" \
-  ${INTEGRATION_TEST_ARGS:-}
+# run_integration_test runs the integration test binary against an embedded Omni started from the given config.
+function run_integration_test() { # args: omni_config, name, test args...
+  local omni_config="$1"
+  local name="$2"
+
+  shift 2
+
+  SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
+    OMNI_DEV_ECDSA_SERVICE_ACCOUNT_KEY=true \
+    SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
+    "${ARTIFACTS}/integration-test-linux-amd64" \
+    --omni.talos-version="${TALOS_VERSION}" \
+    --omni.stable-talos-version="${STABLE_TALOS_VERSION}" \
+    --omni.kubernetes-version="${KUBERNETES_VERSION}" \
+    --omni.another-kubernetes-version="${ANOTHER_KUBERNETES_VERSION}" \
+    --omni.omnictl-path="${ARTIFACTS}/omnictl-linux-amd64" \
+    --omni.expected-machines="${TOTAL_MACHINES}" \
+    --omni.embedded \
+    --omni.config-path="${omni_config}" \
+    --omni.output-dir="${TEST_OUTPUTS_DIR}" \
+    --omni.log-output="${TEST_OUTPUTS_DIR}/omni-${name}.log" \
+    --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
+    --test.failfast \
+    --test.coverprofile="${ARTIFACTS}/coverage-integration.txt" \
+    --test.v \
+    "${IMPORTED_CLUSTER_ARGS[@]}" \
+    "$@"
+}
+
+if [[ "${WITH_FACTORY_MIGRATION}" == "true" ]]; then
+  # The machines boot from the public factory and Omni starts with it. The enterprise factory comes in with a restart,
+  # as it does for a running instance, and the last restart goes back to the public one. The runs share the coverage
+  # profile, so it holds the last run only.
+  resolve_enterprise_image_factory
+
+  run_integration_test "${OMNI_CONFIG}" factory-migration-prepare --test.run "TestIntegration/Suites/(CleanState|FactoryMigrationPrepare)$"
+
+  export OMNI_IMAGE_FACTORY_SECONDARY_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
+  export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_ENTERPRISE_URL}"
+  export OMNI_IMAGE_FACTORY_TOKEN_FILE="${IMAGE_FACTORY_ENTERPRISE_TOKEN_FILE}"
+
+  prepare_omni_config "${OMNI_CONFIG}.enterprise"
+  run_integration_test "${OMNI_CONFIG}.enterprise" factory-migration-verify --test.run "TestIntegration/Suites/FactoryMigrationVerify$"
+
+  export OMNI_IMAGE_FACTORY_BASE_URL="${OMNI_IMAGE_FACTORY_SECONDARY_URL}"
+  export OMNI_IMAGE_FACTORY_SECONDARY_URL="${IMAGE_FACTORY_ENTERPRISE_URL}"
+  export OMNI_IMAGE_FACTORY_SECONDARY_TOKEN_FILE="${IMAGE_FACTORY_ENTERPRISE_TOKEN_FILE}"
+  unset OMNI_IMAGE_FACTORY_TOKEN_FILE
+
+  prepare_omni_config "${OMNI_CONFIG}.rollback"
+  run_integration_test "${OMNI_CONFIG}.rollback" factory-migration-rollback --test.run "TestIntegration/Suites/FactoryMigrationRollback$"
+else
+  # shellcheck disable=SC2086 # the test args are meant to be split
+  run_integration_test "${OMNI_CONFIG}" integration ${INTEGRATION_TEST_ARGS:-}
+fi
 
 # No cleanup here, as it runs in the CI as a container in a pod.

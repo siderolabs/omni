@@ -74,19 +74,11 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 
 		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
 			ctx, t, omniClient.Omni().State(),
-			state.WithLabelQuery(
-				resource.LabelEqual(omni.LabelCluster, clusterName),
-				resource.LabelExists(omni.LabelControlPlaneRole),
-			),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
 		for _, machineID := range machineIDs {
-			var ms *runtime.MachineStatus
-
-			ms, err := safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
-			require.NoError(err)
-
-			snapshot.BootTimes[machineID] = ms.Metadata().Created()
+			snapshot.BootTimes[machineID] = readTalosMachineStatus(ctx, t, c, machineID).Metadata().Created()
 		}
 
 		snapshotData, err := json.Marshal(snapshot)
@@ -108,38 +100,52 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 	}
 }
 
-// AssertNoPendingMachineUpdates asserts that there are no pending machine updates for the cluster.
+// AssertNoPendingMachineUpdates asserts that there are no pending machine updates for the cluster, waiting for the ones in flight to settle.
 func AssertNoPendingMachineUpdates(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
 		defer cancel()
 
-		omniClient := options.omniClient
-		st := omniClient.Omni().State()
+		st := options.omniClient.Omni().State()
 
-		machinePendingUpdates := rtestutils.ResourceIDs[*omni.MachinePendingUpdates](
-			ctx, t, st,
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			machinePendingUpdates, err := safe.ReaderListAll[*omni.MachinePendingUpdates](ctx, st,
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+			require.NoError(collect, err)
 
-		assert.Empty(t, machinePendingUpdates)
+			for res := range machinePendingUpdates.All() {
+				assert.Empty(collect, res.TypedSpec().Value.Upgrade, "machine %q has a pending upgrade", res.Metadata().ID())
+				assert.False(collect, res.TypedSpec().Value.HasConfigDiff(), "machine %q has a pending config change", res.Metadata().ID())
+			}
+		}, time.Minute, 2*time.Second)
+	}
+}
 
-		for _, id := range machinePendingUpdates {
-			res, err := safe.ReaderGetByID[*omni.MachinePendingUpdates](ctx, st, id)
-			require.NoError(t, err)
+type assertClusterSnapshotOptions struct {
+	configChanged bool
+}
 
-			assert.Empty(t, res.TypedSpec().Value.Upgrade)
-			assert.False(t, res.TypedSpec().Value.HasConfigDiff())
-		}
+type assertClusterSnapshotOption func(*assertClusterSnapshotOptions)
+
+// withConfigChanged expects every machine config to differ from the snapshot, and waits for that, e.g., after a change that regenerates the configs without a reboot.
+func withConfigChanged() assertClusterSnapshotOption {
+	return func(o *assertClusterSnapshotOptions) {
+		o.configChanged = true
 	}
 }
 
 // AssertClusterSnapshot reads the snapshot from the cluster resource and asserts that versions did not change
 // and the last events still can be found in the node events.
-func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
+func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, clusterName string, opts ...assertClusterSnapshotOption) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
 		defer cancel()
+
+		var snapshotOptions assertClusterSnapshotOptions
+
+		for _, o := range opts {
+			o(&snapshotOptions)
+		}
 
 		omniClient := options.omniClient
 		omniState := omniClient.Omni().State()
@@ -166,8 +172,19 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 			shaSum, ok := snapshot.getShaSum(res)
 
 			assert.True(ok)
+
+			if snapshotOptions.configChanged {
+				assert.NotEqual(shaSum, res.TypedSpec().Value.ClusterMachineConfigSha256, "ClusterMachineConfigStatus sha sum did not change")
+
+				return
+			}
+
 			require.Equal(shaSum, res.TypedSpec().Value.ClusterMachineConfigSha256, "ClusterMachineConfigStatus sha sums do not match")
 		})
+
+		// the wait for the config shas above may have used up most of the time, the boot time reads get their own
+		ctx, cancel = context.WithTimeout(testCtx, 2*time.Minute)
+		defer cancel()
 
 		c := getTalosClientForCluster(ctx, t, options, clusterName)
 
@@ -176,11 +193,7 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 		})
 
 		for machineID, bootTime := range snapshot.BootTimes {
-			var ms *runtime.MachineStatus
-
-			ms, err = safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
-
-			require.NoError(err)
+			ms := readTalosMachineStatus(ctx, t, c, machineID)
 
 			require.True(ms.TypedSpec().Status.Ready)
 			require.Equal(runtime.MachineStageRunning, ms.TypedSpec().Stage)
@@ -188,4 +201,73 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 			require.Equal(bootTime, ms.Metadata().Created(), "the machine was rebooted")
 		}
 	}
+}
+
+// AssertClusterSnapshotHolds watches the cluster for the given duration and asserts that the snapshot stays valid: no machine config changes,
+// no update gets pending, and finally no machine rebooted.
+func AssertClusterSnapshotHolds(testCtx context.Context, options *TestOptions, clusterName string, duration time.Duration) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, duration+time.Minute)
+		defer cancel()
+
+		st := options.omniClient.Omni().State()
+
+		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+		require.NoError(t, err)
+
+		snapshotData, ok := cluster.Metadata().Annotations().Get(annotationSnapshot)
+		require.True(t, ok, "cluster does not have snapshot annotation")
+
+		var snapshot clusterSnapshot
+
+		require.NoError(t, json.Unmarshal([]byte(snapshotData), &snapshot))
+
+		clusterQuery := state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))
+
+		require.Never(t, func() bool {
+			configStatuses, listErr := safe.ReaderListAll[*omni.ClusterMachineConfigStatus](ctx, st, clusterQuery)
+			if listErr != nil {
+				return false
+			}
+
+			for res := range configStatuses.All() {
+				if shaSum, found := snapshot.getShaSum(res); !found || shaSum != res.TypedSpec().Value.ClusterMachineConfigSha256 {
+					t.Logf("machine config of %q changed", res.Metadata().ID())
+
+					return true
+				}
+			}
+
+			pendingUpdates, listErr := safe.ReaderListAll[*omni.MachinePendingUpdates](ctx, st, clusterQuery)
+			if listErr != nil {
+				return false
+			}
+
+			for res := range pendingUpdates.All() {
+				if res.TypedSpec().Value.Upgrade != nil || res.TypedSpec().Value.HasConfigDiff() {
+					t.Logf("machine %q has a pending update", res.Metadata().ID())
+
+					return true
+				}
+			}
+
+			return false
+		}, duration, 5*time.Second, "the cluster changed after the snapshot")
+
+		AssertClusterSnapshot(testCtx, options, clusterName)(t)
+	}
+}
+
+// readTalosMachineStatus reads the Talos machine status of the machine, retrying the transient API errors.
+func readTalosMachineStatus(ctx context.Context, t *testing.T, c *talosclient.Client, machineID string) *runtime.MachineStatus {
+	var ms *runtime.MachineStatus
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var err error
+
+		ms, err = safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
+		require.NoError(collect, err)
+	}, time.Minute, 2*time.Second, "machine %q status", machineID)
+
+	return ms
 }
