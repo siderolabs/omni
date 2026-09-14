@@ -16,7 +16,6 @@ import {
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 
-// eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<
   DropdownMenuItemProps & {
     icon?: IconType

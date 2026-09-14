@@ -17,36 +17,36 @@ export type SelectItemType<T extends string | number | undefined> = T | SelectIt
 
 <script setup lang="ts" generic="T extends string | number | undefined">
 import { useMounted } from '@vueuse/core'
-import {
-  Label,
-  SelectContent,
-  SelectIcon,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectPortal,
-  SelectRoot,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
-  SelectTrigger,
-  SelectValue,
-  SelectViewport,
-} from 'reka-ui'
 import { computed, onBeforeMount, ref, useId } from 'vue'
 import WordHighligher from 'vue-word-highlighter'
 
+import FormLabel from '@/components/FormLabel/FormLabel.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
+import SelectContent from './components/SelectContent.vue'
+import SelectIcon from './components/SelectIcon.vue'
+import SelectItem from './components/SelectItem.vue'
+import SelectItemIndicator from './components/SelectItemIndicator.vue'
+import SelectItemText from './components/SelectItemText.vue'
+import SelectLabel from './components/SelectLabel.vue'
+import SelectPortal from './components/SelectPortal.vue'
+import SelectRoot from './components/SelectRoot.vue'
+import SelectScrollDownButton from './components/SelectScrollDownButton.vue'
+import SelectScrollUpButton from './components/SelectScrollUpButton.vue'
+import SelectTrigger, { type SelectTriggerProps } from './components/SelectTrigger.vue'
+import SelectValue from './components/SelectValue.vue'
+import SelectViewport from './components/SelectViewport.vue'
+
 const {
-  variant = 'default',
+  variant,
   title = '',
   defaultValue = undefined,
   values,
   searcheable,
 } = defineProps<{
-  variant?: 'default' | 'breadcrumb'
+  variant?: SelectTriggerProps['variant']
   title?: string
   defaultValue?: T
   values: SelectItemType<T>[]
@@ -158,34 +158,22 @@ function labelFromValue(value?: T | null) {
 </script>
 
 <template>
-  <component :is="title && overheadTitle ? Label : 'div'" class="inline-block">
-    <span
-      v-if="title && overheadTitle"
-      class="mb-4 inline-block text-sm font-medium text-naturals-n14"
-    >
+  <component :is="title && overheadTitle ? 'label' : 'div'" class="inline-block">
+    <FormLabel v-if="title && overheadTitle" as="span" class="mb-4">
       {{ title }}
-    </span>
+    </FormLabel>
 
     <SelectRoot v-model="selectedItem" :disabled @update:open="onOpen">
-      <SelectTrigger
-        :id="triggerId"
-        class="flex max-h-full w-full items-center justify-between gap-1 rounded text-naturals-n14 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        :class="[
-          {
-            'border border-naturals-n7 bg-naturals-n2 px-3 py-2.25 text-xs': variant === 'default',
-            'p-2 leading-none hover:bg-naturals-n4': variant === 'breadcrumb',
-          },
-        ]"
-      >
-        <SelectValue class="flex gap-1 truncate select-none">
-          <Label
+      <SelectTrigger :id="triggerId" :variant>
+        <SelectValue>
+          <SelectLabel
             v-if="title && !overheadTitle"
             :for="triggerId"
             aria-hidden="true"
-            :class="hideSelectedSmallScreens ? `md:after:content-[':']` : `after:content-[':']`"
+            :hide-selected-small-screens
           >
             {{ title }}
-          </Label>
+          </SelectLabel>
           <span :class="{ 'max-md:hidden': hideSelectedSmallScreens }">
             {{ labelFromValue(selectedItem) }}
           </span>
@@ -196,11 +184,7 @@ function labelFromValue(value?: T | null) {
       </SelectTrigger>
 
       <SelectPortal>
-        <SelectContent
-          class="relative z-50 max-h-[min(--spacing(70),var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width) translate-y-1 space-y-1 overflow-hidden rounded border border-naturals-n4 bg-naturals-n3 p-1.5 text-xs [--arrow-size:--spacing(4)] slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
-          position="popper"
-          side="bottom"
-        >
+        <SelectContent>
           <TInput
             v-if="searcheable"
             v-model="searchTerm"
@@ -211,9 +195,7 @@ function labelFromValue(value?: T | null) {
             @keydown.stop="() => {}"
           />
 
-          <SelectScrollUpButton
-            class="z-10 -mb-(--arrow-size) bg-linear-to-b from-naturals-n3 from-25% to-transparent"
-          >
+          <SelectScrollUpButton>
             <TIcon icon="chevron-up" class="mx-auto size-(--arrow-size)" />
           </SelectScrollUpButton>
 
@@ -225,18 +207,14 @@ function labelFromValue(value?: T | null) {
               :disabled="!itemTooltip(item)"
               placement="right"
             >
-              <SelectItem
-                class="flex cursor-pointer items-center gap-1 p-1.5 font-medium text-naturals-n9 outline-none not-data-disabled:hover:text-naturals-n13 focus:text-naturals-n13 data-disabled:cursor-not-allowed data-disabled:text-naturals-n7 data-disabled:italic data-[state=checked]:text-primary-p3"
-                :value="itemValue(item)"
-                :disabled="itemDisabled(item)"
-              >
+              <SelectItem :value="itemValue(item)" :disabled="itemDisabled(item)">
                 <span class="size-3">
                   <SelectItemIndicator as-child>
                     <TIcon icon="check" class="size-full" />
                   </SelectItemIndicator>
                 </span>
 
-                <SelectItemText class="truncate px-1 transition-all">
+                <SelectItemText>
                   <WordHighligher
                     :query="searchTerm"
                     :text-to-highlight="itemLabel(item)"
@@ -247,9 +225,7 @@ function labelFromValue(value?: T | null) {
             </Tooltip>
           </SelectViewport>
 
-          <SelectScrollDownButton
-            class="z-10 -mt-(--arrow-size) bg-linear-to-t from-naturals-n3 from-25% to-transparent"
-          >
+          <SelectScrollDownButton>
             <TIcon icon="chevron-down" class="mx-auto size-(--arrow-size)" />
           </SelectScrollDownButton>
         </SelectContent>

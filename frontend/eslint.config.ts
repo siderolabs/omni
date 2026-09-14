@@ -68,7 +68,6 @@ export default withVueTs(
       'vue/custom-event-name-casing': 'error',
       'vue/define-emits-declaration': 'error',
       'vue/define-props-declaration': 'error',
-      'vue/define-props-destructuring': 'error',
       'vue/dot-notation': 'error',
       'vue/enforce-style-attribute': 'error',
       'vue/eqeqeq': 'error',
