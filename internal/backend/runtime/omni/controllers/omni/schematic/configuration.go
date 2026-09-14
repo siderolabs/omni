@@ -22,6 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -222,8 +223,6 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return err
 	}
 
-	versionOutdated := schematicConfiguration.TypedSpec().Value.TalosVersion != talosVersion
-
 	schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 
 	// Patch only the fields Omni manages (extensions list, kernel args). Everything else
@@ -240,26 +239,36 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return err
 	}
 
+	if err = ctrl.publishSchematicID(ctx, logger, ms, cluster, schematicConfiguration, factoryClient, patched, talosVersion); err != nil {
+		return err
+	}
+
+	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
+
+	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
+}
+
+// publishSchematicID decides which schematic id the machine should run and publishes it.
+func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, cluster *omni.Cluster,
+	schematicConfiguration *omni.SchematicConfiguration, factoryClient factoryclient.FactoryClient, patched schematic.Schematic, talosVersion string,
+) error {
+	machineTalosVersion := strings.TrimLeft(ms.TypedSpec().Value.TalosVersion, "v")
+
 	patchedRaw, err := patched.Marshal()
 	if err != nil {
 		return fmt.Errorf("failed to marshal patched schematic: %w", err)
 	}
 
-	// Only go to the factory when the desired schematic actually differs from the one the machine
-	// booted with, or the Talos version moved, or nothing has been published yet (the Invalid branch
-	// above resets SchematicId, so a machine that turns valid again must get a fresh ID rather than
-	// keep the empty one). Otherwise no Omni-driven customization changed anything and the ID
-	// published by the previous reconcile still applies, so the round-trip is skipped.
-	//
-	// The published ID is deliberately left alone in that case rather than reset to the machine's own
-	// Schematic.FullId: an Enterprise factory stamps an owner into the schematic, so its ID for the
-	// same content differs from the ID the machine reports, and overwriting would lose it.
-	installPending := ms.TypedSpec().Value.Maintenance && cluster != nil // the install re-images anyway, use the factory serving the target version
+	runsDesired := bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) && talosVersion == machineTalosVersion
+	installPending := ms.TypedSpec().Value.Maintenance && cluster != nil // the install replaces what runs anyway
+	talosInstalled := omni.GetMachineStatusSystemDisk(ms) != ""
 
-	if !bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) ||
-		versionOutdated ||
-		installPending ||
-		schematicConfiguration.TypedSpec().Value.SchematicId == "" {
+	switch {
+	case runsDesired && talosInstalled && !installPending:
+		// the machine runs what it should, whichever factory issued it - the factory serving the version would answer with a different id for the same content
+		schematicConfiguration.TypedSpec().Value.SchematicId = ms.TypedSpec().Value.Schematic.FullId
+	case !runsDesired || installPending || schematicConfiguration.TypedSpec().Value.SchematicId == "":
+		// asked on every pass, the published id might be the one taken from the machine above before it moved on
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 
 		id, _, err := factoryClient.EnsureSchematic(factoryCtx, patched)
@@ -270,20 +279,22 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 			return err
 		}
 
-		logger.Info(
-			"generated new schematic",
-			zap.String("machine", ms.Metadata().ID()),
-			zap.String("talos_version", talosVersion),
-			zap.String("image_factory", factoryClient.Host()),
-			zap.String("schematic_id", id),
-		)
+		if id != schematicConfiguration.TypedSpec().Value.SchematicId {
+			logger.Info(
+				"generated new schematic",
+				zap.String("machine", ms.Metadata().ID()),
+				zap.String("talos_version", talosVersion),
+				zap.String("image_factory", factoryClient.Host()),
+				zap.String("schematic_id", id),
+			)
+		}
 
 		schematicConfiguration.TypedSpec().Value.SchematicId = id
+	default:
+		// no Talos on disk and nothing to change, the published id stays
 	}
 
-	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
-
-	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
+	return nil
 }
 
 func (ctrl *ConfigurationController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {

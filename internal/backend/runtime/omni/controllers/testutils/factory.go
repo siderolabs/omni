@@ -67,11 +67,23 @@ func (i *ImageFactoryClientMock) TokenCreate(ctx context.Context, opts client.To
 	return i.TokenCreateFunc(ctx, opts)
 }
 
+// SetOwner changes the owner the factory stamps into every schematic, like a switch to an Enterprise factory.
+func (i *ImageFactoryClientMock) SetOwner(owner string) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.Owner = owner
+}
+
 func (i *ImageFactoryClientMock) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
 	i.EnsureCalls.Add(1)
 
-	if i.Owner != "" {
-		inputSchematic.Owner = i.Owner
+	i.mu.Lock()
+	owner := i.Owner
+	i.mu.Unlock()
+
+	if owner != "" {
+		inputSchematic.Owner = owner
 	}
 
 	id, err := inputSchematic.ID()
