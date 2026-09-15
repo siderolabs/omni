@@ -232,7 +232,7 @@ func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 		return machineStatus.TypedSpec().Value.TalosVersion
 	})
 
-	setLabelOptional(labels, MachineStatusLabelEnterprise, func() optional.Optional[string] {
+	setLabelOptional(labels, LabelEnterprise, func() optional.Optional[string] {
 		if machineStatus.TypedSpec().Value.TalosVersionName == constants.TalosEnterpriseVersionName {
 			return optional.Some("")
 		}

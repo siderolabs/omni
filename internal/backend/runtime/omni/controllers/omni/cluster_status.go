@@ -139,6 +139,9 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 	allMachineSetsReady := true
 	clusterHasConnectedControlPlanes := false
 
+	nonEmptyMachineSets := 0
+	enterpriseMachineSets := 0
+
 	machines := specs.Machines{}
 
 	phases := map[specs.MachineSetPhase]int{}
@@ -188,6 +191,16 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 			}
 		}
 
+		// machine sets without machines carry no enterprise label, so they are skipped here as well,
+		// otherwise a machine set scaled down to zero would drop the label from the whole cluster
+		if machineSetStatus.GetMachines().GetTotal() > 0 {
+			nonEmptyMachineSets++
+
+			if _, enterprise := mss.Metadata().Labels().Get(omni.LabelEnterprise); enterprise {
+				enterpriseMachineSets++
+			}
+		}
+
 		phases[machineSetStatus.Phase]++
 
 		allMachineSetsReady = allMachineSetsReady && machineSetStatus.Ready
@@ -234,6 +247,14 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 	}
 
 	helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
+
+	// the cluster is enterprise only if every one of its machines runs Talos Enterprise;
+	// a cluster without machines is never enterprise
+	if nonEmptyMachineSets > 0 && enterpriseMachineSets == nonEmptyMachineSets {
+		clusterStatus.Metadata().Labels().Set(omni.LabelEnterprise, "")
+	} else {
+		clusterStatus.Metadata().Labels().Delete(omni.LabelEnterprise)
+	}
 
 	if clusterSecrets != nil {
 		ctrl.handleClusterSecretsTaint(clusterSecrets, clusterStatus, logger)

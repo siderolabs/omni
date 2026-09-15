@@ -86,11 +86,11 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					return err
 				}
 
-				if _, ok := machineStatus.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider); ok {
-					clusterMachineStatus.Metadata().Labels().Set(omni.LabelIsManagedByStaticInfraProvider, "")
-				} else {
-					clusterMachineStatus.Metadata().Labels().Delete(omni.LabelIsManagedByStaticInfraProvider)
-				}
+				helpers.SyncLabels(
+					machineStatus, clusterMachineStatus,
+					omni.LabelIsManagedByStaticInfraProvider,
+					omni.LabelEnterprise,
+				)
 
 				if err = updateMachineProvisionStatus(ctx, r, machineStatus, cmsVal); err != nil {
 					return err

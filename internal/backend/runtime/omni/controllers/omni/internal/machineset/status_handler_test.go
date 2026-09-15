@@ -7,6 +7,7 @@ package machineset_test
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -482,6 +483,111 @@ func TestStatusHandler(t *testing.T) {
 				machineSetConfigStatus.TypedSpec().Value,
 				IgnoreUnexported(expectedConfigStatus, &specs.Machines{}, &specs.MachineSetSpec_MachineAllocation{}),
 			))
+		})
+	}
+}
+
+func TestStatusHandlerEnterpriseLabel(t *testing.T) {
+	ms := omni.NewMachineSet("")
+
+	for _, tt := range []struct {
+		name        string
+		ids         []string
+		enterprise  []string
+		staleLabel  bool
+		expectLabel bool
+	}{
+		{
+			name:        "no enterprise machines",
+			ids:         []string{"a", "b"},
+			expectLabel: false,
+		},
+		{
+			name:        "some enterprise machines",
+			ids:         []string{"a", "b"},
+			enterprise:  []string{"b"},
+			expectLabel: false,
+		},
+		{
+			name:        "all enterprise machines",
+			ids:         []string{"a", "b"},
+			enterprise:  []string{"a", "b"},
+			expectLabel: true,
+		},
+		{
+			name:        "no machines",
+			expectLabel: false,
+		},
+		{
+			name:        "stale label is removed",
+			ids:         []string{"a", "b"},
+			enterprise:  []string{"a"},
+			staleLabel:  true,
+			expectLabel: false,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			machineSet := omni.NewMachineSet("test")
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, "test")
+
+			ids := tt.ids
+
+			machineSetNodes := xslices.Map(ids, func(id string) *omni.MachineSetNode {
+				return omni.NewMachineSetNode(id, ms)
+			})
+
+			machineStatuses := xslices.Map(ids, system.NewResourceLabels[*omni.MachineStatus])
+
+			clusterMachines := xslices.Map(ids, omni.NewClusterMachine)
+
+			clusterMachineStatuses := xslices.Map(ids, func(id string) *omni.ClusterMachineStatus {
+				cms := newClusterMachineStatus(id, specs.ClusterMachineStatusSpec_RUNNING, true, true)
+
+				if slices.Contains(tt.enterprise, id) {
+					cms.Metadata().Labels().Set(omni.LabelEnterprise, "")
+				}
+
+				return cms
+			})
+
+			clusterMachineConfigStatuses := xslices.Map(clusterMachines, func(cm *omni.ClusterMachine) *omni.ClusterMachineConfigStatus {
+				version := resource.VersionUndefined.Next()
+
+				cm.Metadata().SetVersion(version)
+
+				return withSpecSetter(
+					withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus(cm.Metadata().ID()), version),
+					func(r *omni.ClusterMachineConfigStatus) {
+						r.TypedSpec().Value.ClusterMachineConfigSha256 = cm.Metadata().ID()
+					},
+				)
+			})
+
+			rc, err := machineset.NewReconciliationContext(
+				omni.NewCluster("test"),
+				machineSet,
+				newHealthyLB("test"),
+				machineSetNodes,
+				machineStatuses,
+				clusterMachines,
+				clusterMachineConfigStatuses,
+				nil,
+				clusterMachineStatuses,
+			)
+			require.NoError(err)
+
+			machineSetStatus := omni.NewMachineSetStatus("test")
+
+			if tt.staleLabel {
+				machineSetStatus.Metadata().Labels().Set(omni.LabelEnterprise, "")
+			}
+
+			machineset.ReconcileStatus(rc, machineSetStatus, omni.NewMachineSetConfigStatus("test"))
+
+			_, ok := machineSetStatus.Metadata().Labels().Get(omni.LabelEnterprise)
+			require.Equal(tt.expectLabel, ok)
 		})
 	}
 }

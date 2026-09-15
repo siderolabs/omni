@@ -75,6 +75,7 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	}
 
 	lockedCount := 0
+	enterpriseCount := 0
 
 	for _, clusterMachine := range clusterMachines {
 		spec.Machines.Total++
@@ -82,6 +83,10 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 		if clusterMachineStatus := clusterMachineStatuses[clusterMachine.Metadata().ID()]; clusterMachineStatus != nil {
 			if _, updateLocked := clusterMachineStatus.Metadata().Labels().Get(omni.UpdateLocked); updateLocked {
 				lockedCount++
+			}
+
+			if _, enterprise := clusterMachineStatus.Metadata().Labels().Get(omni.LabelEnterprise); enterprise {
+				enterpriseCount++
 			}
 
 			if clusterMachineStatus.TypedSpec().Value.Stage == specs.ClusterMachineStatusSpec_RUNNING && clusterMachineStatus.TypedSpec().Value.Ready {
@@ -96,6 +101,14 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 
 	spec.Ready = spec.Phase == specs.MachineSetPhase_Running
 	spec.LockedUpdates = uint32(lockedCount)
+
+	// the machine set is enterprise only if every one of its machines runs Talos Enterprise;
+	// a machine set without machines is never enterprise
+	if len(clusterMachines) > 0 && enterpriseCount == len(clusterMachines) {
+		machineSetStatus.Metadata().Labels().Set(omni.LabelEnterprise, "")
+	} else {
+		machineSetStatus.Metadata().Labels().Delete(omni.LabelEnterprise)
+	}
 
 	if !spec.Ready {
 		return
