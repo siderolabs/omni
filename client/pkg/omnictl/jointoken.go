@@ -23,8 +23,10 @@ import (
 
 	"github.com/siderolabs/omni/client/internal/safeout"
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
+	"github.com/siderolabs/omni/client/pkg/omnictl/internal/download"
 )
 
 var (
@@ -43,6 +45,7 @@ var (
 		role          string
 		tokenID       string
 		tokenName     string
+		setLabels     []string
 		useGRPCTunnel bool
 	}
 
@@ -222,7 +225,16 @@ var (
 					return err
 				}
 
-				resp, err := client.Management().GetMachineJoinConfig(ctx, tokenID, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				labels, err := download.ParseLabelPairs(joinTokenMachineJoinConfigFlags.setLabels)
+				if err != nil {
+					return err
+				}
+
+				resp, err := client.Management().GetMachineJoinConfig(
+					ctx, tokenID,
+					joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+					management.WithMachineLabels(labels),
+				)
 				if err != nil {
 					return err
 				}
@@ -246,7 +258,16 @@ var (
 					return err
 				}
 
-				resp, err := client.Management().GetMachineJoinConfig(ctx, tokenID, joinTokenMachineJoinConfigFlags.useGRPCTunnel)
+				labels, err := download.ParseLabelPairs(joinTokenMachineJoinConfigFlags.setLabels)
+				if err != nil {
+					return err
+				}
+
+				resp, err := client.Management().GetMachineJoinConfig(
+					ctx, tokenID,
+					joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+					management.WithMachineLabels(labels),
+				)
 				if err != nil {
 					return err
 				}
@@ -396,6 +417,13 @@ func init() {
 		c.Flags().BoolVar(
 			&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
 			"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
+		)
+
+		c.Flags().StringArrayVar(
+			&joinTokenMachineJoinConfigFlags.setLabels,
+			"set-labels", nil,
+			"Initial labels to assign to any machine joining with this config, as key=value pairs. "+
+				"The user can override them on the machine afterwards",
 		)
 
 		addTokenSelectionFlags(c)

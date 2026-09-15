@@ -497,3 +497,52 @@ func TestDownloadToFileOverwritesAbandonedTemporaryFile(t *testing.T) {
 	require.Equal(t, contents, string(actual))
 	require.NoFileExists(t, dest+".tmp")
 }
+
+func TestParseLabelPairs(t *testing.T) {
+	for _, tt := range []struct {
+		expected map[string]string
+		name     string
+		pairs    []string
+		wantErr  bool
+	}{
+		{
+			name:     "key and value",
+			pairs:    []string{"env=prod", "rack=a12"},
+			expected: map[string]string{"env": "prod", "rack": "a12"},
+		},
+		{
+			name:     "bare key",
+			pairs:    []string{"marked"},
+			expected: map[string]string{"marked": ""},
+		},
+		{
+			name:     "empty value",
+			pairs:    []string{"env="},
+			expected: map[string]string{"env": ""},
+		},
+		{
+			// label values may contain "=", so only the first separator splits the pair
+			name:     "value containing separators",
+			pairs:    []string{"url=https://host/?a=b"},
+			expected: map[string]string{"url": "https://host/?a=b"},
+		},
+		{
+			name:    "empty key",
+			pairs:   []string{"=value"},
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			labels, err := download.ParseLabelPairs(tt.pairs)
+
+			if tt.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, labels)
+		})
+	}
+}

@@ -714,12 +714,37 @@ func (client *Client) CreateJoinToken(ctx context.Context, name string, ttl time
 	return resp.Id, nil
 }
 
+// MachineJoinConfigOption is an additional option for the GetMachineJoinConfig call.
+type MachineJoinConfigOption func(*management.GetMachineJoinConfigRequest)
+
+// WithMachineLabels sets the initial labels to assign to any machine joining with the config.
+//
+// The labels are signed into the join token, and behave like the ones read from the Talos META
+// partition: the user can override them on the machine afterwards.
+func WithMachineLabels(labels map[string]string) MachineJoinConfigOption {
+	return func(req *management.GetMachineJoinConfigRequest) {
+		if len(labels) == 0 {
+			return
+		}
+
+		req.MachineLabels = labels
+	}
+}
+
 // GetMachineJoinConfig generates the partial machine config for joining Omni.
-func (client *Client) GetMachineJoinConfig(ctx context.Context, tokenID string, useGRPCTunnel bool) (*management.GetMachineJoinConfigResponse, error) {
-	resp, err := client.conn.GetMachineJoinConfig(ctx, &management.GetMachineJoinConfigRequest{
+func (client *Client) GetMachineJoinConfig(
+	ctx context.Context, tokenID string, useGRPCTunnel bool, opts ...MachineJoinConfigOption,
+) (*management.GetMachineJoinConfigResponse, error) {
+	req := &management.GetMachineJoinConfigRequest{
 		UseGrpcTunnel: useGRPCTunnel,
 		JoinToken:     tokenID,
-	})
+	}
+
+	for _, o := range opts {
+		o(req)
+	}
+
+	resp, err := client.conn.GetMachineJoinConfig(ctx, req)
 	if err != nil {
 		return nil, err
 	}

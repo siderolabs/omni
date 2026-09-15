@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -139,6 +140,10 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 				joinTokenStatus.TypedSpec().Value.UseCount = useCount
 				joinTokenStatus.TypedSpec().Value.ExpirationTime = joinToken.TypedSpec().Value.ExpirationTime
 				joinTokenStatus.TypedSpec().Value.Name = joinToken.TypedSpec().Value.Name
+
+				// publish the non-secret handle of the token, so that the provision flow can find the
+				// token which signed a v3 join token without the secret being transmitted
+				joinTokenStatus.Metadata().Labels().Set(siderolink.LabelJoinTokenFingerprint, jointoken.Fingerprint(joinToken.Metadata().ID()))
 
 				var requeueAfter time.Duration
 
