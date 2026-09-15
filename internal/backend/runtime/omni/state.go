@@ -22,7 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stripe/stripe-go/v85"
+	"github.com/stripe/stripe-go/v86"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
