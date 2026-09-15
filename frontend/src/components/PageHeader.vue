@@ -5,19 +5,22 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import type { ClassValue } from 'vue'
+
 import { cn } from '@/methods/utils'
 
 defineProps<{
   title: string
   subtitle?: string
   notes?: string
+  class?: ClassValue
 }>()
 </script>
 
 <template>
   <div
     class="flex flex-col gap-1"
-    :class="cn({ 'mb-7': !subtitle, 'mb-2': subtitle }, $attrs.class)"
+    :class="cn({ 'mb-7': !subtitle, 'mb-2': subtitle }, $props.class)"
   >
     <div class="flex items-center gap-6">
       <h3 class="text-xl font-medium text-naturals-n14">{{ title }}</h3>
