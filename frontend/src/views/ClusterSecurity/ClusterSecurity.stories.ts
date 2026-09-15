@@ -6,6 +6,7 @@ import { createBytesPayload, createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import {
   Arch,
@@ -172,6 +173,26 @@ const scanHandler = http.post<never, VulnerabilityReportRequest, VulnerabilityRe
   },
 )
 
+// Answers NotFound for the versions given, as the factory does for a schematic it does not know or a
+// scan it has not published yet.
+function missingScanHandler(versions: string[]) {
+  // The response is the gateway's error body, not a VulnerabilityReportResponse, so it is left
+  // untyped here.
+  return http.post<never, VulnerabilityReportRequest>(
+    '/imagefactory.ImageFactoryService/VulnerabilityReport',
+    async ({ request }) => {
+      const { talos_version } = await request.clone().json()
+
+      if (!versions.includes(talos_version!)) return
+
+      return HttpResponse.json(
+        { code: Code.NOT_FOUND, message: 'scan report not found' },
+        { status: 404 },
+      )
+    },
+  )
+}
+
 const meta: Meta<typeof ClusterSecurity> = {
   component: ClusterSecurity,
   args: {
@@ -224,6 +245,39 @@ export const NoUpgradesAvailable: Story = {
       talosVersionHandler,
       artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 1, true)], MINOR_VERSION),
       scanHandler,
+    )
+  },
+}
+
+/**
+ * The factory has no report for one of the upgrade targets - it has not scanned that version for this
+ * schematic yet - which is reported as a missing report rather than as a failed scan.
+ */
+export const UpgradeReportUnavailable: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      featuresHandler,
+      talosVersionHandler,
+      artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
+        PATCH_VERSION,
+        MINOR_VERSION,
+      ]),
+      missingScanHandler([MINOR_VERSION]),
+      scanHandler,
+    )
+  },
+}
+
+/** The factory knows nothing about the cluster's schematic, so no report is available at all. */
+export const NoReportsAvailable: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      featuresHandler,
+      talosVersionHandler,
+      artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
+        PATCH_VERSION,
+      ]),
+      missingScanHandler([CURRENT_VERSION, PATCH_VERSION]),
     )
   },
 }

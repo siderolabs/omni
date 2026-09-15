@@ -126,6 +126,11 @@ const upgradeVersionScans = computed(() => {
           <TAlert v-else-if="currentVersionScan?.error" type="error" title="Scan failed">
             {{ currentVersionScan.error }}
           </TAlert>
+          <TAlert v-else-if="currentVersionScan?.notFound" type="info" title="No report available">
+            No vulnerability report was found for this schematic on Talos {{ currentVersion }}. The
+            schematic may not exist on the image factory yet, or its scan may not have been
+            published yet.
+          </TAlert>
           <SeverityBadges
             v-else-if="currentVersionScan?.matches"
             :matches="currentVersionScan.matches"
