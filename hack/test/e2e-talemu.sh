@@ -29,6 +29,10 @@ trap cleanup EXIT SIGINT
 # Download required artifacts.
 prepare_artifacts
 
+# Select the public or enterprise image factory based on WITH_IMAGE_FACTORY_ENTERPRISE.
+# Must run before prepare_omni_config, which renders the resulting factory URL and token into the config.
+configure_image_factory
+
 # Build registry mirror args.
 configure_registry_mirrors
 
@@ -68,6 +72,14 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
 # network interfaces, and Chromium aborts every in-flight request (including the resource
 # watch streams feeding the UI) with ERR_NETWORK_CHANGED when it sees an interface change
 # in its own network namespace, so on the host network the UI tests randomly flake.
+#
+# The enterprise run executes the same specs, minus the ones tagged @community-factory, and plus the
+# ones tagged @enterprise-factory. See frontend/playwright.config.ts.
+PLAYWRIGHT_PROJECT="talemu"
+if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" == "true" ]]; then
+  PLAYWRIGHT_PROJECT="talemu-enterprise"
+fi
+
 cd frontend/
 docker buildx build --load . -t e2etest
 docker run --rm \
@@ -75,7 +87,7 @@ docker run --rm \
   -e AUTH_PASSWORD="$AUTH_PASSWORD" \
   -e AUTH_USERNAME="$AUTH_USERNAME" \
   -e BASE_URL="$BASE_URL" \
-  -e PROJECT="talemu" \
+  -e PROJECT="${PLAYWRIGHT_PROJECT}" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
   --add-host="${OMNI_HOST}:host-gateway" \
   e2etest
