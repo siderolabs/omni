@@ -190,8 +190,8 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 				},
 			},
 			want: map[string]string{
-				omni.MachineStatusLabelEnterprise: "",
-				omni.MachineStatusLabelFIPS:       "enabled",
+				omni.LabelEnterprise:        "",
+				omni.MachineStatusLabelFIPS: "enabled",
 			},
 		},
 		{
@@ -203,8 +203,8 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 				},
 			},
 			want: map[string]string{
-				omni.MachineStatusLabelEnterprise: "",
-				omni.MachineStatusLabelFIPS:       "strict",
+				omni.LabelEnterprise:        "",
+				omni.MachineStatusLabelFIPS: "strict",
 			},
 		},
 		{
@@ -243,8 +243,8 @@ func TestReconcileMachineStatusLabelsClearing(t *testing.T) {
 	omni.ReconcileMachineStatusLabels(ms)
 
 	assert.Equal(t, map[string]string{
-		omni.MachineStatusLabelEnterprise: "",
-		omni.MachineStatusLabelFIPS:       "strict",
+		omni.LabelEnterprise:        "",
+		omni.MachineStatusLabelFIPS: "strict",
 	}, ms.Metadata().Labels().Raw())
 
 	// downgrade to a non-enterprise version, the labels must be cleared

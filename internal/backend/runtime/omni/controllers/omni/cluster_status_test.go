@@ -259,6 +259,118 @@ func TestClusterStatusReconcile(t *testing.T) {
 	}
 }
 
+func TestClusterStatusEnterpriseLabel(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name             string
+		cpEnterprise     bool
+		workerEnterprise bool
+		emptyWorkers     bool
+		expectLabel      bool
+	}{
+		{
+			name:        "no-enterprise",
+			expectLabel: false,
+		},
+		{
+			name:             "worker-enterprise",
+			workerEnterprise: true,
+			expectLabel:      false,
+		},
+		{
+			name:         "control-plane-enterprise",
+			cpEnterprise: true,
+			expectLabel:  false,
+		},
+		{
+			name:             "all-enterprise",
+			cpEnterprise:     true,
+			workerEnterprise: true,
+			expectLabel:      true,
+		},
+		{
+			// an empty machine set carries no label and must not drop the label from the cluster
+			name:         "all-enterprise-with-empty-workers",
+			cpEnterprise: true,
+			emptyWorkers: true,
+			expectLabel:  true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+
+			testutils.WithRuntime(
+				ctx,
+				t,
+				testutils.TestOptions{},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					st := testContext.State
+					clusterName := tt.name
+
+					cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+					rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
+
+					runningMachineSet := func(id string, roleLabel string, enterprise bool, machines uint32) {
+						ms := rmock.Mock[*omni.MachineSet](
+							ctx, t, st,
+							options.WithID(id),
+							options.LabelCluster(cluster),
+							options.EmptyLabel(roleLabel),
+						)
+
+						rmock.Mock[*omni.MachineSetStatus](
+							ctx, t, st,
+							options.SameID(ms),
+							options.Modify(func(res *omni.MachineSetStatus) error {
+								if enterprise {
+									res.Metadata().Labels().Set(omni.LabelEnterprise, "")
+								}
+
+								res.TypedSpec().Value = &specs.MachineSetStatusSpec{
+									Phase: specs.MachineSetPhase_Running,
+									Ready: true,
+									Machines: &specs.Machines{
+										Total:   machines,
+										Healthy: machines,
+									},
+								}
+
+								return nil
+							}),
+						)
+					}
+
+					workerMachines := uint32(1)
+					if tt.emptyWorkers {
+						workerMachines = 0
+					}
+
+					runningMachineSet(clusterName+"-cp", omni.LabelControlPlaneRole, tt.cpEnterprise, 1)
+					runningMachineSet(omni.WorkersResourceID(clusterName), omni.LabelWorkerRole, tt.workerEnterprise, workerMachines)
+
+					expectLabel := tt.expectLabel
+
+					rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName},
+						func(status *omni.ClusterStatus, a *assert.Assertions) {
+							// wait for the machine sets to be aggregated, so that a missing label is not just an early read
+							a.Equal(specs.ClusterStatusSpec_RUNNING, status.TypedSpec().Value.Phase)
+
+							_, ok := status.Metadata().Labels().Get(omni.LabelEnterprise)
+							a.Equal(expectLabel, ok)
+						})
+				},
+			)
+		})
+	}
+}
+
 func TestClusterStatusDiscoveryServices(t *testing.T) {
 	t.Parallel()
 

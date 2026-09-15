@@ -127,6 +127,10 @@ const (
 	// as break-glass configs that bypass Omni were generated.
 	// tsgen:LabelClusterTaintedByBreakGlass
 	LabelClusterTaintedByBreakGlass = SystemLabelPrefix + "tainted-by-break-glass"
+
+	// LabelEnterprise is set if the machine runs Talos Enterprise.
+	// tsgen:LabelEnterprise
+	LabelEnterprise = SystemLabelPrefix + "enterprise"
 )
 
 const (
@@ -210,10 +214,6 @@ const (
 	// MachineStatusLabelTalosVersion describes the machine talos version.
 	// tsgen:MachineStatusLabelTalosVersion
 	MachineStatusLabelTalosVersion = SystemLabelPrefix + "talos-version"
-
-	// MachineStatusLabelEnterprise is set if the machine runs Talos Enterprise.
-	// tsgen:MachineStatusLabelEnterprise
-	MachineStatusLabelEnterprise = SystemLabelPrefix + "enterprise"
 
 	// MachineStatusLabelFIPS is set if the machine runs Talos in FIPS mode, with the value "enabled" or "strict".
 	// tsgen:MachineStatusLabelFIPS

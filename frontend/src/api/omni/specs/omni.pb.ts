@@ -859,6 +859,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 
 export type MachineConfigGenOptionsSpec = {
   install_image?: MachineConfigGenOptionsSpecInstallImage
+  talos_version?: string
 }
 
 export type EtcdAuditResultSpec = {
@@ -1213,6 +1214,8 @@ export type MachineConfigExtractionStatusSpec = {
 export type ImageFactoryAuthSpec = {
   username?: string
   password?: string
+  api_token?: string
+  machine_token?: string
 }
 
 export type MachineInstallDiskConfigSpec = {

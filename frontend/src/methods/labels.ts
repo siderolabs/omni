@@ -9,6 +9,7 @@ import {
   InfraProviderLabelPrefix,
   LabelCluster,
   LabelControlPlaneRole,
+  LabelEnterprise,
   LabelInfraProviderID,
   LabelWorkerRole,
   MachineStatusLabelArch,
@@ -17,7 +18,6 @@ import {
   MachineStatusLabelCores,
   MachineStatusLabelCPU,
   MachineStatusLabelDisconnected,
-  MachineStatusLabelEnterprise,
   MachineStatusLabelFIPS,
   MachineStatusLabelInstance,
   MachineStatusLabelInvalidState,
@@ -63,7 +63,7 @@ const labelClasses: Record<string, string> = {
 
   // Talos
   [MachineStatusLabelTalosVersion]: 'label-red',
-  [MachineStatusLabelEnterprise]: 'label-violet',
+  [LabelEnterprise]: 'label-violet',
   [MachineStatusLabelFIPS]: 'label-violet',
 
   // Connection state
