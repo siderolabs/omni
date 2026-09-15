@@ -91,6 +91,11 @@ const canExpand = computed(
       {{ scan.error }}
     </TAlert>
 
+    <TAlert v-else-if="scan.notFound" type="info" title="No report available" class="mx-4 mb-3">
+      No vulnerability report was found for this schematic on Talos {{ version }}. The schematic may
+      not exist on the image factory yet, or its scan may not have been published yet.
+    </TAlert>
+
     <div
       v-else-if="expanded && diff"
       class="flex flex-col gap-4 border-t border-naturals-n5 px-4 py-3"
