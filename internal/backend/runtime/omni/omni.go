@@ -25,7 +25,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/role"
-	"github.com/stripe/stripe-go/v85"
+	"github.com/stripe/stripe-go/v86"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/common"

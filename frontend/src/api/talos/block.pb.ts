@@ -109,6 +109,32 @@ export type MountStatusSpec = {
   detached?: boolean
 }
 
+export type SMARTAttribute = {
+  id?: number
+  name?: string
+  current?: number
+  worst?: number
+  threshold?: number
+  raw_value?: number
+  failing?: boolean
+}
+
+export type SMARTStatusSpec = {
+  dev_path?: string
+  dev_type?: string
+  healthy?: boolean
+  message?: string
+  power_state?: string
+  temperature?: number
+  power_on_hours?: number
+  power_cycles?: number
+  percent_used?: number
+  available_spare?: number
+  critical_warning?: number
+  media_errors?: number
+  attributes?: SMARTAttribute[]
+}
+
 export type SwapStatusSpec = {
   device?: string
   type?: string

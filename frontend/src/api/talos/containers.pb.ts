@@ -105,3 +105,14 @@ export type ContainerMountStatusSpec = {
   mounts?: ResolvedMountSpec[]
   error?: string
 }
+
+export type ContainerStatusSpec = {
+  state?: string
+  health?: string
+  image?: string
+  pid?: number
+  exitCode?: number
+  restartCount?: number
+  error?: string
+  waitingFor?: string[]
+}
