@@ -28,6 +28,7 @@ import {
   DefaultNamespace,
   EtcdBackupStatusType,
   KubernetesStatusType,
+  LabelEnterprise,
   MetricsNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
@@ -268,7 +269,15 @@ const exportClusterTemplateModalOpen = ref(false)
         </div>
       </OverviewRightPanelItem>
       <OverviewRightPanelItem v-if="talosUpgradeStatus" name="Talos Version">
-        <div>{{ talosVersion }}</div>
+        <div class="inline-flex items-center gap-2">
+          {{ talosVersion }}
+          <span
+            v-if="clusterStatus?.metadata.labels?.[LabelEnterprise] !== undefined"
+            class="resource-label label-violet"
+          >
+            enterprise
+          </span>
+        </div>
         <Tooltip
           v-if="newTalosVersionsAvailable?.length"
           :description="

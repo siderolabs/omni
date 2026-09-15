@@ -173,6 +173,13 @@ const upgradeClick = async () => {
               />
               {{ version }}
               <span v-if="version === currentVersion">(current)</span>
+              <div class="grow"></div>
+              <span
+                v-if="versionMap.get(version)?.spec.is_enterprise"
+                class="resource-label label-violet"
+              >
+                enterprise
+              </span>
             </div>
           </RadioGroupOption>
         </div>
