@@ -8,15 +8,15 @@ included in the LICENSE file.
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
-import { DefaultNamespace, TalosVersionType } from '@/api/resources'
+import { ClusterStatusType, DefaultNamespace, LabelEnterprise } from '@/api/resources'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { useIsEnterprise } from '@/methods/features'
-import { useResourceGet } from '@/methods/useResourceGet'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterSecurityTarget from '@/views/ClusterSecurity/components/ClusterSecurityTarget.vue'
 import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
 import { useClusterArtifactTargets } from '@/views/ClusterSecurity/util/securityReports'
@@ -24,27 +24,31 @@ import ScanDetailsModal from '@/views/InstallationMedia/vulnerabilities/ScanDeta
 
 const { clusterId } = defineProps<{ clusterId: string }>()
 
-const isEnterpriseFactory = useIsEnterprise()
+const isEnterprise = useIsEnterprise()
+
+const { data: clusterStatus, err: clusterStatusError } = useResourceWatch<ClusterStatusSpec>(
+  () => ({
+    skip: !isEnterprise.value,
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterStatusType,
+      id: clusterId,
+    },
+  }),
+)
+
+const isEnterpriseCluster = computed(
+  () => clusterStatus.value?.metadata.labels?.[LabelEnterprise] !== undefined,
+)
 
 const {
   data: artifactTargets,
   loading: targetsLoading,
   err: targetsError,
-} = useClusterArtifactTargets(() => ({ clusterId, skip: !isEnterpriseFactory.value }))
+} = useClusterArtifactTargets(() => ({ clusterId, skip: !isEnterpriseCluster.value }))
 
 const currentVersion = computed(() => artifactTargets.value?.current_talos_version)
-
-const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
-  skip: !isEnterpriseFactory.value || !currentVersion.value,
-  runtime: Runtime.Omni,
-  resource: {
-    namespace: DefaultNamespace,
-    type: TalosVersionType,
-    id: currentVersion.value ?? '',
-  },
-}))
-
-const isTalosVersionEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
 
 const detailsModal = ref<{
   open: boolean
@@ -61,7 +65,7 @@ const detailsModal = ref<{
       <h1 class="text-lg text-naturals-n14">
         Vulnerabilities for {{ clusterId }}
 
-        <span class="resource-label label-red inline-flex items-center gap-1">
+        <span v-if="currentVersion" class="resource-label label-red inline-flex items-center gap-1">
           <TIcon class="size-3.5 shrink-0" icon="talos" aria-label="Talos version" />
           {{ currentVersion }}
         </span>
@@ -82,22 +86,26 @@ const detailsModal = ref<{
       </p>
     </header>
 
-    <TAlert v-if="!isEnterpriseFactory" type="info" title="Vulnerability scanning unavailable">
+    <TAlert v-if="!isEnterprise" type="info" title="Vulnerability scanning unavailable">
       Vulnerability scanning requires the enterprise image factory.
     </TAlert>
 
-    <TAlert
-      v-else-if="!isTalosVersionEnterpriseFactory"
-      type="info"
-      title="Vulnerability scanning unavailable"
-    >
-      Vulnerability scanning requires using a talos version from the enterprise image factory.
+    <TAlert v-else-if="clusterStatusError" type="error" title="Failed to load cluster information">
+      {{ clusterStatusError }}
     </TAlert>
 
-    <p v-else-if="targetsLoading" class="flex items-center gap-1.5 text-sm text-naturals-n11">
+    <p
+      v-else-if="!clusterStatus || targetsLoading"
+      class="flex items-center gap-1.5 text-sm text-naturals-n11"
+    >
       <TSpinner class="size-4" />
       Loading cluster information…
     </p>
+
+    <TAlert v-else-if="!isEnterpriseCluster" type="info" title="Vulnerability scanning unavailable">
+      Vulnerability scanning requires every machine in the cluster to run an image from the
+      enterprise image factory.
+    </TAlert>
 
     <TAlert v-else-if="targetsError" type="error" title="Failed to load cluster information">
       {{ targetsError.message }}
