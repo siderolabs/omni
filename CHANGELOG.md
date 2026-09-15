@@ -1,3 +1,48 @@
+## [Omni 1.12.1](https://github.com/siderolabs/omni/releases/tag/v1.12.1) (2026-09-15)
+
+Welcome to the v1.12.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Andrey Smirnov
+* Artem Chernyshev
+* Utku Ozdemir
+* immanuwell
+
+### Changes
+<details><summary>15 commits</summary>
+<p>
+
+* [`60deeecce`](https://github.com/siderolabs/omni/commit/60deeecce57336d485ae81b49400ee87b4b4892a) test: drop MinIO usage in the tests
+* [`663e550b7`](https://github.com/siderolabs/omni/commit/663e550b7901788c46cded578bfc1ff8d1ee31bf) feat(frontend): show a message that cluster security UI requires enterprise
+* [`a0e2c0e84`](https://github.com/siderolabs/omni/commit/a0e2c0e84c03824c455de14df2f61c04d3aa0209) feat(frontend): add enterprise label to cluster overview
+* [`d3c2eb3db`](https://github.com/siderolabs/omni/commit/d3c2eb3dbc9db95ec07481f651ef36872f3af7e5) feat: copy enterprise label to more resources
+* [`62ac3b806`](https://github.com/siderolabs/omni/commit/62ac3b80644c3b40823bc88354a6bc5e707b48e2) feat(frontend): handle not found scan reports in ui
+* [`5a2a27e06`](https://github.com/siderolabs/omni/commit/5a2a27e063420c9ddf4311df5fcae04ae5c4d99d) fix: allow image removal API
+* [`6fb7e330d`](https://github.com/siderolabs/omni/commit/6fb7e330d38bb7cf7099d6c4df9c4d28b4bea2f9) fix(frontend): make security docs link _blank
+* [`ddddf4729`](https://github.com/siderolabs/omni/commit/ddddf472940c315b82754150b7d8b3549495f18c) feat(frontend): group talos versions by minor
+* [`0b9eef767`](https://github.com/siderolabs/omni/commit/0b9eef767a8dacff336ee995b2b707b659371211) feat(frontend): add enterprise label to talos select lists
+* [`dfa4b52ee`](https://github.com/siderolabs/omni/commit/dfa4b52eea8ac4721bfe355f52cb55a5642a5d20) refactor(frontend): extract all select components into individual files
+* [`87c525a61`](https://github.com/siderolabs/omni/commit/87c525a6161cf274faf5e444be9b57a93b2d8337) refactor(frontend): create a singular talos version select component
+* [`0270ead84`](https://github.com/siderolabs/omni/commit/0270ead849c897d5424a7d489e2a8e1abc331b51) fix: remove incomplete installation media downloads
+* [`ed531d7fd`](https://github.com/siderolabs/omni/commit/ed531d7fde892ef90d173e3fb681d64d71d8eee8) refactor: normalize factory urls at input only
+* [`b35962912`](https://github.com/siderolabs/omni/commit/b35962912af5fc18ca408fe74d0c006c8add922c) feat(frontend): add loading state for image download links
+* [`17086d6f9`](https://github.com/siderolabs/omni/commit/17086d6f9d0b298d96c386cbcbb00f2659ee756d) fix: keep the untouched machines out of a canceled Talos upgrade
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.12.0](https://github.com/siderolabs/omni/releases/tag/v1.12.0)
+
 ## [Omni 1.12.0](https://github.com/siderolabs/omni/releases/tag/v1.12.0) (2026-09-11)
 
 Welcome to the v1.12.0 release of Omni!
