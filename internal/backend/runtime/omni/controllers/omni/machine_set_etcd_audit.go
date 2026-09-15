@@ -104,6 +104,8 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 					return err
 				}
 
+				defer talosCli.Close() //nolint:errcheck
+
 				orphanMemberSet, err := auditor.auditEtcd(ctx, r, talosCli, cluster, machineSet, logger)
 				if err != nil {
 					return err
@@ -480,6 +482,8 @@ func (auditor *etcdAuditor) getClient(ctx context.Context, r controller.Reader, 
 
 	connected, err := c.Connected(ctx, r)
 	if err != nil {
+		c.Close() //nolint:errcheck
+
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
 		}
@@ -488,6 +492,8 @@ func (auditor *etcdAuditor) getClient(ctx context.Context, r controller.Reader, 
 	}
 
 	if !connected {
+		c.Close() //nolint:errcheck
+
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the cluster is not available")
 	}
 

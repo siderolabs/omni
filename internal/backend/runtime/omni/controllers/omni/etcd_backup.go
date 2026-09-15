@@ -373,6 +373,8 @@ func (ctrl *EtcdBackupController) doBackup(
 		return fmt.Errorf("failed to create talos client for cluster, skipping cluster backup: %w", err)
 	}
 
+	defer client.Close() //nolint:errcheck
+
 	rdr, err := client.EtcdSnapshot(ctx, &machineapi.EtcdSnapshotRequest{})
 	if err != nil {
 		return fmt.Errorf("failed to start etcd snapshot stream for cluster: %w", err)
@@ -463,9 +465,10 @@ func (ctrl *EtcdBackupController) updateBackupStatus(
 	}
 }
 
-// TalosClient is a subset of Talos client.
+// TalosClient is a subset of Talos client. It must be closed by the caller.
 type TalosClient interface {
 	EtcdSnapshot(ctx context.Context, req *machineapi.EtcdSnapshotRequest, callOptions ...grpc.CallOption) (io.ReadCloser, error)
+	Close() error
 }
 
 type countingReader struct {
