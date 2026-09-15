@@ -7,7 +7,6 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import { Code } from '@/api/google/rpc/code.pb'
-import type { Resource } from '@/api/grpc'
 import {
   Arch,
   type ArtifactTarget,
@@ -16,13 +15,13 @@ import {
   type VulnerabilityReportRequest,
   type VulnerabilityReportResponse,
 } from '@/api/omni/imagefactory/imagefactory.pb'
-import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
-import type { FeaturesConfigSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterStatusSpec, FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
 import {
+  ClusterStatusType,
   DefaultNamespace,
   FeaturesConfigID,
   FeaturesConfigType,
-  TalosVersionType,
+  LabelEnterprise,
 } from '@/api/resources'
 import ClusterSecurity from '@/views/ClusterSecurity/ClusterSecurity.vue'
 import type { Match, VulnerabilityReport } from '@/views/ClusterSecurity/util/ReportTypes'
@@ -117,25 +116,25 @@ const featuresHandler = createWatchStreamHandler<FeaturesConfigSpec>({
   ],
 }).handler
 
-// The single Talos version the page looks up to check it's served by the enterprise factory.
-const talosVersionHandler = http.post<never, GetRequest, GetResponse>(
-  '/omni.resources.ResourceService/Get',
-  async ({ request }) => {
-    const { namespace, type, id } = await request.clone().json()
-
-    if (namespace !== DefaultNamespace || type !== TalosVersionType) return
-
-    return HttpResponse.json({
-      body: JSON.stringify({
-        spec: {
-          version: id,
-          is_enterprise: true,
+// The cluster status the page reads to check its machines run enterprise factory images.
+function clusterStatusHandler(enterprise: boolean) {
+  return createWatchStreamHandler<ClusterStatusSpec>({
+    expectedOptions: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
+    initialResources: [
+      {
+        metadata: {
+          namespace: DefaultNamespace,
+          type: ClusterStatusType,
+          id: CLUSTER,
+          labels: enterprise ? { [LabelEnterprise]: '' } : {},
         },
-        metadata: { namespace, type, id },
-      } satisfies Resource<TalosVersionSpec>),
-    })
-  },
-)
+        spec: { talos_version: CURRENT_VERSION },
+      },
+    ],
+  }).handler
+}
+
+const enterpriseClusterHandler = clusterStatusHandler(true)
 
 // Resolves the cluster's installed (schematic, arch) targets and upgrade paths.
 function artifactTargetsHandler(
@@ -208,7 +207,7 @@ export const Default: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      talosVersionHandler,
+      enterpriseClusterHandler,
       artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
         PATCH_VERSION,
         MINOR_VERSION,
@@ -223,7 +222,7 @@ export const HeterogeneousCluster: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      talosVersionHandler,
+      enterpriseClusterHandler,
       artifactTargetsHandler(
         [
           artifactTarget(SCHEMATIC_CP, Arch.AMD64, 1, true),
@@ -242,7 +241,7 @@ export const NoUpgradesAvailable: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      talosVersionHandler,
+      enterpriseClusterHandler,
       artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 1, true)], MINOR_VERSION),
       scanHandler,
     )
@@ -257,7 +256,7 @@ export const UpgradeReportUnavailable: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      talosVersionHandler,
+      enterpriseClusterHandler,
       artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
         PATCH_VERSION,
         MINOR_VERSION,
@@ -273,11 +272,21 @@ export const NoReportsAvailable: Story = {
   beforeEach({ msw }) {
     msw.use(
       featuresHandler,
-      talosVersionHandler,
+      enterpriseClusterHandler,
       artifactTargetsHandler([artifactTarget(SCHEMATIC_CP, Arch.AMD64, 3, true)], CURRENT_VERSION, [
         PATCH_VERSION,
       ]),
       missingScanHandler([CURRENT_VERSION, PATCH_VERSION]),
     )
+  },
+}
+
+/**
+ * The cluster's machines do not all run images from the enterprise factory, so there is nothing to
+ * scan - the page says so instead of asking the factory for reports.
+ */
+export const NonEnterpriseCluster: Story = {
+  beforeEach({ msw }) {
+    msw.use(featuresHandler, clusterStatusHandler(false))
   },
 }
