@@ -73,6 +73,8 @@ const detailsModal = ref<{
         <a
           class="link-primary"
           :href="getDocsLink('talos', '/advanced-guides/SBOM', { talosVersion: currentVersion })"
+          target="_blank"
+          rel="noopener noreferrer"
         >
           docs
         </a>
