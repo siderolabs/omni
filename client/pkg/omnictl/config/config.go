@@ -138,12 +138,17 @@ func Current() (*Config, error) {
 	return current, nil
 }
 
-// GetContext returns the context with the given name. If empty, it will return the selected context in the config file.
-func (c *Config) GetContext(name string) (*Context, error) {
+// ResolveContextName returns the given name or the selected context when empty.
+func (c *Config) ResolveContextName(name string) string {
 	if name == "" {
-		name = c.Context
+		return c.Context
 	}
 
+	return name
+}
+
+// GetContext returns the context with the given name.
+func (c *Config) GetContext(name string) (*Context, error) {
 	context, ok := c.Contexts[name]
 	if !ok {
 		return nil, fmt.Errorf("context not found: %s", name)
