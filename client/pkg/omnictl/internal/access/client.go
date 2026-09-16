@@ -101,12 +101,9 @@ func WithClient(f func(ctx context.Context, client *client.Client, info ServerIn
 				return err
 			}
 
-			contextName := conf.Context
-			if CmdFlags.Context != "" {
-				contextName = CmdFlags.Context
-			}
+			contextName := conf.ResolveContextName(CmdFlags.Context)
 
-			configCtx, err := conf.GetContext(CmdFlags.Context)
+			configCtx, err := conf.GetContext(contextName)
 			if err != nil {
 				return err
 			}

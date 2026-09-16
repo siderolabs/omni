@@ -39,7 +39,7 @@ var configURLCmd = &cobra.Command{
 			return err
 		}
 
-		context, err := conf.GetContext(access.CmdFlags.Context)
+		context, err := conf.GetContext(conf.ResolveContextName(access.CmdFlags.Context))
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ var configIdentityCmd = &cobra.Command{
 			return err
 		}
 
-		context, err := conf.GetContext(access.CmdFlags.Context)
+		context, err := conf.GetContext(conf.ResolveContextName(access.CmdFlags.Context))
 		if err != nil {
 			return err
 		}
@@ -151,6 +151,8 @@ var configGetContextsCmd = &cobra.Command{
 		keys := maps.Keys(conf.Contexts)
 		slices.Sort(keys)
 
+		contextName := conf.ResolveContextName(access.CmdFlags.Context)
+
 		w := tabwriter.NewWriter(safeout.Stdout(), 0, 0, 3, ' ', 0)
 		defer w.Flush() //nolint:errcheck
 
@@ -164,7 +166,7 @@ var configGetContextsCmd = &cobra.Command{
 
 			var current string
 
-			if name == conf.Context {
+			if name == contextName {
 				current = "*"
 			}
 
@@ -226,7 +228,7 @@ var configNewCmd = &cobra.Command{
 			return err
 		}
 
-		context, err := conf.GetContext(access.CmdFlags.Context)
+		context, err := conf.GetContext(conf.ResolveContextName(access.CmdFlags.Context))
 		if err != nil {
 			return err
 		}
@@ -260,7 +262,9 @@ var configInfoCmd = &cobra.Command{
 
 		var result string
 
-		context, err := conf.GetContext(access.CmdFlags.Context)
+		contextName := conf.ResolveContextName(access.CmdFlags.Context)
+
+		context, err := conf.GetContext(contextName)
 		if err != nil {
 			return err
 		}
@@ -268,7 +272,7 @@ var configInfoCmd = &cobra.Command{
 		var buf bytes.Buffer
 
 		err = configInfoCmdTemplate.Execute(&buf, map[string]string{
-			"Context":  conf.Context,
+			"Context":  contextName,
 			"APIURL":   context.URL,
 			"Identity": context.Auth.SideroV1.Identity,
 		})
