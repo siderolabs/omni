@@ -2,7 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { computed, effectScope } from 'vue'
+import { createSharedComposable } from '@vueuse/core'
+import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -35,12 +36,14 @@ interface OngoingTaskDescription {
   revertingTo?: string
 }
 
-let tasks: ReturnType<typeof initOngoingTasks> | undefined
-
-export function useOngoingTasks() {
-  tasks ||= initOngoingTasks()
-
-  const { data, ...rest } = tasks
+export const useOngoingTasks = createSharedComposable(() => {
+  const { data, ...rest } = useResourceWatch<OngoingTaskSpec>(() => ({
+    resource: {
+      namespace: EphemeralNamespace,
+      type: OngoingTaskType,
+    },
+    runtime: Runtime.Omni,
+  }))
 
   return {
     data: computed(() =>
@@ -52,19 +55,7 @@ export function useOngoingTasks() {
     ),
     ...rest,
   }
-}
-
-function initOngoingTasks() {
-  return effectScope(true).run(() => {
-    return useResourceWatch<OngoingTaskSpec>(() => ({
-      resource: {
-        namespace: EphemeralNamespace,
-        type: OngoingTaskType,
-      },
-      runtime: Runtime.Omni,
-    }))
-  })!
-}
+})
 
 function secretComponentName(component?: SecretRotationSpecComponent) {
   switch (component) {

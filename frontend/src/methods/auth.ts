@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
+import { createSharedComposable } from '@vueuse/core'
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, effectScope, nextTick, toValue } from 'vue'
 
@@ -35,75 +36,53 @@ import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
 import { useResourceGet } from '@/methods/useResourceGet'
 
-let currentUser: ReturnType<typeof initCurrentUser> | undefined
+export const useCurrentUser = createSharedComposable(() => {
+  const { data } = useResourceGet<CurrentUserSpec>(() => ({
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: VirtualNamespace,
+      type: CurrentUserType,
+      id: CurrentUserID,
+    },
+  }))
 
-export function useCurrentUser() {
-  currentUser ||= initCurrentUser()
+  return data
+})
 
-  return currentUser
-}
+export const usePermissions = createSharedComposable(() => {
+  const { data } = useResourceGet<PermissionsSpec>(() => ({
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: VirtualNamespace,
+      type: PermissionsType,
+      id: PermissionsID,
+    },
+  }))
 
-function initCurrentUser() {
-  return effectScope(true).run(() => {
-    const { data } = useResourceGet<CurrentUserSpec>(() => ({
-      runtime: Runtime.Omni,
-      resource: {
-        namespace: VirtualNamespace,
-        type: CurrentUserType,
-        id: CurrentUserID,
-      },
-    }))
+  const spec = computed(() => data.value?.spec)
 
-    return data
-  })!
-}
-
-let permissions: ReturnType<typeof initPermissions> | undefined
-
-export function usePermissions() {
-  permissions ||= initPermissions()
-
-  return permissions
-}
-
-function initPermissions() {
-  return effectScope(true).run(() => {
-    const { data } = useResourceGet<PermissionsSpec>(() => ({
-      runtime: Runtime.Omni,
-      resource: {
-        namespace: VirtualNamespace,
-        type: PermissionsType,
-        id: PermissionsID,
-      },
-    }))
-
-    const spec = computed(() => data.value?.spec)
-
-    return {
-      canAccessMaintenanceNodes: computed(() => spec.value?.can_access_maintenance_nodes ?? false),
-      canCreateClusters: computed(() => spec.value?.can_create_clusters ?? false),
-      canManageBackupStore: computed(() => spec.value?.can_manage_backup_store ?? false),
-      canManageMachineConfigPatches: computed(
-        () => spec.value?.can_manage_machine_config_patches ?? false,
-      ),
-      canManageUsers: computed(() => spec.value?.can_manage_users ?? false),
-      canReadAuditLog: computed(() => spec.value?.can_read_audit_log ?? false),
-      canReadClusters: computed(() => spec.value?.can_read_clusters ?? false),
-      canReadMachineConfigPatches: computed(
-        () => spec.value?.can_read_machine_config_patches ?? false,
-      ),
-      canReadMachineLogs: computed(() => spec.value?.can_read_machine_logs ?? false),
-      canReadMachines: computed(() => spec.value?.can_read_machines ?? false),
-      canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
-      canReadJoinTokens: computed(() => spec.value?.can_read_join_tokens ?? false),
-      canManageJoinTokens: computed(() => spec.value?.can_manage_join_tokens ?? false),
-      canReadInstallationMedia: computed(() => spec.value?.can_read_installation_media ?? false),
-      canManageInstallationMedia: computed(
-        () => spec.value?.can_manage_installation_media ?? false,
-      ),
-    }
-  })!
-}
+  return {
+    canAccessMaintenanceNodes: computed(() => spec.value?.can_access_maintenance_nodes ?? false),
+    canCreateClusters: computed(() => spec.value?.can_create_clusters ?? false),
+    canManageBackupStore: computed(() => spec.value?.can_manage_backup_store ?? false),
+    canManageMachineConfigPatches: computed(
+      () => spec.value?.can_manage_machine_config_patches ?? false,
+    ),
+    canManageUsers: computed(() => spec.value?.can_manage_users ?? false),
+    canReadAuditLog: computed(() => spec.value?.can_read_audit_log ?? false),
+    canReadClusters: computed(() => spec.value?.can_read_clusters ?? false),
+    canReadMachineConfigPatches: computed(
+      () => spec.value?.can_read_machine_config_patches ?? false,
+    ),
+    canReadMachineLogs: computed(() => spec.value?.can_read_machine_logs ?? false),
+    canReadMachines: computed(() => spec.value?.can_read_machines ?? false),
+    canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
+    canReadJoinTokens: computed(() => spec.value?.can_read_join_tokens ?? false),
+    canManageJoinTokens: computed(() => spec.value?.can_manage_join_tokens ?? false),
+    canReadInstallationMedia: computed(() => spec.value?.can_read_installation_media ?? false),
+    canManageInstallationMedia: computed(() => spec.value?.can_manage_installation_media ?? false),
+  }
+})
 
 const clusterPermissionScopes: Record<string, ReturnType<typeof createClusterPermissions>> = {}
 
