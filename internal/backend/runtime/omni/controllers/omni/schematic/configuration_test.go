@@ -53,8 +53,6 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			// rebootInto simulates the machine rebooting into the schematic the factory just built for it:
 			// the node now reports that schematic as its own booted one (Raw + FullId), exactly like a real
 			// machine would after Omni generated a new schematic and the machine reinstalled/rebooted into it.
-			// Without this, the machine's Raw would lag the desired schematic and the controller's
-			// "desired == booted, skip the factory" early-exit would fire spuriously.
 			rebootInto := func(id string) {
 				s, ok := factory.Get(id)
 				r.True(ok, "schematic %q was not uploaded to the factory", id)
@@ -631,10 +629,8 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 }
 
 // TestSchematicConfigurationRepublishesAfterInvalid covers the invalid -> valid transition: the
-// Invalid branch resets SchematicId to "" while leaving TalosVersion set, so the next reconcile sees
-// versionOutdated == false. If the machine's schematic is also content-equal to what Omni wants, the
-// factory round-trip would be skipped and the empty SchematicId would survive - which
-// ReconciliationContext then compares against the machine's own FullId.
+// Invalid branch resets SchematicId to "", and the next reconcile must ensure the schematic on the image
+// factory again, as ReconciliationContext compares the ID against the machine's own FullId.
 func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 	t.Parallel()
 
@@ -658,9 +654,6 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 				talosVersion = "1.10.0"
 			)
 
-			// The machine is unallocated, so Omni preserves its own extensions and kernel args
-			// verbatim. Feeding a raw schematic that already carries exactly those makes the patched
-			// schematic content-equal to the raw one, which is what triggers the skip branch.
 			rawSchematic := schematic.Schematic{
 				Customization: schematic.Customization{
 					ExtraKernelArgs: []string{"console=ttyS0"},
@@ -703,9 +696,8 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 				},
 			)
 
-			// The machine is reinstalled through the factory and now reports a usable schematic. The
-			// controller must publish an id even though the Talos version did not move and the reported
-			// schematic is content-equal to what Omni wants, which on its own would skip the factory.
+			// The machine is reinstalled and reports a usable schematic. Its desired schematic ID must be set again,
+			// although the Talos version did not move and it already runs with the desired schematic.
 			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Schematic.Invalid = false
 				res.TypedSpec().Value.Schematic.Raw = string(rawYAML)
@@ -724,8 +716,7 @@ func TestSchematicConfigurationRepublishesAfterInvalid(t *testing.T) {
 				},
 			)
 
-			// The id came from the factory rather than from a local computation, i.e. the round-trip that
-			// the content-equality check would otherwise have skipped did happen.
+			// The ID came from the image factory, not from a local computation.
 			_, ok := factory.Get(rawSchematicID)
 			assert.True(t, ok, "schematic %q was not uploaded to the factory", rawSchematicID)
 		},
@@ -786,14 +777,17 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
+			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
+			}
 			r.NoError(st.Create(ctx, machineStatus))
 
-			// the first reconcile ensures the schematic, as nothing is published yet
+			// installed and already running with the desired schematic, so it keeps its own schematic ID
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
 			})
 
-			r.EqualValues(1, factory.EnsureCalls.Load())
+			r.Zero(factory.EnsureCalls.Load())
 
 			cluster := omni.NewCluster(clusterName)
 			cluster.TypedSpec().Value.TalosVersion = talosVersion
@@ -803,8 +797,8 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 			r.NoError(st.Create(ctx, clusterMachine))
 
-			// the machine is about to be installed, the schematic is ensured again although its content is the same
-			r.Eventually(func() bool { return factory.EnsureCalls.Load() >= 2 }, 10*time.Second, 50*time.Millisecond)
+			// the machine is about to be installed again, so the schematic is ensured although it did not change
+			r.Eventually(func() bool { return factory.EnsureCalls.Load() >= 1 }, 10*time.Second, 50*time.Millisecond)
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
@@ -960,6 +954,100 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 			})
 
 			r.Greater(factory.EnsureCalls.Load(), ensureCalls, "the id should come from the factory")
+		},
+	)
+}
+
+// TestSchematicConfigurationDeallocatedBeforeInstall covers a machine in maintenance that is removed from a cluster before it is installed:
+// its desired schematic ID must go back to the schematic it runs.
+func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			const (
+				machineName  = "deallocated-machine"
+				clusterName  = "deallocated-cluster"
+				talosVersion = "1.7.0"
+			)
+
+			booted := schematic.Schematic{}
+			booted.Customization.SystemExtensions.OfficialExtensions = []string{"siderolabs/a"}
+
+			bootedID, err := booted.ID()
+			r.NoError(err)
+
+			bootedRaw, err := booted.Marshal()
+			r.NoError(err)
+
+			cluster := omni.NewCluster(clusterName)
+			cluster.TypedSpec().Value.TalosVersion = talosVersion
+
+			r.NoError(st.Create(ctx, cluster))
+
+			machineStatus := omni.NewMachineStatus(machineName)
+			machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			machineStatus.TypedSpec().Value.Maintenance = true
+			machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.InitialTalosVersion = talosVersion
+			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				FullId:           bootedID,
+				Raw:              string(bootedRaw),
+				Extensions:       []string{"siderolabs/a"},
+				InitialSchematic: bootedID,
+				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{Extensions: []string{"siderolabs/a"}},
+			}
+			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+
+			r.NoError(st.Create(ctx, machineStatus))
+
+			assertSchematicID := func(id string) {
+				t.Helper()
+
+				rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+					assertion.Equal(id, schematicConfiguration.TypedSpec().Value.SchematicId)
+				})
+			}
+
+			assertSchematicID(bootedID)
+
+			extensionsConfiguration := omni.NewExtensionsConfiguration("test")
+			extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			extensionsConfiguration.Metadata().Labels().Set(omni.LabelClusterMachine, machineName)
+			extensionsConfiguration.TypedSpec().Value.Extensions = []string{"siderolabs/b"}
+
+			r.NoError(st.Create(ctx, extensionsConfiguration))
+
+			clusterMachine := omni.NewClusterMachine(machineName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "machineset")
+
+			r.NoError(st.Create(ctx, clusterMachine))
+
+			allocated := schematic.Schematic{}
+			allocated.Customization.SystemExtensions.OfficialExtensions = []string{"siderolabs/b"}
+
+			allocatedID, err := allocated.ID()
+			r.NoError(err)
+
+			assertSchematicID(allocatedID)
+
+			rtestutils.Destroy[*omni.ClusterMachine](ctx, t, st, []string{machineName})
+
+			assertSchematicID(bootedID)
 		},
 	)
 }

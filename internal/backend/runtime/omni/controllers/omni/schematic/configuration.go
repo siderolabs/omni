@@ -261,14 +261,15 @@ func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, log
 
 	runsDesired := bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) && talosVersion == machineTalosVersion
 	installPending := ms.TypedSpec().Value.Maintenance && cluster != nil // the install replaces what runs anyway
+	// with nothing installed, the install uses the desired schematic ID, so it has to come from the image factory
 	talosInstalled := omni.GetMachineStatusSystemDisk(ms) != ""
 
 	switch {
 	case runsDesired && talosInstalled && !installPending:
 		// the machine runs what it should, whichever factory issued it - the factory serving the version would answer with a different id for the same content
 		schematicConfiguration.TypedSpec().Value.SchematicId = ms.TypedSpec().Value.Schematic.FullId
-	case !runsDesired || installPending || schematicConfiguration.TypedSpec().Value.SchematicId == "":
-		// asked on every pass, the published id might be the one taken from the machine above before it moved on
+	default:
+		// ensured on every pass, the desired schematic ID might be stale or the one taken from the machine above before it moved on
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 
 		id, _, err := factoryClient.EnsureSchematic(factoryCtx, patched)
@@ -290,8 +291,6 @@ func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, log
 		}
 
 		schematicConfiguration.TypedSpec().Value.SchematicId = id
-	default:
-		// no Talos on disk and nothing to change, the published id stays
 	}
 
 	return nil
