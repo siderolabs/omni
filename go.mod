@@ -4,13 +4,13 @@ go 1.27.1
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	github.com/crewjam/saml => github.com/unix4ever/saml 34930b26d33b
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 
 	// includes fix https://github.com/yaml/go-yaml/pull/380
-	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 c4a5514d019f
 )
 
 tool github.com/atombender/go-jsonschema
@@ -35,18 +35,18 @@ require (
 	github.com/cosi-project/state-etcd v0.7.0
 	github.com/cosi-project/state-sqlite v0.5.0
 	github.com/crewjam/saml v0.5.1
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/emicklei/dot v1.11.0
 	github.com/felixge/httpsnoop v1.1.0
 	github.com/fluxcd/cli-utils v1.3.0
-	github.com/fluxcd/pkg/ssa v0.77.0
+	github.com/fluxcd/pkg/ssa v0.78.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/cel-go v0.31.0
+	github.com/google/cel-go v0.32.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.22.1
 	github.com/google/uuid v1.6.0
@@ -92,7 +92,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/stripe/stripe-go/v86 v86.4.2
 	github.com/zitadel/logging v0.7.0
-	github.com/zitadel/oidc/v3 v3.51.0
+	github.com/zitadel/oidc/v3 v3.51.3
 	go.etcd.io/bbolt v1.5.0
 	go.etcd.io/etcd/client/pkg/v3 v3.7.1
 	go.etcd.io/etcd/client/v3 v3.7.1
@@ -110,7 +110,7 @@ require (
 	golang.org/x/tools v0.50.0
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/api v0.37.0
 	k8s.io/apimachinery v0.37.0
@@ -131,7 +131,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/atombender/go-jsonschema v0.23.1 // indirect
+	github.com/atombender/go-jsonschema v0.24.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.20 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.32 // indirect
