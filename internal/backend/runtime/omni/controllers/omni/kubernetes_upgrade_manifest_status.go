@@ -169,6 +169,8 @@ func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientG
 					return fmt.Errorf("failed to get talos client: %w", err)
 				}
 
+				defer talosClient.Close() //nolint:errcheck
+
 				manifestStatus.TypedSpec().Value.OutOfSync = 0
 				manifestStatus.TypedSpec().Value.LastFatalError = ""
 
