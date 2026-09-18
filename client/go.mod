@@ -3,7 +3,7 @@ module github.com/siderolabs/omni/client
 go 1.27.1
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
-replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260709220509-c4a5514d019f
 
 require (
 	filippo.io/age v1.3.2
@@ -13,7 +13,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/containers/image/v5 v5.36.2
 	github.com/cosi-project/runtime v1.16.3
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
@@ -43,7 +43,7 @@ require (
 	golang.org/x/crypto v0.57.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/term v0.46.0
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/apimachinery v0.37.0
 	k8s.io/client-go v0.37.0
