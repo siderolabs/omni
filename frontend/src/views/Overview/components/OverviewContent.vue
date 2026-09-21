@@ -491,7 +491,8 @@ const machineLockedForSecretRotation = computed(() => {
             <span class="text-sm text-naturals-n13">Labels</span>
           </div>
           <ItemLabels
-            :resource="currentCluster"
+            v-if="clusterStatus"
+            :resource="clusterStatus"
             :add-label-func="addClusterLabels"
             :remove-label-func="removeClusterLabels"
           />
