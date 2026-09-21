@@ -471,7 +471,7 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 						return err
 					}
 
-					if res != nil {
+					if res != nil && isPrunedInventory(res.GetAnnotations()[ssa.InventoryAnnotationKey]) {
 						r.TypedSpec().Value.SetManifestStatus(groupName, id, obj, specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_DELETING)
 
 						continue
@@ -641,6 +641,11 @@ func manifestGroupForObject(
 	}
 
 	return id, "", false
+}
+
+// isPrunedInventory reports whether Omni prunes the objects applied through the given inventory.
+func isPrunedInventory(inventory string) bool {
+	return inventory == omniconsts.SSAOmniInternalInventory || inventory == omniconsts.SSAOmniUserInventory
 }
 
 // isIdentityOwnedByGroup reports whether the given manifest identity is currently declared by the given group,
