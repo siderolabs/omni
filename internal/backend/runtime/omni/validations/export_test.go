@@ -124,3 +124,7 @@ func KubernetesHealthCheckValidationOptions() []validated.StateOption {
 func ExtensionsConfigurationValidationOptions(st state.State) []validated.StateOption {
 	return extensionsConfigurationValidationOptions(st)
 }
+
+func RoleValidationOptions() []validated.StateOption {
+	return roleValidationOptions()
+}

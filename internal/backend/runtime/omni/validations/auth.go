@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -39,6 +40,8 @@ func accessPolicyValidationOptions() []validated.StateOption {
 }
 
 // roleValidationOptions returns the validation options for the user and public key resources, ensuring that their roles are valid.
+//
+// The InfraProvider role belongs to infra provider service accounts only and never changes after creation.
 func roleValidationOptions() []validated.StateOption {
 	validateRole := func(roleStr string) error {
 		_, err := role.Parse(roleStr)
@@ -46,18 +49,50 @@ func roleValidationOptions() []validated.StateOption {
 		return err
 	}
 
+	validateRoleChange := func(oldRole, newRole string) error {
+		if err := validateRole(newRole); err != nil {
+			return err
+		}
+
+		if oldRole != newRole && (oldRole == string(role.InfraProvider) || newRole == string(role.InfraProvider)) {
+			return fmt.Errorf("the infra provider role cannot be assigned to or removed from an existing identity")
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.User, _ ...state.CreateOption) error {
-			return validateRole(res.TypedSpec().Value.GetRole())
+			if err := validateRole(res.TypedSpec().Value.GetRole()); err != nil {
+				return err
+			}
+
+			_, isInfraProvider := res.Metadata().Labels().Get(authres.LabelInfraProvider)
+			if res.TypedSpec().Value.GetRole() == string(role.InfraProvider) && !isInfraProvider {
+				return fmt.Errorf("the infra provider role can only be assigned to infra provider service accounts")
+			}
+
+			return nil
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _ *authres.User, newRes *authres.User, _ ...state.UpdateOption) error {
-			return validateRole(newRes.TypedSpec().Value.GetRole())
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *authres.User, newRes *authres.User, _ ...state.UpdateOption) error {
+			return validateRoleChange(oldRes.TypedSpec().Value.GetRole(), newRes.TypedSpec().Value.GetRole())
 		})),
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.PublicKey, _ ...state.CreateOption) error {
-			return validateRole(res.TypedSpec().Value.GetRole())
+			if err := validateRole(res.TypedSpec().Value.GetRole()); err != nil {
+				return err
+			}
+
+			email := res.TypedSpec().Value.GetIdentity().GetEmail()
+
+			sa, isSa := access.ParseServiceAccountFromFullID(email)
+			if (res.TypedSpec().Value.GetRole() == string(role.InfraProvider)) != (isSa && sa.IsInfraProvider) {
+				return fmt.Errorf("role %q is not valid for identity %q: the infra provider role belongs to infra provider service accounts only", res.TypedSpec().Value.GetRole(), email)
+			}
+
+			return nil
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _ *authres.PublicKey, newRes *authres.PublicKey, _ ...state.UpdateOption) error {
-			return validateRole(newRes.TypedSpec().Value.GetRole())
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *authres.PublicKey, newRes *authres.PublicKey, _ ...state.UpdateOption) error {
+			return validateRoleChange(oldRes.TypedSpec().Value.GetRole(), newRes.TypedSpec().Value.GetRole())
 		})),
 	}
 }
@@ -144,7 +179,6 @@ func accountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 	}
 }
 
-// TODO: maybe move the role validation into roleValidationOptions and create a "matchLabelsValidationOptions" function.
 func samlLabelRuleValidationOptions() []validated.StateOption {
 	validate := func(res *authres.SAMLLabelRule) error {
 		var multiErr error

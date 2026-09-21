@@ -1682,6 +1682,91 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestRoleValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(validated.NewState(innerSt, validations.RoleValidationOptions()...))
+
+	setUserRole := func(id string, r role.Role) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, st, auth.NewUser(id).Metadata(), func(u *auth.User) error {
+			u.TypedSpec().Value.Role = string(r)
+
+			return nil
+		})
+
+		return err
+	}
+
+	user := auth.NewUser("user")
+	user.TypedSpec().Value.Role = "invalid"
+
+	assert.ErrorContains(t, st.Create(ctx, user), "unknown role")
+
+	// the InfraProvider role requires the infra provider label
+	user.TypedSpec().Value.Role = string(role.InfraProvider)
+
+	assert.ErrorContains(t, st.Create(ctx, user), "infra provider")
+
+	user.TypedSpec().Value.Role = string(role.Reader)
+
+	require.NoError(t, st.Create(ctx, user))
+	require.NoError(t, setUserRole(user.Metadata().ID(), role.Admin))
+	assert.ErrorContains(t, setUserRole(user.Metadata().ID(), role.InfraProvider), "infra provider")
+
+	infraProviderUser := auth.NewUser("infra-provider-user")
+	infraProviderUser.Metadata().Labels().Set(auth.LabelInfraProvider, "")
+	infraProviderUser.TypedSpec().Value.Role = string(role.InfraProvider)
+
+	require.NoError(t, st.Create(ctx, infraProviderUser))
+	assert.ErrorContains(t, setUserRole(infraProviderUser.Metadata().ID(), role.Admin), "infra provider")
+	require.NoError(t, setUserRole(infraProviderUser.Metadata().ID(), role.InfraProvider))
+
+	// the public key role must match the kind of identity it belongs to
+	for _, tt := range []struct {
+		email string
+		role  role.Role
+		ok    bool
+	}{
+		{email: "user@example.com", role: role.Admin, ok: true},
+		{email: "user@example.com", role: role.InfraProvider, ok: false},
+		{email: "sa@serviceaccount.omni.sidero.dev", role: role.InfraProvider, ok: false},
+		{email: "aws@infra-provider.serviceaccount.omni.sidero.dev", role: role.InfraProvider, ok: true},
+		{email: "aws@infra-provider.serviceaccount.omni.sidero.dev", role: role.Admin, ok: false},
+	} {
+		pubKey := auth.NewPublicKey(tt.email + "-" + string(tt.role))
+		pubKey.TypedSpec().Value.Role = string(tt.role)
+		pubKey.TypedSpec().Value.Identity = &specs.Identity{Email: tt.email}
+
+		err := st.Create(ctx, pubKey)
+		if tt.ok {
+			assert.NoError(t, err, "%s %s", tt.email, tt.role)
+		} else {
+			assert.ErrorContains(t, err, "infra provider", "%s %s", tt.email, tt.role)
+		}
+	}
+
+	pubKey := auth.NewPublicKey("aws@infra-provider.serviceaccount.omni.sidero.dev-InfraProvider")
+
+	// confirming the key leaves the role untouched, so it must pass
+	_, err := safe.StateUpdateWithConflicts(ctx, st, pubKey.Metadata(), func(pk *auth.PublicKey) error {
+		pk.TypedSpec().Value.Confirmed = true
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, st, pubKey.Metadata(), func(pk *auth.PublicKey) error {
+		pk.TypedSpec().Value.Role = string(role.Admin)
+
+		return nil
+	})
+	assert.ErrorContains(t, err, "infra provider")
+}
+
 func TestMachineSetClassesValidation(t *testing.T) {
 	t.Parallel()
 
