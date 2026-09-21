@@ -42,6 +42,25 @@ import (
 //go:embed testdata/deployment.tmpl.yaml
 var deploymentTmpl string
 
+const ownedConfigMapManifest = `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: owned
+  namespace: default
+data:
+  owner: omni
+`
+
+const configMapsFullManifests = ownedConfigMapManifest + `---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foreign
+  namespace: default
+data:
+  owner: omni
+`
+
 // AssertKubernetesAPIAccessViaOmni verifies that cluster kubeconfig works.
 //
 //nolint:gocognit
@@ -822,6 +841,67 @@ spec:
 
 		require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 		assert.Equal(t, "nginx:alpine", deployment.Spec.Template.Spec.Containers[0].Image)
+
+		// a ConfigMap owned by another tool, Omni refuses to apply it
+		foreignConfigMap := &corev1.ConfigMap{
+			Name:        "foreign",
+			Namespace:   corev1.NamespaceDefault,
+			Annotations: map[string]string{"config.k8s.io/owning-inventory": "some-other-tool"},
+		}
+
+		_, err = kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault).Create(ctx, foreignConfigMap, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		configMapsFull := omni.NewKubernetesManifestGroup("full-configmaps")
+		configMapsFull.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+		configMapsFull.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_FULL
+
+		require.NoError(t, configMapsFull.TypedSpec().Value.SetUncompressedData([]byte(configMapsFullManifests)))
+		require.NoError(t, st.Create(ctx, configMapsFull))
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["full-configmaps"]
+			assert.True(ok)
+
+			if !ok {
+				return
+			}
+
+			assert.Len(group.Manifests, 2)
+			assert.NotEmpty(r.TypedSpec().Value.LastError)
+		})
+
+		// remove the foreign ConfigMap from the group, its status entry should be dropped, as it is not going to be deleted by Omni
+		_, err = safe.StateUpdateWithConflicts(ctx, st, configMapsFull.Metadata(), func(r *omni.KubernetesManifestGroup) error {
+			return r.TypedSpec().Value.SetUncompressedData([]byte(ownedConfigMapManifest))
+		})
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["full-configmaps"]
+			assert.True(ok)
+
+			if !ok {
+				return
+			}
+
+			assert.Len(group.Manifests, 1)
+
+			status, ok := group.Manifests["ConfigMap/default/owned"]
+			assert.True(ok)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+
+			assert.Zero(r.TypedSpec().Value.OutOfSync)
+			assert.Empty(r.TypedSpec().Value.LastError)
+		})
+
+		_, err = kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault).Get(ctx, "foreign", metav1.GetOptions{})
+		require.NoError(t, err)
+
+		require.NoError(t, kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault).Delete(ctx, "foreign", metav1.DeleteOptions{}))
 
 		rtestutils.Destroy[*omni.KubernetesManifestGroup](
 			ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
