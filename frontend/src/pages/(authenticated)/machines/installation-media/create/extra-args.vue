@@ -19,6 +19,7 @@ import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
+import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
@@ -55,6 +56,8 @@ const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
 
 // Form defaults
 onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUTO))
+
+useTitle('Extra Args')
 </script>
 
 <template>

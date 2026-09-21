@@ -12,6 +12,7 @@ import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/s
 import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
 import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeConfig' })
@@ -35,6 +36,8 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
     id: route.params.cluster as string,
   },
 }))
+
+useTitle('Config')
 </script>
 
 <template>

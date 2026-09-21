@@ -7,6 +7,9 @@ included in the LICENSE file.
 <script setup lang="ts">
 import TButton from '@/components/Button/TButton.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
+
+useTitle('Page Not Found')
 </script>
 
 <template>

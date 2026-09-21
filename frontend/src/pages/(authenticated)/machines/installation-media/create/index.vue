@@ -9,6 +9,7 @@ import { onBeforeMount } from 'vue'
 
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
+import { useTitle } from '@/methods/title'
 import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateEntry' })
@@ -17,6 +18,8 @@ const formState = defineModel<FormState>({ required: true })
 
 // Form defaults
 onBeforeMount(() => (formState.value.hardwareType ??= 'metal'))
+
+useTitle('Hardware Type')
 </script>
 
 <template>

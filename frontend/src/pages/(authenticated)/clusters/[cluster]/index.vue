@@ -13,6 +13,7 @@ import type { ClusterSpec, ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusType, DefaultNamespace } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import OverviewContent from '@/views/Overview/components/OverviewContent.vue'
 
@@ -44,6 +45,8 @@ const selectedCluster = ref<string>()
 watchEffect(() => {
   selectedCluster.value = currentCluster.metadata.id
 })
+
+useTitle('Overview')
 </script>
 
 <template>

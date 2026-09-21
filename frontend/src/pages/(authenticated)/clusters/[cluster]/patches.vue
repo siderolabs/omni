@@ -7,9 +7,12 @@ included in the LICENSE file.
 <script setup lang="ts">
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { useTitle } from '@/methods/title'
 import Patches from '@/views/Config/Patches.vue'
 
 definePage({ name: 'ClusterConfigPatches' })
+
+useTitle('Config Patches')
 </script>
 
 <template>

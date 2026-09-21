@@ -12,6 +12,7 @@ import type { TalosExtensionsSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
@@ -48,6 +49,8 @@ function toggleExtension(ref: string, enabled: boolean) {
 
   formState.value.systemExtensions = Array.from(set)
 }
+
+useTitle('System Extensions')
 </script>
 
 <template>

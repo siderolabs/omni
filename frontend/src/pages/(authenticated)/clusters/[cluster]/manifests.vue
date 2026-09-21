@@ -26,6 +26,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { useTitle } from '@/methods/title'
 import { showSuccess } from '@/notification'
 
 definePage({ name: 'KubernetesManifestSync' })
@@ -149,6 +150,8 @@ watchEffect((onCleanup) => {
     stream.shutdown()
   })
 })
+
+useTitle('Bootstrap Manifests')
 </script>
 
 <template>

@@ -5,10 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
+
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
 import MachineLogsContainer from '@/views/Machines/MachineLogsContainer.vue'
 
 definePage({ name: 'NodeLogs' })
+
+const route = useRoute()
+
+useTitle(() => ['Logs', route.params.service])
 </script>
 
 <template>

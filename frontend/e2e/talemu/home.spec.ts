@@ -13,7 +13,7 @@ test.describe.configure({ mode: 'parallel' })
 test('Has expected title', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page).toHaveTitle('Omni - default')
+  await expect(page).toHaveTitle('Home · default · Omni')
 })
 
 test('Download machine join config', async ({ page }, testInfo) => {

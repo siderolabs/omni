@@ -26,6 +26,7 @@ import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourcePagination } from '@/methods/resource/useResourcePagination'
 import { useResourceSearch } from '@/methods/resource/useResourceSearch'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineAccept from '@/views/Machines/components/MachineAccept.vue'
 import MachineDeleteModal from '@/views/Machines/components/MachineDeleteModal.vue'
@@ -85,6 +86,8 @@ const { data, loading, err } = useResourceWatch<InfraMachineSpec>(
 function unselectDeletedMachines(machineIds: string[]) {
   machineIds.forEach((id) => selectedMachines.value.delete(id))
 }
+
+useTitle(['Machines', 'Pending'])
 </script>
 
 <template>

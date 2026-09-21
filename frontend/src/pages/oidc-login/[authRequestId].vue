@@ -15,6 +15,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { useIdentity } from '@/methods/identity'
+import { useTitle } from '@/methods/title'
 import { showError } from '@/notification'
 
 definePage({
@@ -54,6 +55,8 @@ const confirmOIDCRequest = async () => {
 const copyCode = () => {
   if (authCode.value) copy(authCode.value)
 }
+
+useTitle('OIDC Login')
 </script>
 
 <template>

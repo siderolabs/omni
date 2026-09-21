@@ -17,6 +17,7 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { eulaAccepted } from '@/methods'
+import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { showError } from '@/notification'
 
@@ -80,6 +81,8 @@ const accept = async () => {
     accepting.value = false
   }
 }
+
+useTitle('License Agreement')
 </script>
 
 <template>

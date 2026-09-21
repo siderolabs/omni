@@ -18,6 +18,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { setupBackupStatus } from '@/methods'
 import { triggerEtcdBackup } from '@/methods/cluster'
+import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { showError } from '@/notification'
 import BackupsList from '@/views/Backups/BackupsList.vue'
@@ -52,6 +53,8 @@ const runEtcdBackup = async () => {
 
   startingEtcdBackup.value = false
 }
+
+useTitle('Backups')
 </script>
 
 <template>

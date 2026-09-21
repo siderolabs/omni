@@ -27,6 +27,7 @@ import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import NodesItem from '@/views/Nodes/components/NodesItem.vue'
 
@@ -88,6 +89,8 @@ function getNodeItem(
     status: v1node?.status,
   }
 }
+
+useTitle('Nodes')
 </script>
 
 <template>

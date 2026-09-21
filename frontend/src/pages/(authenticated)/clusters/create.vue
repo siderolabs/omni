@@ -59,6 +59,7 @@ import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
 import { getPatch } from '@/methods/getPatch'
 import { addLabel, type Label, selectors } from '@/methods/labels'
+import { useTitle } from '@/methods/title'
 import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -310,6 +311,8 @@ const { match, completions } = useLabelCompletions({
   resourceType: MachineStatusType,
   filterValue,
 })
+
+useTitle(['Clusters', 'Create'])
 </script>
 
 <template>

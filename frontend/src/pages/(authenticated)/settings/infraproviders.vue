@@ -32,6 +32,7 @@ import TStatus from '@/components/Status/TStatus.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
 import { usePermissions } from '@/methods/auth'
+import { useTitle } from '@/methods/title'
 import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
@@ -108,6 +109,8 @@ const openRotateSecretKey = async (name: string) => {
     }
   }
 }
+
+useTitle('Infra Providers')
 </script>
 
 <template>

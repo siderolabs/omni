@@ -10,6 +10,7 @@ import { onBeforeMount } from 'vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { useLogout } from '@/methods/auth'
+import { useTitle } from '@/methods/title'
 
 definePage({
   name: 'Logout',
@@ -20,6 +21,8 @@ const logout = useLogout()
 onBeforeMount(() => {
   logout()
 })
+
+useTitle('Logout')
 </script>
 
 <template>

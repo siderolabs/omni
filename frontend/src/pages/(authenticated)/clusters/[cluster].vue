@@ -12,6 +12,7 @@ import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TAlert from '@/components/TAlert.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const route = useRoute()
@@ -24,6 +25,8 @@ const { data: cluster, loading } = useResourceWatch<ClusterSpec>(() => ({
     id: route.params.cluster,
   },
 }))
+
+useTitle(() => ['Clusters', route.params.cluster])
 </script>
 
 <template>

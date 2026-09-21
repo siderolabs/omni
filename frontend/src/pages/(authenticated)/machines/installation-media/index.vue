@@ -32,6 +32,7 @@ import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showSuccess } from '@/notification'
 import DownloadPresetModal from '@/views/InstallationMedia/DownloadPresetModal.vue'
@@ -116,6 +117,8 @@ function clonePreset(preset: (typeof presets.value)[number]) {
 
   router.push({ name: 'InstallationMediaCreate' })
 }
+
+useTitle(['Machines', 'Installation Media'])
 </script>
 
 <template>

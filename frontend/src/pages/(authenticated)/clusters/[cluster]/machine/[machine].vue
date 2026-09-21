@@ -23,6 +23,8 @@ import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useClusterPermissions } from '@/methods/auth'
+import { getMachineName } from '@/methods/node'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
@@ -116,6 +118,8 @@ const routes = computed(() => {
     },
   ]
 })
+
+useTitle(() => getMachineName(machine.value) || machineId.value)
 </script>
 
 <template>

@@ -43,6 +43,7 @@ import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { formatFullDateTime } from '@/methods/time'
+import { useTitle } from '@/methods/title'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
@@ -204,6 +205,8 @@ const getSecureBootStatus = () => {
 }
 
 const servicesSectionHeadingId = useId()
+
+useTitle('Overview')
 </script>
 
 <template>

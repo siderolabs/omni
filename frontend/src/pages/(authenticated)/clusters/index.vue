@@ -25,6 +25,7 @@ import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { addLabel, selectors, useLabelRouteQuery } from '@/methods/labels'
+import { useTitle } from '@/methods/title'
 import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterItem from '@/views/Clusters/ClusterItem.vue'
@@ -63,6 +64,8 @@ const filterOptions = [
   { label: 'Ready', value: 'ready' },
   { label: 'Not Ready', value: '!ready' },
 ]
+
+useTitle('Clusters')
 </script>
 
 <template>

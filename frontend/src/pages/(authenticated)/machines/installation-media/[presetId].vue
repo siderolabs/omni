@@ -14,6 +14,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import Confirmation from '@/views/InstallationMedia/Confirmation.vue'
 import { presetToFormState } from '@/views/InstallationMedia/formStateToPreset'
@@ -35,6 +36,8 @@ const {
     id: route.params.presetId as string,
   },
 }))
+
+useTitle(() => ['Machines', 'Installation Media', route.params.presetId])
 </script>
 
 <template>

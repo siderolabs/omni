@@ -22,6 +22,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { AuthType, authType } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
+import { useTitle } from '@/methods/title'
 import UserCreateModal from '@/views/Users/components/UserCreateModal.vue'
 import UserItem from '@/views/Users/UserItem.vue'
 
@@ -38,6 +39,8 @@ const getLastActive = (item: Resource<IdentityStatusSpec>) => {
 
   return relativeISO(item.spec.last_active)
 }
+
+useTitle('Users')
 </script>
 
 <template>

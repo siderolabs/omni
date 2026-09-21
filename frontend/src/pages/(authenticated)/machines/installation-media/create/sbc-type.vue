@@ -14,6 +14,7 @@ import { SBCConfigType, VirtualNamespace } from '@/api/resources'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
+import { useTitle } from '@/methods/title'
 import { useResourceList } from '@/methods/useResourceList'
 import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
@@ -49,6 +50,8 @@ const SBCs = computed(() =>
 
 // Form defaults
 watch(SBCs, (v) => (formState.value.sbcType ??= v?.[0]?.metadata.id))
+
+useTitle('SBC Type')
 </script>
 
 <template>

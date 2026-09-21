@@ -10,6 +10,7 @@ import { computed } from 'vue'
 import { RoleNone } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useCurrentUser } from '@/methods/auth'
+import { useTitle } from '@/methods/title'
 import HomeContent from '@/views/Home/HomeContent.vue'
 import HomeNoAccess from '@/views/Home/HomeNoAccess.vue'
 
@@ -18,6 +19,8 @@ definePage({ name: 'Home' })
 const currentUser = useCurrentUser()
 
 const role = computed(() => currentUser.value?.spec.role ?? RoleNone)
+
+useTitle('Home')
 </script>
 
 <template>

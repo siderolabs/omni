@@ -22,6 +22,7 @@ import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import {
@@ -94,6 +95,8 @@ onBeforeMount(() => {
   formState.value.talosVersion ??= AUTOMATIC_VERSION
   formState.value.joinToken ??= AUTOMATIC_VERSION
 })
+
+useTitle('Talos Version')
 </script>
 
 <template>

@@ -23,6 +23,7 @@ import {
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
 import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
 
 definePage({ name: 'NodeMonitor' })
@@ -227,6 +228,8 @@ const sortBy = (id: keyof Proc) => {
 
   sort.value = id
 }
+
+useTitle('Monitor')
 </script>
 
 <template>

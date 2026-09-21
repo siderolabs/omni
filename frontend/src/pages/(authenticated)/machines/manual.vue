@@ -6,9 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { MachineFilterOption } from '@/methods/machine'
+import { useTitle } from '@/methods/title'
 import Machines from '@/views/Machines/Machines.vue'
 
 definePage({ name: 'MachinesManual' })
+
+useTitle(['Machines', 'Self-Managed'])
 </script>
 
 <template>

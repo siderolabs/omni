@@ -38,6 +38,7 @@ import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { createKeys, signDetached, useKeys } from '@/methods/key'
+import { useTitle } from '@/methods/title'
 import { showError } from '@/notification'
 
 definePage({
@@ -262,6 +263,8 @@ watch(
   },
   { immediate: true },
 )
+
+useTitle('Authenticate')
 </script>
 
 <template>

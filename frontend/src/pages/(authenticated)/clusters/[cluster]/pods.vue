@@ -21,6 +21,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { TPodsViewFilterOptions } from '@/constants'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import TPodsItem from '@/views/Pods/TPodsItem.vue'
 
@@ -90,6 +91,8 @@ const paginatedItems = computed(() => {
 })
 
 watch(searchOption, () => (currentPage.value = 1))
+
+useTitle('Pods')
 </script>
 
 <template>

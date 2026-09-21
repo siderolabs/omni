@@ -6,9 +6,12 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
 import ClusterSecurity from '@/views/ClusterSecurity/ClusterSecurity.vue'
 
 definePage({ name: 'ClusterSecurity' })
+
+useTitle('Security')
 </script>
 
 <template>

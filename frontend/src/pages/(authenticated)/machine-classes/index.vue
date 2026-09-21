@@ -20,6 +20,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import Tag from '@/components/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
 import { usePermissions } from '@/methods/auth'
+import { useTitle } from '@/methods/title'
 import MachineClassDestroyModal from '@/views/MachineClasses/components/MachineClassDestroyModal.vue'
 
 definePage({ name: 'MachineClasses' })
@@ -28,6 +29,8 @@ const { canRemoveMachines } = usePermissions()
 
 const machineClassDestroyModalOpen = ref(false)
 const machineClassDestroyModalClassId = ref<string>()
+
+useTitle('Machine Classes')
 </script>
 
 <template>

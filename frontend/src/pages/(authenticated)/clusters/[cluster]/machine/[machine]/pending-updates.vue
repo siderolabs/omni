@@ -15,6 +15,7 @@ import DiffRenderer from '@/components/DiffRenderer/DiffRenderer.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodePendingUpdates' })
@@ -31,6 +32,8 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
     id: machineId.value,
   },
 }))
+
+useTitle('Pending Updates')
 </script>
 
 <template>

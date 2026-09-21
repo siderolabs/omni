@@ -57,6 +57,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { downloadFile } from '@/methods'
+import { useTitle } from '@/methods/title'
 import { useReadAuditLog } from '@/views/Settings/useReadAuditLog'
 
 definePage({ name: 'AuditLogs' })
@@ -145,6 +146,8 @@ const totalSize = computed(() => rowVirtualizer.value.getTotalSize())
 function measureElement(el: Element | ComponentPublicInstance | null) {
   if (el) rowVirtualizer.value.measureElement(el as Element)
 }
+
+useTitle('Audit Logs')
 </script>
 
 <template>

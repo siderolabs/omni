@@ -29,6 +29,7 @@ import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
+import { useTitle } from '@/methods/title'
 import { showError, showSuccess } from '@/notification'
 
 definePage({
@@ -164,6 +165,8 @@ const updateConfig = async () => {
 
   showSuccess('The Backup Storage Config was Updated')
 }
+
+useTitle('Backup Storage')
 </script>
 
 <template>

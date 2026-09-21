@@ -19,6 +19,7 @@ import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatISO } from '@/methods/time'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeConfigDiffs' })
@@ -55,6 +56,8 @@ const combinedDiff = computed(() =>
     .map((d) => `# Created on ${formatISO(d.metadata.created!)}\n${d.spec.diff}`)
     .join('\n'),
 )
+
+useTitle('Config Diffs')
 </script>
 
 <template>

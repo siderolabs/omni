@@ -22,6 +22,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
+import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
 import ServiceAccountItem from '@/views/Users/ServiceAccountItem.vue'
@@ -54,6 +55,8 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
 const getExpiration = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
   return relativeISO(serviceAcc.spec.expiration ?? '')
 }
+
+useTitle('Service Accounts')
 </script>
 
 <template>

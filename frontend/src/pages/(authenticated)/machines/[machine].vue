@@ -14,6 +14,7 @@ import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import { usePermissions } from '@/methods/auth'
 import { useMachineName } from '@/methods/node'
+import { useTitle } from '@/methods/title'
 
 definePage({
   name: 'Machine',
@@ -64,6 +65,8 @@ const machineName = useMachineName(() => route.params.machine)
 const hasMatchingTab = computed(() =>
   routes.value.some((r) => r.to.name === route.name?.toString()),
 )
+
+useTitle(() => ['Machines', machineName.value])
 </script>
 
 <template>

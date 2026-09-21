@@ -43,6 +43,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import Stepper from '@/components/Stepper/Stepper.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { useTitle } from '@/methods/title'
 import SavePresetModal from '@/views/InstallationMedia/SavePresetModal.vue'
 import { useFormState } from '@/views/InstallationMedia/useFormState'
 
@@ -138,6 +139,8 @@ const savePresetModalOpen = ref(false)
 const isFormResetting = computed(
   () => currentStepName.value !== 'InstallationMediaCreateEntry' && !formState.value.hardwareType,
 )
+
+useTitle(['Machines', 'Installation Media', 'Create'])
 </script>
 
 <template>

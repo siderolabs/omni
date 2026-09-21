@@ -37,6 +37,7 @@ import { TCommonStatuses } from '@/constants'
 import { downloadMachineJoinConfig, getKernelArgs } from '@/methods'
 import { unrevokeJoinToken, usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
+import { useTitle } from '@/methods/title'
 import { showError } from '@/notification'
 
 definePage({ name: 'JoinTokens' })
@@ -107,6 +108,8 @@ const openDeleteToken = (token: string) => {
   selectedToken.value = token
   deleteTokenModalOpen.value = true
 }
+
+useTitle(['Machines', 'Join Tokens'])
 </script>
 
 <template>

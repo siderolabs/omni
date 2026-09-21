@@ -19,6 +19,7 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
+import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
@@ -67,6 +68,8 @@ const supportedArchitectures = computed(() => {
 
 // Form defaults
 watch(supportedArchitectures, (v) => (formState.value.machineArch ??= v?.[0]))
+
+useTitle('Architecture')
 </script>
 
 <template>

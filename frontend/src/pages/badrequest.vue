@@ -6,6 +6,9 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import { useTitle } from '@/methods/title'
+
+useTitle('Bad Request')
 </script>
 
 <template>
