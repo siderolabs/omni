@@ -87,6 +87,9 @@ var configContextCmd = &cobra.Command{
 		}
 
 		context := args[0]
+		if _, err := conf.GetContext(context); err != nil {
+			return err
+		}
 
 		conf.Context = context
 
