@@ -16,7 +16,7 @@ setup('setup default machine class', async ({ page }) => {
     await page.getByRole('link', { name: 'Create Machine Class' }).click()
 
     await page.getByRole('textbox', { name: 'Machine Class Name' }).fill(DEFAULT_MACHINE_CLASS)
-    await page.getByRole('button', { name: 'Auto Provision' }).click()
+    await page.getByRole('radio', { name: 'Auto Provision' }).click()
     await page.getByText('id: Talemu').click()
 
     await page.getByRole('button', { name: 'Create Machine Class' }).click()

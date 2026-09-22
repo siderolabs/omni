@@ -46,10 +46,10 @@ test('Create cluster using machine classes', async ({ page }) => {
     const controlPlanes = page.getByRole('listitem', { name: 'control planes' })
     const workers = page.getByRole('listitem', { name: 'main worker pool' })
 
-    await controlPlanes.getByRole('button', { name: 'Machine Class' }).click()
+    await controlPlanes.getByRole('radio', { name: 'Machine Class' }).click()
     await controlPlanes.getByLabel('Size').fill('1')
 
-    await workers.getByRole('button', { name: 'Machine Class' }).click()
+    await workers.getByRole('radio', { name: 'Machine Class' }).click()
     await workers.getByLabel('Size').fill('2')
 
     await page.getByRole('button', { name: 'Create Cluster' }).click()

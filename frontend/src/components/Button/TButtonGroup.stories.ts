@@ -8,22 +8,27 @@ import { fn } from 'storybook/test'
 
 import TButtonGroup from './TButtonGroup.vue'
 
+faker.seed(0)
+
+const options = faker.helpers.multiple(
+  (_, i) => ({
+    label: faker.commerce.productName(),
+    disabled: faker.datatype.boolean(),
+    tooltip: faker.commerce.productDescription(),
+    value: i,
+  }),
+  { count: 5 },
+)
+
 const meta: Meta<typeof TButtonGroup> = {
-  // https://github.com/storybookjs/storybook/issues/24238
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: TButtonGroup as any,
+  component: TButtonGroup,
   args: {
     'onUpdate:modelValue': fn(),
-    deselectEnabled: true,
-    options: faker.helpers.multiple(
-      (_, i) => ({
-        label: faker.commerce.productName(),
-        disabled: faker.datatype.boolean(),
-        tooltip: faker.commerce.productDescription(),
-        value: i,
-      }),
-      { count: 5 },
-    ),
+    defaultValue: options[0].value,
+    options,
+  },
+  parameters: {
+    layout: 'centered',
   },
 }
 

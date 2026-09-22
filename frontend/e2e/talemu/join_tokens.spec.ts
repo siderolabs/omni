@@ -134,7 +134,7 @@ test('Create new join token', async ({ page }) => {
   })
 
   await test.step('Submit form', async () => {
-    await page.getByRole('button', { name: 'Limited' }).click()
+    await page.getByRole('radio', { name: 'Limited' }).click()
     await page.getByRole('textbox', { name: 'Name' }).fill(NEW_TOKEN)
     await page.getByRole('spinbutton', { name: 'Expiration Days' }).fill('14')
     await page.getByRole('button', { name: 'Create Join Token' }).click()

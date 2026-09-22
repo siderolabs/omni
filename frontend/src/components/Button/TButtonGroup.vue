@@ -4,80 +4,54 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T extends string | number">
-import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
+<script setup lang="ts">
+import { reactiveOmit } from '@vueuse/core'
+import {
+  type AcceptableValue,
+  RadioGroupItem,
+  RadioGroupRoot,
+  type RadioGroupRootEmits,
+  type RadioGroupRootProps,
+  useForwardPropsEmits,
+} from 'reka-ui'
+import type { ClassValue } from 'vue'
 
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { cn } from '@/methods/utils'
 
-type Props = {
-  deselectEnabled?: boolean
-  options: {
-    label: string
-    value: T
-    disabled?: boolean
-    tooltip?: string
-  }[]
-}
+const props = defineProps<
+  RadioGroupRootProps & {
+    class?: ClassValue
+    options: {
+      label: string
+      value: AcceptableValue
+      disabled?: boolean
+      tooltip?: string
+    }[]
+  }
+>()
 
-defineProps<Props>()
+const emit = defineEmits<RadioGroupRootEmits>()
 
-const modelValue = defineModel<T>()
+const delegatedProps = reactiveOmit(props, 'class', 'options')
+const forwarded = useForwardPropsEmits(delegatedProps, emit)
 </script>
 
 <template>
-  <RadioGroup
-    :model-value="modelValue"
-    class="t-button-group flex gap-0.5 rounded bg-naturals-n3 p-1"
-    @update:model-value="(value) => (modelValue = value)"
+  <RadioGroupRoot
+    v-bind="forwarded"
+    :class="cn('flex gap-0.5 rounded bg-naturals-n3 p-1', props.class)"
   >
-    <RadioGroupOption
-      v-for="(option, index) in options"
+    <RadioGroupItem
+      v-for="(o, index) in options"
       :key="index"
-      v-slot="{ checked }"
-      :value="option.value"
-      as="template"
-      :disabled="option.disabled"
+      :value="o.value"
+      :disabled="o.disabled"
+      class="rounded border-naturals-n5 text-xs text-naturals-n10 transition-colors duration-200 hover:bg-naturals-n5 hover:text-naturals-n12 data-disabled:cursor-not-allowed data-disabled:text-naturals-n8 data-disabled:hover:bg-naturals-n3 data-[state=checked]:bg-naturals-n6 data-[state=checked]:text-primary-p3"
     >
-      <div @click="() => (checked && deselectEnabled ? (modelValue = undefined) : null)">
-        <Tooltip :description="option.tooltip" placement="top">
-          <button type="button" :class="{ checked }" :disabled="option?.disabled">
-            <span>
-              {{ option?.label || option.value }}
-            </span>
-          </button>
-        </Tooltip>
-      </div>
-    </RadioGroupOption>
-  </RadioGroup>
+      <Tooltip :description="o.tooltip" placement="top">
+        <span class="inline-block px-2 py-0.5">{{ o.label || o.value }}</span>
+      </Tooltip>
+    </RadioGroupItem>
+  </RadioGroupRoot>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.t-button-group button {
-  @apply flex items-center justify-center gap-1 border-naturals-n5 px-2 py-0.5 text-xs text-naturals-n10 transition-colors duration-200 hover:bg-naturals-n5 hover:text-naturals-n12;
-}
-
-.t-button-group button {
-  @apply rounded;
-}
-
-.t-button-group button[disabled] {
-  @apply cursor-not-allowed text-naturals-n8 hover:bg-naturals-n3;
-}
-
-.checked {
-  @apply bg-naturals-n6;
-}
-
-.checked span {
-  @apply text-primary-p3;
-}
-
-.popper {
-  margin: 0 !important;
-  border: 0 !important;
-  display: block !important;
-  z-index: auto !important;
-}
-</style>
