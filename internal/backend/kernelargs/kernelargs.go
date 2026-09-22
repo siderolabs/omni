@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -21,6 +22,23 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
+
+// protectedKeys are set by Omni. They are taken from the machine's current schematic, never from the KernelArgs resource.
+var protectedKeys = []string{
+	constants.KernelParamSideroLink, constants.KernelParamEventsSink, constants.KernelParamLoggingKernel,
+	constants.KernelParamConfig, constants.KernelParamConfigEarly, constants.KernelParamConfigInline,
+}
+
+// forbiddenKeys break the boot or the connection to Omni once baked into the installer image.
+var forbiddenKeys = []string{
+	constants.KernelParamPlatform,        // the imager replaces the platform with it
+	constants.KernelParamWipe,            // wipes the disk on every boot
+	constants.KernelParamHaltIfInstalled, // halts every boot from disk
+	"talos.board",                        // Talos 1.12 and older refuse to install with a board set and no overlay, Omni supports 1.9 and later
+}
+
+// ksppKeys are the KSPP parameters Talos refuses to boot without, so their negation is rejected.
+var ksppKeys = []string{"slab_nomerge", "pti"}
 
 type Initializer struct {
 	state  state.State
@@ -43,7 +61,7 @@ func NewInitializer(state state.State, logger *zap.Logger) (*Initializer, error)
 }
 
 func (initializer *Initializer) Init(ctx context.Context, id resource.ID, args []string) error {
-	extraArgs := xslices.Filter(args, func(value string) bool { return !isProtected(value) })
+	extraArgs := FilterExtras(args)
 
 	if len(extraArgs) == 0 {
 		return nil
@@ -101,6 +119,8 @@ func UpdateSupported(machineStatus *omni.MachineStatus, getClusterMachineConfig 
 	return clusterMachineConfig.TypedSpec().Value.GrubUseUkiCmdline, nil
 }
 
+// Calculate returns the protected args of the machine's current schematic followed by the user's extra args.
+// When that is logically equal to the current args, the current args are returned as they are, so a cosmetic difference never upgrades a machine.
 func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (args []string, initialized bool, err error) {
 	if !machineStatus.TypedSpec().Value.SchematicReady() {
 		return nil, false, nil
@@ -113,38 +133,35 @@ func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (
 	var extraArgs []string
 
 	if kernelArgs != nil {
-		extraArgs = kernelArgs.TypedSpec().Value.Args
+		extraArgs = FilterExtras(kernelArgs.TypedSpec().Value.Args) // a protected arg in the resource is not an extra, otherwise it is added on every upgrade
 	}
 
-	baseArgs := xslices.Filter(machineStatus.TypedSpec().Value.Schematic.KernelArgs, isProtected)
-
 	currentArgs := machineStatus.TypedSpec().Value.Schematic.KernelArgs
-	calculatedArgs := slices.Concat(baseArgs, extraArgs)
 
-	if equal(currentArgs, calculatedArgs) {
+	// Only the extra args are compared, as an ordered list. The protected args always come from the current args, so they cannot differ,
+	// and their duplicates are cleaned up only when the extra args change and the machine is upgraded anyway.
+	if slices.Equal(FilterExtras(currentArgs), extraArgs) {
 		return currentArgs, true, nil
 	}
 
-	return calculatedArgs, true, nil
+	baseArgs := xslices.Deduplicate(FilterProtected(currentArgs), func(arg string) string { return arg })
+
+	return slices.Concat(baseArgs, extraArgs), true, nil
 }
 
-// equal checks whether the given kernel args are logically equal.
-//
-// It does the comparison in a defensive way to prevent unwanted upgrades:
-//   - protected args (siderolink, events sink, etc.) are compared as an unordered set (as their order doesn't matter in Talos)
-//   - user (extra) args are compared as an ordered list (kernel args order actually matters)
-func equal(a, b []string) bool {
-	aProtected := FilterProtected(a)
-	bProtected := FilterProtected(b)
+// Validate rejects kernel args a user must not set: protected args, forbidden args and their negations, and entries holding more than one arg.
+func Validate(args []string) error {
+	for _, arg := range args {
+		if strings.ContainsFunc(arg, unicode.IsSpace) {
+			return fmt.Errorf("kernel arg %q must be a single argument", arg)
+		}
 
-	slices.Sort(aProtected)
-	slices.Sort(bProtected)
-
-	if !slices.Equal(aProtected, bProtected) {
-		return false
+		if isProtected(arg) || isForbidden(arg) {
+			return fmt.Errorf("kernel arg %q is not allowed, remove it", arg)
+		}
 	}
 
-	return slices.Equal(FilterExtras(a), FilterExtras(b))
+	return nil
 }
 
 // FilterProtected filters out the "extra args" from the provided kernel args, leaving only the protected kernel arguments that cannot be modified.
@@ -159,15 +176,24 @@ func FilterExtras(args []string) []string {
 	})
 }
 
+// isProtected matches a protected key in any whitespace-separated token, since the imager re-splits entries.
+// A negated protected key is not protected: it is an extra the user can still remove, only new ones are rejected by Validate.
 func isProtected(arg string) bool {
-	for _, prefix := range []string{
-		constants.KernelParamSideroLink, constants.KernelParamEventsSink, constants.KernelParamLoggingKernel,
-		constants.KernelParamConfig, constants.KernelParamConfigEarly, constants.KernelParamConfigInline,
-	} {
-		if strings.HasPrefix(arg, prefix+"=") {
-			return true
-		}
+	return slices.ContainsFunc(strings.Fields(arg), func(token string) bool {
+		return hasKey(token, protectedKeys)
+	})
+}
+
+func isForbidden(arg string) bool {
+	if negated, ok := strings.CutPrefix(arg, "-"); ok {
+		return hasKey(negated, protectedKeys) || hasKey(negated, forbiddenKeys) || hasKey(negated, ksppKeys)
 	}
 
-	return false
+	return hasKey(arg, forbiddenKeys)
+}
+
+func hasKey(token string, keys []string) bool {
+	return slices.ContainsFunc(keys, func(key string) bool {
+		return token == key || strings.HasPrefix(token, key+"=")
+	})
 }

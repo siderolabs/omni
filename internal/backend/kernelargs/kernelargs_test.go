@@ -161,3 +161,127 @@ func TestCalculateCanonicalOrderWhenNotEqual(t *testing.T) {
 		})
 	}
 }
+
+// TestCalculateProtectedArgsInResource verifies that a protected arg the user put into the KernelArgs resource
+// is not added on top of the one the schematic already carries, which used to grow the args on every upgrade.
+func TestCalculateProtectedArgsInResource(t *testing.T) {
+	t.Parallel()
+
+	ms := machineStatusWithArgs([]string{siderolink, eventsSink, logging})
+	ka := kernelArgsResource([]string{siderolink, eventsSink, logging})
+
+	for range 3 {
+		result, initialized, err := kernelargs.Calculate(ms, ka)
+		assert.NoError(t, err)
+		assert.True(t, initialized)
+		assert.Equal(t, []string{siderolink, eventsSink, logging}, result)
+
+		ms.TypedSpec().Value.Schematic.KernelArgs = result
+	}
+}
+
+// TestCalculateStableToday pins the inputs that are stable today and must stay stable: Calculate returns the current args untouched.
+func TestCalculateStableToday(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name        string
+		currentArgs []string
+		userArgs    []string
+	}{
+		{
+			name:        "duplicated protected args, no extras",
+			currentArgs: []string{siderolink, eventsSink, logging, siderolink, eventsSink, logging},
+		},
+		{
+			name:        "duplicated protected args, same extras",
+			currentArgs: []string{siderolink, eventsSink, logging, siderolink, eventsSink, logging, "nomodeset"},
+			userArgs:    []string{"nomodeset"},
+		},
+		{
+			name:        "forbidden arg in schematic and resource",
+			currentArgs: []string{siderolink, eventsSink, logging, "talos.platform=metal"},
+			userArgs:    []string{"talos.platform=metal"},
+		},
+		{
+			name:        "mixed entry in schematic and resource",
+			currentArgs: []string{"quiet " + siderolink, "console=tty0"},
+			userArgs:    []string{"quiet " + siderolink, "console=tty0"},
+		},
+		{
+			name:        "repeated extra keys",
+			currentArgs: []string{siderolink, "ip=eth0:dhcp", "ip=eth1:dhcp"},
+			userArgs:    []string{"ip=eth0:dhcp", "ip=eth1:dhcp"},
+		},
+		{
+			name:        "no protected args at all",
+			currentArgs: []string{"nomodeset"},
+			userArgs:    []string{"nomodeset"},
+		},
+		{
+			name:        "existing negation of a protected arg",
+			currentArgs: []string{siderolink, logging, "-talos.logging.kernel"},
+			userArgs:    []string{"-talos.logging.kernel"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ms := machineStatusWithArgs(tc.currentArgs)
+
+			result, initialized, err := kernelargs.Calculate(ms, kernelArgsResource(tc.userArgs))
+
+			assert.NoError(t, err)
+			assert.True(t, initialized)
+			assert.Same(t, &ms.TypedSpec().Value.Schematic.KernelArgs[0], &result[0], "current args must be returned as they are")
+		})
+	}
+}
+
+// TestCalculateCleanup verifies that duplicated protected args are removed once the extras change and the machine is upgraded anyway,
+// and that a protected arg hiding in a mixed entry of the schematic is kept.
+func TestCalculateCleanup(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name        string
+		currentArgs []string
+		userArgs    []string
+		expected    []string
+	}{
+		{
+			name:        "duplicates removed on extras change",
+			currentArgs: []string{siderolink, eventsSink, logging, siderolink, eventsSink, logging, "nomodeset"},
+			userArgs:    []string{"quiet"},
+			expected:    []string{siderolink, eventsSink, logging, "quiet"},
+		},
+		{
+			name:        "mixed entry in schematic kept on extras change",
+			currentArgs: []string{"quiet " + siderolink, "console=tty0"},
+			userArgs:    []string{"console=ttyS0"},
+			expected:    []string{"quiet " + siderolink, "console=ttyS0"},
+		},
+		{
+			name:        "mixed entry in resource dropped",
+			currentArgs: []string{siderolink, "nomodeset"},
+			userArgs:    []string{"quiet " + siderolink, "nomodeset"},
+			expected:    []string{siderolink, "nomodeset"},
+		},
+		{
+			name:        "existing negation of a protected arg is removable",
+			currentArgs: []string{siderolink, logging, "-talos.logging.kernel"},
+			userArgs:    []string{},
+			expected:    []string{siderolink, logging},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, initialized, err := kernelargs.Calculate(machineStatusWithArgs(tc.currentArgs), kernelArgsResource(tc.userArgs))
+
+			assert.NoError(t, err)
+			assert.True(t, initialized)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}

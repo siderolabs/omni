@@ -2538,6 +2538,42 @@ func TestKernelArgsValidation(t *testing.T) {
 				args:        []string{"abc\x00def"},
 				errContains: "args[0] contains a control character",
 			},
+			{name: "negation of a Talos default", args: []string{"-selinux", "net.ifnames=0"}},
+			{
+				name:        "protected arg",
+				args:        []string{"siderolink.api=https://omni.example.com?jointoken=x"},
+				errContains: "is not allowed",
+			},
+			{
+				name:        "negated protected arg",
+				args:        []string{"-siderolink.api"},
+				errContains: "is not allowed",
+			},
+			{
+				name:        "forbidden arg",
+				args:        []string{"talos.platform=metal"},
+				errContains: "is not allowed",
+			},
+			{
+				name:        "negated forbidden arg",
+				args:        []string{"-talos.experimental.wipe"},
+				errContains: "is not allowed",
+			},
+			{
+				name:        "negated KSPP arg",
+				args:        []string{"-slab_nomerge"},
+				errContains: "is not allowed",
+			},
+			{
+				name:        "two args in one entry",
+				args:        []string{"quiet talos.platform=aws"},
+				errContains: "must be a single argument",
+			},
+			{
+				name:        "non-breaking space",
+				args:        []string{"quiet\u00a0siderolink.api=x"},
+				errContains: "must be a single argument",
+			},
 			{
 				name: "too many entries",
 				args: func() []string {
@@ -2595,6 +2631,12 @@ func TestKernelArgsValidation(t *testing.T) {
 		err := st.Update(ctx, res)
 		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
 		assert.ErrorContains(t, err, "args[0] contains a control character")
+
+		res.TypedSpec().Value.Args = []string{"console=ttyS0", "siderolink.api=https://omni.example.com"}
+
+		err = st.Update(ctx, res)
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "is not allowed")
 	})
 
 	t.Run("installation media config kernel args", func(t *testing.T) {

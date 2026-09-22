@@ -11,6 +11,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
@@ -31,7 +32,13 @@ const (
 // kernelArgsValidationOptions returns the validation options for the kernel args resource.
 func kernelArgsValidationOptions() []validated.StateOption {
 	validate := func(res *omni.KernelArgs) error {
-		return validateUserStringSlice("args", res.TypedSpec().Value.GetArgs(), MaxKernelArgsCount, MaxKernelArgLength)
+		args := res.TypedSpec().Value.GetArgs()
+
+		if err := validateUserStringSlice("args", args, MaxKernelArgsCount, MaxKernelArgLength); err != nil {
+			return err
+		}
+
+		return kernelargs.Validate(args)
 	}
 
 	return []validated.StateOption{
