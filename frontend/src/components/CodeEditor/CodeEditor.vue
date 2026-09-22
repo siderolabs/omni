@@ -8,6 +8,7 @@ included in the LICENSE file.
 import * as monaco from 'monaco-editor'
 import { configureMonacoYaml, type JSONSchema, type SchemasSettings } from 'monaco-yaml'
 
+import { createOmniMonacoTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
 import { getDocsLink } from '@/methods'
 import configSchemas from '@/schemas'
 
@@ -117,31 +118,8 @@ function setModelSchema(modelId: string, schema: string | null) {
 
 // Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
 const styles = getComputedStyle(document.documentElement)
-const SIDERO_THEME = 'sidero'
 
-monaco.editor.defineTheme(SIDERO_THEME, {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [],
-  colors: {
-    'dropdown.background': styles.getPropertyValue('--color-naturals-n3'),
-
-    'editorStickyScroll.background': styles.getPropertyValue('--color-naturals-n0'),
-
-    'editor.background': styles.getPropertyValue('--color-naturals-n0'),
-
-    'editorHoverWidget.background': styles.getPropertyValue('--color-naturals-n3'),
-    'editorHoverWidget.border': styles.getPropertyValue('--color-naturals-n7'),
-
-    'editorOverviewRuler.border': '#00000000',
-
-    'editorWidget.background': styles.getPropertyValue('--color-naturals-n3'),
-    'editorWidget.border': styles.getPropertyValue('--color-naturals-n7'),
-
-    'input.background': styles.getPropertyValue('--color-naturals-n1'),
-    'input.border': styles.getPropertyValue('--color-naturals-n7'),
-  },
-})
+monaco.editor.defineTheme(OMNI_CODE_THEME, createOmniMonacoTheme())
 </script>
 
 <script setup lang="ts">
@@ -205,7 +183,7 @@ const wordWrap = ref<'on' | 'off'>('off')
 
 const editorOptions = computed<monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions>(
   () => ({
-    theme: SIDERO_THEME,
+    theme: OMNI_CODE_THEME,
     wordWrap: wordWrap.value,
     fontSize: 14,
     fontFamily: styles.getPropertyValue('--font-mono'),

@@ -121,14 +121,7 @@ function toggleRow() {
       class="collapsible-content col-span-full overflow-hidden group-hover/root:bg-white/5"
     >
       <div role="cell" class="px-2 pb-2">
-        <CodeBlock>
-          <WordHighlighter
-            :query="search"
-            :text-to-highlight="JSON.stringify(item, null, 2)"
-            highlight-class="bg-naturals-n14"
-            class="text-naturals-n10"
-          />
-        </CodeBlock>
+        <CodeBlock :code="JSON.stringify(item, null, 2)" lang="json" :search />
       </div>
     </CollapsibleContent>
   </CollapsibleRoot>

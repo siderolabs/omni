@@ -238,7 +238,7 @@ async function enableKubeSpan() {
             </p>
           </div>
 
-          <CodeBlock v-if="kubeSpanPatch">{{ kubeSpanPatch }}</CodeBlock>
+          <CodeBlock v-if="kubeSpanPatch" lang="yaml" :code="kubeSpanPatch" />
 
           <div class="flex flex-wrap items-center gap-3">
             <TButton

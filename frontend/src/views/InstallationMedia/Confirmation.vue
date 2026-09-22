@@ -190,7 +190,11 @@ const installerImage = computed(() => {
       <CopyButton aria-label="Copy schematic ID" :text="schematic.id" />
     </p>
 
-    <CodeBlock :button-attrs="{ 'aria-label': 'Copy schematic YAML' }" :code="schematic.yml" />
+    <CodeBlock
+      lang="yaml"
+      :button-attrs="{ 'aria-label': 'Copy schematic YAML' }"
+      :code="schematic.yml"
+    />
 
     <h3 class="text-sm text-naturals-n14">First Boot</h3>
     <p v-if="formState.hardwareType === 'metal'">

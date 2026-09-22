@@ -7,10 +7,10 @@ included in the LICENSE file.
 <script lang="ts">
 import { registerCustomTheme } from '@pierre/diffs'
 
-import { createOmniCodeTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
+import { createOmniShikiTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
 import { cn } from '@/methods/utils'
 
-registerCustomTheme(OMNI_CODE_THEME, async () => createOmniCodeTheme())
+registerCustomTheme(OMNI_CODE_THEME, async () => createOmniShikiTheme())
 
 export interface DiffEntry {
   id: string
