@@ -5,22 +5,39 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import DiffRenderer from './DiffRenderer.vue'
-import sampleDiff from './sample_diff.diff?raw'
+import sampleDiff1 from './sample_config_diff_1.diff?raw'
+import sampleDiff2 from './sample_config_diff_2.diff?raw'
 
 const meta: Meta<typeof DiffRenderer> = {
   component: DiffRenderer,
   args: {
     withSearch: true,
-    diff: sampleDiff,
+    diffs: [
+      {
+        id: 'diff-1',
+        diff: sampleDiff1,
+        label: 'Created on 2026-02-12 19:13:29',
+      },
+      {
+        id: 'diff-2',
+        diff: sampleDiff2,
+        label: 'Created on 2026-01-27 13:47:31',
+      },
+    ],
   },
   parameters: {
     layout: 'fullscreen',
   },
+  decorators: [() => ({ template: '<div class="h-screen p-6"><story/></div>' })],
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
-  decorators: [() => ({ template: '<div class="h-screen p-6"><story/></div>' })],
+export const Default: Story = {}
+
+export const SingleDiff: Story = {
+  args: {
+    diffs: [{ id: 'diff-1', diff: sampleDiff1 }],
+  },
 }

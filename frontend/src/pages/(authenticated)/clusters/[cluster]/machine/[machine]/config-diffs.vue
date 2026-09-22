@@ -13,7 +13,7 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineConfigDiffSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelMachine, MachineConfigDiffType } from '@/api/resources'
-import DiffRenderer from '@/components/DiffRenderer/DiffRenderer.vue'
+import DiffRenderer, { type DiffEntry } from '@/components/DiffRenderer'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
@@ -46,15 +46,18 @@ const sortOptions = [
   { label: 'Creation Time ⬆', value: 'asc' as const },
 ]
 
-const combinedDiff = computed(() =>
+const diffEntries = computed<DiffEntry[]>(() =>
   configDiffs.value
     .toSorted((a, b) =>
       sortOrder.value === 'desc'
         ? compareDesc(parseISO(a.metadata.created!), parseISO(b.metadata.created!))
         : compareAsc(parseISO(a.metadata.created!), parseISO(b.metadata.created!)),
     )
-    .map((d) => `# Created on ${formatISO(d.metadata.created!)}\n${d.spec.diff}`)
-    .join('\n'),
+    .map((d) => ({
+      id: d.metadata.id!,
+      diff: d.spec.diff ?? '',
+      label: d.metadata.created ? `Patch created on ${formatISO(d.metadata.created)}` : undefined,
+    })),
 )
 
 useTitle('Config Diffs')
@@ -63,11 +66,11 @@ useTitle('Config Diffs')
 <template>
   <PageContainer class="h-full">
     <template v-if="!diffsLoading">
-      <TAlert v-if="!combinedDiff" type="info" title="No Records">
+      <TAlert v-if="!diffEntries.length" type="info" title="No Records">
         No previously applied config diffs found for this machine
       </TAlert>
 
-      <DiffRenderer v-else class="h-full" :diff="combinedDiff" with-search>
+      <DiffRenderer v-else class="h-full" :diffs="diffEntries" with-search>
         <template #extra-controls>
           <TSelectList v-model="sortOrder" title="Sort by" :values="sortOptions" />
         </template>

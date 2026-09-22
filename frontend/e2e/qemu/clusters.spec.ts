@@ -501,7 +501,9 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate config history tab', async () => {
     await page.getByRole('tab', { name: 'Config History', exact: true }).click()
-    await expect(page.getByText('+variables:')).toBeVisible()
+    await expect(
+      page.locator('[data-line-type="change-addition"]').filter({ hasText: 'variables:' }),
+    ).toBeVisible()
 
     // This asserts that the virtualisation is working
     await expect(page.getByText('WORKER_THREAD_COUNT')).toBeHidden()

@@ -1,0 +1,22 @@
+@@ -5,7 +5,7 @@
+   token: redacted
+   install:
+     disk: /dev/sda
+-    image: ghcr.io/siderolabs/installer:v1.9.0
++    image: ghcr.io/siderolabs/installer:v1.9.3
+     wipe: false
+   network:
+     hostname: talos-node-1
+@@ -15,8 +15,11 @@
+   kubelet:
+     extraArgs:
+       rotate-server-certificates: "true"
++      node-labels: topology.kubernetes.io/region=eu-west
+   sysctls:
+-    net.core.somaxconn: "1024"
++    net.core.somaxconn: "4096"
++    net.ipv4.tcp_tw_reuse: "1"
+   features:
+     rbac: true
+     stableHostname: true
++    apidCheckExtKeyUsage: true

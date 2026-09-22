@@ -1,0 +1,14 @@
+@@ -4,11 +4,11 @@
+     endpoint: https://talos.example.com:6443
+   network:
+     podSubnets:
+-      - 10.244.0.0/16
++      - 10.245.0.0/16
+     serviceSubnets:
+       - 10.96.0.0/12
+   proxy:
+-    disabled: false
++    disabled: true
+   apiServer:
+     certSANs:
+       - talos.example.com

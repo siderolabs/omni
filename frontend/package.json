@@ -33,6 +33,7 @@
     "@internationalized/date": "^3.12.4",
     "@jsonforms/vue": "^3.8.0",
     "@jsonforms/vue-vanilla": "^3.8.0",
+    "@pierre/diffs": "^1.4.3",
     "@tanstack/vue-virtual": "^3.13.37",
     "@vue-flow/background": "^1.3.2",
     "@vue-flow/core": "^1.48.2",
