@@ -1,3 +1,37 @@
+## [Omni 1.12.2](https://github.com/siderolabs/omni/releases/tag/v1.12.2) (2026-09-23)
+
+Welcome to the v1.12.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* immanuwell
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>6 commits</summary>
+<p>
+
+* [`26fdb97e`](https://github.com/siderolabs/omni/commit/26fdb97e563a3580e87aa214562f274cf6e709e5) fix: keep the cached Talos clients alive while they are in use
+* [`c7f88c92`](https://github.com/siderolabs/omni/commit/c7f88c92a90c222f72ad0ca7b75ee84a45cd993c) fix: reject unknown omnictl config contexts
+* [`31867438`](https://github.com/siderolabs/omni/commit/3186743802148188db8f0c04d5de50e16cb40e21) fix: do not report k8s manifests as deleting when Omni does not own them
+* [`607d07bb`](https://github.com/siderolabs/omni/commit/607d07bb47c680e0ae7d88475c4b4b6d5e547369) fix(frontend): show enterprise label for cluster on overview
+* [`259aa95c`](https://github.com/siderolabs/omni/commit/259aa95cecb3e43ad199a6070d46f6989950e3d3) fix: forbid changing roles to or from InfraProvider
+* [`5678d3a8`](https://github.com/siderolabs/omni/commit/5678d3a8901fea7d5b76575a7b2fd7d25a9c514e) fix: honor context override in omnictl config info
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.12.1](https://github.com/siderolabs/omni/releases/tag/v1.12.1)
+
 ## [Omni 1.12.1](https://github.com/siderolabs/omni/releases/tag/v1.12.1) (2026-09-15)
 
 Welcome to the v1.12.1 release of Omni!
