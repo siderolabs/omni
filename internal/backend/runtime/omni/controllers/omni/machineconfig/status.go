@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -596,6 +597,8 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		return false, fmt.Errorf("failed to get talos client: %w", err)
 	}
 
+	defer runtime.KeepAlive(nodeClient) // the cached client closes its connection when garbage collected, keep it while it is in use
+
 	//nolint:staticcheck
 	_, err = nodeClient.UpgradeWithOptions(
 		upgradeCtx,
@@ -866,6 +869,8 @@ func (ctrl *StatusController) checkInstalledImage(
 	if err != nil {
 		return installedImage{}, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer runtime.KeepAlive(nodeClient) // the cached client closes its connection when garbage collected, keep it until the calls return
 
 	actualVersion, err := getVersion(ctx, nodeClient.Client)
 	if err != nil {

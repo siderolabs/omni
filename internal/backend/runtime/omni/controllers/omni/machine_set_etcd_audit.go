@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	goruntime "runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -103,6 +104,8 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 				if err != nil {
 					return err
 				}
+
+				defer goruntime.KeepAlive(talosCli) // the cached client closes its connection when garbage collected, keep it while it is in use
 
 				orphanMemberSet, err := auditor.auditEtcd(ctx, r, talosCli, cluster, machineSet, logger)
 				if err != nil {

@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -76,6 +77,8 @@ type maintenanceClient struct {
 }
 
 func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.MachineConfig, error) {
+	defer runtime.KeepAlive(c.client) // the cached client closes its connection when garbage collected, keep it until the call returns
+
 	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, c.client.COSI, configres.ActiveID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, fmt.Errorf("error getting machine config: %w", err)
@@ -85,6 +88,8 @@ func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.Mac
 }
 
 func (c maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
+	defer runtime.KeepAlive(c.client) // the cached client closes its connection when garbage collected, keep it while it is in use
+
 	return c.client.ApplyConfiguration(ctx, req)
 }
 

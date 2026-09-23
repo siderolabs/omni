@@ -11,7 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -36,6 +38,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/client/pkg/supportbundle"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -96,6 +99,14 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	progress := make(chan bundle.Progress)
 
+	// the cached clients close their connections when garbage collected, keep them until the bundle is done
+	var (
+		talosClients   []*talos.Client
+		talosClientsMu sync.Mutex
+	)
+
+	defer func() { runtime.KeepAlive(talosClients) }() // evaluated at the end, the slice is filled by then
+
 	options := bundle.NewOptions(
 		bundle.WithArchiveOutput(archiveOutput),
 		bundle.WithKubernetesClient(kubernetesClient),
@@ -104,6 +115,12 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 			if clientErr != nil {
 				return ctx, nil, clientErr
 			}
+
+			talosClientsMu.Lock()
+
+			talosClients = append(talosClients, c)
+
+			talosClientsMu.Unlock()
 
 			return ctx, c.Client, nil
 		}),

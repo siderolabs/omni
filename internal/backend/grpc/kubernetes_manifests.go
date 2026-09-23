@@ -8,6 +8,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -361,6 +362,8 @@ func (s *managementServer) prepareKubernetesSyncHelpers(ctx, authCtx context.Con
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer runtime.KeepAlive(talosClient) // the cached client closes its connection when garbage collected, keep it until the call returns
 
 	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
 	if err != nil {
