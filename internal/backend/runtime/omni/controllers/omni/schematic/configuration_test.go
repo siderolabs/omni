@@ -20,6 +20,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	schematicctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -108,6 +109,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// a schematic should already be created with the current list of extensions, without requiring a cluster machine
@@ -586,6 +588,7 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// Capture the SchematicId the controller publishes, then look up what it actually
@@ -694,6 +697,7 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			var publishedID string
@@ -802,6 +806,7 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// installed and already running with the desired schematic, so it keeps its own schematic ID
@@ -907,6 +912,7 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// the machine runs what it should, its own id is published without asking the factory
@@ -1034,6 +1040,7 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
 
+			r.NoError(st.Create(ctx, siderolink.NewMachineJoinConfig(machineStatus.Metadata().ID()))) // always exists in production, derived from the Machine
 			r.NoError(st.Create(ctx, machineStatus))
 
 			assertSchematicID := func(id string) {
@@ -1070,6 +1077,220 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			rtestutils.Destroy[*omni.ClusterMachine](ctx, t, st, []string{machineName})
 
 			assertSchematicID(bootedID)
+		},
+	)
+}
+
+// TestSchematicConfigurationPreservesJoinArgs covers a GRUB machine whose join args live only on its command line. The desired schematic keeps the
+// machine's own id while nothing changes, and carries the command line's join args as soon as an install or upgrade happens anyway.
+//
+//nolint:gocognit
+func TestSchematicConfigurationPreservesJoinArgs(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	factory := &testutils.ImageFactoryClientMock{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			r := require.New(t)
+
+			const (
+				talosVersion  = "1.12.5"
+				oldVersion    = "1.10.7"
+				newerVersion  = "1.13.2"
+				siderolinkArg = "siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken"
+				eventsSinkArg = "talos.events.sink=[fdae:41e4:649b:9303::1]:8091"
+				loggingArg    = "talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092"
+			)
+
+			cmdlineArgs := []string{"talos.config=none", siderolinkArg, eventsSinkArg, loggingArg}
+			legacyCmdline := "BOOT_IMAGE=/A/vmlinuz talos.platform=metal talos.config=none console=tty0 " + siderolinkArg + " " + eventsSinkArg + " " + loggingArg + " net.ifnames=0"
+			joinConfigArgs := []string{"siderolink.api=grpc://127.0.0.1:8090?jointoken=current", eventsSinkArg, loggingArg}
+
+			// the schematic of a machine installed before the image factory era: no kernel args at all
+			argless := schematic.Schematic{}
+
+			arglessYAML, err := argless.Marshal()
+			r.NoError(err)
+
+			arglessID, err := argless.ID()
+			r.NoError(err)
+
+			newMachine := func(name, version, cmdline string, installed bool) *omni.MachineStatus {
+				machineStatus := omni.NewMachineStatus(name)
+				machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+				machineStatus.TypedSpec().Value.TalosVersion = version
+				machineStatus.TypedSpec().Value.InitialTalosVersion = version
+				machineStatus.TypedSpec().Value.Maintenance = true
+				machineStatus.TypedSpec().Value.KernelCmdline = cmdline
+				machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+					FullId:       arglessID,
+					Raw:          string(arglessYAML),
+					InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
+				}
+				machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: false}
+				machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+				machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: installed}},
+				}
+
+				joinConfig := siderolink.NewMachineJoinConfig(name)
+				joinConfig.TypedSpec().Value.Config = &specs.JoinConfig{KernelArgs: joinConfigArgs}
+				r.NoError(st.Create(ctx, joinConfig))
+
+				r.NoError(st.Create(ctx, machineStatus))
+
+				return machineStatus
+			}
+
+			// assertID waits for the reconcile that saw the allocation (the cluster label is only set then) when clusterName is given.
+			assertID := func(name, clusterName, expectedID string) {
+				rtestutils.AssertResources(ctx, t, st, []string{name}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+					if clusterName != "" {
+						label, _ := sc.Metadata().Labels().Get(omni.LabelCluster)
+						assertion.Equal(clusterName, label)
+					}
+
+					assertion.Equal(expectedID, sc.TypedSpec().Value.SchematicId)
+				})
+			}
+
+			assertOwnID := func(name string) { assertID(name, "", arglessID) }
+
+			assertDesired := func(name string, expectedArgs []string) string {
+				var desiredID string
+
+				rtestutils.AssertResources(ctx, t, st, []string{name}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+					if sc.TypedSpec().Value.SchematicId == arglessID {
+						assertion.Fail("desired schematic is still the machine's own")
+
+						return
+					}
+
+					stored, ok := factory.Get(sc.TypedSpec().Value.SchematicId)
+					if !assertion.True(ok, "schematic %q was not ensured on the factory", sc.TypedSpec().Value.SchematicId) {
+						return
+					}
+
+					assertion.Equal(expectedArgs, stored.Customization.ExtraKernelArgs)
+
+					desiredID = sc.TypedSpec().Value.SchematicId
+				})
+
+				return desiredID
+			}
+
+			allocate := func(machineStatus *omni.MachineStatus, clusterName, clusterVersion string) {
+				cluster := omni.NewCluster(clusterName)
+				cluster.TypedSpec().Value.TalosVersion = clusterVersion
+				r.NoError(st.Create(ctx, cluster))
+
+				clusterMachine := omni.NewClusterMachine(machineStatus.Metadata().ID())
+				clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+				r.NoError(st.Create(ctx, clusterMachine))
+			}
+
+			// installed and idle: keeps its own schematic, no upgrade for the preservation alone
+			idle := newMachine("idle", talosVersion, legacyCmdline, true)
+			assertOwnID(idle.Metadata().ID())
+
+			// allocated to a cluster at the same version with nothing else changing: still its own schematic, the pending install is not a change
+			allocate(idle, "same-version", talosVersion)
+			assertID(idle.Metadata().ID(), "same-version", arglessID)
+
+			// the user edits the extra args: the upgrade happens anyway, the command line's join args ride along
+			edited := newMachine("edited", talosVersion, legacyCmdline, true)
+			assertOwnID(edited.Metadata().ID())
+
+			kernelArgs := omni.NewKernelArgs(edited.Metadata().ID())
+			kernelArgs.TypedSpec().Value.Args = []string{"nomodeset"}
+			r.NoError(st.Create(ctx, kernelArgs))
+
+			desiredID := assertDesired(edited.Metadata().ID(), append(append([]string{}, cmdlineArgs...), "nomodeset"))
+
+			// the machine reboots into it: the desired id stays its own, no loop
+			stored, ok := factory.Get(desiredID)
+			r.True(ok)
+
+			storedYAML, err := stored.Marshal()
+			r.NoError(err)
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, edited.Metadata(), func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Schematic.FullId = desiredID
+				res.TypedSpec().Value.Schematic.Raw = string(storedYAML)
+				res.TypedSpec().Value.Schematic.KernelArgs = stored.Customization.ExtraKernelArgs
+
+				return nil
+			})
+			r.NoError(err)
+
+			// allocating it afterwards proves the controller processed the reboot and still publishes the same id
+			allocate(edited, "after-reboot", talosVersion)
+			assertID(edited.Metadata().ID(), "after-reboot", desiredID)
+
+			// not installed: the install uses the desired schematic, so it carries the join args from the start
+			uninstalled := newMachine("uninstalled", talosVersion, legacyCmdline, false)
+			assertDesired(uninstalled.Metadata().ID(), cmdlineArgs)
+
+			// allocated to a cluster at a newer version: the upgrade happens anyway (the KernelArgs update itself is unsupported below 1.12)
+			upgraded := newMachine("upgraded", "1.11.6", legacyCmdline, true)
+			assertOwnID(upgraded.Metadata().ID())
+			allocate(upgraded, "newer-version", newerVersion)
+			assertDesired(upgraded.Metadata().ID(), cmdlineArgs)
+
+			// allocated to a cluster at the same version that sets extensions: the extension change is an upgrade too
+			extended := newMachine("extended", talosVersion, legacyCmdline, true)
+			assertOwnID(extended.Metadata().ID())
+
+			machineExtensions := omni.NewMachineExtensions(extended.Metadata().ID())
+			machineExtensions.TypedSpec().Value.Extensions = []string{"siderolabs/hello-world-service"}
+			r.NoError(st.Create(ctx, machineExtensions))
+
+			allocate(extended, "with-extensions", talosVersion)
+			assertDesired(extended.Metadata().ID(), cmdlineArgs)
+
+			// command line not visible (Talos 1.10): the join config stands in, only when something happens anyway
+			old := newMachine("old", oldVersion, "", true)
+			assertOwnID(old.Metadata().ID())
+			allocate(old, "old-to-newer", newerVersion)
+			assertDesired(old.Metadata().ID(), joinConfigArgs)
+
+			// same content, differently formatted raw YAML (a schematic issued by another factory version): the factory's id is the machine's own, nothing happens
+			formatted := newMachine("formatted", talosVersion, legacyCmdline, true)
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, formatted.Metadata(), func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Schematic.Raw = "# issued elsewhere\ncustomization: {}"
+
+				return nil
+			})
+			r.NoError(err)
+
+			// unallocated, the same raw formatting difference: the default branch without a pending install, still the machine's own id
+			rtestutils.AssertResources(ctx, t, st, []string{formatted.Metadata().ID()}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				assertion.Equal(arglessID, sc.TypedSpec().Value.SchematicId)
+			})
+
+			allocate(formatted, "same-version-formatted", talosVersion)
+			assertID(formatted.Metadata().ID(), "same-version-formatted", arglessID)
+
+			// connects another way: command line visible, no join args on it, left alone even when not installed
+			other := newMachine("other", talosVersion, "talos.platform=metal talos.config=https://config.example.com", false)
+
+			rtestutils.AssertResources(ctx, t, st, []string{other.Metadata().ID()}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+				stored, ok := factory.Get(sc.TypedSpec().Value.SchematicId)
+				if assertion.True(ok) {
+					assertion.Empty(stored.Customization.ExtraKernelArgs)
+				}
+			})
 		},
 	)
 }

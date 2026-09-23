@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
 // protectedKeys are set by Omni. They are taken from the machine's current schematic, never from the KernelArgs resource.
@@ -149,6 +150,44 @@ func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (
 	return slices.Concat(baseArgs, extraArgs), true, nil
 }
 
+// MissingJoinArgs returns the protected args the machine runs with that its schematic does not carry, so that an installer built from the
+// schematic keeps the machine reachable. Nothing is missing for a machine booted with UKI, whose command line is the image's, or when the
+// schematic already carries siderolink.api. A command line without siderolink.api means the machine connects another way.
+func MissingJoinArgs(machineStatus *omni.MachineStatus, joinConfig *siderolink.MachineJoinConfig) []string {
+	spec := machineStatus.TypedSpec().Value
+	schematicArgs := spec.Schematic.GetKernelArgs()
+
+	if spec.SecurityState == nil || spec.SecurityState.BootedWithUki || hasSideroLinkAPI(schematicArgs) {
+		return nil
+	}
+
+	cmdline := strings.Fields(spec.KernelCmdline)
+
+	var source []string
+
+	switch {
+	case hasSideroLinkAPI(cmdline):
+		source = FilterProtected(cmdline)
+	case len(cmdline) == 0 && joinConfig != nil && !hasKernelCmdline(spec.TalosVersion): // the command line is not visible to Omni, the join config stands in
+		source = joinConfig.TypedSpec().Value.Config.GetKernelArgs()
+	default:
+		return nil
+	}
+
+	return xslices.Filter(source, func(arg string) bool { return !slices.Contains(schematicArgs, arg) })
+}
+
+func hasSideroLinkAPI(args []string) bool {
+	return slices.ContainsFunc(args, func(arg string) bool { return containsKey(arg, []string{constants.KernelParamSideroLink}) })
+}
+
+// hasKernelCmdline reports whether Talos exposes the kernel command line as a resource, which it does since 1.11.
+func hasKernelCmdline(talosVersion string) bool {
+	version, err := semver.ParseTolerant(talosVersion)
+
+	return err != nil || version.GTE(semver.Version{Major: 1, Minor: 11})
+}
+
 // Validate rejects kernel args a user must not set: protected args, forbidden args and their negations, and entries holding more than one arg.
 func Validate(args []string) error {
 	for _, arg := range args {
@@ -179,8 +218,12 @@ func FilterExtras(args []string) []string {
 // isProtected matches a protected key in any whitespace-separated token, since the imager re-splits entries.
 // A negated protected key is not protected: it is an extra the user can still remove, only new ones are rejected by Validate.
 func isProtected(arg string) bool {
+	return containsKey(arg, protectedKeys)
+}
+
+func containsKey(arg string, keys []string) bool {
 	return slices.ContainsFunc(strings.Fields(arg), func(token string) bool {
-		return hasKey(token, protectedKeys)
+		return hasKey(token, keys)
 	})
 }
 

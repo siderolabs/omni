@@ -12,6 +12,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 )
 
@@ -282,6 +283,69 @@ func TestCalculateCleanup(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, initialized)
 			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// legacyCmdline is the command line of a GRUB machine that got its join args through the legacy installer carry-over.
+const legacyCmdline = "BOOT_IMAGE=/A/vmlinuz talos.platform=metal talos.config=none console=tty0 console=ttyS0 slab_nomerge pti=on " +
+	siderolink + " " + eventsSink + " " + logging + " net.ifnames=0"
+
+func TestMissingJoinArgs(t *testing.T) {
+	t.Parallel()
+
+	joinArgs := []string{"siderolink.api=grpc://omni.example.com:8090?jointoken=current", "talos.events.sink=[fdae::1]:8091", "talos.logging.kernel=tcp://[fdae::1]:8092"}
+
+	joinConfig := siderolinkres.NewMachineJoinConfig("test-machine")
+	joinConfig.TypedSpec().Value.Config = &specs.JoinConfig{KernelArgs: joinArgs}
+
+	grub := &specs.SecurityState{BootedWithUki: false}
+
+	for _, tc := range []struct {
+		name          string
+		securityState *specs.SecurityState
+		cmdline       string
+		talosVersion  string
+		joinConfig    *siderolinkres.MachineJoinConfig
+		currentArgs   []string
+		expected      []string
+	}{
+		{name: "uki machine is left alone", securityState: &specs.SecurityState{BootedWithUki: true}, cmdline: legacyCmdline},
+		{name: "schematic already has the join args", securityState: grub, cmdline: legacyCmdline, currentArgs: []string{siderolink, eventsSink, logging}},
+		{name: "schematic has the join args in a mixed entry", securityState: grub, cmdline: legacyCmdline, currentArgs: []string{"quiet " + siderolink}},
+		{
+			name:          "join args only on the command line: protected args, verbatim, in command line order",
+			securityState: grub,
+			cmdline:       legacyCmdline,
+			expected:      []string{"talos.config=none", siderolink, eventsSink, logging},
+		},
+		{
+			name:          "schematic has some of them: only the missing ones",
+			securityState: grub,
+			cmdline:       legacyCmdline,
+			currentArgs:   []string{"talos.config=none", "nomodeset"},
+			expected:      []string{siderolink, eventsSink, logging},
+		},
+		{
+			name:          "command line without join args: the machine connects another way",
+			securityState: grub,
+			cmdline:       "talos.platform=metal console=ttyS0 talos.config=https://config.example.com",
+			joinConfig:    joinConfig,
+		},
+		{name: "command line not visible on Talos 1.10: join config used", securityState: grub, talosVersion: "v1.10.7", joinConfig: joinConfig, expected: joinArgs},
+		{name: "command line not polled yet on Talos 1.12: nothing", securityState: grub, talosVersion: "v1.12.5", joinConfig: joinConfig},
+		{name: "command line not visible and no join config", securityState: grub, talosVersion: "v1.10.7"},
+		{name: "security state unknown", cmdline: legacyCmdline},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ms := machineStatusWithArgs(tc.currentArgs)
+			ms.TypedSpec().Value.SecurityState = tc.securityState
+			ms.TypedSpec().Value.KernelCmdline = tc.cmdline
+			ms.TypedSpec().Value.TalosVersion = tc.talosVersion
+
+			assert.Equal(t, tc.expected, kernelargs.MissingJoinArgs(ms, tc.joinConfig))
 		})
 	}
 }

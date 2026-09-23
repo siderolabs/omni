@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	factoryclient "github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
@@ -98,6 +99,9 @@ func NewConfigurationController(imageFactoryClients imageFactoryClientProvider) 
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
+		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 		qtransform.WithExtraMappedInput[*omni.TalosVersion](
@@ -222,12 +226,24 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return fmt.Errorf("failed to patch schematic: %w", err)
 	}
 
+	joinConfig, err := safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, ms.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine join config is not yet available")
+		}
+
+		return err
+	}
+
+	// the join args the machine runs with but its schematic lacks: added only when the machine is about to be installed or upgraded anyway, see publishSchematicID
+	missingJoinArgs := kernelargs.MissingJoinArgs(ms, joinConfig)
+
 	factoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
 	if err != nil {
 		return err
 	}
 
-	if err = ctrl.publishSchematicID(ctx, logger, ms, cluster, schematicConfiguration, factoryClient, patched, talosVersion); err != nil {
+	if err = ctrl.publishSchematicID(ctx, logger, ms, cluster, schematicConfiguration, factoryClient, patched, missingJoinArgs, talosVersion); err != nil {
 		return err
 	}
 
@@ -238,7 +254,7 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 
 // publishSchematicID decides which schematic id the machine should run and publishes it.
 func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, cluster *omni.Cluster,
-	schematicConfiguration *omni.SchematicConfiguration, factoryClient factoryclient.FactoryClient, patched schematic.Schematic, talosVersion string,
+	schematicConfiguration *omni.SchematicConfiguration, factoryClient factoryclient.FactoryClient, patched schematic.Schematic, missingJoinArgs []string, talosVersion string,
 ) error {
 	machineTalosVersion := strings.TrimLeft(ms.TypedSpec().Value.TalosVersion, "v")
 
@@ -267,6 +283,22 @@ func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, log
 
 		if err != nil {
 			return err
+		}
+
+		// the factory's id is the one to compare with, it normalizes what it stores: a different id, nothing installed or another version means
+		// an install or upgrade is coming, and that is when the join args the machine runs with are added to the schematic
+		if len(missingJoinArgs) > 0 && (id != ms.TypedSpec().Value.Schematic.FullId || !talosInstalled || talosVersion != machineTalosVersion) {
+			patched.Customization.ExtraKernelArgs = slices.Concat(missingJoinArgs, patched.Customization.ExtraKernelArgs)
+
+			factoryCtx, cancel = context.WithTimeout(ctx, time.Second*30)
+
+			id, _, err = factoryClient.EnsureSchematic(factoryCtx, patched)
+
+			cancel()
+
+			if err != nil {
+				return err
+			}
 		}
 
 		if id != schematicConfiguration.TypedSpec().Value.SchematicId {

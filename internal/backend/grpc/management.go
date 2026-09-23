@@ -55,6 +55,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/installimage"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	omniCtrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -792,7 +793,18 @@ func (s *managementServer) ensureSchematic(ctx context.Context, talosVersion str
 	id := schematicSpec.GetFullId()
 
 	if schematicSpec.GetFullId() != "" && schematicSpec.GetRaw() != "" && !schematicSpec.GetInAgentMode() {
-		patched, patchErr := imagefactoryinternal.PatchSchematic(schematicSpec.GetRaw(), schematicSpec.GetExtensions(), schematicSpec.GetKernelArgs())
+		joinConfig, joinErr := safe.StateGetByID[*siderolinkres.MachineJoinConfig](ctx, s.omniState, machineStatus.Metadata().ID())
+		if joinErr != nil {
+			return "", "", fmt.Errorf("failed to get machine join config: %w", joinErr)
+		}
+
+		kernelArgs := schematicSpec.GetKernelArgs()
+
+		if missing := kernelargs.MissingJoinArgs(machineStatus, joinConfig); len(missing) > 0 {
+			kernelArgs = slices.Concat(missing, kernelArgs)
+		}
+
+		patched, patchErr := imagefactoryinternal.PatchSchematic(schematicSpec.GetRaw(), schematicSpec.GetExtensions(), kernelArgs)
 		if patchErr != nil {
 			return "", "", fmt.Errorf("failed to patch schematic: %w", patchErr)
 		}
