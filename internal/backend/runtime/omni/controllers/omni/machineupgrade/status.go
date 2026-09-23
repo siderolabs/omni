@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 
@@ -345,6 +346,8 @@ func (ctrl *StatusController) legacyUpgrade(ctx context.Context, logger *zap.Log
 	if err != nil {
 		return fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer runtime.KeepAlive(talosClient) // the cached client closes its connection when garbage collected, keep it while it is in use
 
 	//nolint:staticcheck
 	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImageStr)); err != nil {

@@ -7,6 +7,7 @@ package lifecycle
 
 import (
 	"context"
+	"runtime"
 	"sync"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -215,6 +216,8 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 	}
 
 	talosClient := nodeClient.Client
+
+	defer runtime.KeepAlive(nodeClient) // the cached client closes its connection when garbage collected, keep it for the whole operation
 
 	// Install/Upgrade expect the image already present in containerd so we pull it here.
 	resolvedImage, err := m.pullInstallerImage(ctx, talosClient, installImageStr, op.MachineID, cfg)

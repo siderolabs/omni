@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/url"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -521,11 +522,25 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 
 	var logBuffer strings.Builder
 
+	// the cached clients close their connections when garbage collected, keep them until the pre-checks are done
+	var (
+		talosClients   []*talos.Client
+		talosClientsMu sync.Mutex
+	)
+
+	defer func() { runtime.KeepAlive(talosClients) }() // evaluated at the end, the slice is filled by then
+
 	preCheck, err := upgrade.NewChecksWithStateProvider(path, func(ctx context.Context, machineID string) (state.State, error) {
 		c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
 		if clientErr != nil {
 			return nil, clientErr
 		}
+
+		talosClientsMu.Lock()
+
+		talosClients = append(talosClients, c)
+
+		talosClientsMu.Unlock()
 
 		return c.COSI, nil
 	}, restConfig, controlplaneMachines, nil, func(format string, args ...any) {
@@ -1244,6 +1259,8 @@ func (s *managementServer) MachinePowerOff(ctx context.Context, request *managem
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer runtime.KeepAlive(talosClient) // the cached client closes its connection when garbage collected, keep it while it is in use
 
 	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Shutdown_FullMethodName, clusterName, request.MachineId); err != nil {
 		return nil, err

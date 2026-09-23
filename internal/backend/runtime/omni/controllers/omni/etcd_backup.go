@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"runtime"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -372,6 +373,8 @@ func (ctrl *EtcdBackupController) doBackup(
 	if err != nil {
 		return fmt.Errorf("failed to create talos client for cluster, skipping cluster backup: %w", err)
 	}
+
+	defer runtime.KeepAlive(client) // the cached client closes its connection when garbage collected, keep it while it is in use
 
 	rdr, err := client.EtcdSnapshot(ctx, &machineapi.EtcdSnapshotRequest{})
 	if err != nil {

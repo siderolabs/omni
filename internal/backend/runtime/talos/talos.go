@@ -136,6 +136,8 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 
 	ctx = metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
 
+	defer goruntime.KeepAlive(c) // the cached client closes its connection when garbage collected, keep it until the call returns
+
 	res, err := c.COSI.Get(ctx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined))
 	if err != nil {
 		return nil, err
@@ -171,6 +173,8 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 		}
 
 		machineCtx := metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
+		defer goruntime.KeepAlive(c) // the cached client closes its connection when garbage collected, keep it until the call returns
 
 		items, err := c.COSI.List(machineCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
 		if err != nil {
