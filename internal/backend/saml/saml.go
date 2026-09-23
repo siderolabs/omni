@@ -43,7 +43,13 @@ type sloSessionData struct {
 }
 
 // NewHandler creates new SAML handler.
-func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL, recoveryAdmin string) (*samlsp.Middleware, error) {
+func NewHandler(
+	state state.State,
+	cfg *specs.AuthConfigSpec_SAML,
+	logger *zap.Logger,
+	apiURL, recoveryAdmin string,
+	allowIDPInitiated bool,
+) (*samlsp.Middleware, error) {
 	idpMetadata, err := readMetadata(cfg)
 	if err != nil {
 		return nil, err
@@ -62,7 +68,7 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 		// re-authenticate is what stops it answering with whoever it still has. Without this, logging out
 		// lands the same user straight back inside, and switching users is impossible.
 		ForceAuthn:        true,
-		AllowIDPInitiated: true,
+		AllowIDPInitiated: allowIDPInitiated,
 	}
 
 	serviceProvider := samlsp.DefaultServiceProvider(opts)
@@ -195,13 +201,8 @@ func CreateLogoutHandler(m *samlsp.Middleware, advertisedURL string, logger *zap
 			req.SessionIndex = &saml.SessionIndex{Value: data.SessionIndex}
 		}
 
-		// Note: for HTTP-Redirect binding the IdP ignores embedded XML signatures.
-		// MakeLogoutRequest may have added one, but it's harmless — the IdP validates
-		// the query-string signature (SigAlg + Signature params), not the XML body signature.
-		// We intentionally skip re-signing after modifying Format/SessionIndex.
-		// See SAML 2.0 Bindings, §3.4.4.1 (HTTP-Redirect DEFLATE Encoding), which
-		// defines signatures over the URL query parameters, not the XML payload.
-
+		// The request goes out unsigned: the service provider has no key, and LogoutRequest.Redirect
+		// emits no SigAlg or Signature even when one is configured.
 		redirectURL := req.Redirect(advertisedURL)
 
 		http.Redirect(w, r, redirectURL.String(), http.StatusFound)

@@ -105,6 +105,7 @@ func startAuthFlow(t *testing.T) *http.Response {
 		zaptest.NewLogger(t),
 		testAdvertisedURL,
 		"",
+		true,
 	)
 	require.NoError(t, err)
 
@@ -398,4 +399,22 @@ func assertNameIDCookieCleared(t *testing.T, resp *http.Response) {
 	}
 
 	t.Error("expected saml_name_id cookie to be set (cleared) in response")
+}
+
+func TestAllowIDPInitiated(t *testing.T) {
+	t.Parallel()
+
+	for _, allow := range []bool{true, false} {
+		m, err := omnisaml.NewHandler(
+			state.WrapCore(namespaced.NewState(inmem.Build)),
+			&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
+			zaptest.NewLogger(t),
+			testAdvertisedURL,
+			"",
+			allow,
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, allow, m.ServiceProvider.AllowIDPInitiated)
+	}
 }

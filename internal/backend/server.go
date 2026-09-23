@@ -336,6 +336,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			s.logger,
 			s.cfg.Services.Api.URL(),
 			s.cfg.Auth.GetRecoveryAdmin(),
+			s.cfg.Auth.Saml.GetAllowIdpInitiated(),
 		)
 	}()
 	if err != nil {

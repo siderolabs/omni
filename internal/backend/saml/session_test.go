@@ -7,6 +7,8 @@ package saml_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
@@ -454,4 +456,104 @@ func TestEnsureUserRecoveryAdminNotCreated(t *testing.T) {
 	require.NoError(t, sp.EnsureUser(ctx, newcomer, map[string]string{developerLabel: ""}))
 
 	require.EqualValues(t, role.Reader, roleOf(ctx, t, st, newcomer))
+}
+
+func TestCreateSessionQuerySource(t *testing.T) {
+	t.Parallel()
+
+	acsURL, err := url.Parse("https://omni.example.com/saml/acs")
+	require.NoError(t, err)
+
+	tracker := samlsp.CookieRequestTracker{
+		ServiceProvider: &csaml.ServiceProvider{AcsURL: *acsURL},
+		NamePrefix:      "saml_",
+		Codec:           &saml.Encoder{},
+		MaxAge:          time.Minute,
+	}
+
+	for _, tt := range []struct {
+		expectedQuery url.Values
+		name          string
+		tracked       bool
+	}{
+		{
+			name: "unsolicited response ignores the ACS query",
+			expectedQuery: url.Values{
+				"identity": {"user@example.com"},
+				"fullname": {""},
+			},
+		},
+		{
+			name:    "tracked request keeps the login query",
+			tracked: true,
+			expectedQuery: url.Values{
+				"identity": {"user@example.com"},
+				"fullname": {""},
+				"flow":     {"frontend"},
+				"redirect": {"/tracked"},
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			t.Cleanup(cancel)
+
+			st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+			authConfig := auth.NewAuthConfig()
+			authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{}
+
+			require.NoError(t, st.Create(ctx, authConfig))
+
+			sp := saml.NewSessionProvider(st, tracker, zaptest.NewLogger(t), nil, "")
+
+			form := url.Values{}
+
+			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/saml/acs?flow=frontend&redirect=/injected", nil)
+
+			if tt.tracked {
+				loginRec := httptest.NewRecorder()
+				loginReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/login?flow=frontend&redirect=/tracked", nil)
+
+				index, trackErr := tracker.TrackRequest(loginRec, loginReq, "request-id")
+				require.NoError(t, trackErr)
+
+				for _, cookie := range loginRec.Result().Cookies() {
+					req.AddCookie(cookie)
+				}
+
+				form.Set("RelayState", index)
+			}
+
+			req.Form = form
+
+			assertion := &csaml.Assertion{
+				Subject: &csaml.Subject{NameID: &csaml.NameID{Value: "user@example.com"}},
+				AttributeStatements: []csaml.AttributeStatement{
+					{
+						Attributes: []csaml.Attribute{
+							{Name: "email", Values: []csaml.AttributeValue{{Value: "user@example.com"}}},
+						},
+					},
+				},
+			}
+
+			rec := httptest.NewRecorder()
+
+			require.NoError(t, sp.CreateSession(rec, req, assertion))
+
+			location, err := url.Parse(rec.Header().Get("Location"))
+			require.NoError(t, err)
+
+			require.Equal(t, "/authenticate", location.Path)
+
+			query := location.Query()
+			require.NotEmpty(t, query.Get("session"))
+			query.Del("session")
+
+			require.Equal(t, tt.expectedQuery, query)
+		})
+	}
 }

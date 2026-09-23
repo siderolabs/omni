@@ -1282,6 +1282,17 @@ func (s *ResourceLoggerConfig) SetLogLevel(v string) {
 	s.LogLevel = &v
 }
 
+func (s *SAML) GetAllowIdpInitiated() bool {
+	if s == nil || s.AllowIdpInitiated == nil {
+		return *new(bool)
+	}
+	return *s.AllowIdpInitiated
+}
+
+func (s *SAML) SetAllowIdpInitiated(v bool) {
+	s.AllowIdpInitiated = &v
+}
+
 func (s *SAML) GetEnabled() bool {
 	if s == nil || s.Enabled == nil {
 		return *new(bool)

@@ -237,6 +237,7 @@ func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 	b.ValueVar("auth.saml.labelRules", &flagConfig.Auth.Saml.LabelRules)
 	b.ValueVar("auth.saml.attributeRules", &flagConfig.Auth.Saml.AttributeRules)
 	b.StringVar("auth.saml.nameIDFormat", &flagConfig.Auth.Saml.NameIDFormat)
+	b.BoolVar("auth.saml.allowIdpInitiated", &flagConfig.Auth.Saml.AllowIdpInitiated)
 
 	b.StringSliceVar("auth.initialUsers", &flagConfig.Auth.InitialUsers, flagConfig.Auth.InitialUsers)
 	b.StringVar("auth.recoveryAdmin", &flagConfig.Auth.RecoveryAdmin)

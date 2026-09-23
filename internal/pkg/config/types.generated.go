@@ -693,6 +693,11 @@ type ResourceLoggerConfig struct {
 }
 
 type SAML struct {
+	// AllowIDPInitiated accepts assertions the IdP sends without a matching
+	// AuthnRequest, as in logins started from an IdP app launcher. Turning it off
+	// makes Omni reject any response that does not answer a request it sent.
+	AllowIdpInitiated *bool `json:"allowIdpInitiated,omitempty,omitzero" yaml:"allowIdpInitiated,omitempty"`
+
 	// AttributeRules defines additional identity, fullname, firstname and lastname
 	// mappings.
 	AttributeRules SAMLAttributeRules `json:"attributeRules" yaml:"attributeRules"`

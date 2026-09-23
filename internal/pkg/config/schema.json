@@ -1082,6 +1082,15 @@
           "x-cli-flag": "auth-saml-name-id-format",
           "type": "string"
         },
+        "allowIdpInitiated": {
+          "description": "AllowIDPInitiated accepts assertions the IdP sends without a matching AuthnRequest, as in logins started from an IdP app launcher. Turning it off makes Omni reject any response that does not answer a request it sent.",
+          "x-cli-flag": "auth-saml-allow-idp-initiated",
+          "type": "boolean",
+          "default": true,
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
         "enabled": {
           "description": "Enabled controls whether the SAML authentication provider is enabled.",
           "x-cli-flag": "auth-saml-enabled",

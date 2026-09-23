@@ -131,7 +131,9 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		session = hex.EncodeToString(h.Sum(nil))
 	}
 
-	query := r.URL.Query()
+	// Whoever submits an unsolicited response picks its ACS URL, so only a tracked request may pass the auth
+	// flow and redirect through. Otherwise a forged login could skip the confirmation step.
+	query := url.Values{}
 
 	if trackedRequestIndex := r.Form.Get("RelayState"); trackedRequestIndex != "" {
 		trackedRequest, err := sp.tracker.GetTrackedRequest(r, trackedRequestIndex)
