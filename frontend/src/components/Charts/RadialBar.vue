@@ -5,18 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import 'apexcharts/radialBar'
-
-import type { ApexOptions } from 'apexcharts'
 import { computed, useId } from 'vue'
-import ApexChart from 'vue3-apexcharts/core'
-
-import { getNonce } from '@/methods'
 
 interface Props {
   title: string
-  showHollowTotal?: boolean
-  vertical?: boolean
   total?: number
   items: {
     label: string
@@ -26,32 +18,22 @@ interface Props {
 }
 
 const {
-  showHollowTotal,
   total: propsTotal,
   items,
   legendFormatter = (value) => value.toString(),
 } = defineProps<Props>()
 
-const total = computed(() => propsTotal ?? items.reduce((prev, curr) => prev + curr.value, 0))
-
-const series = computed(() =>
-  total.value === 0
-    ? Array<number>(items.length).fill(0)
-    : items.map((i) => Math.round((i.value / total.value) * 100)),
-)
-
-const legendItems = computed(() => [
-  {
-    label: 'Total',
-    value: legendFormatter(total.value),
-    color: 'var(--color-naturals-n8)',
-  },
-  ...items.map((item, i) => ({
-    label: item.label,
-    value: legendFormatter(item.value),
-    color: colors[i],
-  })),
-])
+// Geometry in viewBox units, one per pixel. Rings run outside in, so the first
+// item gets the outermost ring.
+const VIEWBOX_WIDTH = 200
+const VIEWBOX_HEIGHT = 170
+const CENTER_X = VIEWBOX_WIDTH / 2
+const CENTER_Y = VIEWBOX_HEIGHT / 2
+const OUTER_RADIUS = 65
+const RING_WIDTH = 8
+const RING_GAP = 2
+// Narrower than the bar, so the bar covers it wherever it is filled.
+const TRACK_WIDTH = RING_WIDTH * 0.97
 
 const colors = [
   'var(--color-primary-p3)',
@@ -61,58 +43,39 @@ const colors = [
   'var(--color-yellow-y1)',
 ]
 
-const options = computed<ApexOptions>(() => ({
-  chart: {
-    nonce: getNonce(),
+const trackColor = 'var(--color-naturals-n8)'
+
+const total = computed(() => propsTotal ?? items.reduce((prev, curr) => prev + curr.value, 0))
+
+const rings = computed(() =>
+  items.map((item, index) => {
+    const radius = OUTER_RADIUS - RING_WIDTH / 2 - index * (RING_WIDTH + RING_GAP)
+    const circumference = 2 * Math.PI * radius
+    const percent = total.value === 0 ? 0 : Math.round((item.value / total.value) * 100)
+
+    return {
+      label: item.label,
+      radius,
+      circumference,
+      // Zero still shows a dot: the round line cap draws even on an empty arc.
+      filled: (percent / 100) * circumference,
+      color: colors[index],
+    }
+  }),
+)
+
+const legendItems = computed(() => [
+  {
+    label: 'Total',
+    value: legendFormatter(total.value),
+    color: trackColor,
   },
-  plotOptions: {
-    radialBar: {
-      hollow: {
-        size: `${80 - items.length * 10}`,
-      },
-      track: {
-        margin: 2,
-        background: [
-          'var(--color-naturals-n8)',
-          ...Array<string>(items.length - 1).fill('transparent'),
-        ],
-      },
-      dataLabels: {
-        name: { show: false },
-        total: {
-          show: showHollowTotal,
-          formatter: () => legendFormatter(total.value) /* To prevent library's calculation */,
-        },
-        value: {
-          show: showHollowTotal,
-          offsetY: 5,
-          color: 'var(--color-naturals-n14)',
-          fontSize: 'var(--text-base)',
-          fontWeight: 'var(--font-weight-medium)',
-          formatter: () => legendFormatter(total.value), // To always show total instead of individual values
-        },
-      },
-    },
-  },
-  fill: {
-    colors: colors,
-  },
-  stroke: {
-    lineCap: 'round',
-  },
-  states: {
-    hover: {
-      filter: {
-        type: 'none',
-      },
-    },
-    active: {
-      filter: {
-        type: 'none',
-      },
-    },
-  },
-}))
+  ...items.map((item, i) => ({
+    label: item.label,
+    value: legendFormatter(item.value),
+    color: colors[i],
+  })),
+])
 
 const labelId = useId()
 </script>
@@ -122,11 +85,42 @@ const labelId = useId()
     <h2 :id="labelId" class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
 
     <figure
-      class="flex items-center gap-2 self-center py-2 not-visited:px-4"
-      :class="{ 'flex-col': vertical }"
+      class="flex flex-col items-center gap-2 self-center py-2 not-visited:px-4"
       :aria-labelledby="labelId"
     >
-      <ApexChart type="radialBar" width="200" :options="options" :series="series" />
+      <svg
+        aria-hidden="true"
+        :width="VIEWBOX_WIDTH"
+        :height="VIEWBOX_HEIGHT"
+        :viewBox="`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <!-- Start arcs at 12 o'clock, running clockwise. -->
+        <g :transform="`rotate(-90 ${CENTER_X} ${CENTER_Y})`">
+          <circle
+            v-if="rings.length"
+            :cx="CENTER_X"
+            :cy="CENTER_Y"
+            :r="rings[0].radius"
+            fill="none"
+            :stroke-width="TRACK_WIDTH"
+            :style="{ stroke: trackColor }"
+          />
+
+          <circle
+            v-for="ring in rings"
+            :key="ring.label"
+            :cx="CENTER_X"
+            :cy="CENTER_Y"
+            :r="ring.radius"
+            fill="none"
+            stroke-linecap="round"
+            :stroke-width="RING_WIDTH"
+            :stroke-dasharray="`${ring.filled} ${ring.circumference}`"
+            :style="{ stroke: ring.color }"
+          />
+        </g>
+      </svg>
 
       <figcaption class="flex flex-col gap-2">
         <dl

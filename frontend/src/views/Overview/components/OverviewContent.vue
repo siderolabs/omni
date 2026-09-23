@@ -271,7 +271,6 @@ const machineLockedForSecretRotation = computed(() => {
         >
           <RadialBar
             title="CPU"
-            vertical
             :total="usage?.spec?.cpu?.capacity ?? 0"
             :items="[
               { label: 'Requests', value: usage?.spec?.cpu?.requests ?? 0 },
@@ -281,13 +280,11 @@ const machineLockedForSecretRotation = computed(() => {
           />
           <RadialBar
             title="Pods"
-            vertical
             :total="usage?.spec?.pods?.capacity ?? 0"
             :items="[{ label: 'Requests', value: usage?.spec?.pods?.count ?? 0 }]"
           />
           <RadialBar
             title="Memory"
-            vertical
             :total="usage?.spec?.mem?.capacity ?? 0"
             :items="[
               { label: 'Requests', value: usage?.spec?.mem?.requests ?? 0 },
@@ -297,7 +294,6 @@ const machineLockedForSecretRotation = computed(() => {
           />
           <RadialBar
             title="Ephemeral Storage"
-            vertical
             :total="usage?.spec?.storage?.capacity ?? 0"
             :items="[
               { label: 'Requests', value: usage?.spec?.storage?.requests ?? 0 },
