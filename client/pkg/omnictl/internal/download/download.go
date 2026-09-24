@@ -688,7 +688,13 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	maps.Copy(req.Header, media.Headers)
 
 	dest := params.Output
-	if filepath.Ext(params.Output) == "" {
+
+	isDir, err := outputIsDirectory(params.Output)
+	if err != nil {
+		return err
+	}
+
+	if isDir {
 		dest = filepath.Join(params.Output, fmt.Sprintf(
 			"%s-%s-%s%s",
 			image.DestFilePrefix,
@@ -898,7 +904,12 @@ func newHTTPClient() (*http.Client, error) {
 
 // MakePath ensures the output path exists.
 func MakePath(path string) error {
-	if filepath.Ext(path) != "" {
+	isDir, err := outputIsDirectory(path)
+	if err != nil {
+		return err
+	}
+
+	if !isDir {
 		ok, err := checkPath(path)
 		if err != nil {
 			return err
@@ -912,6 +923,19 @@ func MakePath(path string) error {
 	}
 
 	return os.MkdirAll(path, 0o755)
+}
+
+func outputIsDirectory(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err == nil {
+		return info.IsDir(), nil
+	}
+
+	if !os.IsNotExist(err) {
+		return false, err
+	}
+
+	return filepath.Ext(path) == "", nil
 }
 
 func checkPath(path string) (bool, error) {

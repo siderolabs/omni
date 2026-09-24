@@ -435,6 +435,18 @@ func TestDownloadToFileRemovesIncompleteDownload(t *testing.T) {
 	require.NoError(t, download.MakePath(dest), "the destination should be reusable by the next attempt")
 }
 
+func TestMakePathExistingDottedDirectory(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "images.v1")
+	require.NoError(t, os.Mkdir(path, 0o755))
+	require.NoError(t, download.MakePath(path))
+
+	file := filepath.Join(t.TempDir(), "image.iso")
+	require.NoError(t, os.WriteFile(file, nil, 0o600))
+	require.ErrorContains(t, download.MakePath(file), "already exists")
+}
+
 func TestDownloadToFileKeepsCompleteDownload(t *testing.T) {
 	t.Parallel()
 
