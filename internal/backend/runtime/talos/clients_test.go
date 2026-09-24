@@ -938,3 +938,47 @@ func TestClientOpenClientsProfile(t *testing.T) {
 		clientFactory.Stop()
 	})
 }
+
+func TestNewClientOnAddressChange(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		clientFactory := talos.NewClientFactory(testContext.State, testContext.Logger)
+
+		createMaintenanceMachine(ctx, t, testContext.State, "m1")
+
+		var eg errgroup.Group
+
+		eg.Go(func() error {
+			return clientFactory.StartCacheManager(ctx)
+		})
+
+		t.Cleanup(func() {
+			require.NoError(t, eg.Wait())
+		})
+
+		require.NoError(t, clientFactory.WaitForCacheStart(ctx))
+
+		oldClient := getAndClose(ctx, t, clientFactory, "m1")
+
+		ms, err := safe.StateGet[*omni.MachineStatus](ctx, testContext.State, omni.NewMachineStatus("m1").Metadata())
+		require.NoError(t, err)
+
+		ms.TypedSpec().Value.ManagementAddress = "127.0.0.2"
+		require.NoError(t, testContext.State.Update(ctx, ms))
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			client, clientErr := clientFactory.GetForMachine(ctx, "m1")
+			if !assert.NoError(collect, clientErr) {
+				return
+			}
+
+			assert.NoError(collect, client.Close())
+			assert.NotSame(collect, oldClient.Client, client.Client, "the client of the old address must not be reused")
+		}, time.Minute, 100*time.Millisecond)
+	})
+}

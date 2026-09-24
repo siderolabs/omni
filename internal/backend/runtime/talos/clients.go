@@ -827,7 +827,8 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 	}
 }
 
-// handleMachineStatusEvent evicts the now-stale clients of a machine whose maintenance mode or cluster changed.
+// handleMachineStatusEvent evicts the now-stale clients of a machine whose maintenance mode, cluster or management address
+// changed.
 //
 // A machine is reachable over exactly one client: the insecure maintenance client while in maintenance mode, or the
 // secure cluster client otherwise. On every change the clients the machine is no longer reachable through are evicted.
@@ -836,8 +837,7 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 // The previous cluster is read from the old version of the resource carried by the event, so the secure cluster client
 // can be evicted even when the machine status has already cleared its cluster field as the machine leaves the cluster.
 //
-// The management address is not watched, as it never changes for an existing machine: SideroLink keeps the address of an
-// existing link, and a machine gets a new one only after its link and status were destroyed, which evicts its clients.
+// A new management address makes all the clients of the machine stale, as they dial the old one.
 func (factory *ClientFactory) handleMachineStatusEvent(event state.Event) {
 	machineID := event.Resource.Metadata().ID()
 
@@ -866,6 +866,14 @@ func (factory *ClientFactory) handleMachineStatusEvent(event state.Event) {
 
 	// evict the secure client of the previous cluster if the machine moved to a different one or left it entirely.
 	if old, ok := event.Old.(*omni.MachineStatus); ok {
+		if old.TypedSpec().Value.ManagementAddress != machineStatus.TypedSpec().Value.ManagementAddress {
+			factory.releaseForMachine("", machineID)
+			evictCluster(old.TypedSpec().Value.Cluster)
+			evictCluster(machineStatus.TypedSpec().Value.Cluster)
+
+			return
+		}
+
 		if oldCluster := old.TypedSpec().Value.Cluster; oldCluster != machineStatus.TypedSpec().Value.Cluster {
 			evictCluster(oldCluster)
 		}

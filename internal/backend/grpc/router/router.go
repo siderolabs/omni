@@ -168,9 +168,15 @@ func (r *Router) releaseForCluster(clusterID string) {
 	r.talosBackends.Remove(clusterKey)
 }
 
-// releaseForMachine evicts a single cached backend by cluster and machine ID.
+// releaseForMachine evicts the cached backends of a machine by cluster and machine ID, whatever address they dial.
 func (r *Router) releaseForMachine(clusterID, machineID string) {
-	r.talosBackends.Remove(buildCacheKey(clusterID, machineID))
+	keyPrefix := buildMachineCacheKey(clusterID, machineID, "")
+
+	for _, key := range r.talosBackends.Keys() {
+		if strings.HasPrefix(key, keyPrefix) {
+			r.talosBackends.Remove(key)
+		}
+	}
 }
 
 // Director implements proxy.StreamDirector function.
@@ -297,7 +303,7 @@ func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.I
 		return nil, status.Errorf(codes.Unavailable, "node %q has no management endpoint", node.Name)
 	}
 
-	cacheKey := buildCacheKey(clusterID, node.ID)
+	cacheKey := buildMachineCacheKey(clusterID, node.ID, node.ManagementEndpoint)
 	typ := cacheKeyType(cacheKey)
 
 	if backend, ok := r.talosBackends.Get(cacheKey); ok {
@@ -348,6 +354,12 @@ func buildCacheKey(clusterID, machineID string) string {
 	}
 
 	return clusterID + "/" + machineID
+}
+
+// buildMachineCacheKey constructs the cache key of a node backend, which includes the address it dials, so that a
+// machine which got a new address is never served a backend of the old one.
+func buildMachineCacheKey(clusterID, machineID, address string) string {
+	return buildCacheKey(clusterID, machineID) + "@" + address
 }
 
 // getClusterConn builds a gRPC connection that load-balances across all healthy CP nodes of a cluster.

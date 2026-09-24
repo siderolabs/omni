@@ -143,8 +143,7 @@ func (handler *pendingMachineStatusHandler) generateUniqueNodeToken(
 		return nil
 	}
 
-	// The legacy token migration and a reboot with a new WireGuard key can create two pending machines for the same physical machine.
-	// They reconcile concurrently, so the token operations are shared per machine address to end up with a single token.
+	// Pending machines which reach the same machine address share the token operations, so that the machine ends up with a single token.
 	result, err, _ := handler.tokenWrites.Do(nodeSubnet, func() (any, error) {
 		return handler.storeUniqueNodeToken(ctx, c, logger)
 	})

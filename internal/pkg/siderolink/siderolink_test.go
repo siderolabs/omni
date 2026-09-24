@@ -297,6 +297,10 @@ func (suite *SiderolinkSuite) TestNodes() {
 	})
 
 	suite.Assert().NoError(err)
+	suite.Require().NotEqual(resp.NodeAddressPrefix, reprovision.NodeAddressPrefix, "a new Wireguard key must get a new node address")
+
+	resp.NodeAddressPrefix = reprovision.NodeAddressPrefix
+
 	suite.Require().True(proto.Equal(resp, reprovision))
 
 	res, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))
@@ -449,6 +453,11 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 	})
 
 	suite.Assert().NoError(err)
+	suite.Require().NotEqual(expectedResp.NodeAddressPrefix, reprovision.NodeAddressPrefix, "a new Wireguard key must get a new node address")
+
+	expectedResp.NodeAddressPrefix = reprovision.NodeAddressPrefix
+	resp.NodeAddressPrefix = reprovision.NodeAddressPrefix
+
 	suite.Require().Equal(expectedResp.String(), reprovision.String())
 
 	res, err := safe.StateGet[*siderolink.Link](suite.ctx, suite.state, resource.NewMetadata(siderolink.Namespace, siderolink.LinkType, "testnode", resource.VersionUndefined))

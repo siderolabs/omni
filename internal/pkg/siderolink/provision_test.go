@@ -1645,6 +1645,175 @@ func TestPendingMachineWithLinkKeyKeepsLinkAddress(t *testing.T) {
 	assert.Equal(t, linkResp.NodeAddressPrefix, pending.TypedSpec().Value.NodeSubnet)
 }
 
+func TestNewKeyGetsNewNodeAddress(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	nodeToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "node").Encode()
+	require.NoError(t, err)
+
+	device := newTestDeviceHandler()
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, joinToken, device, func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	const nodeUUID = "rebooting-machine"
+
+	request := &pb.ProvisionRequest{
+		NodeUuid:        nodeUUID,
+		NodePublicKey:   genPublicKey(t),
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	}
+
+	firstResp, err := provisionHandler.Provision(ctx, request)
+	require.NoError(t, err)
+
+	sameKeyResp, err := provisionHandler.Provision(ctx, request)
+	require.NoError(t, err)
+
+	assert.Equal(t, firstResp.NodeAddressPrefix, sameKeyResp.NodeAddressPrefix, "the same Wireguard key must keep the node address")
+
+	oldKey := request.NodePublicKey
+	request.NodePublicKey = genPublicKey(t)
+
+	newKeyResp, err := provisionHandler.Provision(ctx, request)
+	require.NoError(t, err)
+
+	require.NotEqual(t, firstResp.NodeAddressPrefix, newKeyResp.NodeAddressPrefix, "a new Wireguard key must get a new node address")
+
+	linkStatusID := siderolinkres.NewLinkStatus(siderolinkres.NewLink(nodeUUID, nil)).Metadata().ID()
+
+	rtestutils.AssertResources(ctx, t, st, []resource.ID{linkStatusID}, func(r *siderolinkres.LinkStatus, assertion *assert.Assertions) {
+		assertion.Equal(request.NodePublicKey, r.TypedSpec().Value.NodePublicKey)
+		assertion.Equal(newKeyResp.NodeAddressPrefix, r.TypedSpec().Value.NodeSubnet)
+	})
+
+	newPrefix, err := netip.ParsePrefix(newKeyResp.NodeAddressPrefix)
+	require.NoError(t, err)
+
+	assert.Equal(t, request.NodePublicKey, device.owner(newPrefix.Addr()))
+	assert.False(t, device.hasPeer(oldKey), "the peer of the old Wireguard key must be removed")
+}
+
+func TestNewKeyTakesPendingMachineAddress(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	nodeToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "node").Encode()
+	require.NoError(t, err)
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, joinToken, newTestDeviceHandler(), func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	const nodeUUID = "wiped-meta-machine"
+
+	linkResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        nodeUUID,
+		NodePublicKey:   genPublicKey(t),
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	})
+	require.NoError(t, err)
+
+	// the machine reboots without the token in META, then joins with the token it gets through the pending machine
+	newKey := genPublicKey(t)
+
+	pendingResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:      nodeUUID,
+		NodePublicKey: newKey,
+		TalosVersion:  new("v1.9.4"),
+		JoinToken:     new(joinToken),
+	})
+	require.NoError(t, err)
+
+	require.NotEqual(t, linkResp.NodeAddressPrefix, pendingResp.NodeAddressPrefix)
+
+	rejoinResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        nodeUUID,
+		NodePublicKey:   newKey,
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, pendingResp.NodeAddressPrefix, rejoinResp.NodeAddressPrefix, "the link shares the Wireguard peer of the pending machine, so it must take its address")
+
+	link, err := safe.StateGetByID[*siderolinkres.Link](ctx, st, nodeUUID)
+	require.NoError(t, err)
+
+	assert.Equal(t, pendingResp.NodeAddressPrefix, link.TypedSpec().Value.NodeSubnet)
+}
+
+func TestNewKeyRepairsSharedNodeAddress(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	nodeToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "node").Encode()
+	require.NoError(t, err)
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, joinToken, newTestDeviceHandler(), func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	const (
+		staleUUID = "stale-machine"
+		liveUUID  = "live-machine"
+	)
+
+	liveResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        liveUUID,
+		NodePublicKey:   genPublicKey(t),
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	})
+	require.NoError(t, err)
+
+	sharedSubnet := liveResp.NodeAddressPrefix
+
+	require.NoError(t, st.Create(ctx, siderolinkres.NewLink(staleUUID, &specs.SiderolinkSpec{
+		NodePublicKey: genPublicKey(t),
+		NodeSubnet:    sharedSubnet,
+	})))
+
+	rebootResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        liveUUID,
+		NodePublicKey:   genPublicKey(t),
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	})
+	require.NoError(t, err)
+
+	assert.NotEqual(t, sharedSubnet, rebootResp.NodeAddressPrefix, "the rebooted machine must stop sharing the node address")
+
+	staleLink, err := safe.StateGetByID[*siderolinkres.Link](ctx, st, staleUUID)
+	require.NoError(t, err)
+
+	assert.Equal(t, sharedSubnet, staleLink.TypedSpec().Value.NodeSubnet)
+}
+
 // registerJoinToken adds an extra join token the way JoinTokenStatusController would, including the
 // fingerprint label the v3 provision flow resolves the token by.
 func registerJoinToken(ctx context.Context, t *testing.T, st state.State, id, name string, tokenState specs.JoinTokenStatusSpec_State) {

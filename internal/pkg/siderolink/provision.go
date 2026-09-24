@@ -268,7 +268,7 @@ func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.Sta
 	)
 }
 
-func updateResource[T res](ctx context.Context,
+func updateResource[T res](ctx context.Context, logger *zap.Logger,
 	st state.State, provisionContext *provisionContext, r T, annotationsToAdd []string, annotationsToRemove []string,
 ) (T, error) {
 	return safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(link T) error {
@@ -279,6 +279,22 @@ func updateResource[T res](ctx context.Context,
 		}
 
 		var err error
+
+		if link.Metadata().Type() == siderolinkres.LinkType && s.NodePublicKey != provisionContext.request.NodePublicKey {
+			var nodeAddress string
+
+			if nodeAddress, err = newKeyNodeAddress(provisionContext); err != nil {
+				return err
+			}
+
+			logger.Info("assigned a new node address for the new Wireguard key",
+				zap.String("machine", link.Metadata().ID()),
+				zap.String("node_address", nodeAddress),
+				zap.String("previous_node_address", s.NodeSubnet),
+			)
+
+			s.NodeSubnet = nodeAddress
+		}
 
 		s.NodePublicKey = provisionContext.request.NodePublicKey
 
@@ -466,7 +482,7 @@ func establishLink[T res](ctx context.Context, h *ProvisionHandler, logger *zap.
 
 		linkCreated = false
 
-		link, err = updateResource(ctx, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
+		link, err = updateResource(ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
 		if err != nil {
 			if state.IsPhaseConflictError(err) {
 				return nil, status.Errorf(codes.AlreadyExists, "the machine with the same UUID is already registered in Omni and is in the tearing down phase")
@@ -608,8 +624,6 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 }
 
 func generateLinkSpec(provisionContext *provisionContext, resourceType resource.Type) (*specs.SiderolinkSpec, error) {
-	nodePrefix := netip.MustParsePrefix(provisionContext.siderolinkConfig.TypedSpec().Value.Subnet)
-
 	var nodeAddress string
 
 	switch {
@@ -621,13 +635,11 @@ func generateLinkSpec(provisionContext *provisionContext, resourceType resource.
 	case provisionContext.pendingMachine != nil:
 		nodeAddress = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet
 	default:
-		// generated random address for the node
-		addr, err := wireguard.GenerateRandomNodeAddr(nodePrefix)
-		if err != nil {
-			return nil, fmt.Errorf("error generating random node address: %w", err)
-		}
+		var err error
 
-		nodeAddress = addr.String()
+		if nodeAddress, err = generateNodeAddress(provisionContext); err != nil {
+			return nil, err
+		}
 	}
 
 	pubKey, err := wgtypes.ParseKey(provisionContext.request.NodePublicKey)
@@ -646,6 +658,28 @@ func generateLinkSpec(provisionContext *provisionContext, resourceType resource.
 		VirtualAddrport: virtualAddrPort,
 		Connected:       true,
 	}, nil
+}
+
+// newKeyNodeAddress returns the address of a link whose machine joins with a new Wireguard key.
+//
+// A pending machine with that key shares its Wireguard peer with the link, so the link takes its address.
+func newKeyNodeAddress(provisionContext *provisionContext) (string, error) {
+	if provisionContext.pendingMachine != nil {
+		return provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet, nil
+	}
+
+	return generateNodeAddress(provisionContext)
+}
+
+func generateNodeAddress(provisionContext *provisionContext) (string, error) {
+	nodePrefix := netip.MustParsePrefix(provisionContext.siderolinkConfig.TypedSpec().Value.Subnet)
+
+	addr, err := wireguard.GenerateRandomNodeAddr(nodePrefix)
+	if err != nil {
+		return "", fmt.Errorf("error generating random node address: %w", err)
+	}
+
+	return addr.String(), nil
 }
 
 // resolveVirtualAddrPort returns the virtual address-port for the machine's WireGuard peer.
