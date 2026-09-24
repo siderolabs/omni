@@ -466,6 +466,7 @@ export type ClusterMachineConfigPatchesSpec = {
 export type ClusterMachineTalosVersionSpec = {
   talos_version?: string
   schematic_id?: string
+  accepted_ids?: string[]
 }
 
 export type ClusterMachineConfigSpec = {
@@ -867,6 +868,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 export type MachineConfigGenOptionsSpec = {
   install_image?: MachineConfigGenOptionsSpecInstallImage
   talos_version?: string
+  accepted_ids?: string[]
 }
 
 export type EtcdAuditResultSpec = {
@@ -932,6 +934,7 @@ export type TalosExtensionsSpec = {
 export type SchematicConfigurationSpec = {
   schematic_id?: string
   talos_version?: string
+  accepted_ids?: string[]
 }
 
 export type ExtensionsConfigurationSpec = {

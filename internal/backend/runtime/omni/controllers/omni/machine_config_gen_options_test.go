@@ -212,3 +212,43 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 		})
 	}
 }
+
+func TestMachineConfigGenOptionsAcceptedIDs(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	const (
+		machineID  = "machine-1"
+		acceptedID = "accepted-schematic"
+	)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(ctx context.Context, tc testutils.TestContext) {
+			primary, err := imagefactory.NewClient("https://primary.factory.test", imagefactory.Auth{})
+			require.NoError(t, err)
+
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController(imagefactory.NewClients(tc.State, primary))))
+
+			rmock.Mock[*omni.MachineStatus](ctx, t, tc.State, options.WithID(machineID))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			rmock.Mock[*omni.ClusterMachineTalosVersion](
+				ctx, t, tc.State, options.WithID(machineID),
+				options.Modify(func(res *omni.ClusterMachineTalosVersion) error {
+					res.TypedSpec().Value.SchematicId = defaultSchematic
+					res.TypedSpec().Value.AcceptedIds = []string{acceptedID}
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
+				assertions.Equal(defaultSchematic, res.TypedSpec().Value.InstallImage.GetSchematicId())
+				assertions.Equal([]string{acceptedID}, res.TypedSpec().Value.AcceptedIds)
+			})
+		},
+	)
+}

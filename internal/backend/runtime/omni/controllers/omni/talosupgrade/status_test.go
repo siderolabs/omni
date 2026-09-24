@@ -55,7 +55,7 @@ spec:
 `
 )
 
-//nolint:gocognit,maintidx
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func TestStatusController(t *testing.T) {
 	t.Parallel()
 
@@ -710,14 +710,16 @@ func TestStatusController(t *testing.T) {
 					testoptions.Modify(func(res *omni.SchematicConfiguration) error {
 						res.TypedSpec().Value.TalosVersion = talosVersion
 						res.TypedSpec().Value.SchematicId = altSchematic
+						res.TypedSpec().Value.AcceptedIds = []string{defaultSchematic}
 
 						return nil
 					}))
 
-				// That machine's ClusterMachineTalosVersion should reflect the new schematic.
+				// That machine's ClusterMachineTalosVersion should reflect the new schematic and the accepted one.
 				rtestutils.AssertResource(ctx, t, st, machines[1].Metadata().ID(),
 					func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
 						assertions.Equal(altSchematic, res.TypedSpec().Value.SchematicId)
+						assertions.Equal([]string{defaultSchematic}, res.TypedSpec().Value.AcceptedIds)
 					})
 
 				// Change cluster version and update schematics accordingly.
@@ -963,6 +965,75 @@ func TestStatusController(t *testing.T) {
 					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 						assertions.Equal(specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics, res.TypedSpec().Value.Phase)
 						assertions.Contains(res.TypedSpec().Value.Status, "updating machines")
+					})
+			},
+		)
+	})
+
+	// Tests a revert of machines whose schematic changes only because the join config moved into it: the schematic they run
+	// is accepted, so the phase must stay Reverting, which skips the health checks to let a broken cluster be rolled back.
+	t.Run("revertWithAcceptedSchematic", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				st := testContext.State
+				clusterName := "talos-upgrade-revert-accepted"
+				talosVersion := constants.DefaultTalosVersion
+				desiredSchematic := "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
+
+				rmock.Mock[*omni.TalosVersion](ctx, t, st, testoptions.WithID(talosVersion))
+
+				_, machines := createCluster(ctx, t, st, clusterName, 1, 1,
+					testoptions.WithTalosVersion(talosVersion))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
+					})
+
+				for _, machine := range machines {
+					rmock.Mock[*omni.SchematicConfiguration](ctx, t, st, testoptions.SameID(machine),
+						testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+							res.TypedSpec().Value.TalosVersion = talosVersion
+							res.TypedSpec().Value.SchematicId = desiredSchematic
+							res.TypedSpec().Value.AcceptedIds = []string{defaultSchematic}
+
+							return nil
+						}))
+
+					rtestutils.AssertResource(ctx, t, st, machine.Metadata().ID(),
+						func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
+							assertions.Equal([]string{defaultSchematic}, res.TypedSpec().Value.AcceptedIds)
+						})
+				}
+
+				// the machines still run an older version and the schematic they run, which is accepted
+				for _, machine := range machines {
+					rmock.Mock[*omni.MachinePendingUpdates](
+						ctx, t, st,
+						testoptions.WithID(machine.Metadata().ID()),
+						testoptions.Modify(func(res *omni.MachinePendingUpdates) error {
+							res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+							res.TypedSpec().Value.Upgrade = &specs.MachinePendingUpdatesSpec_Upgrade{
+								FromVersion:   "1.11.6",
+								ToVersion:     talosVersion,
+								FromSchematic: defaultSchematic,
+								ToSchematic:   desiredSchematic,
+							}
+
+							return nil
+						}),
+					)
+				}
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal(specs.TalosUpgradeStatusSpec_Reverting, res.TypedSpec().Value.Phase)
 					})
 			},
 		)

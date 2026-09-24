@@ -54,6 +54,7 @@ func TestDecideOp(t *testing.T) {
 		snapshot             *omni.MachineStatusSnapshot
 		image                *specs.MachineConfigGenOptionsSpec_InstallImage
 		name                 string
+		acceptedIDs          []string
 		want                 lifecycle.Op
 		schematicMismatch    bool
 		talosVersionMismatch bool
@@ -131,6 +132,30 @@ func TestDecideOp(t *testing.T) {
 			want:                 lifecycle.OpNone,
 		},
 		{
+			name:        "installed 1.13 in maintenance running an accepted schematic → config apply (None)",
+			machine:     mkMachineStatus("1.13.4", &specs.MachineStatusSpec_Schematic{FullId: "accepted-schematic"}, true, true),
+			snapshot:    mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
+			image:       mkImage("1.13.4", "target-schematic"),
+			acceptedIDs: []string{"accepted-schematic"},
+			want:        lifecycle.OpNone,
+		},
+		{
+			name:        "installed 1.13 running an accepted schematic → nothing to do",
+			machine:     mkMachineStatus("1.13.4", &specs.MachineStatusSpec_Schematic{FullId: "accepted-schematic"}, true, false),
+			snapshot:    mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
+			image:       mkImage("1.13.4", "target-schematic"),
+			acceptedIDs: []string{"accepted-schematic"},
+			want:        lifecycle.OpNone,
+		},
+		{
+			name:        "installed 1.13 running an accepted schematic, version mismatch → cluster upgrade",
+			machine:     mkMachineStatus("1.13.4", &specs.MachineStatusSpec_Schematic{FullId: "accepted-schematic"}, true, false),
+			snapshot:    mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
+			image:       mkImage("1.13.5", "target-schematic"),
+			acceptedIDs: []string{"accepted-schematic"},
+			want:        lifecycle.OpClusterUpgrade,
+		},
+		{
 			name:                 "installed 1.12 in maintenance → legacy upgrade (machine doesn't support lifecycle)",
 			machine:              mkMachineStatus("1.12.5", nil, true, true),
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
@@ -191,7 +216,7 @@ func TestDecideOp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := lifecycle.DecideOp(tc.machine, tc.image, tc.schematicMismatch, tc.talosVersionMismatch)
+			got := lifecycle.DecideOp(tc.machine, tc.image, tc.acceptedIDs, tc.schematicMismatch, tc.talosVersionMismatch)
 			assert.Equal(t, tc.want, got)
 		})
 	}

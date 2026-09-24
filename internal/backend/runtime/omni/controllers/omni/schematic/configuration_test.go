@@ -7,11 +7,13 @@ package schematic_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/imager/imageropts"
@@ -20,6 +22,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	schematicctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -108,6 +111,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), testJoinArgs, testJoinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// a schematic should already be created with the current list of extensions, without requiring a cluster machine
@@ -117,7 +121,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 					_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 					assertion.False(hasClusterLabel)
 
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -129,7 +133,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 					_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 					assertion.True(hasClusterLabel)
 
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -162,7 +166,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -187,7 +191,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -221,7 +225,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -249,7 +253,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -272,7 +276,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -293,7 +297,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -320,7 +324,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -335,7 +339,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -351,7 +355,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -380,7 +384,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -409,7 +413,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 				},
 			)
 
@@ -436,7 +440,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-				assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 			})
 
 			rebootInto(expectedSchematic)
@@ -484,7 +488,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 				assertion.False(hasClusterLabel)
 
-				assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(expectedSchematic, acceptedSchematicID(schematicConfiguration))
 			})
 		},
 	)
@@ -586,6 +590,7 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), testJoinArgs, testJoinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// Capture the SchematicId the controller publishes, then look up what it actually
@@ -597,9 +602,9 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
 				func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.NotEmpty(sc.TypedSpec().Value.SchematicId)
+					assertion.NotEmpty(acceptedSchematicID(sc))
 
-					publishedID = sc.TypedSpec().Value.SchematicId
+					publishedID = acceptedSchematicID(sc)
 				},
 			)
 
@@ -662,6 +667,20 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 			}
 
+			joinDocuments := `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: grpc://127.0.0.1:8090?jointoken=testtoken
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+`
+
 			synthesized := schematic.Schematic{
 				Customization: schematic.Customization{
 					ExtraKernelArgs: joinArgs,
@@ -694,9 +713,11 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+
+			createJoinConfig(ctx, t, st, machineName, joinArgs, joinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
-			var publishedID string
+			var desiredID, acceptedID string
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
@@ -705,15 +726,27 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 					assertion.NotEmpty(sc.TypedSpec().Value.SchematicId)
 					assertion.NotEqual(synthesizedID, sc.TypedSpec().Value.SchematicId)
 
-					publishedID = sc.TypedSpec().Value.SchematicId
+					if assertion.Len(sc.TypedSpec().Value.AcceptedIds, 1) {
+						acceptedID = sc.TypedSpec().Value.AcceptedIds[0]
+					}
+
+					desiredID = sc.TypedSpec().Value.SchematicId
 				},
 			)
 
-			stored, ok := factory.Get(publishedID)
-			r.True(ok, "schematic %q was not uploaded to the factory", publishedID)
+			accepted, ok := factory.Get(acceptedID)
+			r.True(ok, "schematic %q was not uploaded to the factory", acceptedID)
 
-			assert.Empty(t, stored.Customization.SystemExtensions.OfficialExtensions)
-			assert.Equal(t, joinArgs, stored.Customization.ExtraKernelArgs)
+			assert.Empty(t, accepted.Customization.SystemExtensions.OfficialExtensions)
+			assert.Equal(t, joinArgs, accepted.Customization.ExtraKernelArgs)
+
+			desired, ok := factory.Get(desiredID)
+			r.True(ok, "schematic %q was not uploaded to the factory", desiredID)
+
+			assert.Empty(t, desired.Customization.ExtraKernelArgs)
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: SideroLinkConfig")
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: EventSinkConfig")
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: KmsgLogConfig")
 
 			// the machine becomes a running cluster member at the same version: it runs the desired content, and the
 			// published id must stay the factory's one
@@ -738,7 +771,8 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 					_, hasCluster := sc.Metadata().Labels().Get(omni.LabelCluster)
 
 					assertion.True(hasCluster)
-					assertion.Equal(publishedID, sc.TypedSpec().Value.SchematicId)
+					assertion.Equal(desiredID, sc.TypedSpec().Value.SchematicId)
+					assertion.Equal([]string{acceptedID}, sc.TypedSpec().Value.AcceptedIds)
 				},
 			)
 		},
@@ -773,7 +807,7 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 
 			rawSchematic := schematic.Schematic{
 				Customization: schematic.Customization{
-					ExtraKernelArgs: []string{"console=ttyS0"},
+					ExtraKernelArgs: slices.Concat(testJoinArgs, []string{"console=ttyS0"}),
 				},
 			}
 
@@ -791,7 +825,7 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 				FullId:           rawSchematicID,
 				Raw:              string(rawYAML),
-				KernelArgs:       []string{"console=ttyS0"},
+				KernelArgs:       slices.Concat(testJoinArgs, []string{"console=ttyS0"}),
 				InitialSchematic: rawSchematicID,
 				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{},
 			}
@@ -802,11 +836,12 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), testJoinArgs, testJoinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// installed and already running with the desired schematic, so it keeps its own schematic ID
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(rawSchematicID, acceptedSchematicID(schematicConfiguration))
 			})
 
 			r.Zero(factory.EnsureCalls.Load())
@@ -823,7 +858,7 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			r.Eventually(func() bool { return factory.EnsureCalls.Load() >= 1 }, 10*time.Second, 50*time.Millisecond)
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(rawSchematicID, acceptedSchematicID(schematicConfiguration))
 			})
 		},
 	)
@@ -861,7 +896,8 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 
 			rawSchematic := schematic.Schematic{
 				Customization: schematic.Customization{
-					ExtraKernelArgs: []string{"console=ttyS0"},
+					ExtraKernelArgs:              []string{"console=ttyS0"},
+					EmbeddedMachineConfiguration: testJoinDocuments,
 					SystemExtensions: schematic.SystemExtensions{
 						OfficialExtensions: extensions,
 					},
@@ -907,12 +943,13 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), testJoinArgs, testJoinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// the machine runs what it should, its own id is published without asking the factory
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
-				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(rawSchematicID, acceptedSchematicID(schematicConfiguration))
 			})
 
 			r.Zero(factory.EnsureCalls.Load())
@@ -932,9 +969,9 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(toVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
-				assertion.NotEqual(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.NotEqual(rawSchematicID, acceptedSchematicID(schematicConfiguration))
 
-				enterpriseSchematicID = schematicConfiguration.TypedSpec().Value.SchematicId
+				enterpriseSchematicID = acceptedSchematicID(schematicConfiguration)
 			})
 
 			stored, ok := factory.Get(enterpriseSchematicID)
@@ -951,7 +988,7 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
-				assertion.Equal(rawSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(rawSchematicID, acceptedSchematicID(schematicConfiguration))
 			})
 
 			// the upgrade of this machine was already running at the cancel and finishes anyway,
@@ -972,7 +1009,7 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(fromVersion, schematicConfiguration.TypedSpec().Value.TalosVersion)
-				assertion.Equal(enterpriseSchematicID, schematicConfiguration.TypedSpec().Value.SchematicId)
+				assertion.Equal(enterpriseSchematicID, acceptedSchematicID(schematicConfiguration))
 			})
 
 			r.Greater(factory.EnsureCalls.Load(), ensureCalls, "the id should come from the factory")
@@ -1034,13 +1071,14 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
 
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), testJoinArgs, testJoinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
 			assertSchematicID := func(id string) {
 				t.Helper()
 
 				rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-					assertion.Equal(id, schematicConfiguration.TypedSpec().Value.SchematicId)
+					assertion.Equal(id, acceptedSchematicID(schematicConfiguration))
 				})
 			}
 
@@ -1072,4 +1110,157 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			assertSchematicID(bootedID)
 		},
 	)
+}
+
+// TestSchematicConfigurationJoinConfig covers a valid machine: the desired schematic carries its join config, and the schematic it runs stays accepted.
+func TestSchematicConfigurationJoinConfig(t *testing.T) {
+	t.Parallel()
+
+	joinArgs := func(token string) []string {
+		return []string{
+			"siderolink.api=grpc://127.0.0.1:8090?jointoken=" + token,
+			"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+			"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+		}
+	}
+
+	joinDocuments := func(token string) string {
+		return "apiVersion: v1alpha1\nkind: SideroLinkConfig\napiUrl: grpc://127.0.0.1:8090?jointoken=" + token + "\n"
+	}
+
+	for _, tc := range []struct {
+		talosVersion string
+		embedded     bool
+	}{
+		{talosVersion: "1.11.6"},
+		{talosVersion: "1.13.10", embedded: true},
+	} {
+		t.Run(tc.talosVersion, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer cancel()
+
+			factory := &testutils.ImageFactoryClientMock{}
+
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
+					require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					st := testContext.State
+					r := require.New(t)
+
+					const machineName = "machine"
+
+					running := schematic.Schematic{}
+
+					runningRaw, err := running.Marshal()
+					r.NoError(err)
+
+					runningID, err := running.ID()
+					r.NoError(err)
+
+					machineStatus := omni.NewMachineStatus(machineName)
+					machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+					machineStatus.TypedSpec().Value.TalosVersion = tc.talosVersion
+					machineStatus.TypedSpec().Value.InitialTalosVersion = tc.talosVersion
+					machineStatus.TypedSpec().Value.Maintenance = true
+					machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+						FullId:       runningID,
+						Raw:          string(runningRaw),
+						InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
+					}
+					machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+					machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
+					machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+						Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
+					}
+
+					createJoinConfig(ctx, t, st, machineName, joinArgs("a"), joinDocuments("a"))
+					r.NoError(st.Create(ctx, machineStatus))
+
+					// the machine runs the schematic without the join config, it stays accepted
+					var desiredID string
+
+					rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+						assertion.NotEqual(runningID, sc.TypedSpec().Value.SchematicId)
+						assertion.Equal([]string{runningID}, sc.TypedSpec().Value.AcceptedIds)
+
+						desiredID = sc.TypedSpec().Value.SchematicId
+					})
+
+					desired, ok := factory.Get(desiredID)
+					r.True(ok, "schematic %q was not uploaded to the factory", desiredID)
+
+					if tc.embedded {
+						r.Empty(desired.Customization.ExtraKernelArgs)
+						r.Equal(joinDocuments("a"), desired.Customization.EmbeddedMachineConfiguration)
+					} else {
+						r.Equal(joinArgs("a"), desired.Customization.ExtraKernelArgs)
+						r.Empty(desired.Customization.EmbeddedMachineConfiguration)
+					}
+
+					// the machine is upgraded to the desired schematic, nothing else is accepted
+					desiredRaw, err := desired.Marshal()
+					r.NoError(err)
+
+					_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
+						res.TypedSpec().Value.Schematic.FullId = desiredID
+						res.TypedSpec().Value.Schematic.Raw = string(desiredRaw)
+						res.TypedSpec().Value.Schematic.KernelArgs = desired.Customization.ExtraKernelArgs
+
+						return nil
+					})
+					r.NoError(err)
+
+					rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+						assertion.Equal(desiredID, sc.TypedSpec().Value.SchematicId)
+						assertion.Empty(sc.TypedSpec().Value.AcceptedIds)
+					})
+
+					// the join token changes, the schematic the machine runs stays accepted
+					_, err = safe.StateUpdateWithConflicts(ctx, st, siderolink.NewMachineJoinConfig(machineName).Metadata(), func(res *siderolink.MachineJoinConfig) error {
+						res.TypedSpec().Value.Config = &specs.JoinConfig{KernelArgs: joinArgs("b"), Config: joinDocuments("b")}
+
+						return nil
+					})
+					r.NoError(err)
+
+					rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(sc *omni.SchematicConfiguration, assertion *assert.Assertions) {
+						assertion.NotEqual(desiredID, sc.TypedSpec().Value.SchematicId)
+						assertion.Equal([]string{desiredID}, sc.TypedSpec().Value.AcceptedIds)
+					})
+				},
+			)
+		})
+	}
+}
+
+var testJoinArgs = []string{
+	"siderolink.api=grpc://127.0.0.1:8090?jointoken=testtoken",
+	"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+	"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+}
+
+const testJoinDocuments = "apiVersion: v1alpha1\nkind: SideroLinkConfig\napiUrl: grpc://127.0.0.1:8090?jointoken=testtoken\n"
+
+// acceptedSchematicID returns the schematic id the machine is up to date with when the join config is not considered.
+func acceptedSchematicID(sc *omni.SchematicConfiguration) string {
+	if accepted := sc.TypedSpec().Value.AcceptedIds; len(accepted) > 0 {
+		return accepted[0]
+	}
+
+	return sc.TypedSpec().Value.SchematicId
+}
+
+func createJoinConfig(ctx context.Context, t *testing.T, st state.State, id string, kernelArgs []string, config string) {
+	t.Helper()
+
+	joinConfig := siderolink.NewMachineJoinConfig(id)
+	joinConfig.TypedSpec().Value.Config = &specs.JoinConfig{KernelArgs: kernelArgs, Config: config}
+
+	require.NoError(t, st.Create(ctx, joinConfig))
 }

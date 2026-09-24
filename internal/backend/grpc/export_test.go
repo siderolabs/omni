@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
@@ -138,3 +139,8 @@ func (l *RegistrationLimiter) Len() int {
 
 // SourceAddress is exposed for testing.
 var SourceAddress = sourceAddress
+
+// EnsureSchematic is exported for testing.
+func (s *managementServer) EnsureSchematic(ctx context.Context, talosVersion string, machineStatus *omni.MachineStatus) (string, string, error) {
+	return s.ensureSchematic(ctx, talosVersion, machineStatus)
+}

@@ -40,6 +40,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
 // KubernetesRuntime provides kubernetes cluster access capabilities.
@@ -236,6 +237,17 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 		return err
 	}
 
+	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
+	))
+	if err != nil {
+		return err
+	}
+
+	acceptedIDs := xslices.ToMap(slices.Collect(clusterMachineTalosVersions.All()), func(res *omni.ClusterMachineTalosVersion) (string, []string) {
+		return res.Metadata().ID(), res.TypedSpec().Value.AcceptedIds
+	})
+
 	var (
 		pendingMachines       int
 		lockedPendingMachines int
@@ -261,7 +273,14 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 
 		pendingMachines++
 
-		if pendingUpdate.TypedSpec().Value.Upgrade.FromSchematic != pendingUpdate.TypedSpec().Value.Upgrade.ToSchematic {
+		// Going back to an older Talos version can also change the schematic, as the form of the join config differs between versions
+		// (e.g., Talos 1.12 carries the SideroLink documents in the embedded machine config, while Talos 1.11 does not support it and uses kernel args).
+		//
+		// Since this can be a revert, such a schematic change is accepted and not counted as a schematic update.
+		//
+		// Counting it would treat the revert as a regular rollout, which waits for a healthy cluster, so a revert of a broken cluster would be blocked.
+		upgrade := pendingUpdate.TypedSpec().Value.Upgrade
+		if !lifecycle.SchematicUpToDate(upgrade.FromSchematic, upgrade.ToSchematic, acceptedIDs[pendingUpdate.Metadata().ID()]) {
 			schematicUpdates = true
 		}
 	}
@@ -473,6 +492,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Con
 
 		if err = safe.WriterModify(ctx, r, omni.NewClusterMachineTalosVersion(schematicConfiguration.Metadata().ID()), func(res *omni.ClusterMachineTalosVersion) error {
 			res.TypedSpec().Value.SchematicId = schematicConfiguration.TypedSpec().Value.SchematicId
+			res.TypedSpec().Value.AcceptedIds = schematicConfiguration.TypedSpec().Value.AcceptedIds
 			res.TypedSpec().Value.TalosVersion = schematicConfiguration.TypedSpec().Value.TalosVersion
 
 			helpers.CopyAllLabels(schematicConfiguration, res)
@@ -577,7 +597,8 @@ func (ctrl *TalosUpgradeStatusController) filterOutdated(ctx context.Context, r 
 		}
 
 		if clusterMachineConfigStatus.TypedSpec().Value.TalosVersion != schematicConfiguration.TypedSpec().Value.TalosVersion ||
-			clusterMachineConfigStatus.TypedSpec().Value.SchematicId != schematicConfiguration.TypedSpec().Value.SchematicId {
+			!lifecycle.SchematicUpToDate(clusterMachineConfigStatus.TypedSpec().Value.SchematicId, schematicConfiguration.TypedSpec().Value.SchematicId,
+				schematicConfiguration.TypedSpec().Value.AcceptedIds) {
 			res.all[clusterMachine.Metadata().ID()] = clusterMachine
 		}
 	}

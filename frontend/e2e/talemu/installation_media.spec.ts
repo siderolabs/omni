@@ -144,13 +144,10 @@ test(
         }, 'Expect YAML to match expected shape')
         .toEqual({
           customization: {
-            extraKernelArgs: [
-              expect.stringContaining('siderolink.api=grpc://'),
-              expect.stringContaining('talos.events.sink='),
-              expect.stringContaining('talos.logging.kernel='),
-              '-console',
-              'console=tty0',
-            ],
+            extraKernelArgs: ['-console', 'console=tty0'],
+            embeddedMachineConfiguration: expect.stringMatching(
+              /kind: SideroLinkConfig[\s\S]*kind: EventSinkConfig[\s\S]*name: omni-kmsg/,
+            ),
             meta: [{ key: 12, value: expect.any(String) }],
             systemExtensions: {
               officialExtensions: ['siderolabs/hello-world-service'],

@@ -6,6 +6,8 @@
 package lifecycle
 
 import (
+	"slices"
+
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -31,7 +33,7 @@ const (
 )
 
 // DecideOp picks the upgrade/install path from the live machine state.
-func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, schematicMismatch, talosVersionMismatch bool) Op {
+func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string, schematicMismatch, talosVersionMismatch bool) Op {
 	hasSystemDisk := omni.GetMachineStatusSystemDisk(machineStatus) != ""
 
 	machineVersion, machineSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
@@ -42,7 +44,7 @@ func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConf
 	if machineSupportsLifecycle && targetSupportsLifecycle {
 		if machineStatus.TypedSpec().Value.Maintenance {
 			if hasSystemDisk {
-				if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage) {
+				if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage, acceptedIDs) {
 					return OpMaintenanceUpgrade
 				}
 
@@ -55,7 +57,7 @@ func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConf
 		}
 
 		if hasSystemDisk {
-			if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage) {
+			if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage, acceptedIDs) {
 				return OpClusterUpgrade
 			}
 
@@ -78,8 +80,13 @@ func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConf
 
 // schematicDiffers reports whether the machine's schematic differs from the target's. An invalid schematic
 // (not provisioned via image factory) reports false.
-func schematicDiffers(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) bool {
+func schematicDiffers(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string) bool {
 	machineSchematic := machineStatus.TypedSpec().Value.GetSchematic()
 
-	return !machineSchematic.GetInvalid() && machineSchematic.GetFullId() != installImage.SchematicId
+	return !machineSchematic.GetInvalid() && !SchematicUpToDate(machineSchematic.GetFullId(), installImage.SchematicId, acceptedIDs)
+}
+
+// SchematicUpToDate reports whether a machine running the given schematic is up to date: it runs the target schematic or an accepted one.
+func SchematicUpToDate(running, target string, accepted []string) bool {
+	return running == target || slices.Contains(accepted, running)
 }
