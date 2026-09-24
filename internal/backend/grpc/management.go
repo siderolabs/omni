@@ -6,6 +6,7 @@
 package grpc
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -832,6 +833,17 @@ func (s *managementServer) ensureSchematic(ctx context.Context, talosVersion str
 		if patchErr != nil {
 			return "", "", fmt.Errorf("failed to patch schematic: %w", patchErr)
 		}
+
+		joinConfig, joinErr := safe.StateGetByID[*siderolinkres.MachineJoinConfig](ctx, s.omniState, machineStatus.Metadata().ID())
+		if joinErr != nil {
+			return "", "", fmt.Errorf("failed to get machine join config: %w", joinErr)
+		}
+
+		// an install without a version installs the machine's own version
+		targetVersion := cmp.Or(talosVersion, machineStatus.TypedSpec().Value.TalosVersion)
+
+		patched = imagefactoryinternal.WithJoinConfig(patched, joinConfig.TypedSpec().Value.GetConfig().GetKernelArgs(),
+			[]byte(joinConfig.TypedSpec().Value.GetConfig().GetConfig()), targetVersion)
 
 		ensureCtx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()

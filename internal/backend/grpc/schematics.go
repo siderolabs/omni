@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
+	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -43,16 +44,21 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	baseKernelArgs, tunnelEnabled, err := s.getBaseKernelArgs(ctx, request.SiderolinkGrpcTunnelMode, request.JoinToken)
+	joinOptions, tunnelEnabled, err := s.getJoinOptions(ctx, request.SiderolinkGrpcTunnelMode, request.JoinToken)
 	if err != nil {
 		return nil, err
+	}
+
+	joinDocuments, err := joinOptions.RenderJoinConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to render the join config: %w", err)
 	}
 
 	slices.Sort(request.Extensions)
 	request.Extensions = slices.Compact(request.Extensions)
 
 	customization := schematic.Customization{
-		ExtraKernelArgs: append(baseKernelArgs, request.ExtraKernelArgs...),
+		ExtraKernelArgs: request.ExtraKernelArgs,
 		SystemExtensions: schematic.SystemExtensions{
 			OfficialExtensions: request.Extensions,
 		},
@@ -103,9 +109,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return 0
 	})
 
-	schematicRequest := schematic.Schematic{
-		Customization: customization,
-	}
+	schematicRequest := imagefactoryinternal.WithJoinConfig(schematic.Schematic{Customization: customization}, joinOptions.GetKernelArgs(), joinDocuments, request.TalosVersion)
 
 	schematicRequest.Overlay, err = s.getOverlay(ctx, request)
 	if err != nil {
@@ -308,11 +312,11 @@ func (s *managementServer) getOverlay(ctx context.Context, req *management.Creat
 	}, nil
 }
 
-func (s *managementServer) getBaseKernelArgs(
+func (s *managementServer) getJoinOptions(
 	ctx context.Context,
 	grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode,
 	joinToken string,
-) (args []string, tunnelEnabled bool, err error) {
+) (opts *siderolink.JoinOptions, tunnelEnabled bool, err error) {
 	siderolinkAPIConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
@@ -332,7 +336,7 @@ func (s *managementServer) getBaseKernelArgs(
 		joinToken = defaultToken.TypedSpec().Value.TokenId
 	}
 
-	opts, err := siderolink.NewJoinOptions(
+	opts, err = siderolink.NewJoinOptions(
 		siderolink.WithJoinToken(joinToken),
 		siderolink.WithGRPCTunnel(grpcTunnelEnabled),
 		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
@@ -343,5 +347,5 @@ func (s *managementServer) getBaseKernelArgs(
 		return nil, false, err
 	}
 
-	return opts.GetKernelArgs(), grpcTunnelEnabled, nil
+	return opts, grpcTunnelEnabled, nil
 }

@@ -2960,9 +2960,11 @@ func (x *ClusterMachineConfigPatchesSpec) GetCompressedPatches() [][]byte {
 
 // ClusterMachineTalosVersionSpec describes a machine Talos version and schematic.
 type ClusterMachineTalosVersionSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TalosVersion  string                 `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
-	SchematicId   string                 `protobuf:"bytes,2,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	TalosVersion string                 `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	SchematicId  string                 `protobuf:"bytes,2,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	// AcceptedIds are the schematic ids accepted as up to date next to SchematicId.
+	AcceptedIds   []string `protobuf:"bytes,3,rep,name=accepted_ids,json=acceptedIds,proto3" json:"accepted_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3009,6 +3011,13 @@ func (x *ClusterMachineTalosVersionSpec) GetSchematicId() string {
 		return x.SchematicId
 	}
 	return ""
+}
+
+func (x *ClusterMachineTalosVersionSpec) GetAcceptedIds() []string {
+	if x != nil {
+		return x.AcceptedIds
+	}
+	return nil
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
@@ -6207,7 +6216,9 @@ type MachineConfigGenOptionsSpec struct {
 	// InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
 	InstallImage *MachineConfigGenOptionsSpec_InstallImage `protobuf:"bytes,2,opt,name=install_image,json=installImage,proto3" json:"install_image,omitempty"`
 	// TalosVersion is the Talos version the machine runs.
-	TalosVersion  string `protobuf:"bytes,3,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	TalosVersion string `protobuf:"bytes,3,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	// AcceptedIds are the schematic ids accepted as up to date next to InstallImage.SchematicId.
+	AcceptedIds   []string `protobuf:"bytes,4,rep,name=accepted_ids,json=acceptedIds,proto3" json:"accepted_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6254,6 +6265,13 @@ func (x *MachineConfigGenOptionsSpec) GetTalosVersion() string {
 		return x.TalosVersion
 	}
 	return ""
+}
+
+func (x *MachineConfigGenOptionsSpec) GetAcceptedIds() []string {
+	if x != nil {
+		return x.AcceptedIds
+	}
+	return nil
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.
@@ -6637,9 +6655,11 @@ func (x *TalosExtensionsSpec) GetItems() []*TalosExtensionsSpec_Info {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 type SchematicConfigurationSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SchematicId   string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
-	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SchematicId  string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	TalosVersion string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	// AcceptedIds are the schematic ids accepted as up to date next to SchematicId.
+	AcceptedIds   []string `protobuf:"bytes,4,rep,name=accepted_ids,json=acceptedIds,proto3" json:"accepted_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6686,6 +6706,13 @@ func (x *SchematicConfigurationSpec) GetTalosVersion() string {
 		return x.TalosVersion
 	}
 	return ""
+}
+
+func (x *SchematicConfigurationSpec) GetAcceptedIds() []string {
+	if x != nil {
+		return x.AcceptedIds
+	}
+	return nil
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
@@ -12325,10 +12352,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x12kubernetes_version\x18\x02 \x01(\tR\x11kubernetesVersionJ\x04\b\x01\x10\x02\"j\n" +
 	"\x1fClusterMachineConfigPatchesSpec\x12\x18\n" +
 	"\apatches\x18\x01 \x03(\tR\apatches\x12-\n" +
-	"\x12compressed_patches\x18\x02 \x03(\fR\x11compressedPatches\"h\n" +
+	"\x12compressed_patches\x18\x02 \x03(\fR\x11compressedPatches\"\x8b\x01\n" +
 	"\x1eClusterMachineTalosVersionSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
-	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\"\x87\x02\n" +
+	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x12!\n" +
+	"\faccepted_ids\x18\x03 \x03(\tR\vacceptedIds\"\x87\x02\n" +
 	"\x18ClusterMachineConfigSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12)\n" +
 	"\x10generation_error\x18\x03 \x01(\tR\x0fgenerationError\x12'\n" +
@@ -12687,10 +12715,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xbf\x03\n" +
+	"grpcTunnel\"\xe2\x03\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12T\n" +
 	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x12#\n" +
-	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x1a\x9e\x02\n" +
+	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x12!\n" +
+	"\faccepted_ids\x18\x04 \x03(\tR\vacceptedIds\x1a\x9e\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +
@@ -12736,10 +12765,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06digest\x18\x06 \x01(\tR\x06digest\"j\n" +
+	"\x06digest\x18\x06 \x01(\tR\x06digest\"\x8d\x01\n" +
 	"\x1aSchematicConfigurationSpec\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12#\n" +
-	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersionJ\x04\b\x03\x10\x04\"=\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\x12!\n" +
+	"\faccepted_ids\x18\x04 \x03(\tR\vacceptedIdsJ\x04\b\x03\x10\x04\"=\n" +
 	"\x1bExtensionsConfigurationSpec\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +

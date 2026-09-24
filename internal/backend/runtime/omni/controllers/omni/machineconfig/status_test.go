@@ -470,6 +470,57 @@ func TestMachineConfigStatusController(t *testing.T) {
 		})
 	})
 
+	// Creates a cluster with a single node running an accepted schematic, then changes the desired schematic twice, like a join config change does.
+	// Neither change upgrades the machine, and the schematic it runs is recorded.
+	t.Run("acceptedSchematic", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
+			clusterName := "test-accepted-schematic"
+
+			machineServices := testutils.NewMachineServices(t, testContext.State)
+
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.10.0")))
+
+			id := machines[0].Metadata().ID()
+
+			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+				m.OnUpdate = upgradeHandler
+			})
+
+			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
+
+			machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, testContext.State, id)
+			require.NoError(t, err)
+
+			runningID := machineStatus.TypedSpec().Value.Schematic.FullId
+
+			for _, desiredID := range []string{"desired-1", "desired-2"} {
+				rmock.Mock[*omni.MachineConfigGenOptions](
+					ctx, t, testContext.State,
+					options.WithID(id),
+					options.Modify(func(res *omni.MachineConfigGenOptions) error {
+						res.TypedSpec().Value.InstallImage.SchematicId = desiredID
+						res.TypedSpec().Value.AcceptedIds = []string{runningID}
+
+						return nil
+					}),
+				)
+
+				rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+					assert.Equal(runningID, res.TypedSpec().Value.SchematicId)
+				})
+
+				assert.Never(t, func() bool {
+					return len(machineServices.Get(id).GetUpgradeRequests()) > 0
+				}, time.Second, 50*time.Millisecond, "the machine runs an accepted schematic, it must not be upgraded")
+			}
+		})
+	})
+
 	// Creates a cluster with a single node, marks it as having an invalid schematic (not provisioned via image factory),
 	// verifies that configStatus.SchematicId is cleared and config changes are still applied normally.
 	t.Run("invalidSchematic", func(t *testing.T) {
