@@ -15,6 +15,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
@@ -362,6 +363,8 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 			stable.Pre = nil
 			res.TypedSpec().Value.Deprecated = stable.LT(minTalosVersion)
 
+			ctrl.setDefaultVersionLabel(res.Metadata(), talosVer == constants.DefaultTalosVersion)
+
 			return nil
 		}); writeErr != nil {
 			if state.IsPhaseConflictError(writeErr) {
@@ -505,6 +508,8 @@ func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context,
 		if err = safe.WriterModify(ctx, r, k8sVersion, func(res *omni.KubernetesVersion) error {
 			res.TypedSpec().Value.Version = v
 
+			ctrl.setDefaultVersionLabel(res.Metadata(), v == consts.DefaultKubernetesVersion)
+
 			return nil
 		}); err != nil {
 			return nil, err
@@ -521,6 +526,17 @@ func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context,
 	}
 
 	return versions, nil
+}
+
+// setDefaultVersionLabel marks the default version, and clears the mark from a version that is no longer the default.
+func (*VersionsController) setDefaultVersionLabel(md *resource.Metadata, isDefault bool) {
+	if isDefault {
+		md.Labels().Set(omni.LabelDefaultVersion, "")
+
+		return
+	}
+
+	md.Labels().Delete(omni.LabelDefaultVersion)
 }
 
 func (ctrl *VersionsController) parseK8sVersions(versions []string) ([]*compatibility.KubernetesVersion, error) {

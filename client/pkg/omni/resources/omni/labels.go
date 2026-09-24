@@ -137,6 +137,9 @@ const (
 	// LabelEnterprise is set if the machine runs Talos Enterprise.
 	// tsgen:LabelEnterprise
 	LabelEnterprise = SystemLabelPrefix + "enterprise"
+
+	// LabelDefaultVersion is set on the TalosVersion and the KubernetesVersion that Omni uses as its default.
+	LabelDefaultVersion = SystemLabelPrefix + "default-version"
 )
 
 const (
