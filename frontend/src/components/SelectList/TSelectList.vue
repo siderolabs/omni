@@ -45,6 +45,7 @@ const {
   defaultValue = undefined,
   values,
   searcheable,
+  placeholder,
 } = defineProps<{
   variant?: SelectTriggerProps['variant']
   title?: string
@@ -54,6 +55,8 @@ const {
   searcheable?: boolean
   hideSelectedSmallScreens?: boolean
   overheadTitle?: boolean
+  /** Shown in the trigger while nothing is selected. */
+  placeholder?: string
 }>()
 
 const emit = defineEmits<{
@@ -174,8 +177,13 @@ function labelFromValue(value?: T | null) {
           >
             {{ title }}
           </SelectLabel>
-          <span :class="{ 'max-md:hidden': hideSelectedSmallScreens }">
-            {{ labelFromValue(selectedItem) }}
+          <span
+            :class="{
+              'max-md:hidden': hideSelectedSmallScreens,
+              'text-naturals-n9': placeholder && !labelFromValue(selectedItem),
+            }"
+          >
+            {{ labelFromValue(selectedItem) || placeholder }}
           </span>
         </SelectValue>
         <SelectIcon>

@@ -27,7 +27,7 @@ const { code = '', buttonAttrs } = defineProps<Props>()
 
     <div class="p-1">
       <pre
-        class="overflow-auto px-3 py-1 font-mono text-xs/6 whitespace-pre"
+        class="overflow-auto px-3 py-1 font-mono text-xs/relaxed whitespace-pre"
       ><slot v-if="!code"></slot><template v-else>{{ code }}</template></pre>
     </div>
   </div>

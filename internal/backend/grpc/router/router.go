@@ -445,6 +445,7 @@ func (r *Router) dialTalosWithCreds(creds credentials.TransportCredentials, endp
 		}),
 		grpc.WithTransportCredentials(creds),
 		grpc.WithDefaultCallOptions(grpc.ForceCodecV2(proxy.Codec())),
+		grpc.WithChainStreamInterceptor(sensitiveReadGuard()),
 	)
 }
 

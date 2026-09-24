@@ -39,6 +39,7 @@ export type PermissionsSpec = {
   can_manage_join_tokens?: boolean
   can_read_installation_media?: boolean
   can_manage_installation_media?: boolean
+  can_access_internals?: boolean
 }
 
 export type ClusterPermissionsSpec = {

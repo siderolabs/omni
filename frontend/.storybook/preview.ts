@@ -6,6 +6,7 @@ import '../src/index.css'
 
 import { faker } from '@faker-js/faker'
 import { type Preview } from '@storybook/vue3-vite'
+import { startOfHour } from 'date-fns'
 import { setupWorker } from 'msw/browser'
 import { mswLoader } from 'msw-storybook-addon/csf3'
 import { vueRouter } from 'storybook-vue3-router'
@@ -13,6 +14,11 @@ import { createMemoryHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
 import AppToast from '../src/components/AppToast/AppToast.vue'
+
+// Relative faker dates count back from the current hour rather than the current moment, so
+// seeded stories render the same timestamps between runs. Set at load so mocks generated at
+// import time get it too.
+faker.setDefaultRefDate(() => startOfHour(new Date()))
 
 const preview: Preview = {
   beforeEach() {
