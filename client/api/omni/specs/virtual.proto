@@ -26,6 +26,7 @@ message PermissionsSpec {
   bool can_manage_join_tokens = 15;
   bool can_read_installation_media = 16;
   bool can_manage_installation_media = 17;
+  bool can_access_internals = 18;
 }
 
 message ClusterPermissionsSpec {
