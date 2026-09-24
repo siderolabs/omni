@@ -24,7 +24,10 @@ import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useTitle } from '@/methods/title'
-import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
+import NodesMonitorChart, {
+  type ChartSample,
+  type ChartSeries,
+} from '@/views/Nodes/components/NodesMonitorChart.vue'
 
 definePage({ name: 'NodeMonitor' })
 
@@ -146,13 +149,30 @@ watchEffect((onCleanup) => {
   })
 })
 
-const handleCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
-  const keys = Object.keys(oldObj.cpuTotal ?? {}) as (keyof CPUSpec['cpuTotal'])[]
+const cpuSeries: ChartSeries[] = [
+  { key: 'system', label: 'System', color: 'var(--color-yellow-y1)' },
+  { key: 'user', label: 'User', color: 'var(--color-primary-p3)' },
+]
+
+const memorySeries: ChartSeries[] = [
+  { key: 'used', label: 'Used', color: 'var(--color-primary-p3)' },
+  { key: 'cached', label: 'Cached', color: 'var(--color-naturals-n11)', width: 0.5, dash: 2 },
+  { key: 'buffers', label: 'Buffers', color: 'var(--color-naturals-n11)', width: 0.5, dash: 2 },
+]
+
+const processSeries: ChartSeries[] = [
+  { key: 'created', label: 'Created', color: 'var(--color-blue-b1)' },
+  { key: 'running', label: 'Running', color: 'var(--color-green-g1)' },
+  { key: 'blocked', label: 'Blocked', color: 'var(--color-yellow-y1)' },
+]
+
+const handleCPU = ({ spec, previous }: ChartSample<CPUSpec>) => {
+  const keys = Object.keys(spec.cpuTotal ?? {}) as (keyof CPUSpec['cpuTotal'])[]
 
   const cpuTotal = keys.reduce<CPUSpec['cpuTotal']>(
     (prev, key) => ({
       ...prev,
-      [key]: (oldObj.cpuTotal?.[key] || 0) - (newObj.cpuTotal?.[key] || 0),
+      [key]: (spec.cpuTotal?.[key] || 0) - (previous.cpuTotal?.[key] || 0),
     }),
     {},
   )
@@ -168,44 +188,44 @@ const handleCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
   }
 }
 
-function formatPct(input: string | number) {
-  // Double Number() to format to 1 DP, with a re-parse to drop .0
-  const pct = Number(Number(input).toFixed(1))
+function formatPct(input: number) {
+  // Re-parse the fixed string to drop a trailing .0
+  const pct = Number(input.toFixed(1))
 
   return `${pct} %`
 }
 
-const handleTotalCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
-  const { user, system } = handleCPU(oldObj, newObj)
+const handleTotalCPU = (sample: ChartSample<CPUSpec>) => {
+  const { user, system } = handleCPU(sample)
 
   return formatPct(user + system)
 }
 
-const handleMem = (_: MemorySpec, m: MemorySpec) => {
-  memTotal.value = m.total || 0
+const handleMem = ({ spec }: ChartSample<MemorySpec>) => {
+  memTotal.value = spec.total || 0
 
   return {
-    used: (m.used || 0) - (m.cached || 0) - (m.buffers || 0),
-    cached: m.cached || 0,
-    buffers: m.buffers || 0,
+    used: (spec.used || 0) - (spec.cached || 0) - (spec.buffers || 0),
+    cached: spec.cached || 0,
+    buffers: spec.buffers || 0,
   }
 }
 
-const handleTotalMem = (_: MemorySpec, m: MemorySpec) => {
-  const used = (m.used || 0) - (m.cached || 0) - (m.buffers || 0)
+const handleTotalMem = ({ spec }: ChartSample<MemorySpec>) => {
+  const used = (spec.used || 0) - (spec.cached || 0) - (spec.buffers || 0)
 
-  return `${prettyBytes(used * 1024, { binary: true })} / ${prettyBytes((m.total || 0) * 1024, { binary: true })}`
+  return `${prettyBytes(used * 1024, { binary: true })} / ${prettyBytes((spec.total || 0) * 1024, { binary: true })}`
 }
 
-const handleMaxMem = (_: MemorySpec, m: MemorySpec) => {
-  return m.total || 0
+const handleMaxMem = ({ spec }: ChartSample<MemorySpec>) => {
+  return spec.total || 0
 }
 
-const handleProcs = (oldObj: CPUSpec, newObj: CPUSpec) => {
+const handleProcs = ({ spec, previous }: ChartSample<CPUSpec>) => {
   return {
-    created: (oldObj.processCreated || 0) - (newObj.processCreated || 0),
-    running: newObj.processRunning || 0,
-    blocked: newObj.processBlocked || 0,
+    created: (spec.processCreated || 0) - (previous.processCreated || 0),
+    running: spec.processRunning || 0,
+    blocked: spec.processBlocked || 0,
   }
 }
 
@@ -239,9 +259,8 @@ useTitle('Monitor')
         <div class="monitor-chart">
           <NodesMonitorChart
             class="h-full"
-            name="cpu"
             title="CPU usage"
-            :colors="['var(--color-yellow-y1)', 'var(--color-primary-p3)']"
+            :series="cpuSeries"
             :watch-opts="{
               runtime: Runtime.Talos,
               resource: {
@@ -251,25 +270,19 @@ useTitle('Monitor')
               },
               context,
             }"
-            :point-fn="handleCPU"
-            :total-fn="handleTotalCPU"
-            :min-fn="() => 0"
-            :max-fn="() => 100"
-            :formatter="(input) => formatPct(input)"
+            :point="handleCPU"
+            :summary="handleTotalCPU"
+            :min="0"
+            :max="100"
+            :format="formatPct"
             stacked
           />
         </div>
         <div class="monitor-chart">
           <NodesMonitorChart
             class="h-full"
-            name="mem"
             title="Memory"
-            :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
-            :colors="[
-              'var(--color-primary-p3)',
-              'var(--color-naturals-n11)',
-              'var(--color-naturals-n11)',
-            ]"
+            :series="memorySeries"
             :watch-opts="{
               runtime: Runtime.Talos,
               resource: {
@@ -280,11 +293,11 @@ useTitle('Monitor')
               context,
             }"
             stacked
-            :point-fn="handleMem"
-            :total-fn="handleTotalMem"
-            :min-fn="() => 0"
-            :max-fn="handleMaxMem"
-            :formatter="(input) => prettyBytes(Number(input) * 1024, { binary: true })"
+            :point="handleMem"
+            :summary="handleTotalMem"
+            :min="0"
+            :max="handleMaxMem"
+            :format="(value) => prettyBytes(value * 1024, { binary: true })"
           />
         </div>
       </div>
@@ -292,9 +305,8 @@ useTitle('Monitor')
         <div class="monitor-chart monitor-chart-wide">
           <NodesMonitorChart
             class="h-full"
-            name="procs"
             title="Processes"
-            :colors="['var(--color-blue-b1)', 'var(--color-green-g1)', 'var(--color-yellow-y1)']"
+            :series="processSeries"
             :watch-opts="{
               runtime: Runtime.Talos,
               resource: {
@@ -304,7 +316,7 @@ useTitle('Monitor')
               },
               context,
             }"
-            :point-fn="handleProcs"
+            :point="handleProcs"
           />
         </div>
       </div>

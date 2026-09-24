@@ -42,9 +42,10 @@
     "@vueuse/core": "^14.4.0",
     "@vueuse/integrations": "^14.4.0",
     "@vueuse/router": "^14.4.0",
-    "apexcharts": "^7.1.0",
     "bowser": "^2.14.1",
     "clsx": "^2.1.1",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
     "date-fns": "^4.4.0",
     "fetch-intercept": "^2.4.0",
     "idb-keyval": "^6.3.0",
@@ -67,7 +68,6 @@
     "vue-router": "^5.3.1",
     "vue-sonner": "^2.0.9",
     "vue-word-highlighter": "^1.2.6",
-    "vue3-apexcharts": "^1.11.1",
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
@@ -81,6 +81,8 @@
     "@testing-library/user-event": "^14.6.7",
     "@testing-library/vue": "^8.1.0",
     "@tsconfig/node24": "^24.0.5",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.2.0",
     "@types/js-yaml": "^4.0.9",
     "@types/jsdom": "^30.0.0",
     "@types/lodash": "^4.17.25",
