@@ -1503,6 +1503,148 @@ func TestUUIDConflictDoesNotStealLinkAddress(t *testing.T) {
 	}
 }
 
+func TestUUIDConflictWithoutNodeUniqueTokenDoesNotStealLinkAddress(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	victimToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "victim").Encode()
+	require.NoError(t, err)
+
+	intruderToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "intruder").Encode()
+	require.NoError(t, err)
+
+	device := newTestDeviceHandler()
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, joinToken, device, func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	const (
+		dupUUID      = "zero-uuid"
+		overrideUUID = "override-uuid"
+	)
+
+	victimKey := genPublicKey(t)
+	intruderKey := genPublicKey(t)
+
+	victimResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        dupUUID,
+		NodePublicKey:   victimKey,
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(victimToken),
+	})
+	require.NoError(t, err)
+
+	victimPrefix, err := netip.ParsePrefix(victimResp.NodeAddressPrefix)
+	require.NoError(t, err)
+
+	victimAddr := victimPrefix.Addr()
+
+	// the intruder boots with an empty META, so the conflict is not detected yet
+	intruderResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:      dupUUID,
+		NodePublicKey: intruderKey,
+		TalosVersion:  new("v1.9.4"),
+		JoinToken:     new(joinToken),
+	})
+	require.NoError(t, err)
+
+	pending, err := safe.StateGetByID[*siderolinkres.PendingMachine](ctx, st, intruderKey)
+	require.NoError(t, err)
+
+	intruderSubnet := pending.TypedSpec().Value.NodeSubnet
+
+	assert.NotEqual(t, victimResp.NodeAddressPrefix, intruderSubnet, "the pending machine must not get the address of the link")
+	assert.Equal(t, intruderSubnet, intruderResp.NodeAddressPrefix)
+
+	// the unique token is written to META: the conflict is detected now
+	_, err = provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        dupUUID,
+		NodePublicKey:   intruderKey,
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(intruderToken),
+	})
+	require.NoError(t, err)
+
+	pending, err = safe.StateGetByID[*siderolinkres.PendingMachine](ctx, st, intruderKey)
+	require.NoError(t, err)
+
+	_, conflict := pending.Metadata().Annotations().Get(siderolinkres.PendingMachineUUIDConflict)
+	require.True(t, conflict)
+
+	// the UUID override is written to META: the intruder joins as a new machine with the same Wireguard key
+	overrideResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        overrideUUID,
+		NodePublicKey:   intruderKey,
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(intruderToken),
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, intruderSubnet, overrideResp.NodeAddressPrefix)
+
+	intruderLink, err := safe.StateGetByID[*siderolinkres.Link](ctx, st, overrideUUID)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, victimResp.NodeAddressPrefix, intruderLink.TypedSpec().Value.NodeSubnet, "the new link must not get the address of the victim")
+
+	assert.Empty(t, device.evictionLog(), "no peer may take an allowed-IP away from another peer")
+	assert.Equal(t, victimKey, device.owner(victimAddr), "the victim must keep its address")
+}
+
+func TestPendingMachineWithLinkKeyKeepsLinkAddress(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	nodeToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "node").Encode()
+	require.NoError(t, err)
+
+	st, provisionHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeStrict, joinToken, newTestDeviceHandler(), func(*siderolinkres.PendingMachine) bool {
+		return true
+	})
+
+	const nodeUUID = "same-key-machine"
+
+	pubKey := genPublicKey(t)
+
+	linkResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:        nodeUUID,
+		NodePublicKey:   pubKey,
+		TalosVersion:    new("v1.9.4"),
+		JoinToken:       new(joinToken),
+		NodeUniqueToken: new(nodeToken),
+	})
+	require.NoError(t, err)
+
+	pendingResp, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+		NodeUuid:      nodeUUID,
+		NodePublicKey: pubKey,
+		TalosVersion:  new("v1.9.4"),
+		JoinToken:     new(joinToken),
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, linkResp.NodeAddressPrefix, pendingResp.NodeAddressPrefix, "the pending machine shares the Wireguard peer of the link, so it must have the same address")
+
+	pending, err := safe.StateGetByID[*siderolinkres.PendingMachine](ctx, st, pubKey)
+	require.NoError(t, err)
+
+	assert.Equal(t, linkResp.NodeAddressPrefix, pending.TypedSpec().Value.NodeSubnet)
+}
+
 // registerJoinToken adds an extra join token the way JoinTokenStatusController would, including the
 // fingerprint label the v3 provision flow resolves the token by.
 func registerJoinToken(ctx context.Context, t *testing.T, st state.State, id, name string, tokenState specs.JoinTokenStatusSpec_State) {

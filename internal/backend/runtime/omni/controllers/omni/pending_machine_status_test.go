@@ -626,16 +626,15 @@ func (suite *PendingMachineStatusSuite) firstJoin(failFirst bool) {
 		})
 }
 
-// TestMigrationAndNewBootShareToken checks a registered machine without a token which reboots with a new WireGuard key.
+// TestMigrationAndNewBootWithoutToken checks a registered machine without a token which reboots with a new WireGuard key.
 //
-// The new boot joins without a token and creates a pending machine under the new key, while the legacy token migration
-// creates another pending machine under the key of the existing link. Both point to the same machine and reconcile concurrently,
-// so they must agree on a single token.
-func (suite *PendingMachineStatusSuite) TestMigrationAndNewBootShareToken() {
+// The legacy token migration creates a pending machine under the key of the existing link, and the new boot creates
+// another one under the new key. Only the first one shares the Wireguard peer of the link, so only it gets the link address.
+func (suite *PendingMachineStatusSuite) TestMigrationAndNewBootWithoutToken() {
 	t := suite.T()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	ms, err := suite.newServer("migration-reboot")
 	require.NoError(t, err)
@@ -650,52 +649,11 @@ func (suite *PendingMachineStatusSuite) TestMigrationAndNewBootShareToken() {
 
 	oldPublicKey, newPublicKey := oldKey.PublicKey().String(), newKey.PublicKey().String()
 
-	candidates := make(chan string, 2)
-	written := make(chan string, 2)
-	allowWrites := make(chan struct{})
-	reconciles := make(chan struct{}, 8)
-
-	var writeCount atomic.Int32
-
-	// every reconcile lists the disks before it gets to the token, so two calls mean both pending machines are being reconciled
-	ms.disksHook = func() {
-		reconciles <- struct{}{}
-	}
-
-	// hold the first token write until the second pending machine is being reconciled, so that the token operations overlap
-	ms.metaWriteBeforeHook = func(req *machine.MetaWriteRequest) error {
-		if req.Key != meta.UniqueMachineToken {
-			return nil
-		}
-
-		if writeCount.Add(1) > 2 {
-			return fmt.Errorf("unexpected token write")
-		}
-
-		candidates <- string(req.Value)
-
-		select {
-		case <-allowWrites:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
-	ms.metaWriteHook = func(req *machine.MetaWriteRequest) error {
-		if req.Key == meta.UniqueMachineToken {
-			written <- string(req.Value)
-		}
-
-		return nil
-	}
-
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{LogLevel: new(zapcore.ErrorLevel)},
 		func(ctx context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewPendingMachineStatusController()))
 			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewNodeUniqueTokenStatusController()))
 
-			// a registered machine without a token: the legacy token migration must create a pending machine for it
 			link := siderolink.NewLink("same-machine", &specs.SiderolinkSpec{NodePublicKey: oldPublicKey, NodeSubnet: unixSocket + ms.address})
 			require.NoError(t, tc.State.Create(ctx, link))
 			require.NoError(t, tc.State.Create(ctx, omni.NewMachine("same-machine")))
@@ -705,62 +663,31 @@ func (suite *PendingMachineStatusSuite) TestMigrationAndNewBootShareToken() {
 			labels.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 			require.NoError(t, tc.State.Create(ctx, labels))
 
-			// the WireGuard peers of the existing link and of both pending machines
 			require.NoError(t, tc.State.Create(ctx, siderolink.NewLinkStatus(link)))
 			require.NoError(t, tc.State.Create(ctx, siderolink.NewLinkStatus(siderolink.NewPendingMachine(oldPublicKey, nil))))
 			require.NoError(t, tc.State.Create(ctx, siderolink.NewLinkStatus(siderolink.NewPendingMachine(newPublicKey, nil))))
 
 			createProvisionPrerequisites(ctx, t, tc.State)
 
-			// the new boot joins without a token
 			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
 			_, err = handler.Provision(ctx, &pb.ProvisionRequest{NodeUuid: "same-machine", NodePublicKey: newPublicKey, JoinToken: new("join"), TalosVersion: new("v1.12.0")})
 			require.NoError(t, err)
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
-			var first string
-
-			select {
-			case first = <-candidates:
-			case <-ctx.Done():
-				t.Fatal(ctx.Err())
-			}
-
 			rtestutils.AssertResource(ctx, t, tc.State, oldPublicKey, func(res *siderolink.PendingMachine, a *assert.Assertions) {
 				a.Equal(unixSocket+ms.address, res.TypedSpec().Value.NodeSubnet)
 			})
 
-			for range 2 {
-				select {
-				case <-reconciles:
-				case <-ctx.Done():
-					t.Fatal(ctx.Err())
-				}
-			}
-
-			close(allowWrites)
-
-			select {
-			case value := <-written:
-				require.Equal(t, first, value)
-			case <-ctx.Done():
-				t.Fatal(ctx.Err())
-			}
-
-			rtestutils.AssertResources(ctx, t, tc.State, []string{oldPublicKey, newPublicKey}, func(res *siderolink.PendingMachineStatus, a *assert.Assertions) {
-				a.Equal(first, res.TypedSpec().Value.Token)
+			rtestutils.AssertResource(ctx, t, tc.State, newPublicKey, func(res *siderolink.PendingMachine, a *assert.Assertions) {
+				a.NotEqual(unixSocket+ms.address, res.TypedSpec().Value.NodeSubnet, "the new boot must not get the link address")
 			})
-			require.Equal(t, first, ms.getMetaKeys()[meta.UniqueMachineToken])
 
-			// the machine re-joins with the token from META, which must be accepted without a warning
-			logCore, observedLogs := observer.New(zap.WarnLevel)
-			handler := siderolinkpkg.NewProvisionHandler(zap.New(logCore), tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
-
-			_, err = handler.Provision(ctx, &pb.ProvisionRequest{
-				NodeUuid: "same-machine", NodePublicKey: newPublicKey, NodeUniqueToken: new(first), JoinToken: new("join"), TalosVersion: new("v1.12.0"),
+			rtestutils.AssertResource(ctx, t, tc.State, oldPublicKey, func(res *siderolink.PendingMachineStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.Token)
+				a.Equal(res.TypedSpec().Value.Token, ms.getMetaKeys()[meta.UniqueMachineToken])
 			})
-			require.NoError(t, err)
-			require.Zero(t, observedLogs.Len())
+
+			require.Equal(t, 1, ms.getMetaWriteCount(meta.UniqueMachineToken))
 		})
 }
 

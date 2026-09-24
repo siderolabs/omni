@@ -215,7 +215,7 @@ func newLink[T res](provisionContext *provisionContext,
 		}
 	}
 
-	link.TypedSpec().Value, err = generateLinkSpec(provisionContext)
+	link.TypedSpec().Value, err = generateLinkSpec(provisionContext, rd.Type)
 	if err != nil {
 		return zero, err
 	}
@@ -607,17 +607,16 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 	}, nil
 }
 
-func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec, error) {
+func generateLinkSpec(provisionContext *provisionContext, resourceType resource.Type) (*specs.SiderolinkSpec, error) {
 	nodePrefix := netip.MustParsePrefix(provisionContext.siderolinkConfig.TypedSpec().Value.Subnet)
 
 	var nodeAddress string
 
 	switch {
-	// A machine that collided with an existing UUID must never be given that link's address.
-	// Both records get a Wireguard peer, and each peer is configured with ReplaceAllowedIPs on a
-	// single /128, so the second one would take the address away from the live machine and leave
-	// it unroutable. Fall through to this machine's own pending record, or to a fresh address.
-	case provisionContext.link != nil && !provisionContext.uuidConflict:
+	// A pending machine might be a different machine which reports the same UUID, and taking the link address would take
+	// the route away from the live machine. It is safe only with the same Wireguard key, as both then share a single peer.
+	case provisionContext.link != nil && !provisionContext.uuidConflict &&
+		(resourceType == siderolinkres.LinkType || provisionContext.link.TypedSpec().Value.NodePublicKey == provisionContext.request.NodePublicKey):
 		nodeAddress = provisionContext.link.TypedSpec().Value.NodeSubnet
 	case provisionContext.pendingMachine != nil:
 		nodeAddress = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet
