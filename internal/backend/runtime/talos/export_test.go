@@ -6,6 +6,7 @@
 package talos
 
 import (
+	"context"
 	"runtime/pprof"
 	"time"
 
@@ -45,7 +46,7 @@ func (factory *ClientFactory) Cached(clusterID, machineID string) bool {
 	factory.mu.Lock()
 	defer factory.mu.Unlock()
 
-	_, ok := factory.entries[buildCacheKey(clusterID, machineID)]
+	_, ok := factory.entries[buildCacheKey(clusterID, machineID, false)]
 
 	return ok
 }
@@ -77,4 +78,11 @@ func (factory *ClientFactory) LeakedClients() int {
 // can look at its own clients only.
 func NewClientFactoryWithProfile(omniState state.State, logger *zap.Logger, openClients *pprof.Profile) *ClientFactory {
 	return newClientFactory(omniState, logger, openClients)
+}
+
+// ReaderCertificate exposes the base64 encoded certificate of readerCredentials to external tests.
+func (factory *ClientFactory) ReaderCertificate(ctx context.Context, clusterID string) (string, error) {
+	_, crt, _, err := factory.readerCredentials(ctx, clusterID)
+
+	return crt, err
 }

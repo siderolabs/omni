@@ -59,6 +59,7 @@ func (m *PermissionsSpec) CloneVT() *PermissionsSpec {
 	r.CanManageJoinTokens = m.CanManageJoinTokens
 	r.CanReadInstallationMedia = m.CanReadInstallationMedia
 	r.CanManageInstallationMedia = m.CanManageInstallationMedia
+	r.CanAccessInternals = m.CanAccessInternals
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -373,6 +374,9 @@ func (this *PermissionsSpec) EqualVT(that *PermissionsSpec) bool {
 		return false
 	}
 	if this.CanManageInstallationMedia != that.CanManageInstallationMedia {
+		return false
+	}
+	if this.CanAccessInternals != that.CanAccessInternals {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -816,6 +820,18 @@ func (m *PermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanAccessInternals {
+		i--
+		if m.CanAccessInternals {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
 	}
 	if m.CanManageInstallationMedia {
 		i--
@@ -1869,6 +1885,9 @@ func (m *PermissionsSpec) SizeVT() (n int) {
 	if m.CanManageInstallationMedia {
 		n += 3
 	}
+	if m.CanAccessInternals {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2643,6 +2662,26 @@ func (m *PermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanManageInstallationMedia = bool(v != 0)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanAccessInternals", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanAccessInternals = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

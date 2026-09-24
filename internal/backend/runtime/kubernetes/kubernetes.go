@@ -52,6 +52,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
 
@@ -142,6 +143,10 @@ func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse
 		selector: selector,
 	}
 
+	if err := r.checkAccess(ctx, opts.Context); err != nil {
+		return err
+	}
+
 	client, err := r.getOrCreateClient(ctx, opts)
 	if err != nil {
 		return err
@@ -157,6 +162,10 @@ func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse
 // Get implements runtime.Runtime.
 func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any, error) {
 	opts := runtime.NewQueryOptions(setters...)
+
+	if err := r.checkAccess(ctx, opts.Context); err != nil {
+		return nil, err
+	}
 
 	client, err := r.getOrCreateClient(ctx, opts)
 	if err != nil {
@@ -174,6 +183,10 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 // List implements runtime.Runtime.
 func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (runtime.ListResult, error) {
 	opts := runtime.NewQueryOptions(setters...)
+
+	if err := r.checkAccess(ctx, opts.Context); err != nil {
+		return runtime.ListResult{}, err
+	}
 
 	client, err := r.getOrCreateClient(ctx, opts)
 	if err != nil {
@@ -203,6 +216,22 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 		Items: res,
 		Total: len(res),
 	}, nil
+}
+
+// checkAccess verifies that the caller in the context may read the resources of the cluster.
+func (r *Runtime) checkAccess(ctx context.Context, clusterID string) error {
+	if clusterID == "" {
+		return status.Error(codes.InvalidArgument, "the cluster is required")
+	}
+
+	ctx, err := accesspolicy.ApplyClusterAccessPolicy(ctx, clusterID, r.state)
+	if err != nil {
+		return err
+	}
+
+	_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader))
+
+	return err
 }
 
 // Create implements runtime.Runtime.

@@ -9,3 +9,6 @@ var (
 	AdminMethodSet     = adminMethodSet
 	AdminMethodSet1_12 = adminMethodSet1_12
 )
+
+// SensitiveReadGuard exposes sensitiveReadGuard to external tests.
+var SensitiveReadGuard = sensitiveReadGuard

@@ -62,6 +62,7 @@ export const usePermissions = createSharedComposable(() => {
   const spec = computed(() => data.value?.spec)
 
   return {
+    canAccessInternals: computed(() => spec.value?.can_access_internals ?? false),
     canAccessMaintenanceNodes: computed(() => spec.value?.can_access_maintenance_nodes ?? false),
     canCreateClusters: computed(() => spec.value?.can_create_clusters ?? false),
     canManageBackupStore: computed(() => spec.value?.can_manage_backup_store ?? false),

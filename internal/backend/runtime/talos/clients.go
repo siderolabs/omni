@@ -8,6 +8,7 @@ package talos
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"runtime"
@@ -23,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -30,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/pkg/certs"
 )
 
 // ClientNotReadyError is returned when building the client fails because cluster endpoints list is empty
@@ -298,8 +301,12 @@ func newClientFactory(omniState state.State, logger *zap.Logger, openClients *pp
 	}
 }
 
-// connectionOptions returns client configuration generated from the TalosConfig resource.
-func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, endpoints []string) ([]client.OptionFunc, error) {
+// connectionOptions returns the client configuration for the cluster.
+//
+// A regular client authenticates with the `os:admin` certificate of the TalosConfig resource. A reader client
+// authenticates with an `os:reader` certificate issued from the cluster secrets instead: whatever it is used for, Talos
+// lets it only read the non-sensitive resources.
+func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, endpoints []string, reader bool) ([]client.OptionFunc, error) {
 	if len(endpoints) > 0 {
 		opts := GetSocketOptions(endpoints[0])
 
@@ -308,25 +315,29 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 		}
 	}
 
-	res, err := safe.StateGet[*omni.TalosConfig](ctx, factory.omniState, resource.NewMetadata(resources.DefaultNamespace, omni.TalosConfigType, id, resource.VersionUndefined))
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, NewClientNotReadyError(err)
-		}
+	var (
+		ca, crt, key string
+		err          error
+	)
 
-		return nil, err
+	if reader {
+		ca, crt, key, err = factory.readerCredentials(ctx, id)
+	} else {
+		ca, crt, key, err = factory.adminCredentials(ctx, id)
 	}
 
-	spec := res.TypedSpec().Value
+	if err != nil {
+		return nil, err
+	}
 
 	config := &clientconfig.Config{
 		Context: id,
 		Contexts: map[string]*clientconfig.Context{
 			id: {
 				Endpoints: endpoints,
-				CA:        spec.Ca,
-				Crt:       spec.Crt,
-				Key:       spec.Key,
+				CA:        ca,
+				Crt:       crt,
+				Key:       key,
 			},
 		},
 	}
@@ -341,11 +352,60 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 	}, nil
 }
 
+// adminCredentials returns the base64 encoded `os:admin` credentials of the cluster from its TalosConfig resource.
+func (factory *ClientFactory) adminCredentials(ctx context.Context, clusterID string) (ca, crt, key string, err error) {
+	res, err := safe.StateGet[*omni.TalosConfig](ctx, factory.omniState, resource.NewMetadata(resources.DefaultNamespace, omni.TalosConfigType, clusterID, resource.VersionUndefined))
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", "", "", NewClientNotReadyError(err)
+		}
+
+		return "", "", "", err
+	}
+
+	spec := res.TypedSpec().Value
+
+	return spec.Ca, spec.Crt, spec.Key, nil
+}
+
+// readerCredentials issues base64 encoded `os:reader` credentials for the cluster from its secrets.
+func (factory *ClientFactory) readerCredentials(ctx context.Context, clusterID string) (ca, crt, key string, err error) {
+	secrets, err := safe.StateGet[*omni.ClusterSecrets](ctx, factory.omniState, omni.NewClusterSecrets(clusterID).Metadata())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", "", "", NewClientNotReadyError(err)
+		}
+
+		return "", "", "", err
+	}
+
+	clientCert, caPEM, err := certs.TalosAPIClientCertificateFromSecrets(secrets, constants.CertificateValidityTime, talosrole.MakeSet(talosrole.Reader))
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(caPEM),
+		base64.StdEncoding.EncodeToString(clientCert.Crt),
+		base64.StdEncoding.EncodeToString(clientCert.Key),
+		nil
+}
+
 // GetForCluster constructs a client from resource configuration.
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetForCluster(ctx context.Context, clusterID string) (*Client, error) {
-	cacheKey := buildCacheKey(clusterID, "")
+	return factory.getForCluster(ctx, clusterID, false)
+}
+
+// GetReaderForCluster constructs a reader client.
+//
+// The returned client must be closed by the caller.
+func (factory *ClientFactory) GetReaderForCluster(ctx context.Context, clusterID string) (*Client, error) {
+	return factory.getForCluster(ctx, clusterID, true)
+}
+
+func (factory *ClientFactory) getForCluster(ctx context.Context, clusterID string, reader bool) (*Client, error) {
+	cacheKey := buildCacheKey(clusterID, "", reader)
 
 	factory.mu.Lock()
 	defer factory.mu.Unlock()
@@ -354,7 +414,7 @@ func (factory *ClientFactory) GetForCluster(ctx context.Context, clusterID strin
 		return cli, nil
 	}
 
-	c, err := factory.buildForCluster(ctx, clusterID)
+	c, err := factory.buildForCluster(ctx, clusterID, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -558,14 +618,14 @@ func (factory *ClientFactory) stop() {
 
 // releaseForCluster evicts all cached clients for the given cluster (cluster-wide and per-machine).
 func (factory *ClientFactory) releaseForCluster(clusterID string) {
-	clusterKey := buildCacheKey(clusterID, "")
+	clusterKey := buildCacheKey(clusterID, "", false)
 
 	factory.evict(func(e *entry) bool {
 		return strings.HasPrefix(e.key, clusterKey)
 	})
 }
 
-func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID string) (*client.Client, error) {
+func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID string, reader bool) (*client.Client, error) {
 	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](
 		ctx, factory.omniState,
 		omni.NewClusterEndpoint(clusterID).Metadata(),
@@ -583,7 +643,7 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 		return nil, NewClientNotReadyError(errors.New("no management addresses on cluster endpoint"))
 	}
 
-	options, err := factory.connectionOptions(ctx, clusterID, endpoints)
+	options, err := factory.connectionOptions(ctx, clusterID, endpoints, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +657,16 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID string) (*Client, error) {
-	return factory.getForMachine(ctx, machineID, false)
+	return factory.getForMachine(ctx, machineID, false, false)
+}
+
+// GetReaderForMachine constructs a reader client connected directly to a specific node's SideroLink address.
+// It returns a maintenance (insecure) or a regular (secure) client depending on whether the machine is currently in
+// maintenance mode or not, as reported by its MachineStatus.
+//
+// The returned client must be closed by the caller.
+func (factory *ClientFactory) GetReaderForMachine(ctx context.Context, machineID string) (*Client, error) {
+	return factory.getForMachine(ctx, machineID, false, true)
 }
 
 // GetMaintenance constructs a Talos client connected directly to a specific node's SideroLink address over the insecure
@@ -610,16 +679,16 @@ func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID strin
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetMaintenance(ctx context.Context, machineID string) (*Client, error) {
-	return factory.getForMachine(ctx, machineID, true)
+	return factory.getForMachine(ctx, machineID, true, false)
 }
 
-func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*Client, error) {
+func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly, reader bool) (*Client, error) {
 	_, clusterID, err := factory.resolveMachine(ctx, machineID, maintenanceOnly)
 	if err != nil {
 		return nil, err
 	}
 
-	cacheKey := buildCacheKey(clusterID, machineID)
+	cacheKey := buildCacheKey(clusterID, machineID, reader)
 
 	factory.mu.Lock()
 	defer factory.mu.Unlock()
@@ -634,13 +703,13 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 		return nil, err
 	}
 
-	cacheKey = buildCacheKey(clusterID, machineID)
+	cacheKey = buildCacheKey(clusterID, machineID, reader)
 
 	if cli, ok := factory.leaseLocked(cacheKey); ok {
 		return cli, nil
 	}
 
-	c, err := factory.buildForMachine(ctx, clusterID, machineStatus)
+	c, err := factory.buildForMachine(ctx, clusterID, machineStatus, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -684,21 +753,33 @@ func (factory *ClientFactory) resolveMachine(ctx context.Context, machineID stri
 	}
 }
 
-// buildCacheKey constructs a cache key for a client based on cluster and machine IDs.
+// readerKeySuffix marks the cache keys of the secure clients which authenticate as `os:reader`.
+//
+// It is a suffix so that the keys keep the cluster prefix every eviction of the cluster matches on.
+const readerKeySuffix = "@reader"
+
+// buildCacheKey constructs a cache key for a client based on cluster and machine IDs, and on its credentials.
 //
 // If no machine is specified, this is a cluster-client, and its key will be "clusterID/".
 // If a machine is specified, this is a machine client:
 // - If the machine is part of a cluster, the key will be "clusterID/machineID".
 // - If the machine is not part of any cluster (maintenance mode), the key will be "machine-machineID".
-func buildCacheKey(clusterID, machineID string) string {
+// A reader client gets the readerKeySuffix.
+func buildCacheKey(clusterID, machineID string, reader bool) string {
 	if clusterID == "" {
 		return "machine-" + machineID
 	}
 
-	return clusterID + "/" + machineID
+	key := clusterID + "/" + machineID
+
+	if reader {
+		key += readerKeySuffix
+	}
+
+	return key
 }
 
-func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID string, machineStatus *omni.MachineStatus) (*client.Client, error) {
+func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID string, machineStatus *omni.MachineStatus, reader bool) (*client.Client, error) {
 	machineID := machineStatus.Metadata().ID()
 
 	managementAddress := machineStatus.TypedSpec().Value.ManagementAddress
@@ -707,12 +788,17 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 	}
 
 	if clusterID != "" {
-		options, err := factory.connectionOptions(ctx, clusterID, []string{managementAddress})
+		options, err := factory.connectionOptions(ctx, clusterID, []string{managementAddress}, reader)
 		if err != nil {
 			return nil, err
 		}
 
 		return client.New(ctx, options...)
+	}
+
+	// For unit tests
+	if opts := GetSocketOptions(managementAddress); opts != nil {
+		return client.New(ctx, opts...)
 	}
 
 	// Maintenance mode: encrypted but no certificate verification.
@@ -727,24 +813,12 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 }
 
 func (factory *ClientFactory) releaseForMachine(clusterID, machineID string) {
-	cacheKey := buildCacheKey(clusterID, machineID)
+	adminKey := buildCacheKey(clusterID, machineID, false)
+	readerKey := buildCacheKey(clusterID, machineID, true)
 
-	factory.mu.Lock()
-
-	e := factory.entries[cacheKey]
-	if e != nil {
-		factory.dropLocked(e)
-	}
-
-	factory.mu.Unlock()
-
-	if e == nil {
-		return
-	}
-
-	factory.logger.Debug("evicted Talos client from cache", zap.String("key", cacheKey))
-
-	factory.release(e)
+	factory.evict(func(e *entry) bool {
+		return e.key == adminKey || e.key == readerKey
+	})
 }
 
 // WaitForCacheStart blocks until StartCacheManager has registered all its watches, or the context is done.
@@ -909,6 +983,10 @@ var _ prometheus.Collector = &ClientFactory{}
 
 // cacheKeyType returns the client type label for a cache key.
 func cacheKeyType(key string) string {
+	if base, ok := strings.CutSuffix(key, readerKeySuffix); ok {
+		return cacheKeyType(base) + "-reader"
+	}
+
 	if strings.HasPrefix(key, "machine-") {
 		return "maintenance"
 	}
