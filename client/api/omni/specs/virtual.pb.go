@@ -200,6 +200,7 @@ type PermissionsSpec struct {
 	CanManageJoinTokens           bool                   `protobuf:"varint,15,opt,name=can_manage_join_tokens,json=canManageJoinTokens,proto3" json:"can_manage_join_tokens,omitempty"`
 	CanReadInstallationMedia      bool                   `protobuf:"varint,16,opt,name=can_read_installation_media,json=canReadInstallationMedia,proto3" json:"can_read_installation_media,omitempty"`
 	CanManageInstallationMedia    bool                   `protobuf:"varint,17,opt,name=can_manage_installation_media,json=canManageInstallationMedia,proto3" json:"can_manage_installation_media,omitempty"`
+	CanAccessInternals            bool                   `protobuf:"varint,18,opt,name=can_access_internals,json=canAccessInternals,proto3" json:"can_access_internals,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -335,6 +336,13 @@ func (x *PermissionsSpec) GetCanReadInstallationMedia() bool {
 func (x *PermissionsSpec) GetCanManageInstallationMedia() bool {
 	if x != nil {
 		return x.CanManageInstallationMedia
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanAccessInternals() bool {
+	if x != nil {
+		return x.CanAccessInternals
 	}
 	return false
 }
@@ -1115,7 +1123,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x0fCurrentUserSpec\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12\x17\n" +
-	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xc3\x06\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xf5\x06\n" +
 	"\x0fPermissionsSpec\x12*\n" +
 	"\x11can_read_clusters\x18\x01 \x01(\bR\x0fcanReadClusters\x12.\n" +
 	"\x13can_create_clusters\x18\x02 \x01(\bR\x11canCreateClusters\x12(\n" +
@@ -1132,7 +1140,8 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x14can_read_join_tokens\x18\x0e \x01(\bR\x11canReadJoinTokens\x123\n" +
 	"\x16can_manage_join_tokens\x18\x0f \x01(\bR\x13canManageJoinTokens\x12=\n" +
 	"\x1bcan_read_installation_media\x18\x10 \x01(\bR\x18canReadInstallationMedia\x12A\n" +
-	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\"\x88\b\n" +
+	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\x120\n" +
+	"\x14can_access_internals\x18\x12 \x01(\bR\x12canAccessInternals\"\x88\b\n" +
 	"\x16ClusterPermissionsSpec\x12(\n" +
 	"\x10can_add_machines\x18\x01 \x01(\bR\x0ecanAddMachines\x12.\n" +
 	"\x13can_remove_machines\x18\x02 \x01(\bR\x11canRemoveMachines\x12.\n" +

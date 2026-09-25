@@ -37,6 +37,10 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/(authenticated)/clusters/[cluster]'
+      | '/(authenticated)/internals/resources/'
+      | '/(authenticated)/internals/resources/omni'
+      | '/(authenticated)/internals/resources/talos'
+      | '/(authenticated)/internals/resources/talos/[machine]'
       | 'AuditLogs'
       | 'BackupStorage'
       | 'Backups'
@@ -62,6 +66,12 @@ declare module 'vue-router/auto-routes' {
       | 'InstallationMediaCreateSystemExtensions'
       | 'InstallationMediaCreateTalosVersion'
       | 'InstallationMediaReview'
+      | 'Internals'
+      | 'InternalsOmniResource'
+      | 'InternalsOmniResources'
+      | 'InternalsTalosMachines'
+      | 'InternalsTalosResource'
+      | 'InternalsTalosResources'
       | 'JoinTokens'
       | 'KubernetesManifestSync'
       | 'Machine'
@@ -327,6 +337,89 @@ declare module 'vue-router/auto-routes' {
       '/clusters/create',
       Record<never, never>,
       Record<never, never>,
+      | never
+    >,
+    'Internals': RouteRecordInfo<
+      'Internals',
+      '/internals',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(authenticated)/internals/resources/'
+      | '/(authenticated)/internals/resources/omni'
+      | '/(authenticated)/internals/resources/talos'
+      | '/(authenticated)/internals/resources/talos/[machine]'
+      | 'InternalsOmniResource'
+      | 'InternalsOmniResources'
+      | 'InternalsTalosMachines'
+      | 'InternalsTalosResource'
+      | 'InternalsTalosResources'
+    >,
+    '/(authenticated)/internals/resources/': RouteRecordInfo<
+      '/(authenticated)/internals/resources/',
+      '/internals/resources',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(authenticated)/internals/resources/omni': RouteRecordInfo<
+      '/(authenticated)/internals/resources/omni',
+      '/internals/resources/omni',
+      Record<never, never>,
+      Record<never, never>,
+      | 'InternalsOmniResource'
+      | 'InternalsOmniResources'
+    >,
+    'InternalsOmniResources': RouteRecordInfo<
+      'InternalsOmniResources',
+      '/internals/resources/omni',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    'InternalsOmniResource': RouteRecordInfo<
+      'InternalsOmniResource',
+      '/internals/resources/omni/:type',
+      { type: ParamValue<true> },
+      { type: ParamValue<false> },
+      | never
+    >,
+    '/(authenticated)/internals/resources/talos': RouteRecordInfo<
+      '/(authenticated)/internals/resources/talos',
+      '/internals/resources/talos',
+      Record<never, never>,
+      Record<never, never>,
+      | '/(authenticated)/internals/resources/talos/[machine]'
+      | 'InternalsTalosMachines'
+      | 'InternalsTalosResource'
+      | 'InternalsTalosResources'
+    >,
+    'InternalsTalosMachines': RouteRecordInfo<
+      'InternalsTalosMachines',
+      '/internals/resources/talos',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/(authenticated)/internals/resources/talos/[machine]': RouteRecordInfo<
+      '/(authenticated)/internals/resources/talos/[machine]',
+      '/internals/resources/talos/:machine',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | 'InternalsTalosResource'
+      | 'InternalsTalosResources'
+    >,
+    'InternalsTalosResources': RouteRecordInfo<
+      'InternalsTalosResources',
+      '/internals/resources/talos/:machine',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | never
+    >,
+    'InternalsTalosResource': RouteRecordInfo<
+      'InternalsTalosResource',
+      '/internals/resources/talos/:machine/:type',
+      { machine: ParamValue<true>, type: ParamValue<true> },
+      { machine: ParamValue<false>, type: ParamValue<false> },
       | never
     >,
     'MachineClasses': RouteRecordInfo<
@@ -650,6 +743,10 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(authenticated)'
         | '/(authenticated)/clusters/[cluster]'
+        | '/(authenticated)/internals/resources/'
+        | '/(authenticated)/internals/resources/omni'
+        | '/(authenticated)/internals/resources/talos'
+        | '/(authenticated)/internals/resources/talos/[machine]'
         | 'AuditLogs'
         | 'BackupStorage'
         | 'Backups'
@@ -675,6 +772,12 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateSystemExtensions'
         | 'InstallationMediaCreateTalosVersion'
         | 'InstallationMediaReview'
+        | 'Internals'
+        | 'InternalsOmniResource'
+        | 'InternalsOmniResources'
+        | 'InternalsTalosMachines'
+        | 'InternalsTalosResource'
+        | 'InternalsTalosResources'
         | 'JoinTokens'
         | 'KubernetesManifestSync'
         | 'Machine'
@@ -720,6 +823,10 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(authenticated)'
         | '/(authenticated)/clusters/[cluster]'
+        | '/(authenticated)/internals/resources/'
+        | '/(authenticated)/internals/resources/omni'
+        | '/(authenticated)/internals/resources/talos'
+        | '/(authenticated)/internals/resources/talos/[machine]'
         | 'AuditLogs'
         | 'BackupStorage'
         | 'Backups'
@@ -745,6 +852,12 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateSystemExtensions'
         | 'InstallationMediaCreateTalosVersion'
         | 'InstallationMediaReview'
+        | 'Internals'
+        | 'InternalsOmniResource'
+        | 'InternalsOmniResources'
+        | 'InternalsTalosMachines'
+        | 'InternalsTalosResource'
+        | 'InternalsTalosResources'
         | 'JoinTokens'
         | 'KubernetesManifestSync'
         | 'Machine'
@@ -1045,6 +1158,103 @@ declare module 'vue-router/auto-routes' {
         | never
       pathParamNames:
         | never
+    }
+    'src/pages/(authenticated)/internals.vue': {
+      routes:
+        | '/(authenticated)/internals/resources/'
+        | '/(authenticated)/internals/resources/omni'
+        | '/(authenticated)/internals/resources/talos'
+        | '/(authenticated)/internals/resources/talos/[machine]'
+        | 'Internals'
+        | 'InternalsOmniResource'
+        | 'InternalsOmniResources'
+        | 'InternalsTalosMachines'
+        | 'InternalsTalosResource'
+        | 'InternalsTalosResources'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/index.vue': {
+      routes:
+        | '/(authenticated)/internals/resources/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/omni.vue': {
+      routes:
+        | '/(authenticated)/internals/resources/omni'
+        | 'InternalsOmniResource'
+        | 'InternalsOmniResources'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/omni/index.vue': {
+      routes:
+        | 'InternalsOmniResources'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/omni/[type].vue': {
+      routes:
+        | 'InternalsOmniResource'
+      views:
+        | never
+      pathParamNames:
+        | 'type'
+    }
+    'src/pages/(authenticated)/internals/resources/talos.vue': {
+      routes:
+        | '/(authenticated)/internals/resources/talos'
+        | '/(authenticated)/internals/resources/talos/[machine]'
+        | 'InternalsTalosMachines'
+        | 'InternalsTalosResource'
+        | 'InternalsTalosResources'
+      views:
+        | 'default'
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/talos/index.vue': {
+      routes:
+        | 'InternalsTalosMachines'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/talos/[machine].vue': {
+      routes:
+        | '/(authenticated)/internals/resources/talos/[machine]'
+        | 'InternalsTalosResource'
+        | 'InternalsTalosResources'
+      views:
+        | 'default'
+      pathParamNames:
+        | 'machine'
+    }
+    'src/pages/(authenticated)/internals/resources/talos/[machine]/index.vue': {
+      routes:
+        | 'InternalsTalosResources'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/internals/resources/talos/[machine]/[type].vue': {
+      routes:
+        | 'InternalsTalosResource'
+      views:
+        | never
+      pathParamNames:
+        | 'type'
     }
     'src/pages/(authenticated)/machine-classes/index.vue': {
       routes:

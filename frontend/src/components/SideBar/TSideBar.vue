@@ -47,8 +47,14 @@ const route = useRoute()
 const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
-const { canManageBackupStore, canManageUsers, canReadAuditLog, canReadClusters, canReadMachines } =
-  usePermissions()
+const {
+  canAccessInternals,
+  canManageBackupStore,
+  canManageUsers,
+  canReadAuditLog,
+  canReadClusters,
+  canReadMachines,
+} = usePermissions()
 const isEnterpriseFactory = useIsEnterprise()
 
 const currentCluster = computed(() =>
@@ -323,6 +329,32 @@ const rootItems = computed(() => {
       name: 'Settings',
       icon: 'settings',
       subItems: settingsItems,
+    })
+  }
+
+  // Tools for inspecting Omni itself, aimed at admins debugging an instance.
+  if (canAccessInternals.value) {
+    result.push({
+      name: 'Internals',
+      icon: 'code-bracket',
+      subItems: [
+        {
+          name: 'Resources',
+          icon: 'circle-stack',
+          subItems: [
+            {
+              name: 'Omni',
+              route: '/internals/resources/omni',
+              icon: 'sidero-monochrome',
+            },
+            {
+              name: 'Talos',
+              route: '/internals/resources/talos',
+              icon: 'talos',
+            },
+          ],
+        },
+      ],
     })
   }
 

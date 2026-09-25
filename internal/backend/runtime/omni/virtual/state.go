@@ -298,6 +298,7 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 	permissions.TypedSpec().Value.CanManageUsers = isAdmin
 	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
 	permissions.TypedSpec().Value.CanManageJoinTokens = isAdmin
+	permissions.TypedSpec().Value.CanAccessInternals = isAdmin
 
 	// audit log access is restricted by exact role, so that Operator does not get it by outranking Auditor.
 	// This shares its definition with the check on the ReadAuditLog RPC so the two cannot drift.

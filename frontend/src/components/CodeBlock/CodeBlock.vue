@@ -36,7 +36,7 @@ const highlighted = computedAsync(() => (code ? highlight(code, lang, search) : 
     <div class="p-1">
       <!-- eslint-disable vue/no-v-html -- Shiki escapes the code it highlights. -->
       <pre
-        class="overflow-auto px-3 py-1 font-mono text-xs/6 whitespace-pre"
+        class="overflow-auto px-3 py-1 font-mono text-xs/relaxed whitespace-pre"
       ><span v-if="highlighted" v-html="highlighted"></span><template v-else>{{ code }}</template></pre>
     </div>
   </div>
