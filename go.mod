@@ -4,29 +4,29 @@ go 1.27.1
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	github.com/crewjam/saml => github.com/unix4ever/saml 34930b26d33b
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 
 	// includes fix https://github.com/yaml/go-yaml/pull/380
-	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 c4a5514d019f
 )
 
 tool github.com/atombender/go-jsonschema
 
 require (
 	filippo.io/age v1.3.2
-	github.com/ProtonMail/go-crypto v1.4.1
+	github.com/ProtonMail/go-crypto v1.5.1
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v3 v3.3.0
-	github.com/aws/aws-sdk-go-v2 v1.47.0
-	github.com/aws/aws-sdk-go-v2/config v1.33.5
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.5
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.7
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
-	github.com/aws/smithy-go v1.28.1
+	github.com/aws/aws-sdk-go-v2 v1.47.1
+	github.com/aws/aws-sdk-go-v2/config v1.33.6
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.6
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.10
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.4
+	github.com/aws/smithy-go v1.28.2
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v7 v7.0.0
@@ -35,18 +35,18 @@ require (
 	github.com/cosi-project/state-etcd v0.7.0
 	github.com/cosi-project/state-sqlite v0.5.0
 	github.com/crewjam/saml v0.5.1
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/emicklei/dot v1.11.0
 	github.com/felixge/httpsnoop v1.1.0
 	github.com/fluxcd/cli-utils v1.3.0
-	github.com/fluxcd/pkg/ssa v0.77.0
+	github.com/fluxcd/pkg/ssa v0.78.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/cel-go v0.31.0
+	github.com/google/cel-go v0.32.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.22.1
 	github.com/google/uuid v1.6.0
@@ -70,7 +70,7 @@ require (
 	github.com/siderolabs/crypto v0.6.5
 	github.com/siderolabs/discovery-api v0.1.8
 	github.com/siderolabs/discovery-client v0.1.15
-	github.com/siderolabs/discovery-service v1.1.1
+	github.com/siderolabs/discovery-service v1.1.2
 	github.com/siderolabs/gen v0.8.8
 	github.com/siderolabs/go-api-signature v0.3.13
 	github.com/siderolabs/go-debug v0.6.3
@@ -80,7 +80,7 @@ require (
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/grpc-proxy v0.5.2
-	github.com/siderolabs/image-factory v1.7.0
+	github.com/siderolabs/image-factory v1.7.1
 	github.com/siderolabs/kms-client v0.2.0
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/proto-codec v0.1.4
@@ -92,12 +92,12 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/stripe/stripe-go/v86 v86.4.2
 	github.com/zitadel/logging v0.7.0
-	github.com/zitadel/oidc/v3 v3.51.0
+	github.com/zitadel/oidc/v3 v3.51.5
 	go.etcd.io/bbolt v1.5.0
-	go.etcd.io/etcd/client/pkg/v3 v3.7.1
-	go.etcd.io/etcd/client/v3 v3.7.1
-	go.etcd.io/etcd/pkg/v3 v3.7.1
-	go.etcd.io/etcd/server/v3 v3.7.1
+	go.etcd.io/etcd/client/pkg/v3 v3.7.2
+	go.etcd.io/etcd/client/v3 v3.7.2
+	go.etcd.io/etcd/pkg/v3 v3.7.2
+	go.etcd.io/etcd/server/v3 v3.7.2
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20260809190231-643e93b9c9be
@@ -110,11 +110,11 @@ require (
 	golang.org/x/tools v0.50.0
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
-	k8s.io/api v0.37.0
-	k8s.io/apimachinery v0.37.0
-	k8s.io/client-go v0.37.0
+	k8s.io/api v0.37.1
+	k8s.io/apimachinery v0.37.1
+	k8s.io/client-go v0.37.1
 	k8s.io/klog/v2 v2.140.0
 	sigs.k8s.io/cli-utils v0.37.2
 	sigs.k8s.io/controller-runtime v0.25.1
@@ -131,7 +131,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/atombender/go-jsonschema v0.23.1 // indirect
+	github.com/atombender/go-jsonschema v0.24.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.20 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.32 // indirect
