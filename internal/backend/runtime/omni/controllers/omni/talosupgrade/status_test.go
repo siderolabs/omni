@@ -710,14 +710,16 @@ func TestStatusController(t *testing.T) {
 					testoptions.Modify(func(res *omni.SchematicConfiguration) error {
 						res.TypedSpec().Value.TalosVersion = talosVersion
 						res.TypedSpec().Value.SchematicId = altSchematic
+						res.TypedSpec().Value.AcceptedIds = []string{defaultSchematic}
 
 						return nil
 					}))
 
-				// That machine's ClusterMachineTalosVersion should reflect the new schematic.
+				// That machine's ClusterMachineTalosVersion should reflect the new schematic and the accepted one.
 				rtestutils.AssertResource(ctx, t, st, machines[1].Metadata().ID(),
 					func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
 						assertions.Equal(altSchematic, res.TypedSpec().Value.SchematicId)
+						assertions.Equal([]string{defaultSchematic}, res.TypedSpec().Value.AcceptedIds)
 					})
 
 				// Change cluster version and update schematics accordingly.

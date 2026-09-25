@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/imager/imageropts"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	schematicctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -108,6 +110,7 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), nil, "")
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// a schematic should already be created with the current list of extensions, without requiring a cluster machine
@@ -586,6 +589,7 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 				Platform: talosconstants.PlatformMetal,
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), nil, "")
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// Capture the SchematicId the controller publishes, then look up what it actually
@@ -662,6 +666,20 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 				"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 			}
 
+			joinDocuments := `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: grpc://127.0.0.1:8090?jointoken=testtoken
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+`
+
 			synthesized := schematic.Schematic{
 				Customization: schematic.Customization{
 					ExtraKernelArgs: joinArgs,
@@ -694,9 +712,11 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+
+			createJoinConfig(ctx, t, st, machineName, joinArgs, joinDocuments)
 			r.NoError(st.Create(ctx, machineStatus))
 
-			var publishedID string
+			var desiredID, acceptedID string
 
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
@@ -705,15 +725,27 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 					assertion.NotEmpty(sc.TypedSpec().Value.SchematicId)
 					assertion.NotEqual(synthesizedID, sc.TypedSpec().Value.SchematicId)
 
-					publishedID = sc.TypedSpec().Value.SchematicId
+					if assertion.Len(sc.TypedSpec().Value.AcceptedIds, 1) {
+						acceptedID = sc.TypedSpec().Value.AcceptedIds[0]
+					}
+
+					desiredID = sc.TypedSpec().Value.SchematicId
 				},
 			)
 
-			stored, ok := factory.Get(publishedID)
-			r.True(ok, "schematic %q was not uploaded to the factory", publishedID)
+			accepted, ok := factory.Get(acceptedID)
+			r.True(ok, "schematic %q was not uploaded to the factory", acceptedID)
 
-			assert.Empty(t, stored.Customization.SystemExtensions.OfficialExtensions)
-			assert.Equal(t, joinArgs, stored.Customization.ExtraKernelArgs)
+			assert.Empty(t, accepted.Customization.SystemExtensions.OfficialExtensions)
+			assert.Equal(t, joinArgs, accepted.Customization.ExtraKernelArgs)
+
+			desired, ok := factory.Get(desiredID)
+			r.True(ok, "schematic %q was not uploaded to the factory", desiredID)
+
+			assert.Empty(t, desired.Customization.ExtraKernelArgs)
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: SideroLinkConfig")
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: EventSinkConfig")
+			assert.Contains(t, desired.Customization.EmbeddedMachineConfiguration, "kind: KmsgLogConfig")
 
 			// the machine becomes a running cluster member at the same version: it runs the desired content, and the
 			// published id must stay the factory's one
@@ -738,7 +770,8 @@ func TestSchematicConfigurationInvalid(t *testing.T) {
 					_, hasCluster := sc.Metadata().Labels().Get(omni.LabelCluster)
 
 					assertion.True(hasCluster)
-					assertion.Equal(publishedID, sc.TypedSpec().Value.SchematicId)
+					assertion.Equal(desiredID, sc.TypedSpec().Value.SchematicId)
+					assertion.Equal([]string{acceptedID}, sc.TypedSpec().Value.AcceptedIds)
 				},
 			)
 		},
@@ -802,6 +835,7 @@ func TestSchematicConfigurationEnsuresOnInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), nil, "")
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// installed and already running with the desired schematic, so it keeps its own schematic ID
@@ -907,6 +941,7 @@ func TestSchematicConfigurationRevertKeepsMachineSchematic(t *testing.T) {
 			machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/vda", SystemDisk: true}},
 			}
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), nil, "")
 			r.NoError(st.Create(ctx, machineStatus))
 
 			// the machine runs what it should, its own id is published without asking the factory
@@ -1034,6 +1069,7 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
 			machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: talosconstants.PlatformMetal}
 
+			createJoinConfig(ctx, t, st, machineStatus.Metadata().ID(), nil, "")
 			r.NoError(st.Create(ctx, machineStatus))
 
 			assertSchematicID := func(id string) {
@@ -1072,4 +1108,13 @@ func TestSchematicConfigurationDeallocatedBeforeInstall(t *testing.T) {
 			assertSchematicID(bootedID)
 		},
 	)
+}
+
+func createJoinConfig(ctx context.Context, t *testing.T, st state.State, id string, kernelArgs []string, config string) {
+	t.Helper()
+
+	joinConfig := siderolink.NewMachineJoinConfig(id)
+	joinConfig.TypedSpec().Value.Config = &specs.JoinConfig{KernelArgs: kernelArgs, Config: config}
+
+	require.NoError(t, st.Create(ctx, joinConfig))
 }

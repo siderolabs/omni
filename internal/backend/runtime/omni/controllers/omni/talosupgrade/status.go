@@ -467,6 +467,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Con
 
 		if err = safe.WriterModify(ctx, r, omni.NewClusterMachineTalosVersion(schematicConfiguration.Metadata().ID()), func(res *omni.ClusterMachineTalosVersion) error {
 			res.TypedSpec().Value.SchematicId = schematicConfiguration.TypedSpec().Value.SchematicId
+			res.TypedSpec().Value.AcceptedIds = schematicConfiguration.TypedSpec().Value.AcceptedIds
 			res.TypedSpec().Value.TalosVersion = schematicConfiguration.TypedSpec().Value.TalosVersion
 
 			helpers.CopyAllLabels(schematicConfiguration, res)
@@ -571,7 +572,8 @@ func (ctrl *TalosUpgradeStatusController) filterOutdated(ctx context.Context, r 
 		}
 
 		if clusterMachineConfigStatus.TypedSpec().Value.TalosVersion != schematicConfiguration.TypedSpec().Value.TalosVersion ||
-			clusterMachineConfigStatus.TypedSpec().Value.SchematicId != schematicConfiguration.TypedSpec().Value.SchematicId {
+			!omni.SchematicUpToDate(clusterMachineConfigStatus.TypedSpec().Value.SchematicId, schematicConfiguration.TypedSpec().Value.SchematicId,
+				schematicConfiguration.TypedSpec().Value.AcceptedIds) {
 			res.all[clusterMachine.Metadata().ID()] = clusterMachine
 		}
 	}

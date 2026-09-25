@@ -82,6 +82,7 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 					imageFactoryHost,
 					machineStatus.TypedSpec().Value.SchematicReady(),
 				)
+				options.TypedSpec().Value.AcceptedIds = clusterMachineTalosVersion.TypedSpec().Value.AcceptedIds
 
 				return nil
 			},

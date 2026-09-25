@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	factoryclient "github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
@@ -98,6 +99,9 @@ func NewConfigurationController(imageFactoryClients imageFactoryClientProvider) 
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](
+			qtransform.MapperSameID[*omni.MachineStatus](),
+		),
+		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
 		qtransform.WithExtraMappedInput[*omni.TalosVersion](
@@ -227,8 +231,41 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return err
 	}
 
-	if err = ctrl.publishSchematicID(ctx, logger, ms, cluster, schematicConfiguration, factoryClient, patched, talosVersion); err != nil {
+	joinConfig, err := safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, ms.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine join config is not yet available")
+		}
+
 		return err
+	}
+
+	acceptedID, err := ctrl.acceptedSchematicID(ctx, ms, cluster, factoryClient, patched, talosVersion)
+	if err != nil {
+		return err
+	}
+
+	desiredID, err := ctrl.desiredSchematicID(ctx, factoryClient, patched, joinConfig, talosVersion, acceptedID)
+	if err != nil {
+		return err
+	}
+
+	if desiredID != schematicConfiguration.TypedSpec().Value.SchematicId {
+		logger.Info(
+			"generated new schematic",
+			zap.String("machine", ms.Metadata().ID()),
+			zap.String("talos_version", talosVersion),
+			zap.String("image_factory", factoryClient.Host()),
+			zap.String("schematic_id", desiredID),
+		)
+	}
+
+	schematicConfiguration.TypedSpec().Value.SchematicId = desiredID
+	schematicConfiguration.TypedSpec().Value.AcceptedIds = nil
+
+	if acceptedID != desiredID {
+		// the machine is up to date with the schematic it would have been given before the join configuration moved into the schematic
+		schematicConfiguration.TypedSpec().Value.AcceptedIds = []string{acceptedID}
 	}
 
 	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
@@ -236,15 +273,43 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
 }
 
-// publishSchematicID decides which schematic id the machine should run and publishes it.
-func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, cluster *omni.Cluster,
-	schematicConfiguration *omni.SchematicConfiguration, factoryClient factoryclient.FactoryClient, patched schematic.Schematic, talosVersion string,
-) error {
+// desiredSchematicID returns the id of the patched schematic with the machine's join configuration in the form the Talos version supports.
+func (ctrl *ConfigurationController) desiredSchematicID(ctx context.Context, factoryClient factoryclient.FactoryClient,
+	patched schematic.Schematic, joinConfig *siderolink.MachineJoinConfig, talosVersion, acceptedID string,
+) (string, error) {
+	desired := imagefactory.WithJoinConfig(patched, joinConfig.TypedSpec().Value.GetConfig().GetKernelArgs(), []byte(joinConfig.TypedSpec().Value.GetConfig().GetConfig()), talosVersion)
+
+	desiredRaw, err := desired.Marshal()
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal desired schematic: %w", err)
+	}
+
+	patchedRaw, err := patched.Marshal()
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal patched schematic: %w", err)
+	}
+
+	if bytes.Equal(desiredRaw, patchedRaw) {
+		return acceptedID, nil
+	}
+
+	factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	id, _, err := factoryClient.EnsureSchematic(factoryCtx, desired)
+
+	return id, err
+}
+
+// acceptedSchematicID returns the schematic id the machine should run, not considering where its join configuration lives.
+func (ctrl *ConfigurationController) acceptedSchematicID(ctx context.Context, ms *omni.MachineStatus, cluster *omni.Cluster,
+	factoryClient factoryclient.FactoryClient, patched schematic.Schematic, talosVersion string,
+) (string, error) {
 	machineTalosVersion := strings.TrimLeft(ms.TypedSpec().Value.TalosVersion, "v")
 
 	patchedRaw, err := patched.Marshal()
 	if err != nil {
-		return fmt.Errorf("failed to marshal patched schematic: %w", err)
+		return "", fmt.Errorf("failed to marshal patched schematic: %w", err)
 	}
 
 	runsDesired := bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) && talosVersion == machineTalosVersion
@@ -256,33 +321,16 @@ func (ctrl *ConfigurationController) publishSchematicID(ctx context.Context, log
 	// an invalid machine reports an id it computed itself, no factory issued it, so its published id must come from the factory, see the next case
 	case runsDesired && talosInstalled && !installPending && !ms.TypedSpec().Value.Schematic.Invalid:
 		// the machine runs what it should, whichever factory issued it - the factory serving the version would answer with a different id for the same content
-		schematicConfiguration.TypedSpec().Value.SchematicId = ms.TypedSpec().Value.Schematic.FullId
+		return ms.TypedSpec().Value.Schematic.FullId, nil
 	default:
 		// ensured on every pass, the desired schematic ID might be stale or the one taken from the machine above before it moved on
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+		defer cancel()
 
 		id, _, err := factoryClient.EnsureSchematic(factoryCtx, patched)
 
-		cancel()
-
-		if err != nil {
-			return err
-		}
-
-		if id != schematicConfiguration.TypedSpec().Value.SchematicId {
-			logger.Info(
-				"generated new schematic",
-				zap.String("machine", ms.Metadata().ID()),
-				zap.String("talos_version", talosVersion),
-				zap.String("image_factory", factoryClient.Host()),
-				zap.String("schematic_id", id),
-			)
-		}
-
-		schematicConfiguration.TypedSpec().Value.SchematicId = id
+		return id, err
 	}
-
-	return nil
 }
 
 func (ctrl *ConfigurationController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {

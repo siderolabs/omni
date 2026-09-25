@@ -24,15 +24,19 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 )
 
 // The credentials the installation media tests configure on both sides: the ImageFactoryAuth resource Omni reads
@@ -473,6 +477,145 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 			require.Equal(t, append(args, req.ExtraKernelArgs...), config.Customization.ExtraKernelArgs)
 		})
 	}
+}
+
+func (suite *GrpcSuite) TestSchematicJoin() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	params := siderolink.NewDefaultJoinToken()
+	params.TypedSpec().Value.TokenId = "abcd"
+
+	suite.Require().NoError(suite.state.Create(ctx, params))
+
+	apiConfig := siderolink.NewAPIConfig()
+	apiConfig.TypedSpec().Value.EventsPort = 8091
+	apiConfig.TypedSpec().Value.LogsPort = 8092
+	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "grpc://127.0.0.1:8090"
+
+	suite.Require().NoError(suite.state.Create(ctx, apiConfig))
+
+	media := omni.NewInstallationMedia("test")
+
+	suite.Require().NoError(suite.state.Create(ctx, media))
+
+	// the user's config carries Omni documents from an older media, they are replaced, the user's own kmsg destination is kept
+	userConfig := `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: grpc://127.0.0.1:8090?jointoken=old
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: remote-siem
+url: tcp://192.168.1.10:5000
+`
+
+	resp, err := management.NewManagementServiceClient(suite.conn).CreateSchematic(ctx, &management.CreateSchematicRequest{
+		TalosVersion:          "1.13.0",
+		MediaId:               "test",
+		ExtraKernelArgs:       []string{"console=ttyS0"},
+		EmbeddedMachineConfig: userConfig,
+	})
+	suite.Require().NoError(err)
+
+	suite.imageFactory.schematicMu.Lock()
+	defer suite.imageFactory.schematicMu.Unlock()
+
+	config, ok := suite.imageFactory.schematics[resp.SchematicId]
+	suite.Require().Truef(ok, "the schematic id %q doesn't exist in the image factory", resp.SchematicId)
+
+	suite.Require().Equal([]string{"console=ttyS0"}, config.Customization.ExtraKernelArgs)
+
+	embedded := config.Customization.EmbeddedMachineConfiguration
+
+	suite.Require().Equal(1, strings.Count(embedded, "kind: SideroLinkConfig"))
+	suite.Require().Equal(1, strings.Count(embedded, "kind: EventSinkConfig"))
+	suite.Require().Equal(1, strings.Count(embedded, "name: omni-kmsg"))
+	suite.Require().Contains(embedded, "jointoken=abcd")
+	suite.Require().NotContains(embedded, "jointoken=old")
+	suite.Require().Contains(embedded, "name: remote-siem")
+}
+
+func (suite *GrpcSuite) TestEnsureSchematic() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	imageFactoryClient, err := imagefactory.NewClient(suite.imageFactory.address, imagefactory.Auth{Username: testFactoryUsername, Password: testFactoryPassword})
+	suite.Require().NoError(err)
+
+	server := grpcomni.NewManagementServer(suite.state, imageFactoryClient, zaptest.NewLogger(suite.T()), false, nil, nil)
+
+	// the machine was booted from a media with an older token, its join config carries the token it was accepted with and the tunnel
+	bootedArgs := []string{"siderolink.api=grpc://127.0.0.1:8090?jointoken=media-token", "console=ttyS0"}
+
+	booted := schematic.Schematic{Customization: schematic.Customization{ExtraKernelArgs: bootedArgs}}
+
+	bootedRaw, err := booted.Marshal()
+	suite.Require().NoError(err)
+
+	machineStatus := omni.NewMachineStatus("machine-1")
+	machineStatus.TypedSpec().Value.TalosVersion = "1.11.0"
+	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{FullId: "booted", Raw: string(bootedRaw), KernelArgs: bootedArgs}
+
+	_, _, err = server.EnsureSchematic(ctx, "1.11.1", machineStatus)
+	suite.Require().Error(err, "a machine without a join config must not get a schematic")
+
+	joinArgs := []string{
+		"siderolink.api=grpc://127.0.0.1:8090?grpc_tunnel=true&jointoken=machine-token",
+		"talos.events.sink=[fdae:41e4:649b:9303::1]:8091",
+		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
+	}
+
+	joinConfig := siderolink.NewMachineJoinConfig("machine-1")
+	joinConfig.TypedSpec().Value.Config = &specs.JoinConfig{
+		KernelArgs: joinArgs,
+		Config: `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: grpc://127.0.0.1:8090?grpc_tunnel=true&jointoken=machine-token
+`,
+	}
+
+	suite.Require().NoError(suite.state.Create(ctx, joinConfig))
+
+	stored := func(id string) schematic.Customization {
+		suite.imageFactory.schematicMu.Lock()
+		defer suite.imageFactory.schematicMu.Unlock()
+
+		s, ok := suite.imageFactory.schematics[id]
+		suite.Require().Truef(ok, "the schematic id %q doesn't exist in the image factory", id)
+
+		return s.Customization
+	}
+
+	id, _, err := server.EnsureSchematic(ctx, "1.11.1", machineStatus)
+	suite.Require().NoError(err)
+
+	customization := stored(id)
+	suite.Require().Equal(append(slices.Clone(joinArgs), "console=ttyS0"), customization.ExtraKernelArgs)
+	suite.Require().Empty(customization.EmbeddedMachineConfiguration)
+
+	id, _, err = server.EnsureSchematic(ctx, "1.13.0", machineStatus)
+	suite.Require().NoError(err)
+
+	customization = stored(id)
+	suite.Require().Equal([]string{"console=ttyS0"}, customization.ExtraKernelArgs)
+	suite.Require().Contains(customization.EmbeddedMachineConfiguration, "grpc_tunnel=true&jointoken=machine-token")
+
+	// an install without a version installs the machine's own version
+	machineStatus.TypedSpec().Value.TalosVersion = "1.13.0"
+
+	id, _, err = server.EnsureSchematic(ctx, "", machineStatus)
+	suite.Require().NoError(err)
+	suite.Require().Contains(stored(id).EmbeddedMachineConfiguration, "jointoken=machine-token")
 }
 
 // TestMediaURL pins the server-side installation media build against a factory that needs no

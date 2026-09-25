@@ -16,3 +16,16 @@ Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--pr
 containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
 self-hosted factories using htpasswd.
 """
+
+[notes.join-config-in-schematic]
+title = "SideroLink Join Configuration in the Schematic"
+description = """\
+Every machine's schematic now carries its SideroLink join configuration, so an install or a Talos upgrade no longer loses the connection to Omni \
+when the join args were only on the machine's kernel command line. From Talos 1.12 on, the join configuration is embedded machine configuration \
+instead of kernel args, also in new installation media. Existing machines move to the new schematic at their next install or upgrade, \
+deploying this release does not install, upgrade or reboot any machine.
+
+If you give Talos 1.12+ machines their configuration through another source, such as cloud user-data, the `talos.config` URL, \
+or the `talos.config.early` and `talos.config.inline` kernel args, include the join documents in it (`omnictl jointoken machine-config` prints them), \
+since that configuration replaces the embedded one.
+"""
