@@ -94,6 +94,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		{"1.3.4", []string{"1.26.0", "1.27.1"}, true, false},
 		{"1.4.0", []string{"1.27.0", "1.27.1"}, false, false},
 		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false, false},
+		{"1.5.1", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false, false},
 		{"1.14.0", []string{"1.30.0", "1.30.1", "1.30.2"}, false, true},
 	} {
 		talosVersion := omnires.NewTalosVersion(prep.version)
@@ -228,6 +229,12 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		type ongoingUpgrade struct {
 			fromVersion string
 			toVersion   string
+			phase       specs.KubernetesUpgradeStatusSpec_Phase
+		}
+
+		type ongoingTalosUpgrade struct {
+			lastUpgradeVersion string
+			phase              specs.TalosUpgradeStatusSpec_Phase
 		}
 
 		defaultVersions := clusterVersions{
@@ -238,9 +245,10 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		updateTests := []struct { //nolint:govet
 			name string
 
-			from      clusterVersions
-			to        clusterVersions
-			upgrading *ongoingUpgrade
+			from           clusterVersions
+			to             clusterVersions
+			upgrading      *ongoingUpgrade
+			talosUpgrading *ongoingTalosUpgrade
 
 			shouldFail    bool
 			errorIs       func(error) bool
@@ -408,6 +416,116 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				errorIs:       validated.IsValidationError,
 				errorContains: "downgrading from version \"1.5.0\" to \"1.4.0\" is not supported",
 			},
+			{
+				name: "talos and kubernetes update at the same time",
+				from: clusterVersions{
+					talosVersion:      "1.4.0",
+					kubernetesVersion: "1.27.1",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.28.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "the Talos and Kubernetes versions cannot be updated at the same time",
+			},
+			{
+				name: "kubernetes update during talos upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.1",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					kubernetesVersion: "1.30.1",
+				},
+				talosUpgrading: &ongoingTalosUpgrade{
+					lastUpgradeVersion: "1.5.0",
+					phase:              specs.TalosUpgradeStatusSpec_Upgrading,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "the Kubernetes version cannot be updated while a Talos upgrade is in progress",
+			},
+			{
+				name: "kubernetes update during talos upgrade without last upgrade version",
+				from: clusterVersions{
+					talosVersion:      "1.5.1",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					kubernetesVersion: "1.30.1",
+				},
+				talosUpgrading: &ongoingTalosUpgrade{
+					phase: specs.TalosUpgradeStatusSpec_Upgrading,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "the Kubernetes version cannot be updated while a Talos upgrade is in progress",
+			},
+			{
+				name: "kubernetes update before the talos upgrade status is updated",
+				from: clusterVersions{
+					talosVersion:      "1.5.1",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					kubernetesVersion: "1.30.1",
+				},
+				talosUpgrading: &ongoingTalosUpgrade{
+					lastUpgradeVersion: "1.5.0",
+					phase:              specs.TalosUpgradeStatusSpec_Done,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "the Kubernetes version cannot be updated while a Talos upgrade is in progress",
+			},
+			{
+				name: "kubernetes update during machine schematic update",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					kubernetesVersion: "1.30.1",
+				},
+				talosUpgrading: &ongoingTalosUpgrade{
+					lastUpgradeVersion: "1.5.0",
+					phase:              specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics,
+				},
+			},
+			{
+				name: "talos update during kubernetes upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.1",
+				},
+				to: clusterVersions{
+					talosVersion: "1.5.1",
+				},
+				upgrading: &ongoingUpgrade{
+					fromVersion: "1.30.0",
+					toVersion:   "1.30.1",
+					phase:       specs.KubernetesUpgradeStatusSpec_Upgrading,
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "the Talos version cannot be updated while a Kubernetes upgrade is in progress",
+			},
+			{
+				name: "talos revert during talos upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.1",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion: "1.5.0",
+				},
+				talosUpgrading: &ongoingTalosUpgrade{
+					lastUpgradeVersion: "1.5.0",
+					phase:              specs.TalosUpgradeStatusSpec_Upgrading,
+				},
+			},
 		}
 
 		// update
@@ -449,7 +567,20 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 
 					kubernetesUpgrade.TypedSpec().Value.LastUpgradeVersion = tc.upgrading.fromVersion
 					kubernetesUpgrade.TypedSpec().Value.CurrentUpgradeVersion = tc.upgrading.toVersion
+					kubernetesUpgrade.TypedSpec().Value.Phase = tc.upgrading.phase
 					require.NoError(t, innerSt.Create(ctx, kubernetesUpgrade))
+				}
+
+				if tc.talosUpgrading != nil {
+					talosUpgrade := omnires.NewTalosUpgradeStatus(clusterName)
+
+					t.Cleanup(func() {
+						_ = innerSt.Destroy(ctx, talosUpgrade.Metadata()) //nolint:errcheck // ignore error on cleanup
+					})
+
+					talosUpgrade.TypedSpec().Value.LastUpgradeVersion = tc.talosUpgrading.lastUpgradeVersion
+					talosUpgrade.TypedSpec().Value.Phase = tc.talosUpgrading.phase
+					require.NoError(t, innerSt.Create(ctx, talosUpgrade))
 				}
 
 				if tc.to.talosVersion != "" {

@@ -7,6 +7,7 @@ package validations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver/v4"
@@ -14,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -103,4 +105,84 @@ func validateKubernetesVersion(current, newVersion string, upgradeStatus *omni.K
 	}
 
 	return nil
+}
+
+// validateNoConcurrentUpgrades ensures that the Talos and Kubernetes versions are not updated while the other one is being upgraded.
+func validateNoConcurrentUpgrades(ctx context.Context, st state.State, existing, updated *omni.Cluster) error {
+	talosChanged := existing.TypedSpec().Value.TalosVersion != updated.TypedSpec().Value.TalosVersion
+	kubernetesChanged := existing.TypedSpec().Value.KubernetesVersion != updated.TypedSpec().Value.KubernetesVersion
+
+	switch {
+	case talosChanged && kubernetesChanged:
+		return errors.New("the Talos and Kubernetes versions cannot be updated at the same time")
+	case kubernetesChanged:
+		inProgress, err := talosUpgradeInProgress(ctx, st, existing)
+		if err != nil {
+			return err
+		}
+
+		if inProgress {
+			return errors.New("the Kubernetes version cannot be updated while a Talos upgrade is in progress")
+		}
+	case talosChanged:
+		inProgress, err := kubernetesUpgradeInProgress(ctx, st, existing)
+		if err != nil {
+			return err
+		}
+
+		if inProgress {
+			return errors.New("the Talos version cannot be updated while a Kubernetes upgrade is in progress")
+		}
+	}
+
+	return nil
+}
+
+func talosUpgradeInProgress(ctx context.Context, st state.State, cluster *omni.Cluster) (bool, error) {
+	upgradeStatus, err := safe.StateGetByID[*omni.TalosUpgradeStatus](ctx, st, cluster.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	switch upgradeStatus.TypedSpec().Value.Phase { //nolint:exhaustive
+	case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_Reverting:
+		return true, nil
+	}
+
+	lastUpgradeVersion := upgradeStatus.TypedSpec().Value.LastUpgradeVersion
+	if lastUpgradeVersion == "" {
+		return false, nil
+	}
+
+	// the status controller might not have picked up the version update yet
+	return cluster.TypedSpec().Value.TalosVersion != lastUpgradeVersion, nil
+}
+
+func kubernetesUpgradeInProgress(ctx context.Context, st state.State, cluster *omni.Cluster) (bool, error) {
+	upgradeStatus, err := safe.StateGetByID[*omni.KubernetesUpgradeStatus](ctx, st, cluster.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	// the status is Upgrading until the cluster is healthy for the first time
+	lastUpgradeVersion := upgradeStatus.TypedSpec().Value.LastUpgradeVersion
+	if lastUpgradeVersion == "" {
+		return false, nil
+	}
+
+	switch upgradeStatus.TypedSpec().Value.Phase { //nolint:exhaustive
+	case specs.KubernetesUpgradeStatusSpec_Upgrading, specs.KubernetesUpgradeStatusSpec_Reverting:
+		return true, nil
+	}
+
+	// the status controller might not have picked up the version update yet
+	return cluster.TypedSpec().Value.KubernetesVersion != lastUpgradeVersion, nil
 }
