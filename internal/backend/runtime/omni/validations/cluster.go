@@ -254,6 +254,10 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
+			if err := validateNoConcurrentUpgrades(ctx, st, existingRes, newRes); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
 			return multiErr
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.Cluster, option ...state.DestroyOption) error {

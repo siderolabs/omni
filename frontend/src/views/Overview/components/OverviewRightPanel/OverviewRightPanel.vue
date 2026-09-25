@@ -21,6 +21,10 @@ import type {
   TalosUpgradeStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import {
+  KubernetesUpgradeStatusSpecPhase,
+  TalosUpgradeStatusSpecPhase,
+} from '@/api/omni/specs/omni.pb'
+import {
   ClusterDiagnosticsType,
   ClusterLocked,
   ClusterStatusType,
@@ -186,6 +190,48 @@ const newTalosVersionsAvailable = computed(() => {
   return getUpgradeAvailable(talosUpgradeStatus!.spec)
 })
 
+const talosUpgradeInProgress = computed(() => {
+  const phase = talosUpgradeStatus?.spec.phase
+
+  return (
+    phase === TalosUpgradeStatusSpecPhase.Upgrading ||
+    phase === TalosUpgradeStatusSpecPhase.Reverting
+  )
+})
+
+const kubernetesUpgradeInProgress = computed(() => {
+  const phase = kubernetesUpgradeStatus?.spec.phase
+
+  return (
+    phase === KubernetesUpgradeStatusSpecPhase.Upgrading ||
+    phase === KubernetesUpgradeStatusSpecPhase.Reverting
+  )
+})
+
+const talosUpdateDisabledReason = computed(() => {
+  if (locked.value) return 'Talos updates are disabled when the cluster is locked.'
+
+  if (kubernetesUpgradeInProgress.value) {
+    return 'Talos updates are disabled while a Kubernetes upgrade is in progress.'
+  }
+
+  return ''
+})
+
+const kubernetesUpdateDisabledReason = computed(() => {
+  if (locked.value) return 'Kubernetes updates are disabled when the cluster is locked.'
+
+  if (talosUpgradeInProgress.value) {
+    return 'Kubernetes updates are disabled while a Talos upgrade is in progress.'
+  }
+
+  return ''
+})
+
+const withDisabledReason = (description: string, disabledReason: string) => {
+  return disabledReason ? `${description}. ${disabledReason}` : description
+}
+
 const getVersion = (spec: { last_upgrade_version?: string; current_upgrade_version?: string }) => {
   if (spec.current_upgrade_version && spec.last_upgrade_version) {
     return `${spec.last_upgrade_version} ⇾ ${spec.current_upgrade_version}`
@@ -194,15 +240,17 @@ const getVersion = (spec: { last_upgrade_version?: string; current_upgrade_versi
   return spec.last_upgrade_version
 }
 
-const openClusterUpdate = (type: Update, locked: boolean) => {
-  if (locked) return
-
+const openClusterUpdate = (type: Update) => {
   switch (type) {
     case Update.Kubernetes:
-      if (canUpdateKubernetes.value) updateKubernetesModalOpen.value = true
+      if (canUpdateKubernetes.value && !kubernetesUpdateDisabledReason.value) {
+        updateKubernetesModalOpen.value = true
+      }
       break
     case Update.Talos:
-      if (canUpdateTalos.value) updateTalosModalOpen.value = true
+      if (canUpdateTalos.value && !talosUpdateDisabledReason.value) {
+        updateTalosModalOpen.value = true
+      }
       break
   }
 }
@@ -281,16 +329,18 @@ const exportClusterTemplateModalOpen = ref(false)
         <Tooltip
           v-if="newTalosVersionsAvailable?.length"
           :description="
-            locked
-              ? `Newer Talos versions are available: ${newTalosVersionsAvailable.join(', ')}. However, Talos updates are disabled when the cluster is locked.`
-              : `Newer Talos versions are available: ${newTalosVersionsAvailable.join(', ')}`
+            withDisabledReason(
+              `Newer Talos versions are available: ${newTalosVersionsAvailable.join(', ')}`,
+              talosUpdateDisabledReason,
+            )
           "
         >
           <TIcon
             v-if="newTalosVersionsAvailable"
-            class="h-4 w-4 cursor-pointer"
+            class="h-4 w-4"
+            :class="talosUpdateDisabledReason ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
             icon="upgrade-available"
-            @click="openClusterUpdate(Update.Talos, locked)"
+            @click="openClusterUpdate(Update.Talos)"
           />
         </Tooltip>
 
@@ -305,15 +355,19 @@ const exportClusterTemplateModalOpen = ref(false)
         <Tooltip
           v-if="newKubernetesVersionsAvailable?.length"
           :description="
-            locked
-              ? `Newer Kubernetes versions are available: ${newKubernetesVersionsAvailable.join(', ')}. However, Kubernetes updates are disabled when the cluster is locked.`
-              : `Newer Kubernetes versions are available: ${newKubernetesVersionsAvailable.join(', ')}`
+            withDisabledReason(
+              `Newer Kubernetes versions are available: ${newKubernetesVersionsAvailable.join(', ')}`,
+              kubernetesUpdateDisabledReason,
+            )
           "
         >
           <TIcon
-            class="h-4 w-4 cursor-pointer"
+            class="h-4 w-4"
+            :class="
+              kubernetesUpdateDisabledReason ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            "
             icon="upgrade-available"
-            @click="openClusterUpdate(Update.Kubernetes, locked)"
+            @click="openClusterUpdate(Update.Kubernetes)"
           />
         </Tooltip>
 
@@ -447,15 +501,19 @@ const exportClusterTemplateModalOpen = ref(false)
 
         <Tooltip
           class="grow"
-          :disabled="!locked"
-          description="Kubernetes updates are disabled when the cluster is locked."
+          :disabled="!kubernetesUpdateDisabledReason"
+          :description="kubernetesUpdateDisabledReason"
         >
           <TButton
             variant="primary"
             icon="kubernetes"
             icon-position="left"
-            :disabled="!canUpdateKubernetes || !kubernetesUpgradeAvailable() || locked"
-            @click="openClusterUpdate(Update.Kubernetes, locked)"
+            :disabled="
+              !canUpdateKubernetes ||
+              !kubernetesUpgradeAvailable() ||
+              !!kubernetesUpdateDisabledReason
+            "
+            @click="openClusterUpdate(Update.Kubernetes)"
           >
             Update Kubernetes
           </TButton>
@@ -463,15 +521,15 @@ const exportClusterTemplateModalOpen = ref(false)
 
         <Tooltip
           class="grow"
-          :disabled="!locked"
-          description="Talos updates are disabled when the cluster is locked."
+          :disabled="!talosUpdateDisabledReason"
+          :description="talosUpdateDisabledReason"
         >
           <TButton
             variant="primary"
             icon="sidero-monochrome"
             icon-position="left"
-            :disabled="!canUpdateTalos || !talosUpdateAvailable() || locked"
-            @click="openClusterUpdate(Update.Talos, locked)"
+            :disabled="!canUpdateTalos || !talosUpdateAvailable() || !!talosUpdateDisabledReason"
+            @click="openClusterUpdate(Update.Talos)"
           >
             Update Talos
           </TButton>
