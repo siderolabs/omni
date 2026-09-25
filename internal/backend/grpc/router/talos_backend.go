@@ -49,6 +49,12 @@ var operatorMethodSet = xslices.ToSet([]string{
 var adminMethodSet = xslices.ToSet([]string{
 	storage.StorageService_BlockDeviceWipe_FullMethodName,
 
+	machine.LVMService_LogicalVolumeRemove_FullMethodName,
+	machine.LVMService_PhysicalVolumeRemove_FullMethodName,
+	machine.LVMService_VolumeGroupRemove_FullMethodName,
+
+	machine.MDService_Destroy_FullMethodName,
+
 	machine.MachineService_EtcdDowngradeCancel_FullMethodName,
 	machine.MachineService_EtcdDowngradeEnable_FullMethodName,
 	machine.MachineService_EtcdDowngradeValidate_FullMethodName,
