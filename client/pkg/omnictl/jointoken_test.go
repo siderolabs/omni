@@ -54,3 +54,13 @@ func TestConstructJoinURL(t *testing.T) {
 		})
 	}
 }
+
+func TestJoinTokenAliasesResolveToTheirCommands(t *testing.T) {
+	for _, cmd := range joinTokenCmd.Commands() {
+		for _, alias := range cmd.Aliases {
+			resolved, _, err := RootCmd.Find([]string{"jointoken", alias})
+			assert.NoError(t, err)
+			assert.Same(t, cmd, resolved, "alias %q for %q resolves to %q", alias, cmd.Name(), resolved.Name())
+		}
+	}
+}

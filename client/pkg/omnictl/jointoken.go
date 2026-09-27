@@ -177,10 +177,9 @@ var (
 	}
 
 	joinTokenRenewCmd = &cobra.Command{
-		Use:     "renew <id>",
-		Aliases: []string{"r"},
-		Short:   "Renew a join token",
-		Args:    cobra.ExactArgs(1),
+		Use:   "renew <id>",
+		Short: "Renew a join token",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			id := args[0]
 
