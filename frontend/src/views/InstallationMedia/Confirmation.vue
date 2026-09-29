@@ -155,8 +155,8 @@ const installerImage = computed(() => {
   if (!factoryHost.value) return
 
   return supportsUnifiedInstaller.value
-    ? `${factoryHost.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
-    : `${factoryHost.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`
+    ? `${factoryHost.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:v${resolvedTalosVersion.value}`
+    : `${factoryHost.value}/installer/${schematicId.value}:v${resolvedTalosVersion.value}`
 })
 </script>
 
@@ -300,10 +300,7 @@ const installerImage = computed(() => {
         following installer image to the machine configuration:
       </p>
 
-      <CodeBlock
-        :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
-        :code="installerImage"
-      />
+      <CodeBlock :button-attrs="{ 'aria-label': 'Copy installer image' }" :code="installerImage" />
     </template>
 
     <template v-if="!isEnterpriseFactory">

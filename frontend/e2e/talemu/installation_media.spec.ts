@@ -176,6 +176,12 @@ test(
         ),
       ).toBeVisible()
 
+      await expect(
+        page.getByText(
+          `factory.talos.dev/metal-installer-secureboot/${schematicId}:v${talosVersion}`,
+        ),
+      ).toBeVisible()
+
       await expect(page.getByRole('button', { name: 'sha256' }).first()).toBeDisabled()
       await expect(page.getByRole('button', { name: 'sha512' }).first()).toBeDisabled()
 
