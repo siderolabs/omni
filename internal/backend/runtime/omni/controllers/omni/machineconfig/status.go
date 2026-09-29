@@ -184,7 +184,7 @@ func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
 func (ctrl *StatusController) reconcileRunning(
 	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
-) error {
+) (err error) {
 	rc, err := BuildReconciliationContext(ctx, r, machineConfig, machineConfigStatus)
 	if err != nil {
 		if xerrors.TagIs[qtransform.SkipReconcileTag](err) {
@@ -228,6 +228,13 @@ func (ctrl *StatusController) reconcileRunning(
 
 		return err
 	}
+
+	// requeue again since uncordon is still pending
+	defer func() {
+		if err == nil && rc.uncordonPending {
+			err = controller.NewRequeueInterval(lifecycle.RetryInterval)
+		}
+	}()
 
 	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
 	if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
@@ -459,11 +466,19 @@ func (ctrl *StatusController) reconcileUpgrade(
 	}
 
 	// Finalize before releasing the upgrade lock so the next machine can't start until this one is fully back.
-	if err := ctrl.finalizeReboot(ctx, r, rc); err != nil {
+	finalized, err := ctrl.finalizeReboot(ctx, logger, r, rc)
+	if err != nil {
 		return err
 	}
 
-	if err := ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
+	// Do not block applying config, as it might be what brings the Kubernetes API back.
+	if !finalized {
+		rc.uncordonPending = true
+
+		return nil
+	}
+
+	if err = ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
 		return fmt.Errorf("failed to release upgrade lock: %w", err)
 	}
 
@@ -472,9 +487,11 @@ func (ctrl *StatusController) reconcileUpgrade(
 
 // finalizeReboot uncordons the node, then clears the reboot marker. The marker is shared with the
 // maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
-func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
+//
+// It returns false when the node could not be uncordoned. The marker is kept then, so that a later reconcile retries it.
+func (ctrl *StatusController) finalizeReboot(ctx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
 	if rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId == "" {
-		return nil
+		return true, nil
 	}
 
 	// A machine still in maintenance was never a Kubernetes node, so there is nothing to uncordon.
@@ -483,13 +500,14 @@ func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.R
 		if ok {
 			nodeName, err := ctrl.getNodeName(ctx, r, rc.ID())
 			if err != nil {
-				return err
+				return false, err
 			}
 
 			if nodeName != "" {
 				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
-					// Keep PreRebootBootId so the next reconcile retries the uncordon.
-					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycle.RetryInterval)
+					logger.Warn("failed to uncordon the node after the reboot", zap.String("machine", rc.ID()), zap.Error(err))
+
+					return false, nil
 				}
 			}
 		}
@@ -497,7 +515,7 @@ func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.R
 
 	rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 
-	return nil
+	return true, nil
 }
 
 func (ctrl *StatusController) upgrade(ctx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {

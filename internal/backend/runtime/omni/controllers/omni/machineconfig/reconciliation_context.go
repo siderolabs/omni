@@ -58,6 +58,7 @@ type ReconciliationContext struct {
 
 	configUpdatesAllowed bool
 	locked               bool
+	uncordonPending      bool
 	// highPriorityPending is true when the desired high-priority config documents differ from the ones
 	// last applied to the machine, so they must be applied before any upgrade/install.
 	highPriorityPending bool

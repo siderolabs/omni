@@ -7,6 +7,8 @@ package machineconfig_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -2794,6 +2796,24 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 			}
 
 			// Because it fails, the upgrade lock is still held.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.True(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be held until the node is finalized")
+			})
+
+			// A config change is still applied, as it might be what brings the Kubernetes API back.
+			configData := []byte("machine:\n  network:\n    kubespan:\n      enabled: true")
+			configSHA := sha256.Sum256(configData)
+
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineConfig) error {
+				return res.TypedSpec().Value.SetUncompressedData(configData)
+			}))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal(hex.EncodeToString(configSHA[:]), res.TypedSpec().Value.ClusterMachineConfigSha256)
+				a.Equal(targetVersion, res.TypedSpec().Value.TalosVersion)
+				a.Equal("boot-before", res.TypedSpec().Value.PreRebootBootId, "the reboot marker must be kept until the node is uncordoned")
+			})
+
 			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
 				a.True(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be held until the node is finalized")
 			})
