@@ -16,13 +16,14 @@ import {
   DefaultNamespace,
   LabelControlPlaneRole,
   LabelWorkerRole,
-  TalosConfigNamespace,
-  TalosKubespanConfigID,
-  TalosKubeSpanConfigType,
+  TalosKubeSpanLinkName,
   TalosKubeSpanNamespace,
   TalosKubeSpanPeerStatusType,
+  TalosLinkStatusType,
+  TalosNetworkNamespace,
 } from '@/api/resources'
-import type { ConfigSpec, PeerStatusSpec } from '@/api/talos/kubespan.pb'
+import type { PeerStatusSpec } from '@/api/talos/kubespan.pb'
+import type { LinkStatusSpec } from '@/api/talos/network.pb'
 
 import KubeSpanStatus from './KubeSpanStatus.vue'
 
@@ -67,82 +68,98 @@ const meta: Meta<typeof KubeSpanStatus> = {
 export default meta
 type Story = StoryObj<typeof KubeSpanStatus>
 
-export const Default: Story = {
-  beforeEach({ msw }) {
-    msw.use(
-      createWatchStreamHandler<ConfigSpec>({
-        expectedOptions: {
-          namespace: TalosConfigNamespace,
-          type: TalosKubeSpanConfigType,
-          id: TalosKubespanConfigID,
+const handlers = [
+  createWatchStreamHandler<LinkStatusSpec>({
+    expectedOptions: {
+      namespace: TalosNetworkNamespace,
+      type: TalosLinkStatusType,
+      id: TalosKubeSpanLinkName,
+    },
+    initialResources: [
+      {
+        spec: {
+          type: 'wireguard',
+          operationalState: 'unknown',
         },
-        initialResources: [
-          {
-            spec: {
-              enabled: true,
-            },
-            metadata: {
-              namespace: TalosConfigNamespace,
-              type: TalosKubeSpanConfigType,
-              id: TalosKubespanConfigID,
-            },
-          },
-        ],
-      }).handler,
-      createWatchStreamHandler<ClusterMachineIdentitySpec>({
-        expectedOptions: {
-          namespace: DefaultNamespace,
-          type: ClusterMachineIdentityType,
+        metadata: {
+          namespace: TalosNetworkNamespace,
+          type: TalosLinkStatusType,
+          id: TalosKubeSpanLinkName,
         },
-        initialResources: machines.map(({ id, nodename }) => ({
+      },
+    ],
+  }).handler,
+  createWatchStreamHandler<ClusterMachineIdentitySpec>({
+    expectedOptions: {
+      namespace: DefaultNamespace,
+      type: ClusterMachineIdentityType,
+    },
+    initialResources: machines.map(({ id, nodename }) => ({
+      spec: {
+        nodename,
+      },
+      metadata: {
+        namespace: DefaultNamespace,
+        type: ClusterMachineStatusType,
+        id,
+        labels: faker.helpers.weightedArrayElement<Record<string, string>>([
+          { weight: 1, value: { [LabelControlPlaneRole]: '' } },
+          { weight: 4, value: { [LabelWorkerRole]: '' } },
+        ]),
+      },
+    })),
+  }).handler,
+  createWatchStreamHandler<PeerStatusSpec>({
+    expectedOptions: {
+      namespace: TalosKubeSpanNamespace,
+      type: TalosKubeSpanPeerStatusType,
+    },
+    initialResources: ({ contextNode }) => {
+      faker.seed((contextNode || '').split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
+
+      return machines
+        .filter((m) => m.id !== contextNode)
+        .map(({ nodename }) => ({
           spec: {
-            nodename,
+            label: nodename,
+            state: faker.helpers.weightedArrayElement([
+              { value: 'up', weight: 4 },
+              { value: 'down', weight: 1 },
+            ]),
+            endpoint: `${faker.internet.ipv4()}:${faker.internet.port()}`,
+            lastUsedEndpoint: `${faker.internet.ipv4()}:${faker.internet.port()}`,
+            receiveBytes: faker.number.int({ min: 0, max: 10_000_000_000 }),
+            transmitBytes: faker.number.int({ min: 0, max: 10_000_000_000 }),
+            lastHandshakeTime: faker.date.recent({ days: 1 }).toISOString(),
+            lastEndpointChange: faker.date.recent({ days: 7 }).toISOString(),
           },
           metadata: {
-            namespace: DefaultNamespace,
-            type: ClusterMachineStatusType,
-            id,
-            labels: faker.helpers.weightedArrayElement<Record<string, string>>([
-              { weight: 1, value: { [LabelControlPlaneRole]: '' } },
-              { weight: 4, value: { [LabelWorkerRole]: '' } },
-            ]),
+            namespace: TalosKubeSpanNamespace,
+            type: TalosKubeSpanPeerStatusType,
+            id: faker.string.uuid(),
           },
-        })),
-      }).handler,
-      createWatchStreamHandler<PeerStatusSpec>({
-        expectedOptions: {
-          namespace: TalosKubeSpanNamespace,
-          type: TalosKubeSpanPeerStatusType,
-        },
-        initialResources: ({ contextNode }) => {
-          faker.seed(
-            (contextNode || '').split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0),
-          )
+        }))
+    },
+  }).handler,
+]
 
-          return machines
-            .filter((m) => m.id !== contextNode)
-            .map(({ nodename }) => ({
-              spec: {
-                label: nodename,
-                state: faker.helpers.weightedArrayElement([
-                  { value: 'up', weight: 4 },
-                  { value: 'down', weight: 1 },
-                ]),
-                endpoint: `${faker.internet.ipv4()}:${faker.internet.port()}`,
-                lastUsedEndpoint: `${faker.internet.ipv4()}:${faker.internet.port()}`,
-                receiveBytes: faker.number.int({ min: 0, max: 10_000_000_000 }),
-                transmitBytes: faker.number.int({ min: 0, max: 10_000_000_000 }),
-                lastHandshakeTime: faker.date.recent({ days: 1 }).toISOString(),
-                lastEndpointChange: faker.date.recent({ days: 7 }).toISOString(),
-              },
-              metadata: {
-                namespace: TalosKubeSpanNamespace,
-                type: TalosKubeSpanPeerStatusType,
-                id: faker.string.uuid(),
-              },
-            }))
+export const Default: Story = {
+  beforeEach({ msw }) {
+    msw.use(...handlers)
+  },
+}
+
+export const NotEnabled: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<LinkStatusSpec>({
+        expectedOptions: {
+          namespace: TalosNetworkNamespace,
+          type: TalosLinkStatusType,
+          id: TalosKubeSpanLinkName,
         },
       }).handler,
+      ...handlers,
     )
   },
 }

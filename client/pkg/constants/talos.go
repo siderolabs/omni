@@ -51,8 +51,8 @@ const (
 	_ = hardware.SystemInformationType
 	// tsgen:TalosKubeSpanPeerStatusType
 	_ = kubespan.PeerStatusType
-	// tsgen:TalosKubeSpanConfigType
-	_ = kubespan.ConfigType
+	// tsgen:TalosLinkStatusType
+	_ = network.LinkStatusType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
@@ -67,8 +67,8 @@ const (
 	_ = runtime.MachineStatusID
 	// tsgen:TalosSystemInformationID
 	_ = hardware.SystemInformationID
-	// tsgen:TalosKubespanConfigID
-	_ = kubespan.ConfigID
+	// tsgen:TalosKubeSpanLinkName
+	_ = constants.KubeSpanLinkName
 
 	// Namespaces.
 	// tsgen:TalosConfigNamespace
