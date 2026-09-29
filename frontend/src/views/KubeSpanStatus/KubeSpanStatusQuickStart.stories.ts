@@ -182,15 +182,3 @@ export const ReadOnly: Story = {
     )
   },
 }
-
-export const LargeCluster: Story = {
-  beforeEach({ msw }) {
-    msw.use(
-      versionContractHandler({ kube_span_multidoc_config: true }),
-      permissionsHandler({ can_manage_config_patches: true }),
-      clusterHandler,
-      clusterConfigHandler,
-      clusterStatusHandler(64),
-    )
-  },
-}

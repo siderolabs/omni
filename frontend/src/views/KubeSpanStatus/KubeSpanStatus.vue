@@ -17,17 +17,20 @@ import {
   ClusterMachineIdentityType,
   DefaultNamespace,
   LabelCluster,
-  TalosConfigNamespace,
-  TalosKubespanConfigID,
-  TalosKubeSpanConfigType,
+  TalosKubeSpanLinkName,
   TalosKubeSpanNamespace,
   TalosKubeSpanPeerStatusType,
+  TalosLinkStatusType,
+  TalosNetworkNamespace,
 } from '@/api/resources'
-import type { ConfigSpec, PeerStatusSpec } from '@/api/talos/kubespan.pb'
+import type { PeerStatusSpec } from '@/api/talos/kubespan.pb'
+import type { LinkStatusSpec } from '@/api/talos/network.pb'
 import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
+import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import KubeSpanCanvas from '@/views/KubeSpanStatus/components/KubeSpanCanvas.vue'
@@ -42,12 +45,16 @@ const searchQuery = useRouteQuery('q', '')
 const canvasRef = useTemplateRef('canvasRef')
 const router = useRouter()
 
-const { data: kubeSpanConfig } = useResourceWatch<ConfigSpec>(() => ({
+const {
+  data: kubeSpanLink,
+  loading: kubeSpanLinkLoading,
+  err: kubeSpanLinkErr,
+} = useResourceWatch<LinkStatusSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
-    namespace: TalosConfigNamespace,
-    type: TalosKubeSpanConfigType,
-    id: TalosKubespanConfigID,
+    namespace: TalosNetworkNamespace,
+    type: TalosLinkStatusType,
+    id: TalosKubeSpanLinkName,
   },
   context: {
     cluster: clusterId,
@@ -113,7 +120,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
 </script>
 
 <template>
-  <PageContainer v-if="kubeSpanConfig?.spec.enabled" class="@container flex h-full flex-col gap-4">
+  <PageContainer v-if="kubeSpanLink" class="@container flex h-full flex-col gap-4">
     <div class="flex flex-wrap gap-6">
       <h1 class="shrink-0 text-xl font-medium text-naturals-n14">KubeSpan status</h1>
       <div class="flex flex-wrap gap-6">
@@ -239,5 +246,16 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
     </div>
   </PageContainer>
 
-  <KubeSpanStatusQuickStart v-else-if="kubeSpanConfig" :cluster-id="clusterId" />
+  <PageContainer
+    v-else-if="kubeSpanLinkLoading"
+    class="h-full place-content-center place-items-center"
+  >
+    <TSpinner class="size-6" />
+  </PageContainer>
+
+  <PageContainer v-else-if="kubeSpanLinkErr">
+    <TAlert type="error" title="Error">{{ kubeSpanLinkErr }}</TAlert>
+  </PageContainer>
+
+  <KubeSpanStatusQuickStart v-else :cluster-id="clusterId" />
 </template>
