@@ -87,15 +87,15 @@ func (handler *pendingMachineStatusHandler) reconcileRunning(
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
 	c, err := handler.getClient(ctx, r, pendingMachine)
 	if err != nil {
 		return err
 	}
 
 	defer c.Close() //nolint:errcheck
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
 
 	if err = handler.detectTalosInstallation(ctx, c, pendingMachineStatus); err != nil {
 		return err
@@ -285,10 +285,34 @@ func (handler *pendingMachineStatusHandler) getClient(
 	}
 
 	if clusterMachine != nil {
+		// helpers.GetTalosClient decides on the maintenance client using the machine status snapshot, which is stale when an install loses META.
+		// The machine then comes up in maintenance mode on the pending machine address, so ask the machine itself.
+		// This fix is for backwards compatibility. Losing META during install fixed with Talos 1.13.10+, 1.14.0+.
+		insecureClient, insecureErr := helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+		if insecureErr != nil {
+			return nil, insecureErr
+		}
+
+		if inMaintenance(ctx, insecureClient) {
+			return insecureClient, nil
+		}
+
+		insecureClient.Close() //nolint:errcheck
+
 		return helpers.GetTalosClient(ctx, r, address, clusterMachine)
 	}
 
 	return handler.handleClusterImport(ctx, r, address, machineUUID)
+}
+
+// inMaintenance returns true if the machine answers on the maintenance API in the maintenance stage.
+func inMaintenance(ctx context.Context, c *client.Client) bool {
+	machineStatus, err := safe.ReaderGetByID[*talosruntime.MachineStatus](ctx, c.COSI, talosruntime.MachineStatusID)
+	if err != nil {
+		return false
+	}
+
+	return machineStatus.TypedSpec().Stage == talosruntime.MachineStageMaintenance
 }
 
 // This method handles the case when the pending machine belongs to a cluster import process, therefore, needs a secure talos client.
