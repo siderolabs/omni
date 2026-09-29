@@ -1053,6 +1053,8 @@ spec:
         - testdata/
         - client/
         - frontend/node_modules/
+        - frontend/dist/
+        - internal/frontend/dist/
         - internal/pkg/kubernetes/resource/ # contains a file copied from kubectl
 
     - root: client
