@@ -95,7 +95,7 @@ defineProps<Props>()
       <div data-testid="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
     </div>
     <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-sky-400">
-      <TIcon icon="time" class="h-4" />
+      <TIcon icon="time" class="size-4 shrink-0" />
       {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
     </div>
   </div>

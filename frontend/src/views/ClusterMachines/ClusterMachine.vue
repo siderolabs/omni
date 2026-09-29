@@ -115,7 +115,7 @@ const updateLock = async () => {
         class="flex items-center gap-1 truncate text-sky-400"
         @click.stop
       >
-        <TIcon icon="time" class="h-4 w-4 min-w-max" />
+        <TIcon icon="time" class="size-4 min-w-max shrink-0" />
         <div class="flex-1 truncate">Pending Config Update</div>
       </RouterLink>
     </div>
@@ -125,14 +125,14 @@ const updateLock = async () => {
         v-if="machine.spec.last_config_error"
         :description="machine.spec.last_config_error.trim()"
       >
-        <TIcon icon="error" class="mx-1.5 h-4 w-4 text-red-400" />
+        <TIcon icon="error" class="mx-1.5 size-4 shrink-0 text-red-400" />
       </Tooltip>
 
       <Tooltip
         v-if="hasDiagnosticInfo"
         description="This node has diagnostic warnings. Click to see the details."
       >
-        <TIcon icon="warning" class="mx-1.5 h-4 w-4 text-yellow-400" />
+        <TIcon icon="warning" class="mx-1.5 size-4 shrink-0 text-yellow-400" />
       </Tooltip>
 
       <Tooltip
@@ -140,12 +140,14 @@ const updateLock = async () => {
         description="Lock machine config. Pause Kubernetes and Talos updates on the machine."
       >
         <IconButton
+          class="shrink-0"
           :icon="locked ? (lockedUpdate ? 'locked-toggle' : 'locked') : 'unlocked'"
           @click.stop="updateLock"
         />
       </Tooltip>
 
       <NodeContextMenu
+        class="shrink-0"
         :cluster-machine-status="machine"
         :cluster-name="clusterName"
         :remove-disabled="removeDisabled!"

@@ -99,7 +99,7 @@ const forceDestroy = async () => {
         class="size-4 shrink-0"
       />
       <TIcon v-else icon="cloud-connection" class="size-4 shrink-0" />
-      {{ requestStatus.metadata.id }}
+      <span class="truncate">{{ requestStatus.metadata.id }}</span>
     </div>
 
     <TStatus :title="stage" />
