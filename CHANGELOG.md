@@ -1,3 +1,33 @@
+## [Omni 1.12.3](https://github.com/siderolabs/omni/releases/tag/v1.12.3) (2026-09-29)
+
+Welcome to the v1.12.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`78d0cc7a1`](https://github.com/siderolabs/omni/commit/78d0cc7a1d2a3efc90c5356c0f6565e8567b1bdc) fix(frontend): make some style fixes on cluster list
+* [`9d7af1d54`](https://github.com/siderolabs/omni/commit/9d7af1d5436a228f76daf8f6ea6836db4396beb0) feat(frontend): add a resource browser to the UI
+* [`a9a16e0c9`](https://github.com/siderolabs/omni/commit/a9a16e0c99b9f4fac6a2088977445d5c74d91bc4) fix(frontend): check kubespanlink instead of kubespanconfig
+* [`aa217700e`](https://github.com/siderolabs/omni/commit/aa217700e6c97a1645fedc63a21d4f4bbbfd5b78) feat(frontend): add enterprise labels to maintenance modals
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.12.2](https://github.com/siderolabs/omni/releases/tag/v1.12.2)
+
 ## [Omni 1.12.2](https://github.com/siderolabs/omni/releases/tag/v1.12.2) (2026-09-23)
 
 Welcome to the v1.12.2 release of Omni!
