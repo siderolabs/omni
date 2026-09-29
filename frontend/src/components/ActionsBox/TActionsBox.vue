@@ -15,6 +15,10 @@ import { ref } from 'vue'
 
 import IconButton from '@/components/Button/IconButton.vue'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 const toggleState = ref(false)
 </script>
 

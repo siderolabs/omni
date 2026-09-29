@@ -193,12 +193,15 @@ function isMachineSetScalable(
         </div>
       </AccordionTrigger>
 
-      <div class="flex items-center">
+      <span class="inline-flex items-center">
         {{ machineSet?.spec.machines?.healthy || 0 }}/
-        <div :class="{ 'mt-0.5 text-lg': requestedMachines === '∞' }">
+        <span
+          :class="{ 'relative top-[-0.1em]': requestedMachines === '∞' }"
+          aria-label="unlimited"
+        >
           {{ requestedMachines }}
-        </div>
-      </div>
+        </span>
+      </span>
 
       <MachineSetPhase
         v-if="machineSet"

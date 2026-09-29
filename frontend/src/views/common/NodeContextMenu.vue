@@ -42,7 +42,7 @@ const copyMachineID = () => {
 </script>
 
 <template>
-  <TActionsBox>
+  <TActionsBox v-bind="$attrs">
     <TActionsBoxItem
       icon="log"
       @select="
