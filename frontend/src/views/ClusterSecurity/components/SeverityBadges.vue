@@ -26,10 +26,10 @@ defineEmits<{
 }>()
 
 const statusDotClass: Record<StatusTone, string> = {
-  success: 'bg-status-success-text',
-  warning: 'bg-status-warning-text',
-  danger: 'bg-status-danger-text',
-  info: 'bg-status-info-text',
+  success: 'bg-status-success-default',
+  warning: 'bg-status-warning-default',
+  danger: 'bg-status-danger-default',
+  info: 'bg-status-info-default',
 }
 </script>
 

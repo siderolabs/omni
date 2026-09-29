@@ -193,7 +193,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <StatusGlyph
             :glyph="connectionLabel.tone === 'danger' ? 'danger' : 'success'"
             class="shrink-0"
-            :class="connectionLabel.tone !== 'danger' && 'text-status-success-text'"
+            :class="connectionLabel.tone !== 'danger' && 'text-status-success-default'"
             aria-hidden="true"
           />
 
@@ -203,7 +203,7 @@ const canUseLifecycleUpgrade = computed(() => {
         <div class="grow" />
 
         <Tooltip v-if="machine.spec.tearing_down" description="The machine is being destroyed">
-          <TIcon icon="delete" class="h-4 w-4 text-status-danger-text" />
+          <TIcon icon="delete" class="h-4 w-4 text-status-danger-default" />
         </Tooltip>
 
         <div v-else class="flex items-center gap-1">

@@ -21,7 +21,7 @@ defineProps<{
         class="flex cursor-pointer items-center gap-1 rounded-md bg-surface-hover px-3 py-1 text-xs font-bold text-content-default"
       >
         {{ condition.name }}
-        <TIcon icon="warning" class="-mr-1 h-3 w-3 text-status-warning-text" />
+        <TIcon icon="warning" class="-mr-1 h-3 w-3 text-status-warning-default" />
       </div>
     </Tooltip>
   </div>

@@ -5,10 +5,12 @@
     "playwright.config.*",
     "eslint.config.*",
     "prettier.config.*",
-    "e2e/**/*"
+    "e2e/**/*",
+    "vite-theme-init.ts"
   ],
   "compilerOptions": {
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
 
     "module": "ESNext",

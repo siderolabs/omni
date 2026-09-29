@@ -69,7 +69,7 @@ const errors = computed(() => {
             regular-link
           />
           <div v-if="errors.length" class="flex items-center gap-4 pr-5 pl-6 text-xs">
-            <TIcon icon="warning" class="ml-0.5 text-status-warning-text" />
+            <TIcon icon="warning" class="ml-0.5 text-status-warning-default" />
             <div class="flex-1 truncate text-status-warning-text">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors

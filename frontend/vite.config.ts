@@ -13,6 +13,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import { configDefaults } from 'vitest/config'
 import VueRouter from 'vue-router/vite'
 
+import { themeInit } from './vite-theme-init.ts'
+
 dotenv.config({ quiet: true })
 
 // https://vitejs.dev/config/
@@ -20,7 +22,7 @@ export default defineConfig(({ command }) => {
   const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST
 
   const config: UserConfig = {
-    plugins: [VueRouter(), Vue(), tailwindcss()],
+    plugins: [VueRouter(), Vue(), tailwindcss(), themeInit()],
     build: {
       rolldownOptions: {
         output: {

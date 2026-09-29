@@ -181,20 +181,26 @@ const extensionsLevel = computed(() => {
                     class="flex items-center gap-2 rounded bg-surface-raised px-2 py-1 text-xs text-content-default"
                   >
                     <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
-                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-status-warning-text" />
+                      <TIcon
+                        icon="loading"
+                        class="h-4 w-4 animate-spin text-status-warning-default"
+                      />
                       <span>Installing</span>
                     </template>
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing"
                     >
-                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-status-danger-text" />
+                      <TIcon
+                        icon="delete"
+                        class="h-4 w-4 animate-pulse text-status-danger-default"
+                      />
                       <span>Removing</span>
                     </template>
 
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed"
                     >
-                      <TIcon icon="check-in-circle" class="h-4 w-4 text-status-success-text" />
+                      <TIcon icon="check-in-circle" class="h-4 w-4 text-status-success-default" />
                       <span>Installed</span>
                     </template>
                   </div>

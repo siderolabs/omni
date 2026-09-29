@@ -341,7 +341,7 @@ const machineLockedForSecretRotation = computed(() => {
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-default" />
           <div class="flex-1">
             {{ kubernetesUpgradeStatus.spec.step }}
             <template v-if="kubernetesUpgradeStatus.spec.status && !clusterLocked">
@@ -401,7 +401,7 @@ const machineLockedForSecretRotation = computed(() => {
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-default" />
           <div class="min-w-0 flex-1 wrap-break-word">
             {{ talosUpgradeStatus.spec.status }}
             <template v-if="talosUpgradeStatus.spec.status && !clusterLocked">
@@ -439,7 +439,7 @@ const machineLockedForSecretRotation = computed(() => {
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-default" />
           <div class="flex-1">
             {{ secretRotationStatus.spec.status }}
             <template v-if="clusterLocked">- waiting for cluster to be unlocked</template>

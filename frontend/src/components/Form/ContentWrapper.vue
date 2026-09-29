@@ -25,7 +25,7 @@ defineProps<{
         <TIcon icon="question" class="h-4 w-4" />
       </Tooltip>
       <Tooltip v-if="control.errors" :description="control.errors">
-        <TIcon icon="warning" class="h-4 w-4 text-status-warning-text" />
+        <TIcon icon="warning" class="h-4 w-4 text-status-warning-default" />
       </Tooltip>
     </div>
     <slot />
@@ -35,7 +35,7 @@ defineProps<{
       <slot />
     </div>
     <Tooltip v-if="control.errors" :description="control.errors">
-      <TIcon icon="warning" class="-my-1.5 h-4 w-4 text-status-warning-text" />
+      <TIcon icon="warning" class="-my-1.5 h-4 w-4 text-status-warning-default" />
     </Tooltip>
   </div>
 </template>

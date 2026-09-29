@@ -34,15 +34,15 @@ const { data: healthChecks } = useResourceWatch<KubernetesHealthCheckStatusSpec>
 
 const State = KubernetesHealthCheckStatusSpecState
 
-const stateProps: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType; class: string }> =
+const ICON_STATES: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType; class: string }> =
   {
-    [State.PASSED]: { icon: 'check-in-circle', class: 'text-status-success-text' },
-    [State.FAILED]: { icon: 'error', class: 'text-status-danger-text' },
-    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-warning-text' },
+    [State.PASSED]: { icon: 'check-in-circle', class: 'text-status-success-default' },
+    [State.FAILED]: { icon: 'error', class: 'text-status-danger-default' },
+    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-warning-default' },
     [State.UNKNOWN]: { icon: 'time', class: 'text-content-muted' },
   }
 
-const stateFor = (spec: KubernetesHealthCheckStatusSpec) => stateProps[spec.state ?? State.UNKNOWN]
+const iconForStatus = ({ state = State.UNKNOWN }) => ICON_STATES[state]
 
 // the healthcheck whose output is shown in the modal. The ID is kept while the modal animates closed,
 // so its content does not flash as it disappears
@@ -79,8 +79,8 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
         class="flex min-w-0 items-center gap-2"
       >
         <TIcon
-          :icon="stateFor(check.spec).icon"
-          :class="stateFor(check.spec).class"
+          :icon="iconForStatus(check.spec).icon"
+          :class="iconForStatus(check.spec).class"
           class="h-6 w-6 shrink-0"
         />
         <span class="min-w-0 flex-1 truncate text-content-default">{{ check.metadata.id }}</span>

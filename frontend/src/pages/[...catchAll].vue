@@ -13,21 +13,9 @@ useTitle('Page Not Found')
 </script>
 
 <template>
-  <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col items-center">
-      <div class="code">404</div>
-      <div class="text-center text-xl">Page not found</div>
-      <TButton class="mt-4" @click="() => $router.push({ path: '/' })">Go Back</TButton>
-    </div>
+  <PageContainer class="flex h-full flex-col items-center justify-center">
+    <div class="text-[18.75rem] leading-none font-bold text-content-muted">404</div>
+    <div class="text-center text-xl">Page not found</div>
+    <TButton is="router-link" class="mt-4" :to="{ name: 'Home' }">Go Back</TButton>
   </PageContainer>
 </template>
-
-<style scoped>
-@reference "../index.css";
-
-.code {
-  @apply font-bold text-surface-card;
-  font-size: 300px;
-  line-height: 300px;
-}
-</style>

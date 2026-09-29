@@ -25,7 +25,7 @@ defineProps<Props>()
         target="_blank"
         rel="noopener noreferrer"
       >
-        <TIcon icon="warning" class="mr-2 h-4 w-4 text-status-warning-text" />
+        <TIcon icon="warning" class="mr-2 h-4 w-4 text-status-warning-default" />
         <div class="text-status-warning-text">{{ diagnostic.message }}</div>
       </a>
       <template #details>

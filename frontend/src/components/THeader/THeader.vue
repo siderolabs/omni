@@ -16,6 +16,7 @@ import TButton from '@/components/Button/TButton.vue'
 import HelpModal from '@/components/HelpModal/HelpModal.vue'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import OngoingTasks from '@/components/OngoingTasks/OngoingTasks.vue'
+import ThemeMenu from '@/components/THeader/ThemeMenu.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 interface Props {
@@ -109,6 +110,8 @@ function dismissNotification(id: string) {
         </TButton>
 
         <OngoingTasks />
+
+        <ThemeMenu />
       </div>
     </header>
 

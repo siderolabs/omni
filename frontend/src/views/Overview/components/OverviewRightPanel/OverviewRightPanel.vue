@@ -312,7 +312,7 @@ const exportClusterTemplateModalOpen = ref(false)
           <Tooltip
             description="Some machines have diagnostic warnings. See the machines section for details."
           >
-            <TIcon class="h-4 w-4 text-status-warning-text" icon="warning" />
+            <TIcon class="h-4 w-4 text-status-warning-default" icon="warning" />
           </Tooltip>
         </div>
       </OverviewRightPanelItem>
@@ -397,7 +397,7 @@ const exportClusterTemplateModalOpen = ref(false)
               <template #description>
                 <div class="max-w-lg wrap-break-word">{{ lastBackupError }}</div>
               </template>
-              <TIcon class="h-4 w-4 text-status-warning-text" icon="warning" />
+              <TIcon class="h-4 w-4 text-status-warning-default" icon="warning" />
             </Tooltip>
             {{ backupTime }}
             <Tooltip v-if="etcdBackups?.enabled" description="Trigger Etcd Backup">

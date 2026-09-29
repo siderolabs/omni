@@ -44,16 +44,17 @@ const icons: Record<AlertType, IconType> = {
     }"
   >
     <div class="flex items-center">
-      <div
-        class="flex items-center justify-center"
-        :class="{
-          'text-status-danger-text': type === 'error',
-          'text-status-info-text': type === 'info',
-          'text-status-success-text': type === 'success',
-          'text-status-warning-text': type === 'warn',
-        }"
-      >
-        <TIcon :icon="icons[type]" class="size-5" />
+      <div class="flex items-center justify-center">
+        <TIcon
+          :icon="icons[type]"
+          class="size-5"
+          :class="{
+            'text-status-danger-default': type === 'error',
+            'text-status-info-default': type === 'info',
+            'text-status-success-default': type === 'success',
+            'text-status-warning-default': type === 'warn',
+          }"
+        />
       </div>
       <div class="ml-3 flex flex-col gap-2">
         <h3
