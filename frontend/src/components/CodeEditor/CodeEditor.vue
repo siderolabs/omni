@@ -10,6 +10,7 @@ import { configureMonacoYaml, type JSONSchema, type SchemasSettings } from 'mona
 
 import { createOmniMonacoTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
 import { getDocsLink } from '@/methods'
+import { useTheme } from '@/methods/theme'
 import configSchemas from '@/schemas'
 
 // Monaco's internal workers (tokenization, folding, etc.) go through this path.
@@ -119,7 +120,20 @@ function setModelSchema(modelId: string, schema: string | null) {
 // Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
 const styles = getComputedStyle(document.documentElement)
 
-monaco.editor.defineTheme(OMNI_CODE_THEME, createOmniMonacoTheme())
+const { theme } = useTheme()
+
+monaco.editor.defineTheme(OMNI_CODE_THEME, createOmniMonacoTheme(theme.value))
+
+// Monaco themes are global, so one watcher re-themes every open editor. Post
+// flush reads the palette after the page has switched.
+watch(
+  theme,
+  (value) => {
+    monaco.editor.defineTheme(OMNI_CODE_THEME, createOmniMonacoTheme(value))
+    monaco.editor.setTheme(OMNI_CODE_THEME)
+  },
+  { flush: 'post' },
+)
 </script>
 
 <script setup lang="ts">

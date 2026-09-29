@@ -9,6 +9,7 @@ import pluralize from 'pluralize'
 import { computed } from 'vue'
 
 import TButton from '@/components/Button/TButton.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 
 const { controlPlanes, workers } = defineProps<{
   action: string
@@ -46,7 +47,14 @@ const workersCount = computed(() => {
         selected
       </p>
 
-      <div v-if="warning" class="text-xs text-status-warning-text">{{ warning }}</div>
+      <div v-if="warning" class="flex items-start gap-1 text-xs text-content-default">
+        <StatusGlyph
+          glyph="warning"
+          class="mt-0.5 size-3 shrink-0 text-status-warning-default"
+          aria-hidden="true"
+        />
+        {{ warning }}
+      </div>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">

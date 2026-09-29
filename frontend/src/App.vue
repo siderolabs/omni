@@ -5,8 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useLocalStorage, useMediaQuery } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppToast from '@/components/AppToast/AppToast.vue'
@@ -15,6 +14,7 @@ import THeader from '@/components/THeader/THeader.vue'
 import { suspended } from '@/methods'
 import { useRegisterAPIInterceptor } from '@/methods/interceptor'
 import { useWatchKeyExpiry } from '@/methods/key'
+import { applyTheme, useTheme } from '@/methods/theme'
 
 useRegisterAPIInterceptor()
 useWatchKeyExpiry()
@@ -24,20 +24,13 @@ const router = useRouter()
 
 router.afterEach(() => (isSidebarOpen.value = false))
 
-const themesFeatureEnabled = useLocalStorage('_themes_enabled', false)
-const themePreference = useLocalStorage<'dark' | 'light' | 'system'>('theme', 'system')
-const isPreferredDark = useMediaQuery('(prefers-color-scheme: dark)')
+const { theme } = useTheme()
 
-const darkThemeEnabled = computed(() => {
-  if (!themesFeatureEnabled.value) return true
-  if (themePreference.value !== 'system') return themePreference.value
-
-  return isPreferredDark.value ? 'dark' : 'light'
-})
+watchEffect(() => applyTheme(theme.value))
 </script>
 
 <template>
-  <div class="flex h-dvh flex-col" :class="{ dark: darkThemeEnabled }">
+  <div class="flex h-dvh flex-col">
     <AppToast />
 
     <THeader

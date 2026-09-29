@@ -38,11 +38,14 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useTheme } from '@/methods/theme'
 
 const { diffs, withSearch } = defineProps<{
   diffs: DiffEntry[]
   withSearch?: boolean
 }>()
+
+const { theme } = useTheme()
 
 const headerHandlers = new WeakMap<Element, EventListener>()
 
@@ -191,7 +194,7 @@ function toggleCollapsed(id: string) {
 function viewerOptions(): CodeViewOptions<undefined, undefined> {
   return {
     theme: OMNI_CODE_THEME,
-    themeType: 'dark',
+    themeType: theme.value,
     overflow: wordWrap.value ? 'wrap' : 'scroll',
     diffStyle: diffStyle.value,
     stickyHeaders: true,
@@ -353,6 +356,7 @@ function prevMatch() {
   --diffs-bg-deletion-number-override: var(--color-highlight-removed-emphasis);
   --diffs-bg-deletion-emphasis-override: var(--color-highlight-removed-emphasis);
   --diffs-bg-separator-override: var(--color-surface-chrome);
+  --diffs-fg-number-override: var(--color-content-muted);
 
   --diffs-selection-color-override: var(--color-highlight-match-border);
   --diffs-bg-selection-override: var(--color-highlight-match);
