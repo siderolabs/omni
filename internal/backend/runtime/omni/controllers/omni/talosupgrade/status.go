@@ -459,6 +459,12 @@ func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Con
 			continue
 		}
 
+		// the schematic configuration is computed for the cluster only once the schematic controller sees the machine allocated,
+		// before that it carries the id of whatever the machine runs, which must not become the install image
+		if clusterName, _ := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster); clusterName != cluster.Metadata().ID() {
+			continue
+		}
+
 		visited[schematicConfiguration.Metadata().ID()] = struct{}{}
 
 		if schematicConfiguration.TypedSpec().Value.TalosVersion != cluster.TypedSpec().Value.TalosVersion {

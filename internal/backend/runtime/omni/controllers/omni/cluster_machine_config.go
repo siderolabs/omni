@@ -36,6 +36,7 @@ import (
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -79,6 +80,9 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineConfigGenOptions](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineTalosVersion](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineInstallDiskStatus](
@@ -143,6 +147,36 @@ func getResolvedInstallDisk(ctx context.Context, r controller.Reader, machineID 
 	}
 
 	return disk, nil
+}
+
+// checkInstallImageComputedForCluster skips the reconcile until the install image of the machine is the one computed for its cluster.
+//
+// MachineConfigGenOptions keeps the install image of the machine while it has no ClusterMachineTalosVersion,
+// e.g. the one from the cluster it was allocated to before, and the ClusterMachineTalosVersion is only published
+// once the schematic is computed for the cluster. Generating the config from any other install image
+// gets it applied as is, if the machine happens to run that image, leaving only an upgrade to fix it later.
+func checkInstallImageComputedForCluster(ctx context.Context, r controller.Reader, machineID resource.ID, clusterName string,
+	installImage *specs.MachineConfigGenOptionsSpec_InstallImage,
+) error {
+	clusterMachineTalosVersion, err := safe.ReaderGetByID[*omni.ClusterMachineTalosVersion](ctx, r, machineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the install image of %q is not computed for the cluster yet", machineID)
+		}
+
+		return err
+	}
+
+	if clusterLabel, _ := clusterMachineTalosVersion.Metadata().Labels().Get(omni.LabelCluster); clusterLabel != clusterName {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the install image of %q is not computed for the cluster %q yet", machineID, clusterName)
+	}
+
+	if clusterMachineTalosVersion.TypedSpec().Value.SchematicId != installImage.SchematicId ||
+		clusterMachineTalosVersion.TypedSpec().Value.TalosVersion != installImage.TalosVersion {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("the install image of %q is not in sync with the cluster machine Talos version yet", machineID)
+	}
+
+	return nil
 }
 
 //nolint:gocognit,cyclop,gocyclo,maintidx
@@ -312,6 +346,10 @@ func reconcileClusterMachineConfig(
 		logger.Error("machine schematic is not set, skip reconcile")
 
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("machine schematic is not set detected"))
+	}
+
+	if err = checkInstallImageComputedForCluster(ctx, r, clusterMachine.Metadata().ID(), clusterName, installImage); err != nil {
+		return err
 	}
 
 	if installImage.SecurityState == nil {
