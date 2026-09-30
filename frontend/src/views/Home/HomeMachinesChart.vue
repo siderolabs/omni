@@ -28,11 +28,11 @@ const { data } = useResourceWatch<MachineStatusMetricsSpec>({
 })
 
 const colors = {
-  connected: 'var(--color-accent-default)',
-  notConnected: 'var(--color-status-danger-default)',
-  inCluster: 'var(--color-status-success-default)',
-  freeMachine: 'var(--color-status-info-default)',
-  pending: 'var(--color-status-warning-default)',
+  connected: 'var(--color-status-success-chart)',
+  notConnected: 'var(--color-status-danger-chart)',
+  inCluster: 'var(--color-series-1)',
+  freeMachine: 'var(--color-series-2)',
+  pending: 'var(--color-series-3)',
 }
 
 const counts = computed(() => {

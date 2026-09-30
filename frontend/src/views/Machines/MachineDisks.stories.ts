@@ -434,6 +434,78 @@ export const WithLuksEncryption: Story = {
   },
 }
 
+const GiB = 1024 ** 3
+
+const manyPartitions: [label: string, size: number][] = [
+  ['EFI', 0.1 * GiB],
+  ['BOOT', 1 * GiB],
+  ['META', 0.001 * GiB],
+  ['STATE', 0.1 * GiB],
+  ['EPHEMERAL', 20 * GiB],
+  ['u-data', 15 * GiB],
+  ['u-logs', 8 * GiB],
+  // Past the last series colour, these share it.
+  ['u-cache', 4 * GiB],
+  ['u-scratch', 2 * GiB],
+  ['u-backups', 6 * GiB],
+]
+
+export const WithManyPartitions: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: {
+          namespace: TalosRuntimeNamespace,
+          type: TalosDiskType,
+        },
+        initialResources: [
+          {
+            metadata: {
+              id: 'nvme0n1',
+              namespace: TalosRuntimeNamespace,
+              type: TalosDiskType,
+            },
+            spec: {
+              dev_path: '/dev/nvme0n1',
+              size: 64 * GiB,
+              transport: 'nvme',
+            },
+          },
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: {
+          namespace: TalosRuntimeNamespace,
+          type: TalosDiscoveredVolumeType,
+        },
+        initialResources: manyPartitions.map(([label, size], i) => ({
+          metadata: {
+            id: `nvme0n1p${i + 1}`,
+            namespace: TalosRuntimeNamespace,
+            type: TalosDiscoveredVolumeType,
+          },
+          spec: {
+            dev_path: `/dev/nvme0n1p${i + 1}`,
+            name: label === 'EFI' ? 'vfat' : 'xfs',
+            parent: 'nvme0n1',
+            partition_index: i + 1,
+            partition_label: label,
+            size: Math.round(size),
+            type: 'partition',
+          },
+        })),
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: {
+          namespace: TalosRuntimeNamespace,
+          type: TalosVolumeStatusType,
+        },
+        initialResources: [],
+      }).handler,
+    )
+  },
+}
+
 export const NoData: Story = {
   beforeEach({ msw }) {
     msw.use(createWatchStreamHandler().handler)

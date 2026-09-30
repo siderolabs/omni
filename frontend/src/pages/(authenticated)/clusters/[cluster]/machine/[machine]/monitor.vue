@@ -150,12 +150,12 @@ watchEffect((onCleanup) => {
 })
 
 const cpuSeries: ChartSeries[] = [
-  { key: 'system', label: 'System', color: 'var(--color-status-warning-default)' },
-  { key: 'user', label: 'User', color: 'var(--color-accent-default)' },
+  { key: 'system', label: 'System', color: 'var(--color-series-1)' },
+  { key: 'user', label: 'User', color: 'var(--color-series-2)' },
 ]
 
 const memorySeries: ChartSeries[] = [
-  { key: 'used', label: 'Used', color: 'var(--color-accent-default)' },
+  { key: 'used', label: 'Used', color: 'var(--color-series-1)' },
   { key: 'cached', label: 'Cached', color: 'var(--color-content-secondary)', width: 0.5, dash: 2 },
   {
     key: 'buffers',
@@ -167,9 +167,9 @@ const memorySeries: ChartSeries[] = [
 ]
 
 const processSeries: ChartSeries[] = [
-  { key: 'created', label: 'Created', color: 'var(--color-status-info-default)' },
-  { key: 'running', label: 'Running', color: 'var(--color-status-success-default)' },
-  { key: 'blocked', label: 'Blocked', color: 'var(--color-status-warning-default)' },
+  { key: 'created', label: 'Created', color: 'var(--color-series-1)' },
+  { key: 'running', label: 'Running', color: 'var(--color-series-2)' },
+  { key: 'blocked', label: 'Blocked', color: 'var(--color-series-3)' },
 ]
 
 const handleCPU = ({ spec, previous }: ChartSample<CPUSpec>) => {

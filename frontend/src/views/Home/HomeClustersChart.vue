@@ -37,23 +37,21 @@ const items = computed(() => {
     {
       label: 'Healthy',
       value: Math.max(runningCount - notReadyCount, 0),
-      color: 'var(--color-accent-default)',
+      color: 'var(--color-status-success-chart)',
     },
-    { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-status-danger-default)' },
+    { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-status-danger-chart)' },
     {
-      label: 'Scaling Up',
-      value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0,
-      color: 'var(--color-status-success-default)',
-    },
-    {
-      label: 'Scaling Down',
-      value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0,
-      color: 'var(--color-status-info-default)',
+      // Up and down share a colour in the status pill, so they share a segment here.
+      label: 'Scaling',
+      value:
+        (spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0) +
+        (spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0),
+      color: 'var(--color-status-warning-chart)',
     },
     {
       label: 'Destroying',
       value: spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0,
-      color: 'var(--color-status-warning-default)',
+      color: 'var(--color-status-info-chart)',
     },
   ]
 })

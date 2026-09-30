@@ -32,18 +32,21 @@ const CENTER_Y = VIEWBOX_HEIGHT / 2
 const OUTER_RADIUS = 65
 const RING_WIDTH = 8
 const RING_GAP = 2
-// Narrower than the bar, so the bar covers it wherever it is filled.
-const TRACK_WIDTH = RING_WIDTH * 0.97
+// The track's outline is narrower than the bar, so the bar covers it wherever
+// it is filled. The track sits inside the outline, a hairline in from each edge.
+const TRACK_OUTLINE_WIDTH = RING_WIDTH * 0.97
+const TRACK_WIDTH = TRACK_OUTLINE_WIDTH - 2
 
 const colors = [
-  'var(--color-accent-default)',
-  'var(--color-status-danger-default)',
-  'var(--color-status-success-default)',
-  'var(--color-status-info-default)',
-  'var(--color-status-warning-default)',
+  'var(--color-series-1)',
+  'var(--color-series-2)',
+  'var(--color-series-3)',
+  'var(--color-series-4)',
+  'var(--color-series-5)',
 ]
 
-const trackColor = 'var(--color-content-muted)'
+const trackColor = 'var(--color-surface-inert)'
+const trackOutlineColor = 'var(--color-border-control)'
 
 const total = computed(() => propsTotal ?? items.reduce((prev, curr) => prev + curr.value, 0))
 
@@ -69,11 +72,13 @@ const legendItems = computed(() => [
     label: 'Total',
     value: legendFormatter(total.value),
     color: trackColor,
+    outlined: true,
   },
   ...items.map((item, i) => ({
     label: item.label,
     value: legendFormatter(item.value),
     color: colors[i],
+    outlined: false,
   })),
 ])
 
@@ -97,15 +102,24 @@ const labelId = useId()
       >
         <!-- Start arcs at 12 o'clock, running clockwise. -->
         <g :transform="`rotate(-90 ${CENTER_X} ${CENTER_Y})`">
-          <circle
-            v-if="rings.length"
-            :cx="CENTER_X"
-            :cy="CENTER_Y"
-            :r="rings[0].radius"
-            fill="none"
-            :stroke-width="TRACK_WIDTH"
-            :style="{ stroke: trackColor }"
-          />
+          <template v-for="ring in rings" :key="`track-${ring.label}`">
+            <circle
+              :cx="CENTER_X"
+              :cy="CENTER_Y"
+              :r="ring.radius"
+              fill="none"
+              :stroke-width="TRACK_OUTLINE_WIDTH"
+              :style="{ stroke: trackOutlineColor }"
+            />
+            <circle
+              :cx="CENTER_X"
+              :cy="CENTER_Y"
+              :r="ring.radius"
+              fill="none"
+              :stroke-width="TRACK_WIDTH"
+              :style="{ stroke: trackColor }"
+            />
+          </template>
 
           <circle
             v-for="ring in rings"
@@ -131,6 +145,7 @@ const labelId = useId()
           <span
             aria-hidden="true"
             class="size-2 rounded-xs"
+            :class="{ 'ring-1 ring-border-control ring-inset': item.outlined }"
             :style="{ backgroundColor: item.color }"
           />
           <dt :id="`${labelId}-dt-${index}`" class="text-content-secondary">{{ item.label }}</dt>

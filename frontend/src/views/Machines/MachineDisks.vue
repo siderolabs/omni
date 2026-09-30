@@ -110,7 +110,12 @@ const organizedDisks = computed(() =>
     }))
     // Hide empty CD-ROMs. Talos always creates a DiscoveredVolume for a CDROM
     // drive but leaves `name` (filesystem type) as "" when no media is present.
-    .filter((d) => !d.disk.spec.cdrom || d.partitions.some((p) => p.volume.spec.name)),
+    // The kernel does not partition CD-ROMs, so the name is on the whole-disk volume.
+    .filter(
+      (d) =>
+        !d.disk.spec.cdrom ||
+        volumes.value.some((v) => v.metadata.id === d.disk.metadata.id && v.spec.name),
+    ),
 )
 </script>
 
