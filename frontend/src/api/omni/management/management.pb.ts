@@ -127,6 +127,11 @@ export type DestroyServiceAccountRequest = {
   name?: string
 }
 
+export type RevokeServiceAccountKeyRequest = {
+  name?: string
+  public_key_id?: string
+}
+
 export type ListServiceAccountsResponseServiceAccountPgpPublicKey = {
   id?: string
   armored?: string
@@ -420,6 +425,9 @@ export class ManagementService {
   }
   static DestroyServiceAccount(req: DestroyServiceAccountRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
     return fm.fetchReq<DestroyServiceAccountRequest, GoogleProtobufEmpty.Empty>("POST", `/management.ManagementService/DestroyServiceAccount`, req, ...options)
+  }
+  static RevokeServiceAccountKey(req: RevokeServiceAccountKeyRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
+    return fm.fetchReq<RevokeServiceAccountKeyRequest, GoogleProtobufEmpty.Empty>("POST", `/management.ManagementService/RevokeServiceAccountKey`, req, ...options)
   }
   static KubernetesUpgradePreChecks(req: KubernetesUpgradePreChecksRequest, ...options: fm.fetchOption[]): Promise<KubernetesUpgradePreChecksResponse> {
     return fm.fetchReq<KubernetesUpgradePreChecksRequest, KubernetesUpgradePreChecksResponse>("POST", `/management.ManagementService/KubernetesUpgradePreChecks`, req, ...options)

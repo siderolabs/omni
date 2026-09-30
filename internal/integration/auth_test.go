@@ -287,7 +287,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		defer saCli.Close() //nolint:errcheck
 
 		// create service account with the generated key
-		_, err = cli.Management().CreateServiceAccount(testCtx, name, armoredPublicKey, string(role.None), true)
+		originalKeyID, err := cli.Management().CreateServiceAccount(testCtx, name, armoredPublicKey, string(role.None), true)
 		assert.NoError(t, err)
 
 		// make an API call using the registered service account
@@ -339,6 +339,41 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		}
 
 		assert.Equal(t, string(role.Admin), foundSA.Role)
+
+		// revoke the original key, leaving only the renewed one
+		err = cli.Management().RevokeServiceAccountKey(testCtx, name, originalKeyID)
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(testCtx, t, cli.Omni().State(), []string{
+			name + access.ServiceAccountNameSuffix,
+		}, func(res *authres.ServiceAccountStatus, assert *assert.Assertions) {
+			assert.Len(res.TypedSpec().Value.PublicKeys, 1)
+		})
+
+		// the original key must not be usable anymore
+		_, err = saCli.Omni().State().List(testCtx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
+		assert.Error(t, err)
+
+		// the renewed key must still be usable
+		_, err = renewedSACli.Omni().State().List(testCtx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined))
+		assert.NoError(t, err)
+
+		// revoking an unknown key must fail
+		err = cli.Management().RevokeServiceAccountKey(testCtx, name, originalKeyID)
+		assert.Equal(t, codes.NotFound, status.Code(err))
+
+		// revoking the last key must fail
+		saList, err = cli.Management().ListServiceAccounts(testCtx)
+		require.NoError(t, err)
+
+		filtered = xslices.Filter(saList, func(sa *management.ListServiceAccountsResponse_ServiceAccount) bool {
+			return sa.Name == name
+		})
+		require.Len(t, filtered, 1, "service account not found")
+		require.Len(t, filtered[0].PgpPublicKeys, 1)
+
+		err = cli.Management().RevokeServiceAccountKey(testCtx, name, filtered[0].PgpPublicKeys[0].Id)
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 		// try to create a service account with the same name again
 		_, err = cli.Management().CreateServiceAccount(testCtx, name, armoredPublicKey, string(role.None), true)
@@ -503,6 +538,22 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
 					_, err := cli.Management().ListServiceAccounts(ctx)
+
+					return err
+				},
+			},
+			{
+				namePrefix:    "mgmt-revoke-service-account-key",
+				requiredRole:  role.Admin,
+				assertSuccess: assertSuccess,
+				assertFailure: assertMissingRoleFailure,
+				fn: func(ctx context.Context, cli *client.Client) error {
+					err := cli.Management().RevokeServiceAccountKey(ctx, "doesntmatter", "doesntmatter")
+
+					// ignore "identity not found" error
+					if status.Code(err) == codes.NotFound {
+						return nil
+					}
 
 					return err
 				},

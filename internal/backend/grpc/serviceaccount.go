@@ -7,6 +7,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -186,6 +187,36 @@ func (s *managementServer) DestroyServiceAccount(ctx context.Context, req *manag
 	}
 
 	return &emptypb.Empty{}, err
+}
+
+// RevokeServiceAccountKey destroys a single public key of the service account, leaving its other keys intact.
+func (s *managementServer) RevokeServiceAccountKey(ctx context.Context, req *management.RevokeServiceAccountKeyRequest) (*emptypb.Empty, error) {
+	checkResult, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
+		return nil, err
+	}
+
+	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
+	if strings.EqualFold(checkResult.Identity, sa.FullID()) {
+		return nil, status.Error(codes.InvalidArgument, "revoking keys of your own service account is not allowed")
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	err = serviceaccount.RevokeKey(ctx, s.omniState, req.Name, req.PublicKeyId)
+	if state.IsNotFoundError(err) {
+		return nil, status.Errorf(codes.NotFound, "public key %q of service account %q not found", req.PublicKeyId, req.Name)
+	}
+
+	if errors.Is(err, serviceaccount.ErrLastKey) {
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
+	}
+
+	if err != nil {
+		return nil, wrapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {

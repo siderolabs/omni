@@ -71,6 +71,11 @@ message DestroyServiceAccountRequest {
   string name = 1;
 }
 
+message RevokeServiceAccountKeyRequest {
+  string name = 1;
+  string public_key_id = 2;
+}
+
 message ListServiceAccountsResponse {
   message ServiceAccount {
     message PgpPublicKey {
@@ -500,6 +505,7 @@ service ManagementService {
   rpc RenewServiceAccount(RenewServiceAccountRequest) returns (RenewServiceAccountResponse);
   rpc ListServiceAccounts(google.protobuf.Empty) returns (ListServiceAccountsResponse);
   rpc DestroyServiceAccount(DestroyServiceAccountRequest) returns (google.protobuf.Empty);
+  rpc RevokeServiceAccountKey(RevokeServiceAccountKeyRequest) returns (google.protobuf.Empty);
   rpc KubernetesUpgradePreChecks(KubernetesUpgradePreChecksRequest) returns (KubernetesUpgradePreChecksResponse);
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);

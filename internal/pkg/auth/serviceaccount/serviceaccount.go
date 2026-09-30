@@ -8,6 +8,7 @@ package serviceaccount
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -183,4 +184,59 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 	}
 
 	return destroyErr
+}
+
+// ErrLastKey is returned when revoking the only remaining key of a service account.
+var ErrLastKey = errors.New("cannot revoke the last key of a service account, destroy the service account instead")
+
+// RevokeKey destroys a single public key of the service account.
+func RevokeKey(ctx context.Context, st state.State, name, publicKeyID string) error {
+	sa := access.ParseServiceAccountFromName(name)
+	id := sa.FullID()
+
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(id).Metadata())
+	if err != nil {
+		return err
+	}
+
+	_, isServiceAccount := identity.Metadata().Labels().Get(authres.LabelIdentityTypeServiceAccount)
+	if !isServiceAccount {
+		return &eNotFound{}
+	}
+
+	pubKeys, err := safe.StateListAll[*authres.PublicKey](
+		ctx,
+		st,
+		state.WithLabelQuery(resource.LabelEqual(authres.LabelPublicKeyUserID, identity.TypedSpec().Value.UserId)),
+	)
+	if err != nil {
+		return err
+	}
+
+	var (
+		found       bool
+		runningKeys int
+	)
+
+	for pubKey := range pubKeys.All() {
+		if pubKey.Metadata().Phase() != resource.PhaseRunning {
+			continue
+		}
+
+		runningKeys++
+
+		if pubKey.Metadata().ID() == publicKeyID {
+			found = true
+		}
+	}
+
+	if !found {
+		return &eNotFound{error: fmt.Errorf("public key %q not found", publicKeyID)}
+	}
+
+	if runningKeys == 1 {
+		return ErrLastKey
+	}
+
+	return st.TeardownAndDestroy(ctx, authres.NewPublicKey(publicKeyID).Metadata())
 }

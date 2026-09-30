@@ -32,6 +32,7 @@ const (
 	ManagementService_RenewServiceAccount_FullMethodName        = "/management.ManagementService/RenewServiceAccount"
 	ManagementService_ListServiceAccounts_FullMethodName        = "/management.ManagementService/ListServiceAccounts"
 	ManagementService_DestroyServiceAccount_FullMethodName      = "/management.ManagementService/DestroyServiceAccount"
+	ManagementService_RevokeServiceAccountKey_FullMethodName    = "/management.ManagementService/RevokeServiceAccountKey"
 	ManagementService_KubernetesUpgradePreChecks_FullMethodName = "/management.ManagementService/KubernetesUpgradePreChecks"
 	ManagementService_KubernetesSyncManifests_FullMethodName    = "/management.ManagementService/KubernetesSyncManifests"
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
@@ -66,6 +67,7 @@ type ManagementServiceClient interface {
 	RenewServiceAccount(ctx context.Context, in *RenewServiceAccountRequest, opts ...grpc.CallOption) (*RenewServiceAccountResponse, error)
 	ListServiceAccounts(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListServiceAccountsResponse, error)
 	DestroyServiceAccount(ctx context.Context, in *DestroyServiceAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	RevokeServiceAccountKey(ctx context.Context, in *RevokeServiceAccountKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	KubernetesUpgradePreChecks(ctx context.Context, in *KubernetesUpgradePreChecksRequest, opts ...grpc.CallOption) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(ctx context.Context, in *KubernetesSyncManifestRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesSyncManifestResponse], error)
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
@@ -197,6 +199,16 @@ func (c *managementServiceClient) DestroyServiceAccount(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ManagementService_DestroyServiceAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managementServiceClient) RevokeServiceAccountKey(ctx context.Context, in *RevokeServiceAccountKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ManagementService_RevokeServiceAccountKey_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -433,6 +445,7 @@ type ManagementServiceServer interface {
 	RenewServiceAccount(context.Context, *RenewServiceAccountRequest) (*RenewServiceAccountResponse, error)
 	ListServiceAccounts(context.Context, *emptypb.Empty) (*ListServiceAccountsResponse, error)
 	DestroyServiceAccount(context.Context, *DestroyServiceAccountRequest) (*emptypb.Empty, error)
+	RevokeServiceAccountKey(context.Context, *RevokeServiceAccountKeyRequest) (*emptypb.Empty, error)
 	KubernetesUpgradePreChecks(context.Context, *KubernetesUpgradePreChecksRequest) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(*KubernetesSyncManifestRequest, grpc.ServerStreamingServer[KubernetesSyncManifestResponse]) error
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
@@ -490,6 +503,9 @@ func (UnimplementedManagementServiceServer) ListServiceAccounts(context.Context,
 }
 func (UnimplementedManagementServiceServer) DestroyServiceAccount(context.Context, *DestroyServiceAccountRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DestroyServiceAccount not implemented")
+}
+func (UnimplementedManagementServiceServer) RevokeServiceAccountKey(context.Context, *RevokeServiceAccountKeyRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeServiceAccountKey not implemented")
 }
 func (UnimplementedManagementServiceServer) KubernetesUpgradePreChecks(context.Context, *KubernetesUpgradePreChecksRequest) (*KubernetesUpgradePreChecksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method KubernetesUpgradePreChecks not implemented")
@@ -735,6 +751,24 @@ func _ManagementService_DestroyServiceAccount_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ManagementServiceServer).DestroyServiceAccount(ctx, req.(*DestroyServiceAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ManagementService_RevokeServiceAccountKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeServiceAccountKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).RevokeServiceAccountKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_RevokeServiceAccountKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).RevokeServiceAccountKey(ctx, req.(*RevokeServiceAccountKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1077,6 +1111,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DestroyServiceAccount",
 			Handler:    _ManagementService_DestroyServiceAccount_Handler,
+		},
+		{
+			MethodName: "RevokeServiceAccountKey",
+			Handler:    _ManagementService_RevokeServiceAccountKey_Handler,
 		},
 		{
 			MethodName: "KubernetesUpgradePreChecks",

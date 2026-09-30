@@ -221,6 +221,16 @@ func (client *Client) DestroyServiceAccount(ctx context.Context, name string) er
 	return err
 }
 
+// RevokeServiceAccountKey revokes a single public key of a service account.
+func (client *Client) RevokeServiceAccountKey(ctx context.Context, name, publicKeyID string) error {
+	_, err := client.conn.RevokeServiceAccountKey(ctx, &management.RevokeServiceAccountKeyRequest{
+		Name:        name,
+		PublicKeyId: publicKeyID,
+	})
+
+	return err
+}
+
 // CreateUser creates a user and returns the user ID.
 func (client *Client) CreateUser(ctx context.Context, email, role string) (string, error) {
 	resp, err := client.conn.CreateUser(ctx, &management.CreateUserRequest{
