@@ -47,6 +47,10 @@ const (
 	awaitPublicKeyConfirmationTimeout = 5 * time.Minute
 )
 
+// errPublicKeyNotConfirmed is the answer whichever way the key cannot be confirmed. It names no cause, because the key
+// may be gone as well as owned by someone else, and points at the one step that helps in both cases.
+var errPublicKeyNotConfirmed = status.Error(codes.PermissionDenied, "this login link is not valid, start the login again")
+
 // workloadProxyCookieSameSite is Lax so that a link to an exposed service still works when someone
 // follows it from outside the instance domain. Strict withholds these cookies on that navigation and
 // turns the click into a full login round trip for a person who is already logged in. The proxy
@@ -251,14 +255,14 @@ func (s *authServer) RevokePublicKey(ctx context.Context, request *authpb.Revoke
 
 	pubKey, err := safe.StateGetByID[*authres.PublicKey](ctx, s.state, request.PublicKeyId)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Error(codes.PermissionDenied, "permission denied")
+		}
+
 		return nil, err
 	}
 
-	if pubKey.TypedSpec().Value.Identity == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid argument")
-	}
-
-	if pubKey.TypedSpec().Value.Identity.Email != creds.Identity {
+	if pubKey.TypedSpec().Value.Identity == nil || pubKey.TypedSpec().Value.Identity.Email != creds.Identity {
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
@@ -323,7 +327,13 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(request.GetPublicKeyId()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, status.Error(codes.PermissionDenied, "permission denied")
+			s.logger.Info("public key not confirmed",
+				zap.String("email", email),
+				zap.String("fingerprint", request.GetPublicKeyId()),
+				zap.String("reason", "the key is not there"),
+			)
+
+			return nil, errPublicKeyNotConfirmed
 		}
 
 		return nil, err
@@ -333,7 +343,13 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 
 	existingUserID, ok := pubKey.Metadata().Labels().Get(authres.LabelPublicKeyUserID)
 	if !ok || existingUserID != userID {
-		return nil, errors.New("public key <> id mismatch")
+		s.logger.Info("public key not confirmed",
+			zap.String("email", email),
+			zap.String("fingerprint", request.GetPublicKeyId()),
+			zap.String("reason", "the key belongs to another user"),
+		)
+
+		return nil, errPublicKeyNotConfirmed
 	}
 
 	_, err = safe.StateUpdateWithConflicts(ctx, s.state, pubKey.Metadata(), func(pk *authres.PublicKey) error {
