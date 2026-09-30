@@ -777,6 +777,101 @@ func TestStatusController(t *testing.T) {
 		)
 	})
 
+	// Tests that a SchematicConfiguration not yet computed for the cluster (no cluster label) is not published
+	// as the ClusterMachineTalosVersion, even if its Talos version matches the cluster version.
+	// It carries the schematic id of whatever the machine runs, e.g. a stock cloud image, which must not end up as the install image.
+	t.Run("reconcileTalosVersionsSchematicNotComputedForCluster", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				st := testContext.State
+				clusterName := "talos-upgrade-unlabeled-schematic"
+				talosVersion := constants.DefaultTalosVersion
+				stockSchematic := "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+				clusterSchematic := "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
+
+				cluster, machines := createCluster(ctx, t, st, clusterName, 1, 0,
+					testoptions.WithTalosVersion(talosVersion))
+
+				existingMachine := machines[0]
+
+				rtestutils.AssertResource(ctx, t, st, existingMachine.Metadata().ID(),
+					func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
+						assertions.Equal(defaultSchematic, res.TypedSpec().Value.SchematicId)
+					})
+
+				// Add a machine to the cluster. Its schematic configuration was computed before it was allocated:
+				// no cluster label, the schematic id of what it runs.
+				// The id sorts before the existing machine, so it is reconciled first within a pass.
+				newMachineID := fmt.Sprintf("node-%s-added-0", clusterName)
+
+				cpMachineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(clusterName))
+
+				rmock.Mock[*omni.MachineSetNode](ctx, t, st,
+					testoptions.WithID(newMachineID),
+					testoptions.LabelCluster(cluster),
+					testoptions.LabelMachineSet(cpMachineSet),
+					testoptions.EmptyLabel(omni.LabelControlPlaneRole),
+				)
+
+				rmock.Mock[*omni.ClusterMachine](ctx, t, st,
+					testoptions.WithID(newMachineID),
+					testoptions.LabelCluster(cluster),
+					testoptions.LabelMachineSet(cpMachineSet),
+					testoptions.EmptyLabel(omni.LabelControlPlaneRole),
+				)
+
+				rmock.Mock[*omni.SchematicConfiguration](ctx, t, st,
+					testoptions.WithID(newMachineID),
+					testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+						res.TypedSpec().Value.TalosVersion = talosVersion
+						res.TypedSpec().Value.SchematicId = stockSchematic
+
+						return nil
+					}))
+
+				// Change the existing machine's schematic: once it is published, the pass that published it has also seen the new machine.
+				rmock.Mock[*omni.SchematicConfiguration](ctx, t, st, testoptions.SameID(existingMachine),
+					testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+						res.TypedSpec().Value.SchematicId = clusterSchematic
+
+						return nil
+					}))
+
+				rtestutils.AssertResource(ctx, t, st, existingMachine.Metadata().ID(),
+					func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
+						assertions.Equal(clusterSchematic, res.TypedSpec().Value.SchematicId)
+					})
+
+				rtestutils.AssertNoResource[*omni.ClusterMachineTalosVersion](ctx, t, st, newMachineID)
+
+				// The schematic controller computes the schematic for the cluster.
+				rmock.Mock[*omni.SchematicConfiguration](ctx, t, st,
+					testoptions.WithID(newMachineID),
+					testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+						res.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
+						res.TypedSpec().Value.SchematicId = clusterSchematic
+
+						return nil
+					}))
+
+				rtestutils.AssertResource(ctx, t, st, newMachineID,
+					func(res *omni.ClusterMachineTalosVersion, assertions *assert.Assertions) {
+						assertions.Equal(talosVersion, res.TypedSpec().Value.TalosVersion)
+						assertions.Equal(clusterSchematic, res.TypedSpec().Value.SchematicId)
+					})
+
+				destroyCluster(ctx, t, st, clusterName)
+			},
+		)
+	})
+
 	// Tests that when a cluster is deleted, the controller cleans up
 	// ClusterMachineTalosVersion and UpgradeRollout resources.
 	t.Run("finalization", func(t *testing.T) {

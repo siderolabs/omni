@@ -160,6 +160,9 @@ func mockGenOptions(ctx context.Context, t *testing.T, st state.State, machineID
 			return nil
 		}),
 	)
+
+	// the install image is only used for the config once it is computed for the cluster
+	rmock.Mock[*omni.ClusterMachineTalosVersion](ctx, t, st, options.WithID(machineID))
 }
 
 func appendPatch(ctx context.Context, t *testing.T, st state.State, machineID, patch string) {
@@ -258,6 +261,113 @@ func TestClusterMachineConfigReconcile(t *testing.T) {
 
 				rtestutils.AssertNoResource[*omni.ClusterMachineConfig](ctx, t, tc.State, m.Metadata().ID())
 			}
+		},
+	)
+}
+
+// TestClusterMachineConfigWaitsForClusterInstallImage checks that the config is never generated from an install image
+// that was not computed for the cluster of the machine, e.g. the one kept from the cluster it was allocated to before.
+// If the machine runs that image, such config is applied as is.
+func TestClusterMachineConfigWaitsForClusterInstallImage(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			const (
+				clusterName      = "cluster-install-image"
+				talosVersion     = "1.10.0"
+				staleSchematic   = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+				clusterSchematic = "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
+			)
+
+			st := tc.State
+
+			cluster, _ := createConfigTestCluster(ctx, t, st, clusterName, 0, talosVersion)
+
+			machineID := clusterName + "-node-added"
+
+			workersMachineSet := omni.NewMachineSet(omni.WorkersResourceID(clusterName))
+
+			rmock.Mock[*omni.MachineSetNode](ctx, t, st, options.WithID(machineID),
+				options.LabelCluster(cluster),
+				options.LabelMachineSet(workersMachineSet),
+				options.EmptyLabel(omni.LabelWorkerRole),
+			)
+
+			rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(machineID),
+				options.LabelCluster(cluster),
+				options.LabelMachineSet(workersMachineSet),
+				options.EmptyLabel(omni.LabelWorkerRole),
+				options.Modify(func(res *omni.ClusterMachine) error {
+					res.TypedSpec().Value.KubernetesVersion = cluster.TypedSpec().Value.KubernetesVersion
+
+					return nil
+				}),
+			)
+
+			rmock.Mock[*omni.ClusterMachineSecrets](ctx, t, st, options.WithID(machineID))
+			rmock.Mock[*omni.Machine](ctx, t, st, options.WithID(machineID))
+			rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.WithID(machineID))
+			rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, options.WithID(machineID))
+			rmock.Mock[*siderolink.Link](ctx, t, st, options.WithID(machineID),
+				options.Modify(func(res *siderolink.Link) error {
+					res.TypedSpec().Value.Connected = true
+
+					return nil
+				}),
+			)
+
+			setInstallImageSchematic := func(schematicID string) {
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(machineID),
+					options.Modify(func(res *omni.MachineConfigGenOptions) error {
+						res.TypedSpec().Value.InstallImage.TalosVersion = talosVersion
+						res.TypedSpec().Value.InstallImage.SchematicId = schematicID
+						res.TypedSpec().Value.InstallImage.ImageFactoryHost = imageFactoryHost
+
+						return nil
+					}),
+				)
+			}
+
+			assertNotGenerated := func(msg string) {
+				assert.Never(t, func() bool {
+					_, err := safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, machineID)
+
+					return !state.IsNotFoundError(err)
+				}, time.Second, 50*time.Millisecond, msg)
+			}
+
+			// everything else the config is generated from is in place, so only the install image holds it back
+			rtestutils.AssertResource(ctx, t, st, machineID, func(*siderolink.MachineJoinConfig, *assert.Assertions) {})
+
+			// the install image kept from the cluster the machine was allocated to before
+			setInstallImageSchematic(staleSchematic)
+
+			assertNotGenerated("config generated before the install image was computed for the cluster")
+
+			// the schematic is computed for the cluster, the install image did not pick it up yet
+			rmock.Mock[*omni.ClusterMachineTalosVersion](ctx, t, st, options.WithID(machineID),
+				options.Modify(func(res *omni.ClusterMachineTalosVersion) error {
+					res.TypedSpec().Value.SchematicId = clusterSchematic
+
+					return nil
+				}),
+			)
+
+			assertNotGenerated("config generated from the install image not in sync with the one computed for the cluster")
+
+			setInstallImageSchematic(clusterSchematic)
+
+			rtestutils.AssertResource(ctx, t, st, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+				assertions.Equal(
+					fmt.Sprintf("%s/%s-installer/%s:v%s", imageFactoryHost, talosconstants.PlatformMetal, clusterSchematic, talosVersion),
+					machineConfigOf(t, res).Machine().Install().Image(),
+				)
+			})
 		},
 	)
 }
@@ -828,6 +938,8 @@ func TestClusterMachineConfigRegistryAuthFollowsRunningVersion(t *testing.T) {
 
 					return nil
 				}))
+
+				rmock.Mock[*omni.ClusterMachineTalosVersion](ctx, t, tc.State, options.WithID(machineID))
 			}
 
 			assertRegistryAuth := func(installVersion string, expectDocument bool) {

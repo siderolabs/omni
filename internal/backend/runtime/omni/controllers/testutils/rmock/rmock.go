@@ -315,6 +315,30 @@ func init() {
 		return nil
 	})
 
+	// follows the install image of the machine, which is derived from it, and the labels of the cluster machine
+	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterMachineTalosVersion) error {
+		clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if clusterMachine != nil {
+			helpers.CopyAllLabels(clusterMachine, res)
+		}
+
+		machineConfigGenOptions, err := safe.ReaderGetByID[*omni.MachineConfigGenOptions](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if machineConfigGenOptions != nil {
+			res.TypedSpec().Value.TalosVersion = machineConfigGenOptions.TypedSpec().Value.InstallImage.GetTalosVersion()
+			res.TypedSpec().Value.SchematicId = machineConfigGenOptions.TypedSpec().Value.InstallImage.GetSchematicId()
+		}
+
+		return nil
+	})
+
 	addDefaults(func(_ context.Context, _ state.State, res *omni.MachineInstallDiskStatus) error {
 		res.TypedSpec().Value.Disk = defaultInstallDisk
 		res.TypedSpec().Value.Disks = []*specs.MachineInstallDiskStatusSpec_Disk{
@@ -474,6 +498,7 @@ func init() {
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
 	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController(nil).ControllerName)
+	setOwner[*omni.ClusterMachineTalosVersion](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewStatusController(nil).ControllerName)
 }
 
