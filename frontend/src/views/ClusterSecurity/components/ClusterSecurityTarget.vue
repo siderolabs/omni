@@ -100,10 +100,10 @@ const upgradeVersionScans = computed(() => {
       </h2>
 
       <div class="flex flex-wrap items-center gap-2">
-        <span class="resource-label label-orange">
+        <span class="resource-label">
           {{ archToString(arch) }}
         </span>
-        <span class="resource-label label-blue">
+        <span class="resource-label">
           {{ artifactTarget.includes_control_plane ? 'control plane' : 'worker' }}
         </span>
         <span class="text-xs text-content-secondary">

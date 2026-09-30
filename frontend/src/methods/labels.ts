@@ -11,6 +11,7 @@ import {
   LabelControlPlaneRole,
   LabelEnterprise,
   LabelInfraProviderID,
+  LabelMachineSet,
   LabelWorkerRole,
   MachineStatusLabelArch,
   MachineStatusLabelAvailable,
@@ -48,45 +49,48 @@ export type Label = {
   key: string
   id: string
   value: string
-  labelClass?: string
   removable?: boolean
+  system?: boolean
+  tone?: 'danger'
   description?: string
   icon?: IconType
 }
 
-const labelClasses: Record<string, string> = {
-  // Cluster related
-  [LabelCluster]: 'label-blue',
-  [MachineStatusLabelAvailable]: 'label-blue',
-  [LabelControlPlaneRole]: 'label-blue',
-  [LabelWorkerRole]: 'label-blue',
+const labelIcons: Record<string, IconType> = {
+  // Cluster membership
+  [LabelCluster]: 'clusters',
+  [LabelMachineSet]: 'clusters',
+  [LabelControlPlaneRole]: 'clusters',
+  [LabelWorkerRole]: 'clusters',
+  [MachineStatusLabelAvailable]: 'box',
 
   // Talos
-  [MachineStatusLabelTalosVersion]: 'label-red',
-  [LabelEnterprise]: 'label-violet',
-  [MachineStatusLabelFIPS]: 'label-violet',
+  [MachineStatusLabelTalosVersion]: 'talos',
+  [LabelEnterprise]: 'talos',
+  [MachineStatusLabelFIPS]: 'talos',
 
   // Connection state
-  [MachineStatusLabelConnected]: 'label-green',
-  [MachineStatusLabelDisconnected]: 'label-red',
+  [MachineStatusLabelConnected]: 'cloud-connection',
+  [MachineStatusLabelDisconnected]: 'no-connection',
 
   // Hardware
-  [MachineStatusLabelPlatform]: 'label-orange',
-  [MachineStatusLabelCores]: 'label-orange',
-  [MachineStatusLabelMem]: 'label-orange',
-  [MachineStatusLabelStorage]: 'label-orange',
-  [MachineStatusLabelNet]: 'label-orange',
-  [MachineStatusLabelCPU]: 'label-orange',
-  [MachineStatusLabelArch]: 'label-orange',
-  [MachineStatusLabelRegion]: 'label-orange',
-  [MachineStatusLabelZone]: 'label-orange',
-  [MachineStatusLabelInstance]: 'label-orange',
+  [MachineStatusLabelPlatform]: 'cpu-chip',
+  [MachineStatusLabelCores]: 'cpu-chip',
+  [MachineStatusLabelMem]: 'cpu-chip',
+  [MachineStatusLabelStorage]: 'cpu-chip',
+  [MachineStatusLabelNet]: 'cpu-chip',
+  [MachineStatusLabelCPU]: 'cpu-chip',
+  [MachineStatusLabelArch]: 'cpu-chip',
+  [MachineStatusLabelRegion]: 'cpu-chip',
+  [MachineStatusLabelZone]: 'cpu-chip',
+  [MachineStatusLabelInstance]: 'cpu-chip',
+
+  // Infra provider
+  [LabelInfraProviderID]: 'server-network',
 
   // Other
-  [MachineStatusLabelInvalidState]: 'label-red',
+  [MachineStatusLabelInvalidState]: 'warning',
 }
-
-export const getLabelClass = (labelKey: string) => labelClasses[labelKey]
 
 export function useLabelRouteQuery() {
   return useRouteQuery<string, Label[]>('labels', '', {
@@ -155,14 +159,18 @@ const labelDescriptions: Record<string, string> = {
     'The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni.',
 }
 
+const dangerLabels = new Set([MachineStatusLabelInvalidState, MachineStatusLabelDisconnected])
+
 export const getLabelFromID = (key: string, value: string): Label => {
   const label: Label = {
     key,
     id: key.replace(new RegExp(`^${SystemLabelPrefix}`), ''),
     value,
-    labelClass: getLabelClass(key),
     removable: !key.startsWith(SystemLabelPrefix),
+    system: key.startsWith(SystemLabelPrefix),
+    tone: dangerLabels.has(key) ? 'danger' : undefined,
     description: labelDescriptions[key],
+    icon: labelIcons[key] ?? (key.startsWith(SystemLabelPrefix) ? undefined : 'tag'),
   }
 
   if (key.startsWith(InfraProviderLabelPrefix) && key !== LabelInfraProviderID) {
@@ -171,7 +179,6 @@ export const getLabelFromID = (key: string, value: string): Label => {
     return {
       ...label,
       id: parts.at(-1) ?? '',
-      labelClass: 'label-green',
       description: `Defined by the infra provider "${parts[1] ?? ''}"`,
       icon: 'server-network',
     }

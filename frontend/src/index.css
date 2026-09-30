@@ -43,37 +43,10 @@ included in the LICENSE file.
   }
 
   .resource-label {
-    @apply inline-block rounded-sm bg-current/10 px-2 py-1 text-xs text-content-secondary;
+    @apply inline-block rounded-sm bg-surface-hover px-2 py-1 text-xs text-content-default;
 
     &:is(a:not(:disabled), button:not(:disabled), [role='button']:not(:disabled)) {
-      @apply transition-[filter];
-
-      &:hover {
-        @apply brightness-120;
-      }
-      &:active {
-        @apply brightness-80;
-      }
+      @apply transition-colors hover:bg-surface-inert;
     }
-  }
-
-  .label-green {
-    color: #62f05b;
-  }
-
-  .label-red {
-    color: #f94e76;
-  }
-
-  .label-orange {
-    color: #ff9f39;
-  }
-
-  .label-blue {
-    color: #69b4ff;
-  }
-
-  .label-violet {
-    color: #a970ff;
   }
 }

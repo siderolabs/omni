@@ -8,7 +8,6 @@ included in the LICENSE file.
 export interface LabelSelectItem {
   value: string
   canRemove?: boolean
-  labelClass?: string
 }
 </script>
 
@@ -17,6 +16,7 @@ import { ref } from 'vue'
 
 import TButton from '@/components/Button/TButton.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { getLabelFromID } from '@/methods/labels'
 import ItemLabel from '@/views/ItemLabels/ItemLabel.vue'
 
 const modelValue = defineModel<Record<string, LabelSelectItem>>()
@@ -66,13 +66,7 @@ const removeLabel = (key: string) => {
     <ItemLabel
       v-for="(label, key) in modelValue"
       :key="key"
-      :label="{
-        key,
-        id: key,
-        value: label.value,
-        labelClass: label.labelClass,
-        removable: label.canRemove,
-      }"
+      :label="{ ...getLabelFromID(key, label.value), removable: label.canRemove }"
       @remove-label="removeLabel(key)"
     />
     <TInput

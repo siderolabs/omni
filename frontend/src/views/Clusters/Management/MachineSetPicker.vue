@@ -16,7 +16,7 @@ import MachineSetLabel from '@/views/Clusters/Management/MachineSetLabel.vue'
 
 export type PickerOption = {
   id: string
-  labelClass?: string
+  markerClass?: string
   tooltip?: string
   name?: string
   disabled?: boolean
@@ -56,7 +56,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
   <RadioGroup
     v-if="options.length < 8"
     v-model="machineSetIndex"
-    class="flex gap-0.5 rounded bg-surface-raised p-1"
+    class="flex divide-x divide-border-strong overflow-hidden rounded border border-border-strong"
   >
     <RadioGroupOption
       v-for="(option, index) in options"
@@ -67,7 +67,8 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
     >
       <Tooltip placement="left" :description="option.tooltip">
         <MachineSetLabel
-          :label-class="option.labelClass"
+          segment
+          :marker-class="option.markerClass"
           :disabled="option.disabled"
           :checked="checked"
           @click.stop="toggleOption(option, index, checked)"
@@ -78,7 +79,10 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
     </RadioGroupOption>
   </RadioGroup>
 
-  <div v-else class="relative flex h-8 items-center justify-center rounded bg-surface-raised">
+  <div
+    v-else
+    class="relative flex h-8 items-center justify-center rounded border border-border-default bg-surface-raised"
+  >
     <PopoverRoot v-model:open="showPicker">
       <PopoverPortal>
         <PopoverContent
@@ -104,7 +108,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
             >
               <Tooltip :description="option.tooltip" placement="left">
                 <MachineSetLabel
-                  :label-class="option.labelClass"
+                  :marker-class="option.markerClass"
                   :disabled="option.disabled"
                   :checked="checked"
                   @click="showPicker = false"
@@ -127,9 +131,9 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
           class="mx-1 h-3 w-3 text-content-muted transition-all group-hover:scale-125 group-hover:text-content-emphasis"
         />
         <template v-if="pickedOption">
-          <span class="resource-label" :class="pickedOption.labelClass">
+          <MachineSetLabel static :marker-class="pickedOption.markerClass">
             {{ pickedOption.id }}
-          </span>
+          </MachineSetLabel>
 
           <IconButton icon="close" @click.stop="machineSetIndex = undefined" />
         </template>

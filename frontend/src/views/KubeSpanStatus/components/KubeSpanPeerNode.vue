@@ -40,7 +40,7 @@ const { data } = defineProps<NodeProps<KubeSpanPeerNodeData>>()
       </div>
 
       <span
-        class="w-max rounded bg-current/20 px-1 py-0.5 text-[0.625rem]/none text-content-secondary"
+        class="w-max rounded bg-surface-hover px-1 py-0.5 text-[0.625rem]/none text-content-secondary"
       >
         {{ data.label }}
       </span>

@@ -13,16 +13,22 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import { LabelCluster, MachineStatusLabelInstalled } from '@/api/resources'
+import {
+  LabelCluster,
+  MachineStatusLabelConnected,
+  MachineStatusLabelDisconnected,
+  MachineStatusLabelInstalled,
+} from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import MachineStage from '@/components/Status/MachineStage.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
-import type { Label } from '@/methods/labels'
+import { getLabelFromID, type Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { getMachineName } from '@/methods/node'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
@@ -66,6 +72,16 @@ const machineName = computed(() => {
 const clusterName = computed(() => machine.spec.message_status?.cluster)
 
 const { installing, upgrading } = useDerivedMachineStage(() => machine.spec.snapshot)
+
+const connectionLabel = computed(() => {
+  const labels = machine.metadata.labels ?? {}
+
+  if (MachineStatusLabelDisconnected in labels)
+    return getLabelFromID(MachineStatusLabelDisconnected, '')
+  if (MachineStatusLabelConnected in labels) return getLabelFromID(MachineStatusLabelConnected, '')
+
+  return undefined
+})
 
 const canDoMaintenanceUpdate = computed(() => {
   if (machine.spec.message_status?.cluster) {
@@ -168,6 +184,25 @@ const canUseLifecycleUpgrade = computed(() => {
         </Tooltip>
 
         <MachineStage :machine />
+
+        <button
+          v-if="connectionLabel"
+          type="button"
+          class="flex shrink-0 items-center gap-1 rounded-sm px-1 py-0.5 hover:bg-surface-hover"
+          :class="
+            connectionLabel.tone === 'danger' ? 'text-status-danger-text' : 'text-content-secondary'
+          "
+          @click.stop="$emit('filterLabels', connectionLabel)"
+        >
+          <StatusGlyph
+            :glyph="connectionLabel.tone === 'danger' ? 'danger' : 'success'"
+            class="shrink-0"
+            :class="connectionLabel.tone !== 'danger' && 'text-status-success-text'"
+            aria-hidden="true"
+          />
+
+          {{ connectionLabel.tone === 'danger' ? 'Disconnected' : 'Connected' }}
+        </button>
 
         <div class="grow" />
 
@@ -280,6 +315,7 @@ const canUseLifecycleUpgrade = computed(() => {
 
       <ItemLabels
         :resource="machine"
+        hide-connection
         :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
         :remove-label-func="removeMachineLabels"
         @select-label="(label) => $emit('filterLabels', label)"

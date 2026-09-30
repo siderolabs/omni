@@ -24,21 +24,26 @@ const open = defineModel<boolean>({ default: false })
 
 const item = computed(() => JSON.parse(decoder.decode(data)))
 
-function getLabelClassForEvent(event: AuditLogEvent) {
+function getMarkerClassForEvent(event: AuditLogEvent) {
   switch (event) {
-    case 'k8s_access':
-      return 'label-orange'
     case 'create':
-      return 'label-green'
+      return 'bg-series-1'
     case 'update_with_conflicts':
     case 'update':
-      return 'label-blue'
+      return 'bg-series-2'
     case 'destroy':
     case 'teardown':
-      return 'label-red'
+      return 'bg-series-3'
+    case 'k8s_access':
+      return 'bg-series-4'
     case 'talos_access':
+      return 'bg-series-5'
+    case 'audit_log_access':
+      return 'bg-series-6'
     default:
-      return
+      const unhandled: never = event
+
+      return unhandled
   }
 }
 
@@ -73,14 +78,21 @@ function toggleRow() {
       </div>
 
       <div role="cell">
-        <WordHighlighter
+        <span
           v-if="item.event_type.toUpperCase()"
-          :query="search"
-          :text-to-highlight="item.event_type.toUpperCase()"
-          highlight-class="bg-surface-inverse"
-          class="resource-label"
-          :class="getLabelClassForEvent(item.event_type)"
-        />
+          class="resource-label inline-flex items-center gap-1.5"
+        >
+          <span
+            aria-hidden="true"
+            class="size-2 shrink-0 rounded-full"
+            :class="getMarkerClassForEvent(item.event_type)"
+          />
+          <WordHighlighter
+            :query="search"
+            :text-to-highlight="item.event_type.toUpperCase()"
+            highlight-class="bg-surface-inverse"
+          />
+        </span>
       </div>
 
       <div role="cell" class="truncate text-content-muted">

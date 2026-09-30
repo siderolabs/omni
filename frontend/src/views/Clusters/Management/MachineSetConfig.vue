@@ -22,6 +22,7 @@ import TInput from '@/components/TInput/TInput.vue'
 import type { MachineSet } from '@/states/cluster-management'
 import { PatchID } from '@/states/cluster-management'
 import MachineSetConfigEditModal from '@/views/Clusters/components/MachineSetConfigEditModal.vue'
+import MachineSetLabel from '@/views/Clusters/Management/MachineSetLabel.vue'
 
 enum AllocationMode {
   Manual = 'Manual',
@@ -97,8 +98,10 @@ const labelId = useId()
     class="my-1 flex items-center gap-2 rounded border border-border-strong bg-surface-raised px-2 py-2 pr-3 text-xs text-content-default"
     :aria-labelledby="labelId"
   >
-    <div class="w-10">
-      <span class="resource-label" :class="machineSet.labelClass">{{ machineSet.id }}</span>
+    <div class="w-14">
+      <MachineSetLabel static :marker-class="machineSet.markerClass">
+        {{ machineSet.id }}
+      </MachineSetLabel>
     </div>
 
     <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">

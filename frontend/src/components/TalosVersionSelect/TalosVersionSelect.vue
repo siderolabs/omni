@@ -182,10 +182,7 @@ function isItemEnterprise(item?: string) {
           <span class="inline-flex items-center gap-2">
             {{ labelForItem(selectedItem) }}
 
-            <span
-              v-if="isItemEnterprise(selectedItem)"
-              class="resource-label label-violet text-[0.625rem]"
-            >
+            <span v-if="isItemEnterprise(selectedItem)" class="resource-label text-[0.625rem]">
               enterprise
             </span>
           </span>
@@ -230,7 +227,7 @@ function isItemEnterprise(item?: string) {
 
                     <span
                       v-if="isItemEnterprise(item.value)"
-                      class="resource-label label-violet text-[0.625rem] font-normal"
+                      class="resource-label text-[0.625rem] font-normal"
                     >
                       enterprise
                     </span>

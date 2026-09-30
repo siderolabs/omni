@@ -156,7 +156,7 @@ useTitle(['Machines', 'Join Tokens'])
             <div class="tokens-grid flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
-                <div v-if="item.spec.is_default" class="resource-label label-orange">Default</div>
+                <div v-if="item.spec.is_default" class="resource-label">Default</div>
               </div>
               <div
                 class="cursor-pointer truncate font-mono"

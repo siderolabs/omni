@@ -8,9 +8,11 @@ included in the LICENSE file.
 import type { HTMLAttributes } from 'vue'
 
 interface Props extends /* @vue-ignore */ HTMLAttributes {
-  labelClass?: HTMLAttributes['class']
+  markerClass?: HTMLAttributes['class']
   disabled?: boolean
   checked?: boolean
+  static?: boolean
+  segment?: boolean
 }
 
 defineProps<Props>()
@@ -18,14 +20,27 @@ defineProps<Props>()
 
 <template>
   <div
-    class="resource-label rounded border select-none"
+    class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors select-none"
     :class="[
-      checked ? 'border-current/50' : 'border-transparent',
-      disabled
-        ? 'cursor-not-allowed opacity-50'
-        : ['cursor-pointer opacity-75 transition-opacity hover:opacity-100', labelClass],
+      segment ? 'h-full px-2.5 py-1' : 'rounded-sm px-2 py-1',
+      static
+        ? 'bg-surface-hover text-content-default'
+        : disabled
+          ? 'cursor-not-allowed text-content-disabled'
+          : checked
+            ? segment
+              ? 'cursor-pointer bg-surface-inert text-content-emphasis'
+              : 'cursor-pointer bg-surface-inert text-content-emphasis ring-1 ring-border-strong'
+            : segment
+              ? 'cursor-pointer text-content-default hover:bg-surface-hover hover:text-content-emphasis'
+              : 'cursor-pointer text-content-secondary hover:bg-surface-hover hover:text-content-default',
     ]"
   >
+    <span
+      aria-hidden="true"
+      class="size-2 shrink-0 rounded-full"
+      :class="disabled && !static ? 'bg-content-disabled' : markerClass"
+    />
     <slot></slot>
   </div>
 </template>

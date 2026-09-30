@@ -167,9 +167,7 @@ useTitle(['Machines', 'Installation Media'])
           <TableCell>
             <div class="flex items-center gap-2">
               {{ preset.spec.talos_version || DefaultTalosVersion }}
-              <span v-if="!preset.spec.talos_version" class="resource-label label-green">
-                Automatic
-              </span>
+              <span v-if="!preset.spec.talos_version" class="resource-label">Automatic</span>
             </div>
           </TableCell>
           <TableCell>
@@ -194,7 +192,7 @@ useTitle(['Machines', 'Installation Media'])
                 {{ TCommonStatuses.EXPIRED }}
               </StatusPill>
 
-              <span v-if="tokenAutomatic" class="resource-label label-green">Automatic</span>
+              <span v-if="tokenAutomatic" class="resource-label">Automatic</span>
             </div>
           </TableCell>
           <TableCell>

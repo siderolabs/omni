@@ -65,7 +65,7 @@ const detailsModal = ref<{
       <h1 class="text-lg text-content-emphasis">
         Vulnerabilities for {{ clusterId }}
 
-        <span v-if="currentVersion" class="resource-label label-red inline-flex items-center gap-1">
+        <span v-if="currentVersion" class="resource-label inline-flex items-center gap-1">
           <TIcon class="size-3.5 shrink-0" icon="talos" aria-label="Talos version" />
           {{ currentVersion }}
         </span>

@@ -25,6 +25,25 @@ defineEmits<{
   removeLabel: []
 }>()
 
+const chipClass = computed(() => {
+  if (label.tone === 'danger') {
+    return 'border-status-danger-subtle-border bg-status-danger-subtle text-status-danger-text hover:border-status-danger-default'
+  }
+
+  if (label.system)
+    return 'border-transparent bg-surface-hover text-content-default hover:bg-surface-inert'
+
+  return 'border-border-strong text-content-default hover:bg-surface-hover'
+})
+
+const keyClass = computed(() => (label.tone === 'danger' ? undefined : 'text-content-secondary'))
+
+const valueClass = computed(() =>
+  label.tone === 'danger' ? 'font-medium' : 'font-medium text-content-emphasis',
+)
+
+const iconClass = computed(() => (label.tone === 'danger' ? undefined : 'text-content-secondary'))
+
 const description = computed(() => {
   const fullLabel = [label.id, label.value].filter(Boolean).join(':')
 
@@ -37,19 +56,28 @@ const description = computed(() => {
 <template>
   <Tooltip :description="description" :delay-duration="500" placement="bottom-start">
     <button
-      class="resource-label inline-flex items-center gap-1"
-      :class="[label.labelClass, small ? 'max-w-50' : 'max-w-75']"
+      class="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs transition-colors"
+      :class="[chipClass, small ? 'max-w-50' : 'max-w-75']"
       v-bind="$attrs"
       @click.stop="$emit('selectLabel')"
     >
-      <TIcon v-if="label.icon" :icon="label.icon" class="-ml-1 size-3.5 shrink-0" />
+      <TIcon
+        v-if="label.icon"
+        :icon="label.icon"
+        class="-ml-0.5 size-3.5 shrink-0"
+        :class="iconClass"
+      />
       <span class="truncate">
-        {{ label.value ? `${label.id}:${label.value}` : label.id }}
+        <template v-if="label.value">
+          <span :class="keyClass">{{ label.id }}:</span>
+          <span :class="valueClass">{{ label.value }}</span>
+        </template>
+        <template v-else>{{ label.id }}</template>
       </span>
       <TIcon
         v-if="label.removable"
         icon="close"
-        class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-surface-inverse hover:text-content-inverse"
+        class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-surface-inert hover:text-content-emphasis"
         @click.stop="$emit('removeLabel')"
       />
     </button>

@@ -12,6 +12,7 @@ import WordHighlighter from 'vue-word-highlighter'
 import { MetaNamespace, ResourceDefinitionType } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
@@ -116,9 +117,9 @@ const definitions = computed(() => {
               />
             </TableCell>
             <TableCell>
-              <span v-if="spec.sensitivity === 'sensitive'" class="resource-label label-orange">
+              <StatusPill v-if="spec.sensitivity === 'sensitive'" tone="warning">
                 Sensitive
-              </span>
+              </StatusPill>
             </TableCell>
             <TableCell class="text-content-muted">
               {{ spec.aliases?.join(', ') }}

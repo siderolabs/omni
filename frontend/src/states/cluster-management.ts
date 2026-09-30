@@ -84,14 +84,21 @@ export const automaticInstallDisk = 'Auto'
 // untouched.
 export const selectorInstallDisk = 'Selector'
 
-const labelClasses = ['label-red', 'label-orange', 'label-blue']
+const controlPlaneMarkerClass = 'bg-series-1'
+const workerMarkerClasses = [
+  'bg-series-2',
+  'bg-series-3',
+  'bg-series-4',
+  'bg-series-5',
+  'bg-series-6',
+]
 
 // Keeps the configuration for the machine set.
 export interface MachineSet {
   id: string
   name: string
   role: string
-  labelClass: string
+  markerClass: string
   machineAllocation?: {
     name: string
     size: number | 'unlimited'
@@ -171,7 +178,7 @@ export class State {
         id: 'CP',
         name: 'control planes',
         role: LabelControlPlaneRole,
-        labelClass: 'label-green',
+        markerClass: controlPlaneMarkerClass,
         machines: {},
         idFunc: controlPlaneMachineSetId,
         patches: {},
@@ -180,7 +187,7 @@ export class State {
         id: 'W0',
         name: 'main worker pool',
         role: LabelWorkerRole,
-        labelClass: 'label-red',
+        markerClass: workerMarkerClasses[0],
         machines: {},
         idFunc: defaultWorkersMachineSetId,
         patches: {},
@@ -224,7 +231,7 @@ export class State {
       id: `W${this.index}`,
       name: `workers-${id}`,
       role: role,
-      labelClass: labelClasses[this.index % labelClasses.length],
+      markerClass: workerMarkerClasses[this.index % workerMarkerClasses.length],
       machines: {},
       patches: {},
       idFunc: (cluster: string) => `${cluster}-w${id}`,
@@ -820,7 +827,9 @@ export const populateExisting = async (clusterName: string) => {
     const isCP = ms.metadata.labels?.[LabelControlPlaneRole] !== undefined
 
     const machineSet: MachineSet = {
-      labelClass: isCP ? 'label-green' : labelClasses[state.value.index % labelClasses.length],
+      markerClass: isCP
+        ? controlPlaneMarkerClass
+        : workerMarkerClasses[state.value.index % workerMarkerClasses.length],
       id: isCP ? 'CP' : `W${state.value.index}`,
       name: ms.metadata.id!,
       idFunc: () => ms.metadata.id!,

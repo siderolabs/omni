@@ -102,16 +102,16 @@ const clusterDestroyDialogOpen = ref(false)
 
       <ClusterStatus :cluster="item" />
 
-      <div class="flex items-center gap-2 text-content-muted">
+      <div class="flex items-center gap-3 text-content-muted">
         <Tooltip :description="`Talos version v${item.spec.talos_version}`">
-          <span class="resource-label label-red flex items-center gap-1">
+          <span class="flex items-center gap-1 text-content-default">
             <TIcon class="size-3.5 shrink-0" icon="talos" />
             {{ item.spec.talos_version }}
           </span>
         </Tooltip>
 
         <Tooltip :description="`Kubernetes version v${item.spec.kubernetes_version}`">
-          <span class="resource-label label-blue flex items-center gap-1">
+          <span class="flex items-center gap-1 text-content-default">
             <TIcon class="size-3.5 shrink-0" icon="kubernetes" />
             {{ item.spec.kubernetes_version }}
           </span>

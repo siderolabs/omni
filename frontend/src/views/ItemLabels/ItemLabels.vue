@@ -17,8 +17,9 @@ import { showError } from '@/notification'
 
 import ItemLabel from './ItemLabel.vue'
 
-const { resource, addLabelFunc, removeLabelFunc } = defineProps<{
+const { resource, addLabelFunc, removeLabelFunc, hideConnection } = defineProps<{
   resource: Resource
+  hideConnection?: boolean
   addLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
   removeLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
 }>()
@@ -27,47 +28,55 @@ defineEmits<{
   selectLabel: [label: Label]
 }>()
 
-const labelOrder = {
-  'is-managed-by-static-infra-provider': -1,
-  'machine-request-set': -1,
-  'no-manual-allocation': -1,
-  'machine-request': -1,
-  installed: -1,
-  'ready-to-use': -1,
-  'reporting-events': -1,
-  'invalid-state': 0,
-  cluster: 0,
-  'role-controlplane': 2,
-  'role-worker': 2,
-  available: 5,
-  connected: 10,
-  disconnected: 10,
-  enterprise: 12,
-  fips: 14,
-  platform: 20,
-  cores: 30,
-  mem: 40,
-  storage: 50,
-  net: 60,
-  cpu: 70,
-  arch: 80,
-  region: 100,
-  zone: 110,
-  instance: 120,
-  'talos-version': 130,
+const hidden = new Set([
+  'is-managed-by-static-infra-provider',
+  'machine-request-set',
+  'no-manual-allocation',
+  'machine-request',
+  'installed',
+  'ready-to-use',
+  'reporting-events',
+])
+
+// Labels render in groups, in this order, with a wider gap between groups.
+// Within a group they keep the order listed here.
+const labelGroups = [
+  ['invalid-state'],
+  ['cluster', 'role-controlplane', 'role-worker', 'available', 'machine-set'],
+  ['connected', 'disconnected'],
+  ['enterprise', 'fips', 'talos-version'],
+  ['platform', 'cores', 'mem', 'storage', 'net', 'cpu', 'arch', 'region', 'zone', 'instance'],
+]
+
+const systemGroup = labelGroups.length
+const userGroup = labelGroups.length + 1
+
+const position = (l: Label): [number, number] => {
+  for (const [group, ids] of labelGroups.entries()) {
+    const index = ids.indexOf(l.id)
+
+    if (l.system && index !== -1) return [group, index]
+  }
+
+  return [l.system ? systemGroup : userGroup, 0]
 }
 
-const getLabelOrder = (l: Label) => {
-  return labelOrder[l.id as keyof typeof labelOrder] ?? 1000
-}
-
-const labels = computed(() => {
+const groups = computed(() => {
   const labels = resource.metadata.labels || {}
+  const result: Label[][] = []
 
-  return Object.keys(labels)
+  Object.keys(labels)
     .map((key) => getLabelFromID(key, labels[key]))
-    .filter((label) => getLabelOrder(label) !== -1)
-    .sort((a, b) => getLabelOrder(a) - getLabelOrder(b))
+    .filter((label) => !hidden.has(label.id))
+    .filter(
+      (label) =>
+        !hideConnection || !(label.system && ['connected', 'disconnected'].includes(label.id)),
+    )
+    .map((label) => ({ label, pos: position(label) }))
+    .sort((a, b) => a.pos[0] - b.pos[0] || a.pos[1] - b.pos[1])
+    .forEach(({ label, pos }) => (result[pos[0]] ??= []).push(label))
+
+  return result.filter(Boolean)
 })
 
 const addingLabel = ref(false)
@@ -129,14 +138,16 @@ const destroyUserLabel = async (key: string) => {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1.5 text-xs">
-    <ItemLabel
-      v-for="label in labels"
-      :key="label.key"
-      :label="{ ...label, removable: label.removable && !!removeLabelFunc }"
-      @remove-label="removeLabelFunc ? destroyUserLabel(label.key) : undefined"
-      @select-label="$emit('selectLabel', label)"
-    />
+  <div class="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs">
+    <div v-for="(group, i) in groups" :key="i" class="flex flex-wrap items-center gap-1.5">
+      <ItemLabel
+        v-for="label in group"
+        :key="label.key"
+        :label="{ ...label, removable: label.removable && !!removeLabelFunc }"
+        @remove-label="removeLabelFunc ? destroyUserLabel(label.key) : undefined"
+        @select-label="$emit('selectLabel', label)"
+      />
+    </div>
     <TInput
       v-if="addingLabel"
       v-model="currentLabel"

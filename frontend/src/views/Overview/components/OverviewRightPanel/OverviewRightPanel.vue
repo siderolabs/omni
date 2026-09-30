@@ -321,7 +321,7 @@ const exportClusterTemplateModalOpen = ref(false)
           {{ talosVersion }}
           <span
             v-if="clusterStatus?.metadata.labels?.[LabelEnterprise] !== undefined"
-            class="resource-label label-violet"
+            class="resource-label"
           >
             enterprise
           </span>

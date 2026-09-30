@@ -241,7 +241,7 @@ const options = computed(() => {
       id: ms.id,
       disabled: disabled,
       tooltip: reasons.length > 0 ? reasons.join('\n\n') : undefined,
-      labelClass: ms.labelClass,
+      markerClass: ms.markerClass,
     }
   })
 })
