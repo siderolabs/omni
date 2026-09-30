@@ -55,7 +55,9 @@ watch(
 
 <template>
   <div class="flex flex-col">
-    <div class="flex w-full items-center justify-between rounded-xs bg-surface-card px-4 py-2.5">
+    <div
+      class="flex w-full items-center justify-between rounded-xs border border-border-default bg-surface-card px-4 py-2.5"
+    >
       <div class="flex w-full gap-8 text-xs text-content-default">
         <p v-if="!withoutDate" class="w-35 shrink-0">Date</p>
         <p class="grow">Message</p>

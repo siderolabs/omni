@@ -64,7 +64,10 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
 </script>
 
 <template>
-  <div v-if="healthChecks.length" class="mb-5 rounded bg-surface-card pt-5">
+  <div
+    v-if="healthChecks.length"
+    class="mb-5 rounded border border-border-default bg-surface-card pt-5"
+  >
     <div class="flex items-center gap-1 px-6 pb-4">
       <span class="flex-1 text-sm text-content-default">Health Checks</span>
     </div>
@@ -114,7 +117,9 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
 
       <TInput v-model="searchOutput" placeholder="Search..." icon="search" />
 
-      <div class="flex h-96 min-h-0 flex-col overflow-hidden rounded bg-surface-card">
+      <div
+        class="flex h-96 min-h-0 flex-col overflow-hidden rounded border border-border-default bg-surface-card"
+      >
         <LogViewer
           class="min-h-0 grow"
           :logs="outputLines"

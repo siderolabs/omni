@@ -71,7 +71,7 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 
 <template>
   <div class="text-content-default">Machine Template</div>
-  <div class="rounded bg-surface-card">
+  <div class="rounded border border-border-default bg-surface-card">
     <div class="px-4 pt-4 pb-2 text-sm text-content-default">Talos Config</div>
     <div
       class="flex flex-col divide-y divide-border-default border-t-8 border-border-default text-xs"
@@ -95,7 +95,10 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
       </div>
     </div>
   </div>
-  <div v-if="infraProviderStatus?.spec.schema" class="rounded bg-surface-card">
+  <div
+    v-if="infraProviderStatus?.spec.schema"
+    class="rounded border border-border-default bg-surface-card"
+  >
     <div class="px-4 pt-4 pb-2 text-sm text-content-default">
       {{ infraProviderStatus.spec.name }} Provider Config
     </div>

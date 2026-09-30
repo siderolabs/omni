@@ -219,7 +219,7 @@ async function enableKubeSpan() {
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="flex flex-col gap-2 rounded-lg bg-surface-card p-4 @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
+            class="flex flex-col gap-2 rounded-lg border border-border-default bg-surface-card p-4 @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
           >
             <div class="flex items-center gap-2">
               <TIcon :icon="feature.icon" class="size-5 text-content-default" />
@@ -229,7 +229,9 @@ async function enableKubeSpan() {
           </div>
         </div>
 
-        <div class="flex flex-col gap-4 rounded-lg bg-surface-card p-6 @4xl:flex-1">
+        <div
+          class="flex flex-col gap-4 rounded-lg border border-border-default bg-surface-card p-6 @4xl:flex-1"
+        >
           <div class="flex flex-col gap-1">
             <h2 class="text-base font-medium text-content-emphasis">Enable KubeSpan</h2>
             <p class="text-sm text-content-secondary">

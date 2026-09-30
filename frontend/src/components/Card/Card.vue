@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts"></script>
 
 <template>
-  <section class="rounded-lg bg-surface-card">
+  <section class="rounded-lg border border-border-default bg-surface-card">
     <slot></slot>
   </section>
 </template>

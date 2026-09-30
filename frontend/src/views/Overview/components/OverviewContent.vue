@@ -264,7 +264,7 @@ const machineLockedForSecretRotation = computed(() => {
       >
         Open the cluster machine detail page for each affected node to view the error and recover.
       </TAlert>
-      <div class="relative mb-6 min-h-25 bg-surface-card p-5">
+      <div class="relative mb-5 min-h-25 rounded border border-border-default bg-surface-card p-5">
         <div
           class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
           :class="{ 'opacity-25': !showStats }"
@@ -315,7 +315,7 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="kubernetesUpgradeStatus && kubernetesUpgradeStatus.spec.step"
-        class="mb-5 rounded bg-surface-card pt-5"
+        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
           <span class="flex-1 text-sm text-content-default">Kubernetes Update</span>
@@ -365,7 +365,7 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="talosUpgradeStatus && talosUpgradeStatus.spec.status"
-        class="mb-5 rounded bg-surface-card pt-5"
+        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
           <span class="flex-1 text-sm text-content-default">Talos Update</span>
@@ -427,7 +427,7 @@ const machineLockedForSecretRotation = computed(() => {
       <ClusterHealthChecks :cluster-id="clusterId" />
       <div
         v-if="secretRotationStatus && secretRotationStatus.spec.status"
-        class="mb-5 rounded bg-surface-card pt-5"
+        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
           <span class="flex-1 text-sm text-content-default">Secret Rotation</span>
@@ -450,7 +450,7 @@ const machineLockedForSecretRotation = computed(() => {
         </div>
       </div>
       <div class="flex gap-5">
-        <div class="mb-5 flex-1 rounded bg-surface-card px-6 py-5">
+        <div class="mb-5 flex-1 rounded border border-border-default bg-surface-card px-6 py-5">
           <div class="mb-3">
             <span class="text-sm text-content-default">Features</span>
           </div>
@@ -482,7 +482,7 @@ const machineLockedForSecretRotation = computed(() => {
             />
           </div>
         </div>
-        <div class="mb-5 flex-1 rounded bg-surface-card px-6 py-5">
+        <div class="mb-5 flex-1 rounded border border-border-default bg-surface-card px-6 py-5">
           <div class="mb-3">
             <span class="text-sm text-content-default">Labels</span>
           </div>
@@ -494,7 +494,7 @@ const machineLockedForSecretRotation = computed(() => {
           />
         </div>
       </div>
-      <div class="flex-col rounded bg-surface-card pt-5">
+      <div class="flex-col rounded border border-border-default bg-surface-card pt-5">
         <div class="flex px-6 pb-4">
           <span class="text-sm text-content-default">Machines</span>
         </div>

@@ -398,7 +398,7 @@ useTitle('Monitor')
   @apply mb-0;
 }
 .monitor-chart {
-  @apply flex-1 rounded bg-surface-card p-3 pt-4;
+  @apply flex-1 rounded border border-border-default bg-surface-card p-3 pt-4;
 }
 .monitor-chart:nth-child(1) {
   @apply mr-3;
@@ -407,13 +407,13 @@ useTitle('Monitor')
   @apply ml-3;
 }
 .monitor-chart-wide {
-  @apply border-b border-border-strong;
+  @apply border-b-border-subtle;
   margin-right: 0 !important;
   padding-bottom: 29px;
   border-radius: 4px 4px 0 0;
 }
 .monitor-data-wrapper {
-  @apply flex w-full flex-1 flex-col overflow-hidden bg-surface-card px-2 pt-5 text-xs text-content-default lg:px-8;
+  @apply flex w-full flex-1 flex-col overflow-hidden rounded-b border-x border-b border-border-default bg-surface-card px-2 pt-5 text-xs text-content-default lg:px-8;
 }
 .monitor-data-box {
   @apply flex-1 overflow-x-auto bg-surface-card py-3;

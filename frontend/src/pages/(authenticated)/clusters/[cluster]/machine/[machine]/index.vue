@@ -330,14 +330,14 @@ useTitle('Overview')
 
     <template v-if="machineStatus">
       <ul v-if="machineStatus.spec.message_status?.diagnostics" class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-surface-card">
+        <li class="flex w-full flex-col rounded border border-border-default bg-surface-card">
           <h4 class="overview-data-heading">Diagnostic Warnings</h4>
           <NodeDiagnosticWarnings :diagnostics="machineStatus?.spec?.message_status?.diagnostics" />
         </li>
       </ul>
 
       <ul class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-surface-card">
+        <li class="flex w-full flex-col rounded border border-border-default bg-surface-card">
           <h4 class="overview-data-heading">Labels</h4>
           <div class="overview-data-row">
             <ItemLabels
@@ -413,7 +413,7 @@ useTitle('Overview')
 }
 
 .overview-data-item {
-  @apply w-full rounded bg-surface-card;
+  @apply w-full rounded border border-border-default bg-surface-card;
   align-self: stretch;
   max-width: 100%;
 }

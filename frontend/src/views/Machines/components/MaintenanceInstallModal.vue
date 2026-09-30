@@ -285,7 +285,7 @@ const doInstall = async () => {
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
+          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
           >{{ progress.length ? progress.join('\n') : 'Starting install…' }}</pre>
       </div>
     </template>

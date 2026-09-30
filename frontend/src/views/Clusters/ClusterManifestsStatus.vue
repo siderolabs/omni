@@ -112,7 +112,9 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
       </div>
 
       <div class="grid max-w-3xl gap-3 py-6 @2xl:grid-cols-3">
-        <div class="flex flex-col items-center gap-2 rounded-lg bg-surface-card p-4 text-center">
+        <div
+          class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        >
           <TIcon icon="pods" class="size-5 text-content-default" />
           <h3 class="text-sm font-medium text-content-emphasis">Grouped manifests</h3>
           <p class="text-xs text-content-secondary">
@@ -121,7 +123,9 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
           </p>
         </div>
 
-        <div class="flex flex-col items-center gap-2 rounded-lg bg-surface-card p-4 text-center">
+        <div
+          class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        >
           <TIcon icon="check-in-circle" class="size-5 text-content-default" />
           <h3 class="text-sm font-medium text-content-emphasis">Sync tracking</h3>
           <p class="text-xs text-content-secondary">
@@ -130,7 +134,9 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
           </p>
         </div>
 
-        <div class="flex flex-col items-center gap-2 rounded-lg bg-surface-card p-4 text-center">
+        <div
+          class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        >
           <TIcon icon="list-bullet" class="size-5 text-content-default" />
           <h3 class="text-sm font-medium text-content-emphasis">Graph &amp; list views</h3>
           <p class="text-xs text-content-secondary">

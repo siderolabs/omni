@@ -134,7 +134,7 @@ const organizedDisks = computed(() =>
       v-for="diskInfo in organizedDisks"
       v-else
       :key="diskInfo.disk.metadata.id"
-      class="overflow-hidden rounded-lg"
+      class="overflow-hidden rounded-lg border border-border-default bg-surface-card"
       :aria-labelledby="`disk-${diskInfo.disk.metadata.id}-title`"
     >
       <div class="border-b border-border-strong bg-surface-raised p-4">

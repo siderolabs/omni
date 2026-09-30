@@ -73,7 +73,7 @@ const icsUrl = computed(() => {
         href="https://support.siderolabs.com/"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-accent-subtle text-accent-text"
@@ -100,7 +100,7 @@ const icsUrl = computed(() => {
         :href="getDocsLink('omni')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
@@ -121,7 +121,9 @@ const icsUrl = computed(() => {
         />
       </a>
 
-      <div class="flex items-start gap-4 rounded-sm bg-surface-card p-4">
+      <div
+        class="flex items-start gap-4 rounded-sm border border-border-default bg-surface-card p-4"
+      >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
@@ -165,7 +167,7 @@ const icsUrl = computed(() => {
         :href="getDocsLink('talos', '/overview/what-is-talos#community-&-support')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
@@ -186,7 +188,9 @@ const icsUrl = computed(() => {
         />
       </a>
 
-      <div class="flex items-start gap-4 rounded-sm bg-surface-card p-4">
+      <div
+        class="flex items-start gap-4 rounded-sm border border-border-default bg-surface-card p-4"
+      >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >

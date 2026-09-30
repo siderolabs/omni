@@ -247,7 +247,7 @@ const doUpgrade = async () => {
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
+          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
         ><template v-if="progress.length > 0"><template v-for="line in progress" :key="line.message"><span v-if="line.level === 'info'" class="text-content-secondary">{{ line.message }}
 </span><span v-else-if="line.level === 'error'" class="text-status-danger-text">{{ line.message }}
 </span></template></template><template v-else>Starting upgrade...</template>

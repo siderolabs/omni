@@ -94,7 +94,7 @@ useTitle('License Agreement')
       <h1 class="text-2xl font-bold text-content-default uppercase">End User License Agreement</h1>
 
       <div
-        class="flex flex-col gap-4 rounded-md bg-surface-card p-4 font-mono text-xs text-content-secondary"
+        class="flex flex-col gap-4 rounded-md border border-border-default bg-surface-card p-4 font-mono text-xs text-content-secondary"
       >
         <p>
           Before using Sidero Omni, please review the End User License Agreement ("Agreement") at:

@@ -81,7 +81,9 @@ const manifestYAML = computed(() => {
 <template>
   <div class="flex grow flex-col gap-2 @3xl:flex-row">
     <div class="flex min-w-0 grow flex-col gap-2">
-      <div class="flex flex-wrap items-center justify-between rounded-lg bg-surface-card p-2">
+      <div
+        class="flex flex-wrap items-center justify-between rounded-lg border border-border-default bg-surface-card p-2"
+      >
         <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-1.5">
             <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
@@ -99,7 +101,7 @@ const manifestYAML = computed(() => {
           </div>
         </div>
 
-        <div class="text-xs text-content-muted/55">Drag to pan · scroll to zoom</div>
+        <div class="text-xs text-content-muted">Drag to pan · scroll to zoom</div>
 
         <div class="flex overflow-hidden rounded border border-border-default bg-surface-chrome">
           <IconButton

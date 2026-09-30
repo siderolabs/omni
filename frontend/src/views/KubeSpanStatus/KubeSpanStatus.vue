@@ -134,7 +134,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
     <div class="flex grow flex-col gap-2 @3xl:flex-row">
       <div class="flex min-w-0 grow flex-col gap-2">
         <div
-          class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-surface-card p-2"
+          class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border-default bg-surface-card p-2"
         >
           <div class="flex items-center gap-4 text-xs text-content-secondary">
             <div class="flex items-center gap-1.5">
@@ -157,7 +157,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
             </div>
           </div>
 
-          <div class="text-xs text-content-muted/55">Drag to pan · scroll to zoom</div>
+          <div class="text-xs text-content-muted">Drag to pan · scroll to zoom</div>
 
           <div class="flex overflow-hidden rounded border border-border-default bg-surface-chrome">
             <IconButton
@@ -194,7 +194,9 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
         />
       </div>
 
-      <div class="flex shrink-0 flex-col rounded-lg bg-surface-card px-2 @3xl:w-64">
+      <div
+        class="flex shrink-0 flex-col rounded-lg border border-border-default bg-surface-card px-2 @3xl:w-64"
+      >
         <div class="px-2 py-3">
           <h3 class="text-sm font-medium text-content-emphasis">Cluster nodes</h3>
         </div>
