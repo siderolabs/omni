@@ -74,6 +74,7 @@
     "@chromatic-com/storybook": "^5.3.1",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.63.0",
+    "@siderolabs/talos-design-system": "github:siderolabs/talos-design-system#semver:^0.6.0",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/vue3-vite": "^10.6.0",
     "@tailwindcss/vite": "^4.3.3",
