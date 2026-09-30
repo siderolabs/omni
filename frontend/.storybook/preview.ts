@@ -30,6 +30,7 @@ const preview: Preview = {
         icon: 'mirror',
         items: [
           { value: 'dark', title: 'Dark', icon: 'moon' },
+          { value: 'dim', title: 'Dim', icon: 'circlehollow' },
           { value: 'light', title: 'Light', icon: 'sun' },
         ],
         dynamicTitle: true,

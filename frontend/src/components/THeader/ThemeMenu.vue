@@ -24,7 +24,8 @@ const { preference } = useTheme()
 
 const options: { value: ThemePreference; label: string; icon: IconType }[] = [
   { value: 'light', label: 'Light', icon: 'sun' },
-  { value: 'dark', label: 'Dark', icon: 'moon' },
+  { value: 'dark', label: 'Dark', icon: 'moon-solid' },
+  { value: 'dim', label: 'Dim', icon: 'moon' },
   { value: 'system', label: 'System', icon: 'computer-desktop' },
 ]
 

@@ -13,7 +13,7 @@ const srcDir = fileURLToPath(new URL('./src', import.meta.url))
 const define = {
   __THEME_COLORS__: JSON.stringify(
     Object.fromEntries(
-      (['light', 'dark'] as const).map((theme) => [
+      (['light', 'dark', 'dim'] as const).map((theme) => [
         theme,
         {
           page: tokens.semantic[theme]['surface-page'].value,

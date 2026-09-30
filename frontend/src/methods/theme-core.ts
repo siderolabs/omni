@@ -5,15 +5,17 @@
 
 // No imports: this is inlined into index.html via src/theme-init.ts.
 
-export type ThemePreference = 'light' | 'dark' | 'system'
+export type ThemePreference = 'light' | 'dark' | 'dim' | 'system'
 export type Theme = Exclude<ThemePreference, 'system'>
 
 export const THEME_STORAGE_KEY = 'theme'
 
+/** Dim counts as dark. */
 export const colorScheme = (theme: Theme): 'light' | 'dark' =>
   theme === 'light' ? 'light' : 'dark'
 
-export const isTheme = (value: unknown): value is Theme => value === 'light' || value === 'dark'
+export const isTheme = (value: unknown): value is Theme =>
+  value === 'light' || value === 'dark' || value === 'dim'
 
 /** Unrecognised values follow the system. */
 export const resolveTheme = (preference: unknown, prefersDark: boolean): Theme => {
