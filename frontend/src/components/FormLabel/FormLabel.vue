@@ -20,7 +20,7 @@ const forwarded = useForwardProps(delegatedProps)
 <template>
   <Label
     v-bind="forwarded"
-    :class="cn('inline-block text-sm font-medium text-naturals-n14', props.class)"
+    :class="cn('inline-block text-sm font-medium text-content-emphasis', props.class)"
   >
     <slot></slot>
   </Label>

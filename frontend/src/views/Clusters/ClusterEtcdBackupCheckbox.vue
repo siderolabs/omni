@@ -112,7 +112,7 @@ const updateBackupInterval = () => {
     <div v-else-if="enabled" class="flex h-6 items-center gap-2 text-xs">
       <span>Interval:</span>
       <template v-if="!editingBackupConfig">
-        <span class="text-naturals-n13">{{ formatDuration({ hours }) }}</span>
+        <span class="text-content-default">{{ formatDuration({ hours }) }}</span>
         <IconButton v-if="!editingBackupConfig" icon="edit" @click="startEditingBackupInterval" />
       </template>
       <template v-else>
@@ -129,7 +129,7 @@ const updateBackupInterval = () => {
             @keydown.enter="updateBackupInterval"
           />
         </div>
-        <div class="text-naturals-n13">{{ pluralize('hour', backupIntervalPreview) }}</div>
+        <div class="text-content-default">{{ pluralize('hour', backupIntervalPreview) }}</div>
         <IconButton icon="check" @click="updateBackupInterval" />
       </template>
     </div>

@@ -53,12 +53,14 @@ const serviceAccountRenewModal = ref<{
   <TListItem>
     <template #default>
       <div class="flex items-center gap-2">
-        <div class="grid flex-1 grid-cols-4 items-center pr-2 text-xs text-naturals-n13 *:truncate">
+        <div
+          class="grid flex-1 grid-cols-4 items-center pr-2 text-xs text-content-default *:truncate"
+        >
           <div class="font-bold">{{ item.metadata.id }}</div>
-          <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
+          <div class="max-w-min rounded bg-surface-raised px-2 py-1 text-content-muted">
             {{ item.spec.role ?? 'None' }}
           </div>
-          <div class="text-naturals-n10">{{ lastActive }}</div>
+          <div class="text-content-muted">{{ lastActive }}</div>
           <div>{{ expiration }}</div>
         </div>
         <div class="flex justify-between">

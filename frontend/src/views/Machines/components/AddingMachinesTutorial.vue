@@ -53,10 +53,10 @@ const pxeBootCode =
       !data?.spec.registered_machines_count &&
       !data?.spec.pending_machines_count
     "
-    class="space-y-4 rounded-lg border border-primary-p3 bg-naturals-n2 p-6"
+    class="space-y-4 rounded-lg border border-border-accent bg-surface-card p-6"
   >
     <header>
-      <h2 class="text-sm font-medium text-naturals-n14">Getting Started: Machines</h2>
+      <h2 class="text-sm font-medium text-content-emphasis">Getting Started: Machines</h2>
     </header>
 
     <div class="space-y-4 text-xs font-medium">

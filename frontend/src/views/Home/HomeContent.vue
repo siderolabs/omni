@@ -58,7 +58,7 @@ const showReleaseNotes = false
 <template>
   <div class="flex flex-col gap-6">
     <header>
-      <h1 class="text-xl font-medium text-naturals-n14">Home</h1>
+      <h1 class="text-xl font-medium text-content-emphasis">Home</h1>
     </header>
 
     <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_auto]">
@@ -90,7 +90,7 @@ const showReleaseNotes = false
           </div>
         </div>
 
-        <div v-if="showReleaseNotes" class="bg-yellow-y1 p-2">Release notes</div>
+        <div v-if="showReleaseNotes" class="bg-status-warning-default p-2">Release notes</div>
       </div>
 
       <HomeGeneralInformation class="lg:w-72" />

@@ -83,7 +83,7 @@ const {
 </script>
 
 <template>
-  <Card class="flex flex-col gap-6 p-4 text-naturals-n14">
+  <Card class="flex flex-col gap-6 p-4 text-content-emphasis">
     <header class="flex items-center justify-between">
       <h2 class="text-sm font-medium">General Information</h2>
       <TSpinner v-if="apiConfigLoading" class="size-4" />
@@ -115,7 +115,7 @@ const {
       />
     </dl>
 
-    <hr class="border border-naturals-n4" />
+    <hr class="border border-border-default" />
 
     <section class="flex flex-col gap-2" aria-labelledby="add-machines-header">
       <h3 id="add-machines-header" class="text-sm font-medium">Add Machines</h3>

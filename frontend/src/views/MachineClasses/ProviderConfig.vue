@@ -48,7 +48,7 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
 </script>
 
 <template>
-  <div class="text-naturals-n13">Infrastructure Provider</div>
+  <div class="text-content-default">Infrastructure Provider</div>
   <TList
     :key="infraProvider"
     :opts="{
@@ -73,16 +73,16 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
           @click="() => setInfraProvider(item)"
         >
           <div class="flex items-center gap-2">
-            <div class="flex flex-1 items-center gap-3 text-sm text-naturals-n13">
+            <div class="flex flex-1 items-center gap-3 text-sm text-content-default">
               <TIcon :svg-base-64="item.spec.icon" icon="cloud-connection" class="h-10 w-10" />
               <div class="flex flex-col gap-1">
                 <div>{{ item.spec.name }}</div>
-                <div class="rounded bg-naturals-n4 px-2 py-0.5 text-xs text-naturals-n11">
+                <div class="rounded bg-surface-hover px-2 py-0.5 text-xs text-content-secondary">
                   id:
                   <WordHighlighter
                     :query="searchQuery"
                     :text-to-highlight="item.metadata.id"
-                    highlight-class="bg-naturals-n14"
+                    highlight-class="bg-surface-inverse"
                   />
                 </div>
               </div>
@@ -102,10 +102,10 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
 @reference "../../index.css";
 
 .provider-item {
-  @apply min-w-fit cursor-pointer rounded border border-naturals-n6 bg-naturals-n2 p-3 transition-colors duration-200 hover:border-naturals-n8 hover:bg-naturals-n3 max-md:flex-1;
+  @apply min-w-fit cursor-pointer rounded border border-border-strong bg-surface-card p-3 transition-colors duration-200 hover:border-border-strong hover:bg-surface-raised max-md:flex-1;
 }
 
 .selected {
-  @apply border-naturals-n9 bg-naturals-n3;
+  @apply border-border-strong bg-surface-raised;
 }
 </style>

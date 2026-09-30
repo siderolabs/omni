@@ -259,7 +259,7 @@ const doInstall = async () => {
           <span
             v-if="installDiskStatus?.spec.message"
             :title="installDiskStatus.spec.message"
-            class="max-w-64 truncate text-xs text-naturals-n9"
+            class="max-w-64 truncate text-xs text-content-muted"
           >
             {{ installDiskStatus.spec.message }}
           </span>
@@ -271,12 +271,12 @@ const doInstall = async () => {
         <RadioGroup
           id="talos-install-version"
           v-model="selectedVersion"
-          class="flex max-h-80 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+          class="flex max-h-80 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
         >
           <template v-for="(group, label) in installVersions" :key="label">
             <RadioGroupLabel
               as="div"
-              class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+              class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
             >
               {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
             </RadioGroupLabel>
@@ -288,8 +288,8 @@ const doInstall = async () => {
                 :value="version"
               >
                 <div
-                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-naturals-n4"
-                  :class="{ 'bg-naturals-n4': checked }"
+                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+                  :class="{ 'bg-surface-hover': checked }"
                 >
                   <TCheckbox
                     :model-value="checked"
@@ -322,7 +322,7 @@ const doInstall = async () => {
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded bg-naturals-n2 p-2 text-xs wrap-anywhere whitespace-pre-wrap text-naturals-n11"
+          class="grow basis-80 overflow-y-auto rounded bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
           >{{ progress.length ? progress.join('\n') : 'Starting install…' }}</pre>
       </div>
     </template>

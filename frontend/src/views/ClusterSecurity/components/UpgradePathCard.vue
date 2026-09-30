@@ -36,13 +36,13 @@ const canExpand = computed(
 </script>
 
 <template>
-  <div class="rounded border border-naturals-n5 bg-naturals-n2">
+  <div class="rounded border border-border-strong bg-surface-card">
     <div class="flex flex-wrap items-center gap-3 px-4 py-3">
-      <TIcon icon="upgrade" class="size-5 shrink-0 text-naturals-n11" aria-hidden="true" />
+      <TIcon icon="upgrade" class="size-5 shrink-0 text-content-secondary" aria-hidden="true" />
 
       <div class="flex flex-1 flex-col">
-        <span class="text-sm font-medium text-naturals-n14">Upgrade to {{ version }}</span>
-        <span class="text-xs text-naturals-n11">
+        <span class="text-sm font-medium text-content-emphasis">Upgrade to {{ version }}</span>
+        <span class="text-xs text-content-secondary">
           {{ isPatch ? 'Latest patch' : 'Next version' }}
         </span>
       </div>
@@ -57,7 +57,7 @@ const canExpand = computed(
           >
             {{ diff.resolved.length }} fixed
           </li>
-          <li class="rounded-sm bg-naturals-n4 px-2 py-1 text-naturals-n11">
+          <li class="rounded-sm bg-surface-hover px-2 py-1 text-content-secondary">
             {{ diff.remaining.length }} remaining
           </li>
           <li
@@ -68,7 +68,7 @@ const canExpand = computed(
           </li>
           <li
             v-if="!diff.resolved.length && !diff.introduced.length"
-            class="rounded-sm bg-naturals-n4 px-2 py-1 text-naturals-n11"
+            class="rounded-sm bg-surface-hover px-2 py-1 text-content-secondary"
           >
             No change
           </li>
@@ -98,10 +98,10 @@ const canExpand = computed(
 
     <div
       v-else-if="expanded && diff"
-      class="flex flex-col gap-4 border-t border-naturals-n5 px-4 py-3"
+      class="flex flex-col gap-4 border-t border-border-strong px-4 py-3"
     >
       <section v-if="diff.resolved.length" class="flex flex-col gap-2">
-        <h4 class="flex items-center gap-1.5 text-xs font-medium text-green-g1">
+        <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-success-text">
           <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
           Fixed by this upgrade ({{ diff.resolved.length }})
         </h4>
@@ -109,7 +109,7 @@ const canExpand = computed(
       </section>
 
       <section v-if="diff.introduced.length" class="flex flex-col gap-2">
-        <h4 class="flex items-center gap-1.5 text-xs font-medium text-red-r1">
+        <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-danger-text">
           <TIcon icon="warning" class="size-4 shrink-0" aria-hidden="true" />
           Introduced by this upgrade ({{ diff.introduced.length }})
         </h4>

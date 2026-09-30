@@ -32,7 +32,11 @@ onKeyStroke('Escape', (event) => {
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div v-if="expanded" class="fixed inset-0 z-40 bg-naturals-n0/90" @click="expanded = false" />
+      <div
+        v-if="expanded"
+        class="fixed inset-0 z-40 bg-surface-page/90"
+        @click="expanded = false"
+      />
     </Transition>
 
     <div
@@ -40,13 +44,13 @@ onKeyStroke('Escape', (event) => {
       :class="
         cn(
           expanded &&
-            'fixed inset-0 z-50 flex flex-col gap-3 rounded-sm bg-naturals-n3 p-6 sm:inset-6',
+            'fixed inset-0 z-50 flex flex-col gap-3 rounded-sm bg-surface-raised p-6 sm:inset-6',
           $attrs.class,
         )
       "
     >
       <div v-if="expanded" class="flex shrink-0 items-center justify-between gap-4">
-        <span class="font-medium text-naturals-n14">{{ title }}</span>
+        <span class="font-medium text-content-emphasis">{{ title }}</span>
 
         <IconButton
           icon="close"

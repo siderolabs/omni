@@ -24,7 +24,7 @@ defineProps<{
 <template>
   <Card class="text-xs">
     <header class="flex justify-between gap-1 px-4 py-3">
-      <h2 class="text-sm font-medium text-naturals-n14">Recent Machines</h2>
+      <h2 class="text-sm font-medium text-content-emphasis">Recent Machines</h2>
 
       <TButton
         icon-position="left"
@@ -45,7 +45,7 @@ defineProps<{
     <div
       v-for="item in machines.slice(0, 5)"
       :key="item.metadata.id"
-      class="grid grid-cols-3 items-center gap-2 border-t border-naturals-n4 px-4 py-3 max-sm:grid-cols-[1fr_1fr_auto]"
+      class="grid grid-cols-3 items-center gap-2 border-t border-border-default px-4 py-3 max-sm:grid-cols-[1fr_1fr_auto]"
     >
       <div class="flex min-w-0 items-center gap-2">
         <RouterLink

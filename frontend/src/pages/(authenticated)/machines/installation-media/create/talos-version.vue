@@ -119,16 +119,16 @@ useTitle('Talos Version')
 
       <br />
       Selecting
-      <code class="rounded bg-naturals-n4 px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
       will automatically get the latest version, even if it changes.
     </p>
 
     <div class="space-y-2">
-      <h2 id="docs-label-id" class="text-xs font-medium text-naturals-n14 after:content-[':']">
+      <h2 id="docs-label-id" class="text-xs font-medium text-content-emphasis after:content-[':']">
         Documentation for Talos Linux {{ resolvedTalosVersion }}
       </h2>
       <ul
-        class="list-inside list-disc space-y-2 text-xs text-primary-p3"
+        class="list-inside list-disc space-y-2 text-xs text-accent-text"
         aria-labelledby="docs-label-id"
       >
         <li>
@@ -163,7 +163,7 @@ useTitle('Talos Version')
       </ul>
     </div>
 
-    <h2 class="text-base font-medium text-naturals-n14">Omni settings</h2>
+    <h2 class="text-base font-medium text-content-emphasis">Omni settings</h2>
 
     <GrpcTunnelCheckbox v-model="formState.useGrpcTunnel" />
 
@@ -177,11 +177,11 @@ useTitle('Talos Version')
 
     <p class="text-xs">
       Selecting
-      <code class="rounded bg-naturals-n4 px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
       will automatically get the default join token, even if it changes.
     </p>
 
-    <h3 class="text-sm font-medium text-naturals-n14">Machine User Labels</h3>
+    <h3 class="text-sm font-medium text-content-emphasis">Machine User Labels</h3>
 
     <Labels v-model="formState.machineUserLabels" />
   </div>

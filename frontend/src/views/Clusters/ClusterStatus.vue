@@ -58,17 +58,17 @@ const phaseClass = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return 'text-green-g1'
+        return 'text-status-success-text'
       } else {
-        return 'text-red-r1'
+        return 'text-status-danger-text'
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
   }
 }
 </script>

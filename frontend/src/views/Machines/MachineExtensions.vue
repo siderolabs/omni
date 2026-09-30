@@ -161,7 +161,7 @@ const extensionsLevel = computed(() => {
       <div class="flex flex-1 flex-col overflow-y-auto">
         <template v-if="ready && extensionsState.length > 0">
           <div
-            class="mb-1 grid grid-cols-3 items-center justify-center bg-naturals-n2 px-6 py-2 text-xs"
+            class="mb-1 grid grid-cols-3 items-center justify-center bg-surface-card px-6 py-2 text-xs"
           >
             <div>Name</div>
             <div>State</div>
@@ -169,32 +169,32 @@ const extensionsLevel = computed(() => {
           </div>
           <TListItem v-for="item in extensionsState" :key="item.name">
             <div class="flex gap-2 px-3">
-              <div class="grid flex-1 grid-cols-3 items-center justify-center text-naturals-n12">
+              <div class="grid flex-1 grid-cols-3 items-center justify-center text-content-default">
                 <WordHighlighter
                   :query="searchString"
                   :text-to-highlight="item.name"
-                  highlight-class="bg-naturals-n14"
-                  class="text-naturals-n14"
+                  highlight-class="bg-surface-inverse"
+                  class="text-content-emphasis"
                 />
                 <div class="flex">
                   <div
-                    class="flex items-center gap-2 rounded bg-naturals-n3 px-2 py-1 text-xs text-naturals-n13"
+                    class="flex items-center gap-2 rounded bg-surface-raised px-2 py-1 text-xs text-content-default"
                   >
                     <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
-                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-yellow-y1" />
+                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-status-warning-text" />
                       <span>Installing</span>
                     </template>
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing"
                     >
-                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-red-r1" />
+                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-status-danger-text" />
                       <span>Removing</span>
                     </template>
 
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed"
                     >
-                      <TIcon icon="check-in-circle" class="h-4 w-4 text-green-g1" />
+                      <TIcon icon="check-in-circle" class="h-4 w-4 text-status-success-text" />
                       <span>Installed</span>
                     </template>
                   </div>
@@ -221,7 +221,7 @@ const extensionsLevel = computed(() => {
 
     <div
       v-if="!readOnly"
-      class="flex h-16 shrink-0 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"
+      class="flex h-16 shrink-0 items-center justify-end border-t border-border-strong bg-surface-chrome px-12"
     >
       <TButton
         variant="highlighted"

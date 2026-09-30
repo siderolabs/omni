@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 <template>
   <div class="flex flex-col gap-1 text-xs">
-    <dt class="text-naturals-n11">{{ title }}</dt>
+    <dt class="text-content-secondary">{{ title }}</dt>
 
     <div class="flex items-center justify-between gap-1">
       <dd

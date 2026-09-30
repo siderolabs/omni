@@ -109,7 +109,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       </TButton>
       <TButton
         v-if="machineSetNode"
-        class="header-button text-red-r1 hover:text-red-r1 active:text-red-r1"
+        class="header-button text-status-danger-text hover:text-status-danger-text active:text-status-danger-text"
         icon="delete"
         icon-position="left"
         variant="secondary"

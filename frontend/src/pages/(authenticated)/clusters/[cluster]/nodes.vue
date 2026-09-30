@@ -137,10 +137,10 @@ useTitle('Nodes')
 @reference "../../../../index.css";
 
 .nodes-list-heading {
-  @apply flex items-center bg-naturals-n2;
+  @apply flex items-center bg-surface-card;
   padding: 10px 16px;
 }
 .nodes-list-heading > p {
-  @apply w-1/5 text-xs text-naturals-n13;
+  @apply w-1/5 text-xs text-content-default;
 }
 </style>

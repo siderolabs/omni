@@ -71,7 +71,7 @@ const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
 
 <template>
   <div>
-    <div class="flex h-8 w-full overflow-hidden rounded bg-naturals-n5 text-xs">
+    <div class="flex h-8 w-full overflow-hidden rounded bg-surface-inert text-xs">
       <div
         v-for="volume in volumes"
         :key="volume.metadata.id"
@@ -81,7 +81,7 @@ const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
           width: `${partitionPercent(volume.spec.size, disk.spec.size)}%`,
           ...getVolumeStyle(volume),
         }"
-        class="flex min-w-0 items-center justify-center overflow-hidden text-naturals-n14 last:border-r-0"
+        class="flex min-w-0 items-center justify-center overflow-hidden text-content-emphasis last:border-r-0"
       >
         <span
           v-if="partitionPercent(volume.spec.size, disk.spec.size) > 10"
@@ -98,7 +98,7 @@ const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
         v-if="unallocatedPercent > 0"
         :style="{ width: `${unallocatedPercent}%` }"
         title="Unallocated"
-        class="flex min-w-0 items-center justify-center overflow-hidden bg-[repeating-linear-gradient(-45deg,var(--stripe-color),var(--stripe-color)_var(--stripe-size),transparent_var(--stripe-size),transparent_calc(var(--stripe-size)*2))] text-naturals-n12 [--stripe-color:var(--color-naturals-n7)] [--stripe-size:12px]"
+        class="flex min-w-0 items-center justify-center overflow-hidden bg-[repeating-linear-gradient(-45deg,var(--stripe-color),var(--stripe-color)_var(--stripe-size),transparent_var(--stripe-size),transparent_calc(var(--stripe-size)*2))] text-content-default [--stripe-color:var(--color-border-strong)] [--stripe-size:12px]"
       >
         <span
           v-if="unallocatedPercent > 10"
@@ -109,7 +109,7 @@ const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
       </div>
     </div>
 
-    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-naturals-n11">
+    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-secondary">
       <div
         v-for="volume in volumes"
         :key="'legend-' + volume.metadata.id"
@@ -120,17 +120,17 @@ const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
           :class="getVolumeClass(volume)"
           :style="getVolumeStyle(volume)"
         />
-        <span class="font-medium text-naturals-n12">
+        <span class="font-medium text-content-default">
           {{ volume.spec.partition_label || volume.spec.label || volume.spec.dev_path }}
         </span>
-        <span class="font-medium text-naturals-n10">
+        <span class="font-medium text-content-muted">
           {{ prettyBytes(volume.spec.size ?? 0) }}
         </span>
       </div>
       <div v-if="unallocatedPercent > 0" class="flex items-center gap-1.5">
-        <span class="inline-block size-2.5 rounded-sm bg-naturals-n5" />
-        <span class="font-medium text-naturals-n12">Unallocated</span>
-        <span class="font-medium text-naturals-n10">
+        <span class="inline-block size-2.5 rounded-sm bg-surface-inert" />
+        <span class="font-medium text-content-default">Unallocated</span>
+        <span class="font-medium text-content-muted">
           {{ prettyBytes(unallocatedSpace) }}
         </span>
       </div>

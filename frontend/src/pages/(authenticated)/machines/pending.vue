@@ -198,7 +198,7 @@ useTitle(['Machines', 'Pending'])
                     :query="searchQuery"
                     :text-to-highlight="item.metadata.id"
                     split-by-space
-                    highlight-class="bg-naturals-n14"
+                    highlight-class="bg-surface-inverse"
                   />
                 </div>
               </TableCell>

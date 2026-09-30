@@ -110,13 +110,13 @@ watch(filterValue, () => {
 
     <div
       v-if="completions.length > 0 && showCompletions"
-      class="absolute top-full left-0 z-10 mt-1 flex min-w-full flex-col divide-y divide-naturals-n6 rounded border border-naturals-n4 bg-naturals-n2"
+      class="absolute top-full left-0 z-10 mt-1 flex min-w-full flex-col divide-y divide-border-strong rounded border border-border-default bg-surface-card"
     >
       <div
         v-for="(suggestion, index) in completions"
         :key="index"
-        class="flex cursor-pointer px-2 py-2 text-xs hover:bg-naturals-n4"
-        :class="{ 'bg-naturals-n4': index === selectedSuggestion }"
+        class="flex cursor-pointer px-2 py-2 text-xs hover:bg-surface-hover"
+        :class="{ 'bg-surface-hover': index === selectedSuggestion }"
         @click="autoComplete(index)"
       >
         <ItemLabel :label="{ ...suggestion, removable: false }" class="pointer-events-none" />

@@ -111,7 +111,7 @@ useTitle('Pods')
         <TSelectList v-model="filterOption" title="Phase" :values="filterOptions" />
       </div>
 
-      <ul class="mb-1 flex rounded bg-naturals-n2 px-8 py-2.5 text-xs text-naturals-n13">
+      <ul class="mb-1 flex rounded bg-surface-card px-8 py-2.5 text-xs text-content-default">
         <li class="w-1/6">Namespace</li>
         <li class="w-1/3">Name</li>
         <li class="w-1/6">Phase</li>

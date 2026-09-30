@@ -143,12 +143,12 @@ const upgradeClick = async () => {
     <RadioGroup
       v-if="status"
       v-model="selectedVersion"
-      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
     >
       <template v-for="(group, label) in groupedVersions" :key="label">
         <RadioGroupLabel
           as="div"
-          class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+          class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
         >
           {{ label }}{{ group.unsupported ? ' - Not supported by this Omni release' : '' }}
         </RadioGroupLabel>
@@ -160,8 +160,8 @@ const upgradeClick = async () => {
             :value="version"
           >
             <div
-              class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
-              :class="{ 'bg-naturals-n4': checked }"
+              class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-surface-hover"
+              :class="{ 'bg-surface-hover': checked }"
             >
               <TCheckbox
                 :model-value="checked"

@@ -74,8 +74,8 @@ const dynamicProps = computed(() => {
     v-bind="dynamicProps"
     :class="
       cn(
-        'rounded p-1 leading-none text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7',
-        { 'text-red-r1': danger },
+        'rounded p-1 leading-none text-content-secondary transition-all duration-100 hover:bg-surface-inert hover:text-content-default disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-content-muted',
+        { 'text-status-danger-text': danger },
         className,
       )
     "

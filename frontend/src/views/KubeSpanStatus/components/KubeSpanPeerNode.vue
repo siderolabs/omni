@@ -24,26 +24,28 @@ const { data } = defineProps<NodeProps<KubeSpanPeerNodeData>>()
 
 <template>
   <div
-    class="flex size-full items-center gap-2 rounded-md border border-naturals-n6 bg-naturals-n2 px-2.5 shadow-lg/40 transition-opacity"
+    class="flex size-full items-center gap-2 rounded-md border border-border-strong bg-surface-card px-2.5 shadow-lg/40 transition-opacity"
     :class="data.dimmed ? 'opacity-30' : 'opacity-100'"
   >
     <Handle id="left" type="target" :position="Position.Left" class="min-h-0! min-w-0!" />
 
     <div
       class="size-2 rounded-xs border border-current"
-      :class="data.isOnline ? 'bg-current text-green-g1' : 'text-red-r1'"
+      :class="data.isOnline ? 'bg-current text-status-success-text' : 'text-status-danger-text'"
     ></div>
 
     <div class="flex min-w-0 grow flex-col gap-1">
-      <div class="truncate text-xs/tight font-medium text-naturals-n12">
+      <div class="truncate text-xs/tight font-medium text-content-default">
         {{ data.peer.spec.label }}
       </div>
 
-      <span class="w-max rounded bg-current/20 px-1 py-0.5 text-[0.625rem]/none text-naturals-n11">
+      <span
+        class="w-max rounded bg-current/20 px-1 py-0.5 text-[0.625rem]/none text-content-secondary"
+      >
         {{ data.label }}
       </span>
 
-      <div class="truncate font-mono text-[0.625rem]/tight text-naturals-n10">
+      <div class="truncate font-mono text-[0.625rem]/tight text-content-muted">
         {{ data.peer.spec.lastUsedEndpoint || data.peer.spec.endpoint || '—' }}
       </div>
     </div>

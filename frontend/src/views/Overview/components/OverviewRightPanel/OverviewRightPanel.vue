@@ -289,9 +289,9 @@ const exportClusterTemplateModalOpen = ref(false)
 </script>
 
 <template>
-  <div class="min-w-67 rounded bg-naturals-n2 py-5">
+  <div class="min-w-67 rounded bg-surface-card py-5">
     <div class="flex flex-col gap-4 px-4 lg:px-6">
-      <h3 class="text-sm text-naturals-n13">Cluster Details</h3>
+      <h3 class="text-sm text-content-default">Cluster Details</h3>
       <ManagedByTemplatesWarning warning-style="short" />
       <OverviewRightPanelItem
         v-if="clusterStatus?.metadata.created"
@@ -312,7 +312,7 @@ const exportClusterTemplateModalOpen = ref(false)
           <Tooltip
             description="Some machines have diagnostic warnings. See the machines section for details."
           >
-            <TIcon class="h-4 w-4 text-yellow-y1" icon="warning" />
+            <TIcon class="h-4 w-4 text-status-warning-text" icon="warning" />
           </Tooltip>
         </div>
       </OverviewRightPanelItem>
@@ -379,11 +379,11 @@ const exportClusterTemplateModalOpen = ref(false)
       </OverviewRightPanelItem>
     </div>
     <template v-if="clusterStatus?.spec">
-      <div class="my-3 h-px bg-naturals-n4" />
+      <div class="my-3 h-px bg-surface-hover" />
       <div class="flex flex-col gap-4 px-4 lg:px-6">
-        <h3 class="text-sm text-naturals-n13">Control Plane</h3>
+        <h3 class="text-sm text-content-default">Control Plane</h3>
         <OverviewRightPanelItem name="Ready">
-          <span :class="clusterStatus.spec.controlplaneReady ? '' : 'text-red-r1'">
+          <span :class="clusterStatus.spec.controlplaneReady ? '' : 'text-status-danger-text'">
             {{ clusterStatus.spec.controlplaneReady ? 'Yes' : 'No' }}
           </span>
         </OverviewRightPanelItem>
@@ -397,12 +397,12 @@ const exportClusterTemplateModalOpen = ref(false)
               <template #description>
                 <div class="max-w-lg wrap-break-word">{{ lastBackupError }}</div>
               </template>
-              <TIcon class="h-4 w-4 text-yellow-y1" icon="warning" />
+              <TIcon class="h-4 w-4 text-status-warning-text" icon="warning" />
             </Tooltip>
             {{ backupTime }}
             <Tooltip v-if="etcdBackups?.enabled" description="Trigger Etcd Backup">
               <TIcon
-                class="h-4 w-4 cursor-pointer text-green-g1"
+                class="h-4 w-4 cursor-pointer text-status-success-text"
                 icon="play-circle"
                 @click="runEtcdBackup"
               />
@@ -415,9 +415,9 @@ const exportClusterTemplateModalOpen = ref(false)
           :condition="condition"
         />
       </div>
-      <div class="my-3 h-px bg-naturals-n4" />
+      <div class="my-3 h-px bg-surface-hover" />
       <div class="flex flex-col gap-4 px-4 lg:px-6">
-        <h3 class="text-sm text-naturals-n13">Kubernetes</h3>
+        <h3 class="text-sm text-content-default">Kubernetes</h3>
         <OverviewRightPanelItem
           name="API Available"
           :value="clusterStatus.spec.kubernetesAPIReady ? 'Yes' : 'No'"
@@ -428,7 +428,7 @@ const exportClusterTemplateModalOpen = ref(false)
           :value="kubernetesStatus.spec.nodes.length ?? 0"
         />
       </div>
-      <div class="my-3 h-px bg-naturals-n4" />
+      <div class="my-3 h-px bg-surface-hover" />
       <div class="flex flex-col gap-4 px-4 lg:px-6">
         <TButton
           :disabled="!canDownloadKubeconfig"
@@ -477,7 +477,7 @@ const exportClusterTemplateModalOpen = ref(false)
           Export Cluster Template
         </TButton>
       </div>
-      <div class="my-3 h-px bg-naturals-n4" />
+      <div class="my-3 h-px bg-surface-hover" />
       <div class="flex flex-col gap-4 px-4 lg:px-6">
         <Tooltip
           class="grow"
@@ -563,7 +563,7 @@ const exportClusterTemplateModalOpen = ref(false)
           description="Cluster deletion is disabled when the cluster is locked."
         >
           <TButton
-            class="text-red-r1"
+            class="text-status-danger-text"
             variant="secondary"
             icon="delete"
             icon-position="left"

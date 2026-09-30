@@ -65,7 +65,7 @@ function dismissNotification(id: string) {
 <template>
   <div class="flex flex-col">
     <header
-      class="flex h-12 items-center justify-between border-b border-naturals-n4 bg-naturals-n1 px-3 md:h-13 md:px-6"
+      class="flex h-12 items-center justify-between border-b border-border-default bg-surface-chrome px-3 md:h-13 md:px-6"
     >
       <div class="flex items-center gap-4">
         <TButton
@@ -90,7 +90,7 @@ function dismissNotification(id: string) {
           />
         </TButton>
 
-        <RouterLink to="/" class="flex items-center gap-1 text-lg text-naturals-n13 uppercase">
+        <RouterLink to="/" class="flex items-center gap-1 text-lg text-content-default uppercase">
           <TIcon class="t-header-icon size-6" icon="logo" />
           <span class="font-bold">Sidero</span>
           <span>Omni</span>
@@ -102,7 +102,7 @@ function dismissNotification(id: string) {
           variant="subtle"
           icon="check-in-circle"
           icon-position="left"
-          class="text-naturals-n11"
+          class="text-content-secondary"
           @click="helpModalOpen = true"
         >
           <span class="max-sm:sr-only">Support</span>
@@ -116,9 +116,10 @@ function dismissNotification(id: string) {
       v-if="currentNotification"
       class="flex items-center justify-end gap-6 px-6 py-2 transition-colors"
       :class="{
-        'bg-red-r1/15': currentNotification.spec.type === NotificationSpecType.ERROR,
-        'bg-yellow-y1/15': currentNotification.spec.type === NotificationSpecType.WARNING,
-        'bg-blue-b1/15': currentNotification.spec.type === NotificationSpecType.INFO,
+        'bg-status-danger-default/15': currentNotification.spec.type === NotificationSpecType.ERROR,
+        'bg-status-warning-default/15':
+          currentNotification.spec.type === NotificationSpecType.WARNING,
+        'bg-status-info-default/15': currentNotification.spec.type === NotificationSpecType.INFO,
       }"
     >
       <div class="flex items-center gap-2">
@@ -126,12 +127,13 @@ function dismissNotification(id: string) {
           class="size-4 shrink-0 transition-colors"
           :icon="getIcon(currentNotification.spec.type!)"
           :class="{
-            'text-red-r1': currentNotification.spec.type === NotificationSpecType.ERROR,
-            'text-yellow-y1': currentNotification.spec.type === NotificationSpecType.WARNING,
-            'text-blue-b1': currentNotification.spec.type === NotificationSpecType.INFO,
+            'text-status-danger-text': currentNotification.spec.type === NotificationSpecType.ERROR,
+            'text-status-warning-text':
+              currentNotification.spec.type === NotificationSpecType.WARNING,
+            'text-status-info-text': currentNotification.spec.type === NotificationSpecType.INFO,
           }"
         />
-        <span class="text-xs text-naturals-n14">
+        <span class="text-xs text-content-emphasis">
           <span class="font-bold">{{ currentNotification.spec.title }}:</span>
           {{ currentNotification.spec.body }}
         </span>

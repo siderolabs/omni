@@ -103,15 +103,15 @@ const resourceWord = computed(() => {
       </TAlert>
     </div>
     <div v-else-if="warningStyle === 'popup'" class="pb-5 text-xs">
-      <p class="py-2 text-primary-p3">
+      <p class="py-2 text-accent-text">
         This {{ resourceWord }} is managed using {{ managedByString }}.
       </p>
-      <p class="py-2 font-bold text-primary-p3">
+      <p class="py-2 font-bold text-accent-text">
         {{ warningText }}
       </p>
     </div>
     <div v-else class="text-xs">
-      <p class="py-2 text-primary-p3">Managed using {{ managedByString }}</p>
+      <p class="py-2 text-accent-text">Managed using {{ managedByString }}</p>
     </div>
   </template>
 </template>

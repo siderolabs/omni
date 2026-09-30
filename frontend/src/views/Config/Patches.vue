@@ -315,13 +315,13 @@ const toggleDisabled = async (item: RouteItem) => {
         <template #default="{ open }">
           <DisclosureButton
             :id="`disclosure-${index}`"
-            class="grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-naturals-n1 px-4 py-3 text-left text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14"
+            class="grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-surface-chrome px-4 py-3 text-left text-xs font-bold text-content-secondary transition-colors duration-200 select-none hover:text-content-emphasis"
             :aria-label="group.name"
           >
             <WordHighlighter
               :text-to-highlight="group.name"
               :query="filter"
-              highlight-class="bg-naturals-n14"
+              highlight-class="bg-surface-inverse"
             />
 
             <span>ID</span>
@@ -339,7 +339,7 @@ const toggleDisabled = async (item: RouteItem) => {
               <div
                 v-for="item in group.items"
                 :key="item.name"
-                class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-naturals-n3 hover:text-naturals-n12"
+                class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-surface-raised hover:text-content-default"
                 :class="{ 'opacity-50': item.disabled }"
                 role="listitem"
                 :aria-label="item.id"
@@ -351,7 +351,7 @@ const toggleDisabled = async (item: RouteItem) => {
                   <WordHighlighter
                     :text-to-highlight="item.name"
                     :query="filter"
-                    highlight-class="bg-naturals-n14"
+                    highlight-class="bg-surface-inverse"
                     class="truncate"
                   />
 
@@ -361,7 +361,7 @@ const toggleDisabled = async (item: RouteItem) => {
                 <WordHighlighter
                   :text-to-highlight="item.id"
                   :query="filter"
-                  highlight-class="bg-naturals-n14"
+                  highlight-class="bg-surface-inverse"
                 />
 
                 <div class="col-span-2 truncate">

@@ -244,7 +244,7 @@ useTitle(['Machines', 'Installation Media'])
                   aria-label="delete"
                   aria-haspopup="dialog"
                   icon="delete"
-                  class="ml-4 text-red-r1"
+                  class="ml-4 text-status-danger-text"
                   @click="() => openConfirmDeleteModal(preset.metadata.id!)"
                 />
               </Tooltip>

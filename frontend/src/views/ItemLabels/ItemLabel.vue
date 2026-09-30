@@ -49,7 +49,7 @@ const description = computed(() => {
       <TIcon
         v-if="label.removable"
         icon="close"
-        class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-naturals-n14 hover:text-naturals-n1"
+        class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-surface-inverse hover:text-content-inverse"
         @click.stop="$emit('removeLabel')"
       />
     </button>

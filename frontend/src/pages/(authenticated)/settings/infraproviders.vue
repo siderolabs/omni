@@ -151,29 +151,29 @@ useTitle('Infra Providers')
             <div
               v-for="item in items"
               :key="item.metadata.id"
-              class="grid grid-cols-5 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
+              class="grid grid-cols-5 items-center rounded border border-border-strong bg-surface-chrome p-3"
               :class="{ 'border-dashed': !item.spec.name }"
             >
               <div class="flex items-center gap-3">
                 <TIcon
                   :svg-base-64="item.spec.icon"
                   icon="cloud-connection"
-                  class="size-8 text-naturals-n13"
+                  class="size-8 text-content-default"
                 />
 
                 <div class="flex flex-col gap-0.5">
-                  <span v-if="item.spec.name" class="text-md text-naturals-n13">
+                  <span v-if="item.spec.name" class="text-md text-content-default">
                     {{ item.spec.name }}
                   </span>
 
-                  <span class="text-xs font-bold text-naturals-n10">
+                  <span class="text-xs font-bold text-content-muted">
                     ID: {{ item.metadata.id }}
                   </span>
                 </div>
               </div>
 
               <div
-                class="truncate text-xs text-naturals-n13"
+                class="truncate text-xs text-content-default"
                 :class="{ 'opacity-50': !item.spec.version }"
               >
                 {{ item.spec.version || 'Unknown version' }}

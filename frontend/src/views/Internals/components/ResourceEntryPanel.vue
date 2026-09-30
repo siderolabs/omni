@@ -37,9 +37,9 @@ const yaml = computed(() => (item ? dump(item, { noRefs: true }) : ''))
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 border-l-naturals-n4 bg-naturals-n0 p-4 md:border-l">
+  <div class="flex flex-col gap-2 border-l-border-default bg-surface-page p-4 md:border-l">
     <div class="flex justify-between gap-2">
-      <h2 class="truncate font-medium text-naturals-n14">{{ id }}</h2>
+      <h2 class="truncate font-medium text-content-emphasis">{{ id }}</h2>
 
       <CloseButton class="shrink-0" @click="$emit('close')" />
     </div>

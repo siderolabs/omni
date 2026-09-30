@@ -43,14 +43,14 @@ const errors = computed(() => {
 </script>
 
 <template>
-  <Disclosure as="div" class="border-t border-naturals-n4" default-open>
+  <Disclosure as="div" class="border-t border-border-default" default-open>
     <template #default="{ open }">
       <DisclosureButton as="div" class="disclosure">
         <div class="title">
           <p class="title-name truncate">Exposed Services</p>
           <div class="expand-button">
             <TIcon
-              class="h-6 w-6 transition-colors transition-transform duration-250 hover:text-naturals-n13"
+              class="h-6 w-6 transition-colors transition-transform duration-250 hover:text-content-default"
               :class="{ 'rotate-180': !open }"
               icon="drop-up"
             />
@@ -69,8 +69,8 @@ const errors = computed(() => {
             regular-link
           />
           <div v-if="errors.length" class="flex items-center gap-4 pr-5 pl-6 text-xs">
-            <TIcon icon="warning" class="ml-0.5 text-yellow-y1" />
-            <div class="flex-1 truncate text-yellow-y1">
+            <TIcon icon="warning" class="ml-0.5 text-status-warning-text" />
+            <div class="flex-1 truncate text-status-warning-text">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors
             </div>
@@ -87,7 +87,7 @@ const errors = computed(() => {
           </div>
         </template>
         <template v-else>
-          <p class="my-1 items-center justify-start px-6 py-1.5 text-xs text-naturals-n7">
+          <p class="my-1 items-center justify-start px-6 py-1.5 text-xs text-content-muted">
             No exposed services
           </p>
         </template>
@@ -100,40 +100,40 @@ const errors = computed(() => {
 @reference "../../index.css";
 
 .title {
-  @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-naturals-n4;
+  @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-surface-hover;
 }
 
 .title:hover .title-name {
-  @apply text-naturals-n12;
+  @apply text-content-default;
 }
 
 .title-active .title {
-  @apply border-primary-p3;
+  @apply border-border-accent;
 }
 
 .title-active .title-icon {
-  @apply text-naturals-n10;
+  @apply text-content-muted;
 }
 
 .title-active .title-name {
-  @apply text-naturals-n10;
+  @apply text-content-muted;
 }
 
 .title-icon {
-  @apply text-naturals-n10 transition-all duration-200;
+  @apply text-content-muted transition-all duration-200;
   width: 16px;
   height: 16px;
 }
 
 .title-name {
-  @apply flex-1 text-xs text-naturals-n10 transition-all duration-200;
+  @apply flex-1 text-xs text-content-muted transition-all duration-200;
 }
 
 .expand-button {
-  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-n4 transition-colors duration-200 hover:border-naturals-n7;
+  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 hover:border-border-strong;
 }
 
 .title:hover .expand-button {
-  @apply bg-naturals-n2;
+  @apply bg-surface-card;
 }
 </style>

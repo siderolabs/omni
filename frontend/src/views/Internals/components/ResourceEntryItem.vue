@@ -28,17 +28,17 @@ defineEmits<{
     role="row"
     tabindex="0"
     :aria-selected="selected"
-    :class="{ 'bg-naturals-n3': selected }"
+    :class="{ 'bg-surface-raised': selected }"
     class="col-span-full grid cursor-pointer grid-cols-subgrid items-center py-2.5 select-none hover:bg-white/5"
     @click="$emit('open')"
     @keydown.enter.prevent="$emit('open')"
     @keydown.space.prevent="$emit('open')"
   >
-    <div role="cell" class="truncate pl-2 text-naturals-n14">
+    <div role="cell" class="truncate pl-2 text-content-emphasis">
       <WordHighlighter
         :query="search"
         :text-to-highlight="item.metadata.id"
-        highlight-class="bg-naturals-n14"
+        highlight-class="bg-surface-inverse"
       />
     </div>
 

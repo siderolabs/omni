@@ -56,6 +56,6 @@ defineProps<Props>()
 }
 
 .diagnostic-subitem {
-  @apply flex items-center text-naturals-n11;
+  @apply flex items-center text-content-secondary;
 }
 </style>

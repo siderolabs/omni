@@ -61,7 +61,7 @@ const confirm = async () => {
     </ul>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
-    <p class="py-2 text-xs font-bold text-primary-p3">
+    <p class="py-2 text-xs font-bold text-accent-text">
       Accepting the machine will wipe ALL of its disks.
     </p>
   </ConfirmModal>

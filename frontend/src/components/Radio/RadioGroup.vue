@@ -16,7 +16,7 @@ const model = defineModel<T>()
 
 <template>
   <RadioGroup v-model="model">
-    <RadioGroupLabel class="mb-3 block text-sm font-medium text-naturals-n14">
+    <RadioGroupLabel class="mb-3 block text-sm font-medium text-content-emphasis">
       {{ label }}
     </RadioGroupLabel>
 

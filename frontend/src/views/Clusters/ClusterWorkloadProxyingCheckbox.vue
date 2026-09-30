@@ -30,7 +30,7 @@ const checked = defineModel<boolean>({ default: false })
         <p>Available only if the feature is enabled in Omni.</p>
         <p>When enabled, the Services annotated with the following annotations</p>
         <p>will be listed and accessible from the Omni Web interface:</p>
-        <div class="rounded bg-naturals-n5 px-2 py-1">
+        <div class="rounded bg-surface-inert px-2 py-1">
           <p class="font-mono">{{ ExposedServicePortAnnotationKey }} (required)</p>
           <p class="font-mono">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
           <p class="font-mono">{{ ExposedServiceIconAnnotationKey }} (optional)</p>

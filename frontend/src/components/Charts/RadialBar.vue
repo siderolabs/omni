@@ -36,14 +36,14 @@ const RING_GAP = 2
 const TRACK_WIDTH = RING_WIDTH * 0.97
 
 const colors = [
-  'var(--color-primary-p3)',
-  'var(--color-red-r1)',
-  'var(--color-green-g1)',
-  'var(--color-blue-b1)',
-  'var(--color-yellow-y1)',
+  'var(--color-accent-default)',
+  'var(--color-status-danger-default)',
+  'var(--color-status-success-default)',
+  'var(--color-status-info-default)',
+  'var(--color-status-warning-default)',
 ]
 
-const trackColor = 'var(--color-naturals-n8)'
+const trackColor = 'var(--color-content-muted)'
 
 const total = computed(() => propsTotal ?? items.reduce((prev, curr) => prev + curr.value, 0))
 
@@ -82,7 +82,7 @@ const labelId = useId()
 
 <template>
   <div class="flex flex-col gap-2">
-    <h2 :id="labelId" class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
+    <h2 :id="labelId" class="text-xl font-medium text-content-emphasis">{{ title }}</h2>
 
     <figure
       class="flex flex-col items-center gap-2 self-center py-2 not-visited:px-4"
@@ -133,8 +133,8 @@ const labelId = useId()
             class="size-2 rounded-xs"
             :style="{ backgroundColor: item.color }"
           />
-          <dt :id="`${labelId}-dt-${index}`" class="text-naturals-n11">{{ item.label }}</dt>
-          <dd :aria-labelledby="`${labelId}-dt-${index}`" class="text-naturals-n14">
+          <dt :id="`${labelId}-dt-${index}`" class="text-content-secondary">{{ item.label }}</dt>
+          <dd :aria-labelledby="`${labelId}-dt-${index}`" class="text-content-emphasis">
             {{ item.value }}
           </dd>
         </dl>

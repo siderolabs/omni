@@ -146,18 +146,18 @@ useTitle(['Machines', 'Installation Media', 'Create'])
 <template>
   <PageContainer disable-padding class="flex h-full flex-col">
     <div class="flex grow flex-col gap-6 overflow-auto p-6">
-      <h1 class="shrink-0 text-xl font-medium text-naturals-n14">Create New Media</h1>
+      <h1 class="shrink-0 text-xl font-medium text-content-emphasis">Create New Media</h1>
       <RouterView v-if="!isFormResetting" v-model="formState" />
     </div>
 
     <div
-      class="flex w-full shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
+      class="flex w-full shrink-0 items-center gap-4 border-t border-border-default bg-surface-chrome px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
     >
       <div v-if="currentFlowSteps && !isFirstStep" class="flex grow gap-4">
         <Tooltip description="Reset wizard">
           <button
             type="button"
-            class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-red-r1 p-0.5 text-red-r1 transition hover:bg-red-r1 hover:text-naturals-n1 active:brightness-75"
+            class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-status-danger-default p-0.5 text-status-danger-text transition hover:bg-status-danger-default hover:text-content-inverse active:brightness-75"
             @click="formState = {}"
           >
             <TIcon icon="close" class="size-full" aria-label="reset wizard" />

@@ -16,7 +16,7 @@ defineProps<{
 
 <template>
   <div class="flex items-center gap-2">
-    <TIcon class="size-5 text-primary-p2" aria-hidden="true" :icon="icon" />
-    <span class="text-base whitespace-nowrap text-naturals-n14">{{ title }}: {{ value }}</span>
+    <TIcon class="size-5 text-accent-hover" aria-hidden="true" :icon="icon" />
+    <span class="text-base whitespace-nowrap text-content-emphasis">{{ title }}: {{ value }}</span>
   </div>
 </template>

@@ -88,13 +88,13 @@ useTitle('License Agreement')
 <template>
   <PageContainer v-if="!loading && !data" class="flex h-full items-center justify-center">
     <form
-      class="flex w-full max-w-2xl flex-col gap-6 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md"
+      class="flex w-full max-w-2xl flex-col gap-6 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md"
       @submit.prevent="accept"
     >
-      <h1 class="text-2xl font-bold text-naturals-n13 uppercase">End User License Agreement</h1>
+      <h1 class="text-2xl font-bold text-content-default uppercase">End User License Agreement</h1>
 
       <div
-        class="flex flex-col gap-4 rounded-md bg-naturals-n2 p-4 font-mono text-xs text-naturals-n11"
+        class="flex flex-col gap-4 rounded-md bg-surface-card p-4 font-mono text-xs text-content-secondary"
       >
         <p>
           Before using Sidero Omni, please review the End User License Agreement ("Agreement") at:

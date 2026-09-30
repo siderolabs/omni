@@ -66,18 +66,18 @@ const phaseClass = (machineset?: Resource<MachineSetStatusSpec>) => {
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case MachineSetPhase.Running:
       if (machineset?.spec.ready) {
-        return 'text-green-g1'
+        return 'text-status-success-text'
       } else {
-        return 'text-red-r1'
+        return 'text-status-danger-text'
       }
     case MachineSetPhase.Failed:
     case MachineSetPhase.Destroying:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
   }
 }
 

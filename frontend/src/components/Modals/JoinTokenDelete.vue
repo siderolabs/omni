@@ -42,7 +42,7 @@ const deleteToken = async () => {
   >
     <JoinTokenWarnings :id="token" class="mb-2 flex-1" @ready="isReady = true" />
 
-    <p class="text-xs text-primary-p2">
+    <p class="text-xs text-accent-hover">
       This action CANNOT be undone. This will permanently delete the Join Token.
     </p>
   </ConfirmModal>

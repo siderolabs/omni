@@ -269,10 +269,10 @@ useTitle('Authenticate')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
+    <div class="flex flex-col gap-2 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="key" class="fill-color h-6 w-6" />
-        <div class="text-xl font-bold text-naturals-n13">
+        <div class="text-xl font-bold text-content-default">
           <div v-if="authFlow === Auth.CLI">Authenticate CLI Access</div>
           <div v-else-if="authFlow === Auth.Frontend">Authenticate UI Access</div>
           <div v-else-if="authFlow === Auth.WorkloadProxy">Authenticate Workload Proxy Access</div>
@@ -290,7 +290,7 @@ useTitle('Authenticate')
         <div>The keys are going to be issued for the user:</div>
         <UserInfo
           user="user"
-          class="rounded-md bg-naturals-n6 px-6 py-2"
+          class="rounded-md bg-surface-inert px-6 py-2"
           :email="identity"
           :avatar="picture"
           :fullname="name"

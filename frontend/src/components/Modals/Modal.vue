@@ -60,27 +60,27 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
   <DialogRoot v-bind="forwarded">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-30 bg-naturals-n0/90 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 bg-surface-page/90 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       />
 
       <DialogContent
         :class="
           cn(
-            'fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-naturals-n3 px-(--padding-x) py-8 zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
+            'fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-surface-raised px-(--padding-x) py-8 zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
             $attrs.class,
           )
         "
       >
         <div class="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div class="flex flex-col">
-            <DialogTitle class="font-medium text-naturals-n14">{{ title }}</DialogTitle>
+            <DialogTitle class="font-medium text-content-emphasis">{{ title }}</DialogTitle>
             <DialogDescription v-if="$slots.description" class="text-sm">
               <slot name="description"></slot>
             </DialogDescription>
           </div>
 
           <DialogClose
-            class="size-6 shrink-0 text-naturals-n10 transition-colors hover:text-naturals-n14 active:text-naturals-n9"
+            class="size-6 shrink-0 text-content-muted transition-colors hover:text-content-emphasis active:text-content-muted"
             aria-label="Close dialog"
           >
             <TIcon class="size-full" icon="close" />

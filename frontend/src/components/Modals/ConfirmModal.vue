@@ -56,14 +56,14 @@ const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
   <AlertDialogRoot v-bind="forwarded">
     <AlertDialogPortal>
       <AlertDialogOverlay
-        class="fixed inset-0 z-30 bg-naturals-n0/90 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 bg-surface-page/90 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       />
 
       <AlertDialogContent
-        class="fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-surface-raised p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
         <div class="mb-5 flex shrink-0 flex-col">
-          <AlertDialogTitle class="font-medium text-naturals-n14">{{ title }}</AlertDialogTitle>
+          <AlertDialogTitle class="font-medium text-content-emphasis">{{ title }}</AlertDialogTitle>
           <AlertDialogDescription v-if="$slots.description" class="text-sm">
             <slot name="description"></slot>
           </AlertDialogDescription>

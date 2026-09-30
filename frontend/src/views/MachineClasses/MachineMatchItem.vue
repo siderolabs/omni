@@ -29,7 +29,7 @@ const machineName = useMachineName(() => machine)
 <template>
   <TListItem>
     <template #default>
-      <div class="flex items-center text-xs text-naturals-n13">
+      <div class="flex items-center text-xs text-content-default">
         <div class="flex flex-1 items-center gap-2">
           <RouterLink
             :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }"
@@ -39,7 +39,7 @@ const machineName = useMachineName(() => machine)
               :query="searchQuery ?? ''"
               split-by-space
               :text-to-highlight="machineName"
-              highlight-class="bg-naturals-n14"
+              highlight-class="bg-surface-inverse"
             />
           </RouterLink>
           <ItemLabels :resource="machine" @select-label="(label) => $emit('filterLabels', label)" />

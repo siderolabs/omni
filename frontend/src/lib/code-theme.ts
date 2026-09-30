@@ -20,20 +20,20 @@ function palette() {
   const read = (name: string) => styles.getPropertyValue(name).trim()
 
   return {
-    key: read('--color-blue-b1'),
-    scalar: read('--color-naturals-n13'),
-    quoted: read('--color-primary-p2'),
-    constant: read('--color-yellow-y1'),
-    muted: read('--color-naturals-n10'),
-    comment: read('--color-naturals-n9'),
-    invalid: read('--color-red-r1'),
+    key: read('--color-status-info-default'),
+    scalar: read('--color-content-default'),
+    quoted: read('--color-accent-hover'),
+    constant: read('--color-status-warning-default'),
+    muted: read('--color-content-muted'),
+    comment: read('--color-content-muted'),
+    invalid: read('--color-status-danger-default'),
 
-    surface: read('--color-naturals-n3'),
-    canvas: read('--color-naturals-n0'),
-    field: read('--color-naturals-n1'),
-    border: read('--color-naturals-n7'),
-    lineNumber: read('--color-naturals-n8'),
-    activeLineNumber: read('--color-naturals-n11'),
+    surface: read('--color-surface-raised'),
+    canvas: read('--color-surface-page'),
+    field: read('--color-surface-chrome'),
+    border: read('--color-border-strong'),
+    lineNumber: read('--color-content-muted'),
+    activeLineNumber: read('--color-content-secondary'),
   }
 }
 

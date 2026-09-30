@@ -128,7 +128,7 @@ useTitle('Service Accounts')
 }
 
 .users-header {
-  @apply mb-1 bg-naturals-n2;
+  @apply mb-1 bg-surface-card;
   padding: 10px 16px;
 }
 

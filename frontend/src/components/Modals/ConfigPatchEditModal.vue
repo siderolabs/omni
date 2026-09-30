@@ -101,7 +101,7 @@ const saveAndClose = async () => {
       <CodeEditor
         v-model="configChanges"
         :talos-version="talosVersion"
-        class="h-80 w-full bg-naturals-n2"
+        class="h-80 w-full bg-surface-card"
       />
     </div>
   </Modal>

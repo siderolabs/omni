@@ -41,12 +41,12 @@ const workersCount = computed(() => {
 <template>
   <div class="flex items-center gap-4">
     <div class="flex grow flex-col">
-      <p v-if="!loading" class="text-xs text-naturals-n8">
-        <span class="text-naturals-n13">{{ controlPlaneCount }}, {{ workersCount }}</span>
+      <p v-if="!loading" class="text-xs text-content-muted">
+        <span class="text-content-default">{{ controlPlaneCount }}, {{ workersCount }}</span>
         selected
       </p>
 
-      <div v-if="warning" class="text-xs text-yellow-y1">{{ warning }}</div>
+      <div v-if="warning" class="text-xs text-status-warning-text">{{ warning }}</div>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">

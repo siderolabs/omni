@@ -317,13 +317,13 @@ const onSavePatchConfig = (config: string) => {
 <template>
   <TListItem>
     <template #default>
-      <div class="flex items-center text-naturals-n13">
+      <div class="flex items-center text-content-default">
         <span class="grow truncate pr-2 font-bold">
           <WordHighlighter
             :query="searchQuery ?? ''"
             :text-to-highlight="machineName"
             split-by-space
-            highlight-class="bg-naturals-n14"
+            highlight-class="bg-surface-inverse"
           />
         </span>
 
@@ -331,7 +331,7 @@ const onSavePatchConfig = (config: string) => {
           <Tooltip :description="installDiskStatus?.spec.message" placement="bottom">
             <div
               v-if="systemDiskPath"
-              class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
+              class="cursor-not-allowed rounded border border-border-strong py-1.5 pr-8 pl-3 text-content-secondary"
             >
               Install Disk: {{ systemDiskPath }}
             </div>
@@ -355,14 +355,14 @@ const onSavePatchConfig = (config: string) => {
                 ? `extensions-${options?.[machineSetIndex]?.id}`
                 : undefined
             "
-            class="my-auto text-naturals-n14"
+            class="my-auto text-content-emphasis"
             :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
             :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
             @click="createExtensionsModalOpen = true"
           />
           <IconButton
             :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
-            class="my-auto text-naturals-n14"
+            class="my-auto text-content-emphasis"
             :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
             :icon="
               machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined

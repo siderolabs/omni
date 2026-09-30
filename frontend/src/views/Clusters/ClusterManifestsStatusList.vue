@@ -78,28 +78,28 @@ const modeName = (mode?: KubernetesManifestGroupSpecMode) => {
 const groupPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase) => {
   switch (phase) {
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
-      return 'text-green-g1'
+      return 'text-status-success-text'
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return 'text-primary-p3'
+      return 'text-accent-text'
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-naturals-n9'
+      return 'text-content-muted'
   }
 }
 
 const manifestPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) => {
   switch (phase) {
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'text-green-g1'
+      return 'text-status-success-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-naturals-n9'
+      return 'text-content-muted'
   }
 }
 
@@ -126,11 +126,11 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
       <span class="resource-label label-green" :class="groupPhaseClass(group.phase)">
         {{ groupPhaseName(group.phase) }}
       </span>
-      <span class="text-xs text-naturals-n9">
+      <span class="text-xs text-content-muted">
         Mode:
-        <span class="text-naturals-n13">{{ modeName(group.mode) }}</span>
+        <span class="text-content-default">{{ modeName(group.mode) }}</span>
       </span>
-      <span class="text-xs text-naturals-n9">
+      <span class="text-xs text-content-muted">
         {{ groupInSyncCount(group) }}/{{ manifestCount(group) }} in sync
       </span>
     </div>
@@ -140,7 +140,7 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
       <div v-else class="flex flex-col gap-1" role="table">
         <div role="rowgroup">
           <div
-            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 px-2 py-1 text-xs font-bold text-naturals-n9"
+            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 px-2 py-1 text-xs font-bold text-content-muted"
             role="row"
           >
             <div role="columnheader">ID</div>
@@ -155,16 +155,16 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
           <div
             v-for="manifest in group.manifestsList"
             :key="manifest.id"
-            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 rounded px-2 py-1.5 text-xs hover:bg-naturals-n3"
+            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 rounded px-2 py-1.5 text-xs hover:bg-surface-raised"
             role="row"
             :aria-label="manifest.id"
           >
-            <div class="truncate text-naturals-n13" :title="manifest.id" role="cell">
+            <div class="truncate text-content-default" :title="manifest.id" role="cell">
               {{ manifest.id }}
             </div>
-            <div class="text-naturals-n11" role="cell">{{ manifest.kind || '—' }}</div>
-            <div class="text-naturals-n11" role="cell">{{ manifest.name || '—' }}</div>
-            <div class="text-naturals-n11" role="cell">{{ manifest.namespace || '—' }}</div>
+            <div class="text-content-secondary" role="cell">{{ manifest.kind || '—' }}</div>
+            <div class="text-content-secondary" role="cell">{{ manifest.name || '—' }}</div>
+            <div class="text-content-secondary" role="cell">{{ manifest.namespace || '—' }}</div>
             <div :class="manifestPhaseClass(manifest.phase)" role="cell">
               {{ manifestPhaseName(manifest.phase) }}
             </div>

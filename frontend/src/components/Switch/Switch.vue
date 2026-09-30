@@ -22,7 +22,7 @@ const checked = defineModel<boolean>({ default: false })
   <label class="inline-flex cursor-pointer items-center gap-2 has-disabled:cursor-not-allowed">
     <span
       v-if="label || $slots.default"
-      class="grow truncate text-xs text-naturals-n11 select-none"
+      class="grow truncate text-xs text-content-secondary select-none"
     >
       <slot>{{ label }}</slot>
     </span>
@@ -30,10 +30,10 @@ const checked = defineModel<boolean>({ default: false })
     <SwitchRoot
       v-model="checked"
       :disabled
-      class="inline-flex h-5 w-8 rounded-full border border-naturals-n7 bg-naturals-n4 transition-[background] disabled:cursor-not-allowed disabled:brightness-50 data-[state=checked]:border-primary-p3 data-[state=checked]:bg-primary-p3"
+      class="inline-flex h-5 w-8 rounded-full border border-border-strong bg-surface-hover transition-[background] disabled:cursor-not-allowed disabled:brightness-50 data-[state=checked]:border-border-accent data-[state=checked]:bg-accent-fill"
     >
       <SwitchThumb
-        class="my-auto size-3.5 translate-x-0.5 rounded-full bg-naturals-n13 text-xs transition-transform data-[state=checked]:translate-x-full"
+        class="my-auto size-3.5 translate-x-0.5 rounded-full bg-surface-inverse text-xs transition-transform data-[state=checked]:translate-x-full"
       />
     </SwitchRoot>
   </label>

@@ -19,7 +19,11 @@ const meta: Meta<typeof ProgressBar> = {
     color: {
       type: 'string',
       control: 'select',
-      options: ['var(--color-green-g1)', 'var(--color-yellow-y1)', 'var(--color-red-r1)'],
+      options: [
+        'var(--color-status-success-default)',
+        'var(--color-status-warning-default)',
+        'var(--color-status-danger-default)',
+      ],
     },
   },
 }

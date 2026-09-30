@@ -19,42 +19,42 @@ const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescript
   [MachineStatusEventMachineStage.BOOTING]: {
     name: 'Booting',
     icon: 'loading',
-    class: 'text-yellow-y1',
+    class: 'text-status-warning-text',
   },
   [MachineStatusEventMachineStage.INSTALLING]: {
     name: 'Installing',
     icon: 'loading',
-    class: 'text-yellow-y1',
+    class: 'text-status-warning-text',
   },
   [MachineStatusEventMachineStage.MAINTENANCE]: {
     name: 'Maintenance',
     icon: 'settings',
-    class: 'text-naturals-n11',
+    class: 'text-content-secondary',
   },
   [MachineStatusEventMachineStage.RUNNING]: {
     name: 'Running',
     icon: 'check-in-circle',
-    class: 'text-green-g1',
+    class: 'text-status-success-text',
   },
   [MachineStatusEventMachineStage.REBOOTING]: {
     name: 'Rebooting',
     icon: 'loading',
-    class: 'text-yellow-y1',
+    class: 'text-status-warning-text',
   },
   [MachineStatusEventMachineStage.SHUTTING_DOWN]: {
     name: 'Shutting Down',
     icon: 'loading',
-    class: 'text-red-r1',
+    class: 'text-status-danger-text',
   },
   [MachineStatusEventMachineStage.RESETTING]: {
     name: 'Resetting',
     icon: 'loading',
-    class: 'text-red-r1',
+    class: 'text-status-danger-text',
   },
   [MachineStatusEventMachineStage.UPGRADING]: {
     name: 'Upgrading',
     icon: 'loading',
-    class: 'text-yellow-y1',
+    class: 'text-status-warning-text',
   },
 }
 
@@ -62,12 +62,12 @@ const powerStageStatus: Partial<Record<MachineStatusSnapshotSpecPowerStage, Stat
   [MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERED_OFF]: {
     name: 'Powered Off',
     icon: 'power-off',
-    class: 'text-red-r1',
+    class: 'text-status-danger-text',
   },
   [MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERING_ON]: {
     name: 'Powering On',
     icon: 'loading',
-    class: 'text-yellow-y1',
+    class: 'text-status-warning-text',
   },
 }
 

@@ -24,7 +24,7 @@ useTitle('Forbidden')
 @reference "../index.css";
 
 .code {
-  @apply font-bold text-naturals-n2;
+  @apply font-bold text-surface-card;
   font-size: 300px;
   line-height: 300px;
 }

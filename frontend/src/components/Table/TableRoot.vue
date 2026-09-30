@@ -12,8 +12,8 @@ defineSlots<{
 </script>
 
 <template>
-  <table class="text-xs text-naturals-n13">
-    <thead v-if="$slots.head" class="bg-naturals-n2 text-left">
+  <table class="text-xs text-content-default">
+    <thead v-if="$slots.head" class="bg-surface-card text-left">
       <slot name="head"></slot>
     </thead>
 

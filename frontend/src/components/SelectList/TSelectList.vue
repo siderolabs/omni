@@ -180,7 +180,7 @@ function labelFromValue(value?: T | null) {
           <span
             :class="{
               'max-md:hidden': hideSelectedSmallScreens,
-              'text-naturals-n9': placeholder && !labelFromValue(selectedItem),
+              'text-content-muted': placeholder && !labelFromValue(selectedItem),
             }"
           >
             {{ labelFromValue(selectedItem) || placeholder }}
@@ -226,7 +226,7 @@ function labelFromValue(value?: T | null) {
                   <WordHighligher
                     :query="searchTerm"
                     :text-to-highlight="itemLabel(item)"
-                    highlight-class="truncate bg-transparent font-medium text-naturals-n14"
+                    highlight-class="truncate bg-transparent font-medium text-content-emphasis"
                   />
                 </SelectItemText>
               </SelectItem>

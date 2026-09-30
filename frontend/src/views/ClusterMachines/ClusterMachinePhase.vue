@@ -97,21 +97,21 @@ const stageClass = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {
-        return 'text-green-g1'
+        return 'text-status-success-text'
       } else {
-        return 'text-red-r1'
+        return 'text-status-danger-text'
       }
     case ClusterMachineStatusSpecStage.POWERED_OFF:
-      return 'text-naturals-n10'
+      return 'text-content-muted'
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
   }
 }
 

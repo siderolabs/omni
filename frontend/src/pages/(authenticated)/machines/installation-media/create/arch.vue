@@ -102,7 +102,7 @@ useTitle('Architecture')
 
     <TCheckbox v-if="selectedPlatform?.spec.secure_boot_supported" v-model="formState.secureBoot">
       <div class="flex flex-col">
-        <span class="font-medium text-naturals-n14">SecureBoot</span>
+        <span class="font-medium text-content-emphasis">SecureBoot</span>
         <span>
           Create a
           <a

@@ -64,7 +64,7 @@ async function deleteProvider() {
     <div class="flex flex-col gap-3">
       <p class="text-xs">Please confirm the action.</p>
 
-      <div class="text-xs text-yellow-y1">
+      <div class="text-xs text-status-warning-text">
         The infra provider service will no longer be able to connect to Omni. And its service
         account key will be removed.
       </div>

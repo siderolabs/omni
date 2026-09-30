@@ -178,22 +178,24 @@ useTitle('Bootstrap Manifests')
           </span>
           <span
             :class="{
-              'text-primary-p3':
+              'text-accent-text':
                 item.diff &&
                 syncParams.dry_run &&
                 item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-green-g1':
+              'text-status-success-text':
                 item.diff &&
                 !syncParams.dry_run &&
                 item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,
-              'text-red-r1':
+              'text-status-danger-text':
                 item.response_type === KubernetesSyncManifestResponseResponseType.UNKNOWN,
             }"
           >
             {{ item.path }}
           </span>
-          <span v-if="!item.diff" class="text-naturals-n9">(No changes)</span>
-          <span v-if="item.diff && !syncParams.dry_run" class="text-green-g1">(Updated)</span>
+          <span v-if="!item.diff" class="text-content-muted">(No changes)</span>
+          <span v-if="item.diff && !syncParams.dry_run" class="text-status-success-text">
+            (Updated)
+          </span>
         </template>
         <template
           v-if="
@@ -229,9 +231,9 @@ useTitle('Bootstrap Manifests')
 }
 
 .bottom-line {
-  @apply rounded-t-sm border-b border-b-naturals-n5;
+  @apply rounded-t-sm border-b border-b-border-strong;
 }
 .label {
-  @apply mr-2 rounded-full bg-naturals-n3 px-2 py-1 text-xs font-bold text-naturals-n9 uppercase;
+  @apply mr-2 rounded-full bg-surface-raised px-2 py-1 text-xs font-bold text-content-muted uppercase;
 }
 </style>

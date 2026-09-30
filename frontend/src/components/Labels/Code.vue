@@ -29,7 +29,7 @@ const showCopyButton = ref(false)
     <TAnimation>
       <div
         v-if="showCopyButton"
-        class="absolute top-0 right-0 left-0 flex h-14 justify-end rounded bg-linear-to-b from-naturals-n0 p-1"
+        class="absolute top-0 right-0 left-0 flex h-14 justify-end rounded bg-linear-to-b from-surface-page p-1"
       >
         <span class="rounded">
           <button @click="copy(text)">{{ copied ? 'Copied' : 'Copy' }}</button>
@@ -44,10 +44,10 @@ const showCopyButton = ref(false)
 @reference "../../index.css";
 
 code {
-  @apply relative rounded bg-naturals-n4 p-2 break-all whitespace-pre-line;
+  @apply relative rounded bg-surface-hover p-2 break-all whitespace-pre-line;
 }
 
 button {
-  @apply rounded border border-naturals-n6 bg-naturals-n4 px-1 py-0.5 transition-colors duration-200 hover:border-naturals-n8 hover:bg-naturals-n6 hover:text-naturals-n13;
+  @apply rounded border border-border-strong bg-surface-hover px-1 py-0.5 transition-colors duration-200 hover:border-border-strong hover:bg-surface-inert hover:text-content-default;
 }
 </style>

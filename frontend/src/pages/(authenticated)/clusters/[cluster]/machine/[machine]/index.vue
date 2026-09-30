@@ -294,7 +294,7 @@ useTitle('Overview')
             v-if="talosMachineStatus.spec.status?.unmetConditions?.length"
             :conditions="talosMachineStatus.spec.status.unmetConditions"
           />
-          <div v-else class="flex items-center gap-1 text-xs text-green-g1">
+          <div v-else class="flex items-center gap-1 text-xs text-status-success-text">
             <TIcon icon="check-in-circle-classic" class="h-4" />
             None
           </div>
@@ -330,14 +330,14 @@ useTitle('Overview')
 
     <template v-if="machineStatus">
       <ul v-if="machineStatus.spec.message_status?.diagnostics" class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-naturals-n2">
+        <li class="flex w-full flex-col rounded bg-surface-card">
           <h4 class="overview-data-heading">Diagnostic Warnings</h4>
           <NodeDiagnosticWarnings :diagnostics="machineStatus?.spec?.message_status?.diagnostics" />
         </li>
       </ul>
 
       <ul class="overview-data-list">
-        <li class="flex w-full flex-col rounded bg-naturals-n2">
+        <li class="flex w-full flex-col rounded bg-surface-card">
           <h4 class="overview-data-heading">Labels</h4>
           <div class="overview-data-row">
             <ItemLabels
@@ -395,7 +395,7 @@ useTitle('Overview')
 
       <div v-else-if="servicesErr" class="flex items-center justify-center py-8 text-sm">
         <span v-if="servicesErrCode === Code.UNAVAILABLE">Talos API is not ready yet</span>
-        <span v-else class="text-red-r1">{{ servicesErr }}</span>
+        <span v-else class="text-status-danger-text">{{ servicesErr }}</span>
       </div>
     </section>
   </PageContainer>
@@ -413,13 +413,13 @@ useTitle('Overview')
 }
 
 .overview-data-item {
-  @apply w-full rounded bg-naturals-n2;
+  @apply w-full rounded bg-surface-card;
   align-self: stretch;
   max-width: 100%;
 }
 
 .overview-data-heading {
-  @apply w-full border-b border-naturals-n4 px-4 py-3 text-xs text-naturals-n13;
+  @apply w-full border-b border-border-default px-4 py-3 text-xs text-content-default;
   font-size: 13px;
 }
 .overview-data-row {
@@ -430,10 +430,10 @@ useTitle('Overview')
   padding-bottom: 12px;
 }
 .overview-data-name {
-  @apply text-xs text-naturals-n11;
+  @apply text-xs text-content-secondary;
 }
 .overview-data {
-  @apply text-xs text-naturals-n13;
+  @apply text-xs text-content-default;
 }
 .overview-data-roles {
   @apply flex;
@@ -445,17 +445,17 @@ useTitle('Overview')
   @apply mb-4 flex items-center;
 }
 .overview-services-title {
-  @apply mr-2 text-base text-naturals-n13;
+  @apply mr-2 text-base text-content-default;
 }
 .overview-services-amount {
-  @apply bg-naturals-n5 text-xs text-naturals-n12;
+  @apply bg-surface-inert text-xs text-content-default;
   border-radius: 30px;
   padding: 3px 7px;
 }
 .overview-table-header {
-  @apply rounded-sm bg-naturals-n2 px-4 py-2 pl-11;
+  @apply rounded-sm bg-surface-card px-4 py-2 pl-11;
 }
 .overview-table-name {
-  @apply w-full text-xs text-naturals-n13;
+  @apply w-full text-xs text-content-default;
 }
 </style>

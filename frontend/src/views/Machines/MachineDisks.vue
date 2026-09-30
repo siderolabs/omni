@@ -132,39 +132,39 @@ const organizedDisks = computed(() =>
       class="overflow-hidden rounded-lg"
       :aria-labelledby="`disk-${diskInfo.disk.metadata.id}-title`"
     >
-      <div class="border-b border-naturals-n6 bg-naturals-n3 p-4">
+      <div class="border-b border-border-strong bg-surface-raised p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <TIcon icon="server" class="size-6 text-naturals-n13" />
+            <TIcon icon="server" class="size-6 text-content-default" />
             <div class="space-y-1 text-sm/none">
-              <p :id="`disk-${diskInfo.disk.metadata.id}-title`" class="text-naturals-n14">
+              <p :id="`disk-${diskInfo.disk.metadata.id}-title`" class="text-content-emphasis">
                 {{ diskInfo.disk.metadata.id }}
               </p>
-              <p class="font-medium text-naturals-n11">
+              <p class="font-medium text-content-secondary">
                 {{ diskInfo.disk.spec.dev_path }}
               </p>
             </div>
           </div>
           <div class="flex items-center gap-4">
-            <span class="text-sm text-naturals-n14">
+            <span class="text-sm text-content-emphasis">
               {{ prettyBytes(diskInfo.disk.spec.size ?? 0) }}
             </span>
             <div class="flex items-center gap-2">
               <span
                 v-if="diskInfo.disk.spec.cdrom"
-                class="rounded bg-naturals-n5 px-2 py-1 text-xs text-naturals-n13"
+                class="rounded bg-surface-inert px-2 py-1 text-xs text-content-default"
               >
                 CD-ROM
               </span>
               <span
                 v-if="diskInfo.disk.spec.transport"
-                class="rounded bg-naturals-n5 px-2 py-1 text-xs text-naturals-n13"
+                class="rounded bg-surface-inert px-2 py-1 text-xs text-content-default"
               >
                 {{ diskInfo.disk.spec.transport }}
               </span>
               <span
                 v-if="diskInfo.disk.spec.readonly"
-                class="rounded bg-yellow-y1/20 px-2 py-1 text-xs text-yellow-y1"
+                class="rounded bg-status-warning-default/20 px-2 py-1 text-xs text-status-warning-text"
               >
                 Read-only
               </span>
@@ -173,7 +173,7 @@ const organizedDisks = computed(() =>
         </div>
       </div>
 
-      <div class="space-y-2 bg-naturals-n2 p-4">
+      <div class="space-y-2 bg-surface-card p-4">
         <DiskUsageBar :disk="diskInfo.disk" :volumes="diskInfo.partitions.map((p) => p.volume)" />
         <DiskPartitionTable v-if="diskInfo.partitions.length" :partitions="diskInfo.partitions" />
       </div>

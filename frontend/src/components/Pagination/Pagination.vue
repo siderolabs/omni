@@ -54,12 +54,18 @@ const currentPage = defineModel<number>('current-page', { default: 1 })
           :value="page.value"
           as-child
         >
-          <IconButton class="min-w-6 data-selected:bg-naturals-n4 data-selected:text-naturals-n12">
+          <IconButton
+            class="min-w-6 data-selected:bg-surface-hover data-selected:text-content-default"
+          >
             {{ page.value }}
           </IconButton>
         </PaginationListItem>
 
-        <PaginationEllipsis v-else :key="`ellipsis-${index}`" class="min-w-6 text-naturals-n11">
+        <PaginationEllipsis
+          v-else
+          :key="`ellipsis-${index}`"
+          class="min-w-6 text-content-secondary"
+        >
           &#8230;
         </PaginationEllipsis>
       </template>

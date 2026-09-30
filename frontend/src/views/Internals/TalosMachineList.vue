@@ -38,7 +38,7 @@ const filtered = computed(() => {
       <ResourceBreadcrumbs runtime="talos" />
     </div>
 
-    <p class="mb-4 text-sm text-naturals-n13">
+    <p class="mb-4 text-sm text-content-default">
       Talos resources are served by each node. Pick a machine to browse its resources.
     </p>
 
@@ -68,7 +68,7 @@ const filtered = computed(() => {
             class="relative"
             :class="m.connected ? 'hover:bg-white/5' : 'opacity-50'"
           >
-            <TableCell class="text-naturals-n14">
+            <TableCell class="text-content-emphasis">
               <!-- Stretched over the row so the whole row is clickable while staying a real link -->
               <RouterLink
                 v-if="m.connected"
@@ -78,7 +78,7 @@ const filtered = computed(() => {
                 <WordHighlighter
                   :query="search"
                   :text-to-highlight="m.name"
-                  highlight-class="bg-naturals-n14"
+                  highlight-class="bg-surface-inverse"
                 />
               </RouterLink>
 
@@ -86,21 +86,21 @@ const filtered = computed(() => {
                 v-else
                 :query="search"
                 :text-to-highlight="m.name"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
             </TableCell>
             <TableCell>
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="m.location"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
             </TableCell>
-            <TableCell class="text-naturals-n10">
+            <TableCell class="text-content-muted">
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="m.id"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
             </TableCell>
             <TableCell>{{ m.connected ? 'Connected' : 'Disconnected' }}</TableCell>

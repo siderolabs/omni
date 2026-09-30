@@ -139,7 +139,7 @@ const options = computed(() => {
           </p>
         </div>
       </template>
-      <span class="block flex-1 truncate text-xs text-naturals-n11 select-none">
+      <span class="block flex-1 truncate text-xs text-content-secondary select-none">
         Discovery Service
       </span>
     </Tooltip>

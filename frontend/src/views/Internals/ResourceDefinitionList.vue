@@ -59,7 +59,7 @@ const definitions = computed(() => {
       />
     </div>
 
-    <p class="mb-4 text-sm text-naturals-n13">
+    <p class="mb-4 text-sm text-content-default">
       Every resource type registered in the selected runtime. Types your role cannot read will show
       an error when opened.
     </p>
@@ -93,26 +93,26 @@ const definitions = computed(() => {
               <!-- Stretched over the row so the whole row is clickable while staying a real link -->
               <RouterLink
                 :to="resourceRoute(spec.type!)"
-                class="text-naturals-n14 after:absolute after:inset-0"
+                class="text-content-emphasis after:absolute after:inset-0"
               >
                 <WordHighlighter
                   :query="search"
                   :text-to-highlight="spec.displayType"
-                  highlight-class="bg-naturals-n14"
+                  highlight-class="bg-surface-inverse"
                 />
               </RouterLink>
               <WordHighlighter
-                class="block font-mono text-naturals-n10"
+                class="block font-mono text-content-muted"
                 :query="search"
                 :text-to-highlight="spec.type"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
             </TableCell>
             <TableCell>
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="spec.defaultNamespace"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
             </TableCell>
             <TableCell>
@@ -120,7 +120,7 @@ const definitions = computed(() => {
                 Sensitive
               </span>
             </TableCell>
-            <TableCell class="text-naturals-n10">
+            <TableCell class="text-content-muted">
               {{ spec.aliases?.join(', ') }}
             </TableCell>
           </TableRow>

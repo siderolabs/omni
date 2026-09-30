@@ -150,7 +150,7 @@ function isLastChild(item?: DeviceTreeItem) {
 
     <TreeRoot
       v-else
-      class="h-full overflow-y-auto rounded-lg text-xs/none text-naturals-n10"
+      class="h-full overflow-y-auto rounded-lg text-xs/none text-content-muted"
       :items="tree"
       :get-key="(item) => item.id"
       :default-expanded="tree.map((t) => t.id)"
@@ -164,15 +164,15 @@ function isLastChild(item?: DeviceTreeItem) {
         >
           <div
             v-if="item.hasChildren"
-            class="flex h-7.5 items-center justify-between gap-2 rounded-lg bg-naturals-n1 pr-2 pl-4 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-naturals-n6 hover:bg-naturals-n6"
+            class="flex h-7.5 items-center justify-between gap-2 rounded-lg bg-surface-chrome pr-2 pl-4 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-border-strong hover:bg-surface-inert"
           >
             <div class="flex min-w-0 items-center gap-4">
-              <TIcon :icon="item.value.icon" class="size-4 shrink-0 text-naturals-n14" />
+              <TIcon :icon="item.value.icon" class="size-4 shrink-0 text-content-emphasis" />
               <span class="truncate">{{ item.value.label }}</span>
             </div>
 
             <div class="flex items-center gap-4">
-              <div class="rounded-md bg-naturals-n4 px-1.5 py-0.5 font-medium">
+              <div class="rounded-md bg-surface-hover px-1.5 py-0.5 font-medium">
                 {{ countDevices(item.value as DeviceTreeItem) }}
               </div>
 
@@ -185,24 +185,24 @@ function isLastChild(item?: DeviceTreeItem) {
 
           <template v-else>
             <div
-              class="pointer-events-none absolute top-px left-6.75 border-l-2 border-naturals-n8"
+              class="pointer-events-none absolute top-px left-6.75 border-l-2 border-border-strong"
               :class="isLastChild(asDevice(item.value as DeviceTreeItem)) ? 'h-1/2' : 'h-full'"
             ></div>
 
             <div
-              class="pointer-events-none absolute top-px left-6.75 h-1/2 w-2 border-b-2 border-naturals-n8"
+              class="pointer-events-none absolute top-px left-6.75 h-1/2 w-2 border-b-2 border-border-strong"
             ></div>
 
             <div
-              class="flex h-7.5 items-center gap-2 rounded px-1 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-naturals-n6"
+              class="flex h-7.5 items-center gap-2 rounded px-1 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-border-strong"
             >
               <span class="min-w-0 truncate">{{ item.value.label }}</span>
 
-              <div class="h-px grow bg-naturals-n4 pr-4 pl-2"></div>
+              <div class="h-px grow bg-surface-hover pr-4 pl-2"></div>
 
               <span
                 v-if="asDevice(item.value as DeviceTreeItem)?.device.spec.driver"
-                class="rounded bg-naturals-n4 px-2 py-1.5 whitespace-nowrap text-naturals-n14"
+                class="rounded bg-surface-hover px-2 py-1.5 whitespace-nowrap text-content-emphasis"
               >
                 {{ asDevice(item.value as DeviceTreeItem)?.device.spec.driver }}
               </span>

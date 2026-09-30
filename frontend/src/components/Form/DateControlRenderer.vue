@@ -28,7 +28,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
   <ContentWrapper class="relative" :control="control">
     <input
       :id="control.id + '-input'"
-      class="-my-1 bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
+      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
       type="date"
       :value="dataTime"
       :disabled="!control.enabled"
@@ -47,7 +47,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
 @reference "../../index.css";
 
 input[type='date'] {
-  @apply rounded border border-naturals-n7 px-2 py-1;
+  @apply rounded border border-border-strong px-2 py-1;
 }
 
 input[type='date']::-webkit-inner-spin-button {

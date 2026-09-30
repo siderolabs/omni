@@ -78,7 +78,7 @@ useTitle('Machine Classes')
           </div>
         </div>
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 pl-7 text-naturals-n12">
+          <div class="relative pr-3 pl-7 text-content-default">
             <IconButton
               icon="delete"
               aria-label="delete"
@@ -96,7 +96,7 @@ useTitle('Machine Classes')
                   :to="{ name: 'MachineClassEdit', params: { classname: item.metadata.id! } }"
                   class="list-item-link"
                 >
-                  <WordHighlighter highlight-class="bg-naturals-n14" :query="searchQuery">
+                  <WordHighlighter highlight-class="bg-surface-inverse" :query="searchQuery">
                     {{ item.metadata.id }}
                   </WordHighlighter>
                 </RouterLink>
@@ -127,7 +127,7 @@ useTitle('Machine Classes')
 @reference "../../../index.css";
 
 .header {
-  @apply mb-1 bg-naturals-n2 px-6 py-2 pl-10 text-xs;
+  @apply mb-1 bg-surface-card px-6 py-2 pl-10 text-xs;
 }
 
 .list-grid {

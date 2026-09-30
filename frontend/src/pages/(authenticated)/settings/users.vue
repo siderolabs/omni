@@ -76,7 +76,7 @@ useTitle('Users')
         search
       >
         <template #default="{ items }">
-          <div class="mb-1 bg-naturals-n2 px-4 py-2.5 text-xs">
+          <div class="mb-1 bg-surface-card px-4 py-2.5 text-xs">
             <div class="grid grid-cols-6 pr-2">
               <div>Email</div>
               <div>Role</div>

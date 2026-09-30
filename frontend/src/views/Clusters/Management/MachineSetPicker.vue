@@ -56,7 +56,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
   <RadioGroup
     v-if="options.length < 8"
     v-model="machineSetIndex"
-    class="flex gap-0.5 rounded bg-naturals-n3 p-1"
+    class="flex gap-0.5 rounded bg-surface-raised p-1"
   >
     <RadioGroupOption
       v-for="(option, index) in options"
@@ -78,12 +78,12 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
     </RadioGroupOption>
   </RadioGroup>
 
-  <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
+  <div v-else class="relative flex h-8 items-center justify-center rounded bg-surface-raised">
     <PopoverRoot v-model:open="showPicker">
       <PopoverPortal>
         <PopoverContent
           side="left"
-          class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-naturals-n3 p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-surface-raised p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           <IconButton
             icon="chevron-up"
@@ -124,7 +124,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
       <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
         <TIcon
           icon="chevron-left"
-          class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
+          class="mx-1 h-3 w-3 text-content-muted transition-all group-hover:scale-125 group-hover:text-content-emphasis"
         />
         <template v-if="pickedOption">
           <span class="resource-label" :class="pickedOption.labelClass">

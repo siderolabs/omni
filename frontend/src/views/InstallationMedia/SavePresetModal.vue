@@ -90,7 +90,9 @@ async function save() {
   >
     <div class="flex flex-col gap-1">
       <TInput v-model.trim="name" title="Name" :focus="open" />
-      <p v-if="name && existingPreset" class="ml-2.5 text-xs text-red-r1">Name already in use</p>
+      <p v-if="name && existingPreset" class="ml-2.5 text-xs text-status-danger-text">
+        Name already in use
+      </p>
     </div>
   </Modal>
 </template>

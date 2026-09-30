@@ -89,16 +89,16 @@ onMounted(() => focus && inputRef.value?.focus())
 </script>
 
 <template>
-  <label class="flex flex-col gap-4 text-sm font-medium text-naturals-n14">
+  <label class="flex flex-col gap-4 text-sm font-medium text-content-emphasis">
     <span v-if="title && overheadTitle" class="text-sm">
       {{ title }}
     </span>
 
     <div
-      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border transition-colors focus-within:border-naturals-n5 has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-naturals-n6 has-disabled:bg-naturals-n3 has-disabled:text-naturals-n9 has-disabled:select-none"
+      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border transition-colors focus-within:border-border-strong has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
       :class="[
         compact ? 'px-2 py-1' : 'px-2 py-2.25',
-        secondary ? 'border-transparent' : 'border-naturals-n8',
+        secondary ? 'border-transparent' : 'border-border-strong',
       ]"
     >
       <slot name="labels"></slot>
@@ -111,7 +111,7 @@ onMounted(() => focus && inputRef.value?.focus())
         :required
         :disabled="disabled"
         :type="type"
-        class="peer min-w-2 flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden disabled:opacity-0"
+        class="peer min-w-2 flex-1 border-none bg-transparent text-xs text-content-default placeholder-content-muted outline-hidden transition-colors focus:border-transparent focus:outline-hidden disabled:opacity-0"
         :placeholder="placeholder"
         @blur="blurHandler"
         @keydown.enter="blurHandler"
@@ -119,18 +119,18 @@ onMounted(() => focus && inputRef.value?.focus())
 
       <TIcon
         v-if="icon"
-        class="order-first size-4 text-naturals-n8 transition-colors peer-focus:text-naturals-n14"
+        class="order-first size-4 text-content-muted transition-colors peer-focus:text-content-emphasis"
         :icon="icon"
       />
 
       <div v-if="type === 'number'" class="-my-1 flex flex-col select-none">
         <TIcon
-          class="h-2 w-2 rotate-180 text-naturals-n12 hover:text-naturals-n14"
+          class="h-2 w-2 rotate-180 text-content-default hover:text-content-emphasis"
           icon="chevron-down"
           @click="updateValue(numberValue + step)"
         />
         <TIcon
-          class="h-2 w-2 text-naturals-n12 hover:text-naturals-n14"
+          class="h-2 w-2 text-content-default hover:text-content-emphasis"
           icon="chevron-down"
           @click="updateValue(numberValue - step)"
         />
@@ -140,7 +140,7 @@ onMounted(() => focus && inputRef.value?.focus())
         v-else-if="modelValue !== '' || clearable"
         role="button"
         aria-label="clear"
-        class="size-4 fill-current text-naturals-n8 transition-colors peer-focus:text-naturals-n14"
+        class="size-4 fill-current text-content-muted transition-colors peer-focus:text-content-emphasis"
         icon="close"
         @click="clearInput"
       />

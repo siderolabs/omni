@@ -182,11 +182,11 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
 
     <p
       v-if="definition"
-      class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-naturals-n13"
+      class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-content-default"
     >
       Type
       <span class="resource-label font-mono">{{ definition.spec.type }}</span>
-      <span aria-hidden="true" class="text-naturals-n8">·</span>
+      <span aria-hidden="true" class="text-content-muted">·</span>
       Namespace
       <span class="resource-label font-mono">{{ namespace }}</span>
     </p>
@@ -228,11 +228,11 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
         <div
           v-else
           role="grid"
-          class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-naturals-n13"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-content-default"
         >
           <div
             role="rowgroup"
-            class="grid shrink-0 grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 bg-naturals-n2 text-left"
+            class="grid shrink-0 grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 bg-surface-card text-left"
           >
             <div
               v-for="header in tableHeaders"
@@ -255,7 +255,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
                   :key="vRow.key.toString()"
                   :ref="measureElement"
                   :data-index="vRow.index"
-                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 border-t border-naturals-n5"
+                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 border-t border-border-strong"
                 >
                   <ResourceEntryItem
                     :item="items[vRow.index]"
@@ -270,7 +270,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
           </div>
         </div>
 
-        <p v-if="items.length" class="mt-2 text-xs text-naturals-n10">
+        <p v-if="items.length" class="mt-2 text-xs text-content-muted">
           {{ items.length }} of {{ data.length }} resources
         </p>
       </div>

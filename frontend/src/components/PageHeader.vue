@@ -23,12 +23,12 @@ defineProps<{
     :class="cn({ 'mb-7': !subtitle, 'mb-2': subtitle }, $props.class)"
   >
     <div class="flex items-center gap-6">
-      <h3 class="text-xl font-medium text-naturals-n14">{{ title }}</h3>
+      <h3 class="text-xl font-medium text-content-emphasis">{{ title }}</h3>
       <div class="flex items-center gap-6 max-md:hidden">
         <slot />
       </div>
     </div>
-    <div v-if="subtitle" class="text-sm text-naturals-n13">{{ subtitle }}</div>
-    <div v-if="notes" class="text-sm text-naturals-n10">{{ notes }}</div>
+    <div v-if="subtitle" class="text-sm text-content-default">{{ subtitle }}</div>
+    <div v-if="notes" class="text-sm text-content-muted">{{ notes }}</div>
   </div>
 </template>

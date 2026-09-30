@@ -189,7 +189,7 @@ const meta: Meta<typeof Patches> = {
   },
   decorators: [
     () => ({
-      template: '<div class="h-screen bg-naturals-n0 p-8"><story /></div>',
+      template: '<div class="h-screen bg-surface-page p-8"><story /></div>',
     }),
   ],
 }

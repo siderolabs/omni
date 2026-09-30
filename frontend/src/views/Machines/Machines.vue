@@ -231,7 +231,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
   <PageContainer class="flex h-full gap-2">
     <div class="flex max-w-full grow flex-col gap-2">
       <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <h1 class="text-xl font-medium text-naturals-n14 max-md:basis-full">Machines</h1>
+        <h1 class="text-xl font-medium text-content-emphasis max-md:basis-full">Machines</h1>
 
         <StatsItem title="Total" :value="total" icon="nodes" />
 

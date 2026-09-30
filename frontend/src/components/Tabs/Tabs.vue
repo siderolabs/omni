@@ -40,7 +40,7 @@ defineSlots<{
     <TabsList
       :class="
         cn(
-          'relative flex shrink-0 gap-6 overflow-x-auto overflow-y-hidden border-b border-naturals-n4 pb-3.5 whitespace-nowrap',
+          'relative flex shrink-0 gap-6 overflow-x-auto overflow-y-hidden border-b border-border-default pb-3.5 whitespace-nowrap',
           tabsListClass,
         )
       "
@@ -48,7 +48,7 @@ defineSlots<{
       <TabsIndicator
         class="absolute bottom-0 left-0 h-0.5 w-(--reka-tabs-indicator-size) translate-x-(--reka-tabs-indicator-position) translate-y-px transition-[width,translate] duration-300"
       >
-        <div class="size-full bg-primary-p3"></div>
+        <div class="size-full bg-accent-fill"></div>
       </TabsIndicator>
 
       <slot name="triggers"></slot>

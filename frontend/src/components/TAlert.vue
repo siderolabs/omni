@@ -32,12 +32,12 @@ const icons: Record<AlertType, IconType> = {
 
 <template>
   <div
-    class="rounded-md border border-l-4 border-naturals-n6 bg-naturals-n0 p-4"
+    class="rounded-md border border-l-4 border-border-strong bg-surface-page p-4"
     :class="{
-      'border-l-red-r2': type === 'error',
+      'border-l-status-danger-subtle-border': type === 'error',
       'border-l-blue-400': type === 'info',
-      'border-l-green-g1': type === 'success',
-      'border-l-yellow-y1': type === 'warn',
+      'border-l-status-success-default': type === 'success',
+      'border-l-status-warning-default': type === 'warn',
     }"
   >
     <div class="flex items-center">
@@ -46,8 +46,8 @@ const icons: Record<AlertType, IconType> = {
         :class="{
           'text-red-400': type === 'error',
           'text-blue-400': type === 'info',
-          'text-green-g1': type === 'success',
-          'text-yellow-y1': type === 'warn',
+          'text-status-success-text': type === 'success',
+          'text-status-warning-text': type === 'warn',
         }"
       >
         <TIcon :icon="icons[type]" class="size-5" />
@@ -58,8 +58,8 @@ const icons: Record<AlertType, IconType> = {
           :class="{
             'text-red-400': type === 'error',
             'text-blue-400': type === 'info',
-            'text-green-g1': type === 'success',
-            'text-yellow-y1': type === 'warn',
+            'text-status-success-text': type === 'success',
+            'text-status-warning-text': type === 'warn',
           }"
         >
           {{ title }}

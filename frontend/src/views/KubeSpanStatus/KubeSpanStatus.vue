@@ -122,7 +122,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
 <template>
   <PageContainer v-if="kubeSpanLink" class="@container flex h-full flex-col gap-4">
     <div class="flex flex-wrap gap-6">
-      <h1 class="shrink-0 text-xl font-medium text-naturals-n14">KubeSpan status</h1>
+      <h1 class="shrink-0 text-xl font-medium text-content-emphasis">KubeSpan status</h1>
       <div class="flex flex-wrap gap-6">
         <StatsItem title="Total Nodes" :value="peers.length" icon="server-stack" />
         <StatsItem title="Online" :value="onlineCount" icon="check-in-circle-classic" />
@@ -133,32 +133,32 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
     <div class="flex grow flex-col gap-2 @3xl:flex-row">
       <div class="flex min-w-0 grow flex-col gap-2">
         <div
-          class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-naturals-n2 p-2"
+          class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-surface-card p-2"
         >
-          <div class="flex items-center gap-4 text-xs text-naturals-n11">
+          <div class="flex items-center gap-4 text-xs text-content-secondary">
             <div class="flex items-center gap-1.5">
-              <div class="h-0 w-5 border-t-2 border-green-g1"></div>
+              <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
               <span>Online</span>
             </div>
 
             <div class="flex items-center gap-1.5">
-              <div class="h-0 w-5 border-t-2 border-dashed border-red-r1"></div>
+              <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
               <span>Offline</span>
             </div>
 
             <div class="flex items-center gap-1.5">
               <div class="flex items-center gap-0.5">
-                <div class="h-0 w-2 rounded-[1px] border-t-2 border-green-g1"></div>
-                <div class="h-0 w-2 rounded-[1px] border-t-4 border-green-g1"></div>
-                <div class="h-0 w-2 rounded-[1px] border-t-8 border-green-g1"></div>
+                <div class="h-0 w-2 rounded-[1px] border-t-2 border-status-success-default"></div>
+                <div class="h-0 w-2 rounded-[1px] border-t-4 border-status-success-default"></div>
+                <div class="h-0 w-2 rounded-[1px] border-t-8 border-status-success-default"></div>
               </div>
               <span>Traffic Volume</span>
             </div>
           </div>
 
-          <div class="text-xs text-naturals-n10/55">Drag to pan · scroll to zoom</div>
+          <div class="text-xs text-content-muted/55">Drag to pan · scroll to zoom</div>
 
-          <div class="flex overflow-hidden rounded border border-naturals-n4 bg-naturals-n1">
+          <div class="flex overflow-hidden rounded border border-border-default bg-surface-chrome">
             <IconButton
               icon="plus"
               aria-label="zoom in"
@@ -193,37 +193,41 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
         />
       </div>
 
-      <div class="flex shrink-0 flex-col rounded-lg bg-naturals-n2 px-2 @3xl:w-64">
+      <div class="flex shrink-0 flex-col rounded-lg bg-surface-card px-2 @3xl:w-64">
         <div class="px-2 py-3">
-          <h3 class="text-sm font-medium text-naturals-n14">Cluster nodes</h3>
+          <h3 class="text-sm font-medium text-content-emphasis">Cluster nodes</h3>
         </div>
 
         <div class="flex items-center justify-between px-2 py-2">
-          <span class="text-xs font-medium tracking-wide text-naturals-n14 uppercase">Name</span>
-          <span class="text-xs font-medium tracking-wide text-naturals-n14 uppercase">Status</span>
+          <span class="text-xs font-medium tracking-wide text-content-emphasis uppercase">
+            Name
+          </span>
+          <span class="text-xs font-medium tracking-wide text-content-emphasis uppercase">
+            Status
+          </span>
         </div>
 
         <div class="flex-1 overflow-y-auto">
           <div
             v-for="peer in peers"
             :key="peer.metadata.id"
-            class="flex cursor-pointer flex-col gap-1 border-naturals-n6 px-2 py-3 transition-opacity not-last-of-type:border-b hover:bg-naturals-n3"
+            class="flex cursor-pointer flex-col gap-1 border-border-strong px-2 py-3 transition-opacity not-last-of-type:border-b hover:bg-surface-raised"
             :class="!peerMatches.has(peer.metadata.id!) && 'opacity-30'"
             @click="onPeerClick(peer)"
           >
             <div class="flex items-center justify-between gap-1">
-              <span class="truncate text-sm text-naturals-n13">{{ peer.spec.label }}</span>
+              <span class="truncate text-sm text-content-default">{{ peer.spec.label }}</span>
               <span
                 class="rounded bg-current/20 px-1.5 py-0.5 text-xs uppercase"
-                :class="isOnline(peer) ? 'text-green-g1' : 'text-red-r1'"
+                :class="isOnline(peer) ? 'text-status-success-text' : 'text-status-danger-text'"
               >
                 {{ isOnline(peer) ? 'Online' : 'Offline' }}
               </span>
             </div>
 
-            <div class="flex justify-between gap-3 text-[0.625rem] text-naturals-n11">
+            <div class="flex justify-between gap-3 text-[0.625rem] text-content-secondary">
               <span class="flex items-center gap-1">
-                <span class="inline-flex items-center gap-0.5 text-naturals-n14">
+                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
                   <TIcon icon="long-arrow-down" class="size-3" />
                   <span class="font-medium tracking-wide uppercase">RX</span>
                 </span>
@@ -232,7 +236,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
               </span>
 
               <span class="flex items-center gap-1">
-                <span class="inline-flex items-center gap-0.5 text-naturals-n14">
+                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
                   <span class="font-medium tracking-wide uppercase">TX</span>
                   <TIcon icon="long-arrow-top" class="size-3" />
                 </span>

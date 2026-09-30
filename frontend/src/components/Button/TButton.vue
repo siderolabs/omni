@@ -81,13 +81,13 @@ const dynamicProps = computed(() => {
     :class="
       cn(
         {
-          'border-naturals-n5 bg-naturals-n3 text-naturals-n12 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+          'border-border-strong bg-surface-raised text-content-default hover:border-border-accent hover:bg-accent-fill hover:text-content-emphasis focus:border-accent-fill focus:bg-accent-fill-hover focus:text-content-emphasis active:border-accent-fill active:bg-accent-fill active:text-content-emphasis disabled:cursor-not-allowed disabled:border-border-strong disabled:bg-surface-hover disabled:text-content-muted':
             variant === 'primary',
-          'border-naturals-n5 bg-transparent text-naturals-n10 hover:bg-naturals-n5 hover:text-naturals-n14 focus:border-naturals-n7 focus:bg-naturals-n5 focus:text-naturals-n14 active:border-naturals-n5 active:bg-naturals-n4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-transparent disabled:text-naturals-n6':
+          'border-border-strong bg-transparent text-content-muted hover:bg-surface-inert hover:text-content-emphasis focus:border-border-strong focus:bg-surface-inert focus:text-content-emphasis active:border-border-strong active:bg-surface-hover active:text-content-emphasis disabled:cursor-not-allowed disabled:border-border-strong disabled:bg-transparent disabled:text-content-disabled':
             variant === 'secondary',
-          'border-none bg-transparent text-naturals-n13 hover:text-primary-p3 focus:text-primary-p2 focus:underline active:text-primary-p4 active:no-underline disabled:cursor-not-allowed disabled:text-naturals-n6':
+          'border-none bg-transparent text-content-default hover:text-accent-text focus:text-accent-hover focus:underline active:text-accent-text active:no-underline disabled:cursor-not-allowed disabled:text-content-disabled':
             variant === 'subtle',
-          'border-primary-p2 bg-primary-p4 text-naturals-n14 hover:border-primary-p3 hover:bg-primary-p3 hover:text-naturals-n14 focus:border-primary-p2 focus:bg-primary-p2 focus:text-naturals-n14 active:border-primary-p4 active:bg-primary-p4 active:text-naturals-n14 disabled:cursor-not-allowed disabled:border-naturals-n6 disabled:bg-naturals-n4 disabled:text-naturals-n7':
+          'border-accent-fill bg-accent-fill text-content-emphasis hover:border-border-accent hover:bg-accent-fill hover:text-content-emphasis focus:border-accent-fill focus:bg-accent-fill-hover focus:text-content-emphasis active:border-accent-fill active:bg-accent-fill active:text-content-emphasis disabled:cursor-not-allowed disabled:border-border-strong disabled:bg-surface-hover disabled:text-content-muted':
             variant === 'highlighted',
           'px-4 py-1.5 text-sm': size === 'md',
           'px-2 py-0.5 text-sm': size === 'sm',

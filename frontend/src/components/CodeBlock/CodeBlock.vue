@@ -26,7 +26,7 @@ const highlighted = computedAsync(() => (code ? highlight(code, lang, search) : 
 </script>
 
 <template>
-  <div class="relative rounded border border-naturals-n7 bg-naturals-n2 text-naturals-n14">
+  <div class="relative rounded border border-border-strong bg-surface-card text-content-emphasis">
     <div
       class="absolute top-2 right-2 z-10 flex items-center justify-center rounded-md p-1 backdrop-blur"
     >
@@ -49,6 +49,6 @@ const highlighted = computedAsync(() => (code ? highlight(code, lang, search) : 
 
   /* Blue: the syntax theme leaves it free, and it keeps token colours legible
      where a solid fill would not. */
-  background-color: color-mix(in srgb, var(--color-blue-b1) 40%, transparent);
+  background-color: color-mix(in srgb, var(--color-status-info-default) 40%, transparent);
 }
 </style>

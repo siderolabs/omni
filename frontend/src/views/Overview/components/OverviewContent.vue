@@ -264,7 +264,7 @@ const machineLockedForSecretRotation = computed(() => {
       >
         Open the cluster machine detail page for each affected node to view the error and recover.
       </TAlert>
-      <div class="relative mb-6 min-h-25 bg-naturals-n2 p-5">
+      <div class="relative mb-6 min-h-25 bg-surface-card p-5">
         <div
           class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
           :class="{ 'opacity-25': !showStats }"
@@ -307,7 +307,7 @@ const machineLockedForSecretRotation = computed(() => {
           class="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center text-sm"
         >
           <div class="flex flex-col gap-2">
-            <div class="text-naturals-n13">
+            <div class="text-content-default">
               Kubernetes stats are disabled due to the size of the cluster
             </div>
           </div>
@@ -315,33 +315,33 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="kubernetesUpgradeStatus && kubernetesUpgradeStatus.spec.step"
-        class="mb-5 rounded bg-naturals-n2 pt-5"
+        class="mb-5 rounded bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
-          <span class="flex-1 text-sm text-naturals-n13">Kubernetes Update</span>
+          <span class="flex-1 text-sm text-content-default">Kubernetes Update</span>
           <template v-if="kubernetesUpgradeStatus.spec.current_upgrade_version">
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
             </span>
             <span>⇾</span>
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.current_upgrade_version }}
             </span>
           </template>
           <template v-else>
-            <span class="text-sm text-naturals-n13">Reverting back to</span>
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="text-sm text-content-default">Reverting back to</span>
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
             </span>
           </template>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
           <TIcon
             v-if="clusterLocked || machineLockedForKubernetesUpgrade"
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
           <div class="flex-1">
             {{ kubernetesUpgradeStatus.spec.step }}
             <template v-if="kubernetesUpgradeStatus.spec.status && !clusterLocked">
@@ -365,24 +365,24 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="talosUpgradeStatus && talosUpgradeStatus.spec.status"
-        class="mb-5 rounded bg-naturals-n2 pt-5"
+        class="mb-5 rounded bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
-          <span class="flex-1 text-sm text-naturals-n13">Talos Update</span>
+          <span class="flex-1 text-sm text-content-default">Talos Update</span>
           <template v-if="talosUpgradeStatus.spec.current_upgrade_version">
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.last_upgrade_version }}
             </span>
             <span>⇾</span>
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.current_upgrade_version }}
             </span>
           </template>
           <template
             v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting"
           >
-            <span class="text-sm text-naturals-n13">Reverting back to</span>
-            <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
+            <span class="text-sm text-content-default">Reverting back to</span>
+            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.last_upgrade_version }}
             </span>
           </template>
@@ -392,16 +392,16 @@ const machineLockedForSecretRotation = computed(() => {
               TalosUpgradeStatusSpecPhase.UpdatingMachineSchematics
             "
           >
-            <span class="text-sm text-naturals-n13">Updating Machine Schematics</span>
+            <span class="text-sm text-content-default">Updating Machine Schematics</span>
           </template>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
           <TIcon
             v-if="clusterLocked || machineLockedForTalosUpgrade"
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
           <div class="min-w-0 flex-1 wrap-break-word">
             {{ talosUpgradeStatus.spec.status }}
             <template v-if="talosUpgradeStatus.spec.status && !clusterLocked">
@@ -427,19 +427,19 @@ const machineLockedForSecretRotation = computed(() => {
       <ClusterHealthChecks :cluster-id="clusterId" />
       <div
         v-if="secretRotationStatus && secretRotationStatus.spec.status"
-        class="mb-5 rounded bg-naturals-n2 pt-5"
+        class="mb-5 rounded bg-surface-card pt-5"
       >
         <div class="flex items-center gap-1 px-6 pb-4">
-          <span class="flex-1 text-sm text-naturals-n13">Secret Rotation</span>
-          <span class="text-sm text-naturals-n13">{{ getComponentInRotation }}</span>
+          <span class="flex-1 text-sm text-content-default">Secret Rotation</span>
+          <span class="text-sm text-content-default">{{ getComponentInRotation }}</span>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
           <TIcon
             v-if="clusterLocked || machineLockedForSecretRotation"
             icon="pause-circle"
             class="h-6 w-6"
           />
-          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
+          <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-text" />
           <div class="flex-1">
             {{ secretRotationStatus.spec.status }}
             <template v-if="clusterLocked">- waiting for cluster to be unlocked</template>
@@ -450,9 +450,9 @@ const machineLockedForSecretRotation = computed(() => {
         </div>
       </div>
       <div class="flex gap-5">
-        <div class="mb-5 flex-1 rounded bg-naturals-n2 px-6 py-5">
+        <div class="mb-5 flex-1 rounded bg-surface-card px-6 py-5">
           <div class="mb-3">
-            <span class="text-sm text-naturals-n13">Features</span>
+            <span class="text-sm text-content-default">Features</span>
           </div>
           <div class="flex flex-col gap-2">
             <ClusterWorkloadProxyingCheckbox
@@ -482,9 +482,9 @@ const machineLockedForSecretRotation = computed(() => {
             />
           </div>
         </div>
-        <div class="mb-5 flex-1 rounded bg-naturals-n2 px-6 py-5">
+        <div class="mb-5 flex-1 rounded bg-surface-card px-6 py-5">
           <div class="mb-3">
-            <span class="text-sm text-naturals-n13">Labels</span>
+            <span class="text-sm text-content-default">Labels</span>
           </div>
           <ItemLabels
             v-if="clusterStatus"
@@ -494,9 +494,9 @@ const machineLockedForSecretRotation = computed(() => {
           />
         </div>
       </div>
-      <div class="flex-col rounded bg-naturals-n2 pt-5">
+      <div class="flex-col rounded bg-surface-card pt-5">
         <div class="flex px-6 pb-4">
-          <span class="text-sm text-naturals-n13">Machines</span>
+          <span class="text-sm text-content-default">Machines</span>
         </div>
         <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)]">
           <ClusterMachines is-subgrid :cluster-i-d="clusterId" />

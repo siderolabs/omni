@@ -36,25 +36,25 @@ const { dimensions, data } = defineProps<NodeProps<ClusterManifestsGroupNodeData
 </script>
 
 <template>
-  <div class="w-full rounded-lg border border-naturals-n6 bg-naturals-n2 shadow-lg/40">
+  <div class="w-full rounded-lg border border-border-strong bg-surface-card shadow-lg/40">
     <div
-      class="flex items-center gap-1 rounded-[7px] border border-primary-p3 bg-naturals-n2 px-3"
+      class="flex items-center gap-1 rounded-[7px] border border-border-accent bg-surface-card px-3"
       :style="{ height: `${dimensions.height}px` }"
     >
       <Handle id="right" type="source" :position="Position.Right" class="min-h-0! min-w-0!" />
 
-      <span class="truncate text-sm font-medium text-naturals-n14">{{ id }}</span>
+      <span class="truncate text-sm font-medium text-content-emphasis">{{ id }}</span>
     </div>
 
     <div class="flex gap-4 px-4 py-2 text-xs">
       <div class="flex items-center gap-1">
-        <span class="text-naturals-n11">Mode:</span>
-        <span class="text-naturals-n14">{{ modeName(data.group.mode) }}</span>
+        <span class="text-content-secondary">Mode:</span>
+        <span class="text-content-emphasis">{{ modeName(data.group.mode) }}</span>
       </div>
 
       <div class="flex items-center gap-1">
-        <span class="text-naturals-n11">In sync:</span>
-        <span class="text-naturals-n14">{{ data.inSyncCount }} / {{ data.manifestCount }}</span>
+        <span class="text-content-secondary">In sync:</span>
+        <span class="text-content-emphasis">{{ data.inSyncCount }} / {{ data.manifestCount }}</span>
       </div>
     </div>
   </div>

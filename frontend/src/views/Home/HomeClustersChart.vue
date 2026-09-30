@@ -37,23 +37,23 @@ const items = computed(() => {
     {
       label: 'Healthy',
       value: Math.max(runningCount - notReadyCount, 0),
-      color: 'var(--color-primary-p3)',
+      color: 'var(--color-accent-default)',
     },
-    { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-red-r1)' },
+    { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-status-danger-default)' },
     {
       label: 'Scaling Up',
       value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0,
-      color: 'var(--color-green-g1)',
+      color: 'var(--color-status-success-default)',
     },
     {
       label: 'Scaling Down',
       value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0,
-      color: 'var(--color-blue-b1)',
+      color: 'var(--color-status-info-default)',
     },
     {
       label: 'Destroying',
       value: spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0,
-      color: 'var(--color-yellow-y1)',
+      color: 'var(--color-status-warning-default)',
     },
   ]
 })

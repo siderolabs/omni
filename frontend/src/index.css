@@ -16,54 +16,15 @@ included in the LICENSE file.
 @theme {
   --font-sans: Roboto, sans-serif;
   --font-mono: 'Roboto Mono', monospace;
-
-  --color-naturals-n0: #101118;
-  --color-naturals-n1: #13141c;
-  --color-naturals-n2: #15161e;
-  --color-naturals-n3: #191b24;
-  --color-naturals-n4: #1f222e;
-  --color-naturals-n5: #272932;
-  --color-naturals-n6: #2c2e38;
-  --color-naturals-n7: #3a3b45;
-  --color-naturals-n8: #5b5c64;
-  --color-naturals-n9: #7d7d85;
-  --color-naturals-n10: #878990;
-  --color-naturals-n11: #9fa1a6;
-  --color-naturals-n12: #c3c3c7;
-  --color-naturals-n13: #e8e8e9;
-  --color-naturals-n14: #ffffff;
-
-  --color-primary-p1: #ffbea9;
-  --color-primary-p2: #fe9e74;
-  --color-primary-p3: #ff8b59;
-  --color-primary-p4: #ff5f2a;
-  --color-primary-p5: #ce5027;
-  --color-primary-p6: #342321;
-
-  --color-green-g1: #69c297;
-  --color-green-g2: #2d9663;
-  --color-green-g3: #141f21;
-
-  --color-red-r1: #ff5c56;
-  --color-red-r2: #6e2f30;
-  --color-red-r3: #311c20;
-  --color-red-rlogo: #f62d2c;
-
-  --color-yellow-y1: #ffb200;
-  --color-yellow-y2: #c68a00;
-  --color-yellow-y3: #a97809;
-  --color-yellow-y4: #252115;
-
-  --color-blue-b1: #59a5ff;
 }
 
 @layer base {
   body {
-    @apply bg-naturals-n0 text-naturals-n11 antialiased;
+    @apply bg-surface-page text-content-secondary antialiased;
   }
 
   * {
-    @apply scrollbar-thin scrollbar-thumb-naturals-n5 scrollbar-track-transparent;
+    @apply scrollbar-thin scrollbar-thumb-surface-inert scrollbar-track-transparent;
   }
 
   button:not(:disabled),
@@ -74,15 +35,15 @@ included in the LICENSE file.
 
 @layer components {
   .link-primary {
-    @apply inline-block text-primary-p3 not-hover:underline hover:text-primary-p2 active:text-primary-p5;
+    @apply inline-block text-accent-text not-hover:underline hover:text-accent-hover active:text-accent-default;
   }
 
   .list-item-link {
-    @apply font-bold text-naturals-n14 transition hover:text-naturals-n9;
+    @apply font-bold text-content-emphasis transition hover:text-content-muted;
   }
 
   .resource-label {
-    @apply inline-block rounded-sm bg-current/10 px-2 py-1 text-xs text-naturals-n11;
+    @apply inline-block rounded-sm bg-current/10 px-2 py-1 text-xs text-content-secondary;
 
     &:is(a:not(:disabled), button:not(:disabled), [role='button']:not(:disabled)) {
       @apply transition-[filter];

@@ -36,10 +36,10 @@ const State = KubernetesHealthCheckStatusSpecState
 
 const stateProps: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType; class: string }> =
   {
-    [State.PASSED]: { icon: 'check-in-circle', class: 'text-green-g1' },
-    [State.FAILED]: { icon: 'error', class: 'text-red-r1' },
-    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-yellow-y1' },
-    [State.UNKNOWN]: { icon: 'time', class: 'text-naturals-n10' },
+    [State.PASSED]: { icon: 'check-in-circle', class: 'text-status-success-text' },
+    [State.FAILED]: { icon: 'error', class: 'text-status-danger-text' },
+    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-warning-text' },
+    [State.UNKNOWN]: { icon: 'time', class: 'text-content-muted' },
   }
 
 const stateFor = (spec: KubernetesHealthCheckStatusSpec) => stateProps[spec.state ?? State.UNKNOWN]
@@ -64,12 +64,12 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
 </script>
 
 <template>
-  <div v-if="healthChecks.length" class="mb-5 rounded bg-naturals-n2 pt-5">
+  <div v-if="healthChecks.length" class="mb-5 rounded bg-surface-card pt-5">
     <div class="flex items-center gap-1 px-6 pb-4">
-      <span class="flex-1 text-sm text-naturals-n13">Health Checks</span>
+      <span class="flex-1 text-sm text-content-default">Health Checks</span>
     </div>
 
-    <div class="flex flex-col gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
+    <div class="flex flex-col gap-2 border-t-8 border-border-default p-4 text-xs">
       <div
         v-for="check in healthChecks"
         :key="check.metadata.id"
@@ -80,7 +80,7 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
           :class="stateFor(check.spec).class"
           class="h-6 w-6 shrink-0"
         />
-        <span class="min-w-0 flex-1 truncate text-naturals-n13">{{ check.metadata.id }}</span>
+        <span class="min-w-0 flex-1 truncate text-content-default">{{ check.metadata.id }}</span>
         <TButton
           v-if="check.spec.output"
           variant="secondary"
@@ -105,7 +105,7 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
       </template>
 
       <div v-if="openedCheck?.spec.state === State.RUNNING" class="flex flex-col gap-1">
-        <span class="text-xs text-naturals-n10">Follow a running check with:</span>
+        <span class="text-xs text-content-muted">Follow a running check with:</span>
         <CodeBlock
           :button-attrs="{ 'aria-label': 'Copy kubectl logs command' }"
           :code="kubectlLogs(openedCheck.spec)"
@@ -114,7 +114,7 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
 
       <TInput v-model="searchOutput" placeholder="Search..." icon="search" />
 
-      <div class="flex h-96 min-h-0 flex-col overflow-hidden rounded bg-naturals-n2">
+      <div class="flex h-96 min-h-0 flex-col overflow-hidden rounded bg-surface-card">
         <LogViewer
           class="min-h-0 grow"
           :logs="outputLines"

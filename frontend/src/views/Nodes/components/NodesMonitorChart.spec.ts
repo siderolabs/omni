@@ -108,13 +108,13 @@ test('shows the hovered point in the tooltip, topmost series first when stacked'
 
   await moveCursorTo(wrapper, WIDTH)
 
-  const tooltip = wrapper.find('.bg-naturals-n3')
+  const tooltip = wrapper.find('.bg-surface-raised')
   expect(tooltip.text()).toContain('User16.0 %')
   expect(tooltip.text()).toContain('System8.0 %')
   expect(tooltip.text().indexOf('User')).toBeLessThan(tooltip.text().indexOf('System'))
 
   await moveCursorAway(wrapper)
-  expect(wrapper.find('.bg-naturals-n3').exists()).toBe(false)
+  expect(wrapper.find('.bg-surface-raised').exists()).toBe(false)
 })
 
 test('keeps the readout on the sample nearest the cursor as points stream in', async () => {
@@ -125,8 +125,8 @@ test('keeps the readout on the sample nearest the cursor as points stream in', a
   )
 
   await moveCursorTo(wrapper, 250)
-  const crosshairX = () => wrapper.find('g line.stroke-naturals-n8').attributes('x1')
-  const readout = () => wrapper.find('.bg-naturals-n3').text()
+  const crosshairX = () => wrapper.find('g line.stroke-content-muted').attributes('x1')
+  const readout = () => wrapper.find('.bg-surface-raised').text()
 
   const pinned = crosshairX()
   const first = readout()

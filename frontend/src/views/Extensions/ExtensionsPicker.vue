@@ -62,7 +62,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
   <div class="flex flex-col gap-2 overflow-hidden">
     <TInput v-model="filterExtensions" icon="search" />
 
-    <div class="grid grid-cols-4 bg-naturals-n4 py-2 pl-2 text-xs text-naturals-n13 uppercase">
+    <div class="grid grid-cols-4 bg-surface-hover py-2 pl-2 text-xs text-content-default uppercase">
       <div class="col-span-2">Name</div>
       <div>Version</div>
       <div>Author</div>
@@ -72,11 +72,11 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
       <div
         v-for="extension in filteredExtensions"
         :key="extension.name"
-        class="grid grid-cols-4 gap-1 border-b border-naturals-n6 p-2 transition-colors hover:bg-naturals-n5"
+        class="grid grid-cols-4 gap-1 border-b border-border-strong p-2 transition-colors hover:bg-surface-inert"
         role="button"
         @click="updateExtension(extension, !modelValue[extension.name!])"
       >
-        <div class="col-span-2 flex items-center gap-2 text-xs text-naturals-n13">
+        <div class="col-span-2 flex items-center gap-2 text-xs text-content-default">
           <TCheckbox
             :indeterminate="indeterminate && !changed"
             :disabled="immutableExtensions[extension.name!]"
@@ -87,17 +87,17 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
           <WordHighlighter
             :query="filterExtensions"
             :text-to-highlight="extension.name!.slice('siderolabs/'.length)"
-            highlight-class="bg-naturals-n14"
+            highlight-class="bg-surface-inverse"
           />
         </div>
-        <div class="text-xs wrap-break-word text-naturals-n13">{{ extension.version }}</div>
-        <div class="text-xs text-naturals-n13">{{ extension.author }}</div>
+        <div class="text-xs wrap-break-word text-content-default">{{ extension.version }}</div>
+        <div class="text-xs text-content-default">{{ extension.author }}</div>
         <div v-if="extension.description && showDescriptions" class="col-span-4 text-xs">
           {{ extension.description }}
         </div>
       </div>
     </div>
-    <div v-else class="flex items-center gap-1 p-4 text-xs text-primary-p2">
+    <div v-else class="flex items-center gap-1 p-4 text-xs text-accent-hover">
       <TIcon class="h-3 w-3" icon="warning" />
       No extensions available for this Talos version
     </div>

@@ -35,8 +35,8 @@ const forwarded = useForwardPropsEmits(dropdownMenuItemProps, emit)
     class="flex w-full items-center gap-2 px-3 py-2 not-data-disabled:cursor-pointer data-disabled:cursor-not-allowed data-disabled:opacity-50"
     :class="
       danger
-        ? 'text-red-r1 not-data-disabled:hover:text-primary-p1'
-        : 'not-data-disabled:hover:text-naturals-n12'
+        ? 'text-status-danger-text not-data-disabled:hover:text-accent-text'
+        : 'not-data-disabled:hover:text-content-default'
     "
     v-bind="forwarded"
   >

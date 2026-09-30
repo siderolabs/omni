@@ -21,7 +21,7 @@ const dropdownOpen = ref(false)
 <template>
   <PopoverRoot v-model:open="dropdownOpen">
     <PopoverTrigger
-      class="flex items-center gap-1 text-naturals-n11 transition-colors hover:text-naturals-n14"
+      class="flex items-center gap-1 text-content-secondary transition-colors hover:text-content-emphasis"
     >
       <IconHeaderDropdownLoading :active="data.length > 0" />
       <span class="text-xs font-normal whitespace-nowrap select-none">
@@ -37,7 +37,7 @@ const dropdownOpen = ref(false)
 
     <PopoverPortal>
       <PopoverContent
-        class="z-30 max-h-(--reka-popover-content-available-height) max-w-[min(--spacing(80),var(--reka-popover-content-available-width))] min-w-(--reka-popover-trigger-width) origin-(--reka-popover-content-transform-origin) overflow-auto rounded border border-naturals-n4 bg-naturals-n2 slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        class="z-30 max-h-(--reka-popover-content-available-height) max-w-[min(--spacing(80),var(--reka-popover-content-available-width))] min-w-(--reka-popover-trigger-width) origin-(--reka-popover-content-transform-origin) overflow-auto rounded border border-border-default bg-surface-card slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         :side-offset="10"
         align="end"
         side="bottom"
@@ -45,33 +45,33 @@ const dropdownOpen = ref(false)
         <div
           v-for="{ item, desc } in data"
           :key="item.metadata.id"
-          class="flex flex-col gap-2 border-naturals-n4 p-6 not-last:border-b"
+          class="flex flex-col gap-2 border-border-default p-6 not-last:border-b"
         >
           <div class="flex items-center justify-between gap-4">
-            <h3 class="truncate text-xs text-naturals-n13">
+            <h3 class="truncate text-xs text-content-default">
               {{ item.spec.title }}
             </h3>
 
             <span
               v-if="item.metadata.created"
-              class="shrink-0 text-right text-xs whitespace-nowrap text-naturals-n9"
+              class="shrink-0 text-right text-xs whitespace-nowrap text-content-muted"
             >
               {{ formatISO(item.metadata.created, 'HH:mm:ss') }}
             </span>
           </div>
 
-          <div class="text-xs text-naturals-n9">
+          <div class="text-xs text-content-muted">
             <div v-if="desc.fromVersion && desc.toVersion" class="flex items-center gap-2 text-xs">
               <span class="whitespace-nowrap">{{ desc.action }}</span>
               <div class="flex-1" />
               <span
-                class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
+                class="truncate rounded bg-surface-hover px-2 text-xs font-bold text-content-default"
               >
                 {{ desc.fromVersion }}
               </span>
               <span>⇾</span>
               <span
-                class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
+                class="truncate rounded bg-surface-hover px-2 text-xs font-bold text-content-default"
               >
                 {{ desc.toVersion }}
               </span>
@@ -81,7 +81,7 @@ const dropdownOpen = ref(false)
               <span class="whitespace-nowrap">Reverting back to</span>
               <div class="flex-1" />
               <span
-                class="rounded bg-naturals-n4 px-2 text-xs font-bold whitespace-nowrap text-naturals-n13"
+                class="rounded bg-surface-hover px-2 text-xs font-bold whitespace-nowrap text-content-default"
               >
                 {{ desc.revertingTo }}
               </span>

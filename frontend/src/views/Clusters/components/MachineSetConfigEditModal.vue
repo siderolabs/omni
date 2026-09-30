@@ -116,7 +116,7 @@ const saveAndClose = async () => {
     <div class="flex flex-1 flex-col">
       <template v-if="machineSet.role === LabelWorkerRole">
         <div
-          class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm"
+          class="flex flex-wrap items-center gap-2 border-b border-border-default px-8 py-2 text-sm"
         >
           <div class="w-32">Update Strategy</div>
           <TButtonGroup v-model="updateStrategy" :options="options" class="flex-1" />
@@ -129,7 +129,7 @@ const saveAndClose = async () => {
           <div v-else class="flex h-7 items-center">Update All Simultaneously</div>
         </div>
         <div
-          class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm"
+          class="flex flex-wrap items-center gap-2 border-b border-border-default px-8 py-2 text-sm"
         >
           <div class="w-32">Delete Strategy</div>
           <TButtonGroup v-model="deleteStrategy" :options="options" class="flex-1" />
@@ -144,7 +144,9 @@ const saveAndClose = async () => {
           </div>
         </div>
       </template>
-      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm">
+      <div
+        class="flex flex-wrap items-center gap-2 border-b border-border-default px-8 py-2 text-sm"
+      >
         <div class="w-32">Upgrade Strategy</div>
         <TButtonGroup v-model="upgradeStrategy" :options="optionsUpgrade" class="flex-1" />
         <template v-if="upgradeStrategy !== MachineSetSpecUpdateStrategy.Unset">

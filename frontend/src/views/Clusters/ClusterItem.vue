@@ -65,16 +65,16 @@ const clusterDestroyDialogOpen = ref(false)
   <CollapsibleRoot
     v-model:open="expanded"
     as="li"
-    class="col-span-full grid grid-cols-subgrid overflow-hidden rounded border border-naturals-n5 text-xs"
+    class="col-span-full grid grid-cols-subgrid overflow-hidden rounded border border-border-strong text-xs"
     :aria-labelledby="labelId"
   >
     <CollapsibleTrigger
       :aria-labelledby="labelId"
-      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-naturals-n1 p-4 pl-2 text-left hover:bg-naturals-n3"
+      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-surface-chrome p-4 pl-2 text-left hover:bg-surface-raised"
     >
       <div class="flex min-w-0 items-center gap-2">
         <TIcon
-          class="size-5 shrink-0 rounded-md bg-naturals-n4 transition-transform duration-250 group-data-[state=open]/collapsible-trigger:rotate-180 hover:text-naturals-n13"
+          class="size-5 shrink-0 rounded-md bg-surface-hover transition-transform duration-250 group-data-[state=open]/collapsible-trigger:rotate-180 hover:text-content-default"
           icon="drop-up"
           aria-hidden="true"
         />
@@ -89,7 +89,7 @@ const clusterDestroyDialogOpen = ref(false)
             :query="searchQuery"
             :text-to-highlight="item.metadata.id"
             split-by-space
-            highlight-class="bg-naturals-n14"
+            highlight-class="bg-surface-inverse"
           />
         </RouterLink>
 
@@ -102,7 +102,7 @@ const clusterDestroyDialogOpen = ref(false)
 
       <ClusterStatus :cluster="item" />
 
-      <div class="flex items-center gap-2 text-naturals-n10">
+      <div class="flex items-center gap-2 text-content-muted">
         <Tooltip :description="`Talos version v${item.spec.talos_version}`">
           <span class="resource-label label-red flex items-center gap-1">
             <TIcon class="size-3.5 shrink-0" icon="talos" />
@@ -189,7 +189,7 @@ const clusterDestroyDialogOpen = ref(false)
       :aria-labelledby="labelId"
       class="collapsible-content col-span-full grid grid-cols-subgrid"
     >
-      <div class="col-span-full border-t border-naturals-n6 bg-naturals-n1 px-4 py-2">
+      <div class="col-span-full border-t border-border-strong bg-surface-chrome px-4 py-2">
         <ItemLabels
           :resource="item"
           :add-label-func="addClusterLabels"

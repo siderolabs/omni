@@ -81,27 +81,27 @@ const manifestYAML = computed(() => {
 <template>
   <div class="flex grow flex-col gap-2 @3xl:flex-row">
     <div class="flex min-w-0 grow flex-col gap-2">
-      <div class="flex flex-wrap items-center justify-between rounded-lg bg-naturals-n2 p-2">
+      <div class="flex flex-wrap items-center justify-between rounded-lg bg-surface-card p-2">
         <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-1.5">
-            <div class="h-0 w-5 border-t-2 border-green-g1"></div>
+            <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
             <span>Applied</span>
           </div>
 
           <div class="flex items-center gap-1.5">
-            <div class="h-0 w-5 border-t-2 border-dashed border-red-r1"></div>
+            <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
             <span>Deleting</span>
           </div>
 
           <div class="flex items-center gap-1.5">
-            <div class="h-0 w-5 border-t-2 border-dashed border-yellow-y1"></div>
+            <div class="h-0 w-5 border-t-2 border-dashed border-status-warning-default"></div>
             <span>Pending</span>
           </div>
         </div>
 
-        <div class="text-xs text-naturals-n10/55">Drag to pan · scroll to zoom</div>
+        <div class="text-xs text-content-muted/55">Drag to pan · scroll to zoom</div>
 
-        <div class="flex overflow-hidden rounded border border-naturals-n4 bg-naturals-n1">
+        <div class="flex overflow-hidden rounded border border-border-default bg-surface-chrome">
           <IconButton
             icon="plus"
             aria-label="zoom in"
@@ -132,18 +132,20 @@ const manifestYAML = computed(() => {
 
     <div
       v-if="selectedManifest"
-      class="flex w-full shrink-0 flex-col overflow-hidden rounded-lg border border-naturals-n4 @3xl:w-md"
+      class="flex w-full shrink-0 flex-col overflow-hidden rounded-lg border border-border-default @3xl:w-md"
     >
-      <div class="flex justify-between gap-2 border-b border-naturals-n4 bg-naturals-n1 px-4 py-2">
+      <div
+        class="flex justify-between gap-2 border-b border-border-default bg-surface-chrome px-4 py-2"
+      >
         <div class="flex flex-col gap-1 leading-tight">
           <div class="flex items-center gap-4">
-            <h3 class="text-sm font-medium text-naturals-n14">
+            <h3 class="text-sm font-medium text-content-emphasis">
               {{ selectedManifest.manifest.name }}
             </h3>
             <ClusterManifestPhase :phase="selectedManifest.manifest.phase" />
           </div>
 
-          <span class="text-xs text-naturals-n10">
+          <span class="text-xs text-content-muted">
             {{
               [selectedManifest.manifest.kind, selectedManifest.manifest.namespace]
                 .filter((s) => s?.trim())

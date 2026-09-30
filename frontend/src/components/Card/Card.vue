@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts"></script>
 
 <template>
-  <section class="rounded-lg bg-naturals-n2">
+  <section class="rounded-lg bg-surface-card">
     <slot></slot>
   </section>
 </template>

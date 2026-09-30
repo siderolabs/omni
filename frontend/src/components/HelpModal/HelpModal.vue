@@ -73,25 +73,25 @@ const icsUrl = computed(() => {
         href="https://support.siderolabs.com/"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-naturals-n2 p-4 transition-colors hover:bg-naturals-n4"
+        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-primary-p6 text-primary-p3"
+          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-accent-subtle text-accent-text"
         >
           <TIcon class="size-5" icon="lifebuoy" />
         </div>
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span
-            class="text-sm font-medium text-naturals-n13 transition-colors group-hover:text-naturals-n14"
+            class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >
             Support Portal
           </span>
-          <span class="text-xs text-naturals-n9">
+          <span class="text-xs text-content-muted">
             File a ticket and get help from the Sidero Labs team
           </span>
         </div>
         <TIcon
-          class="size-4 shrink-0 text-naturals-n7 transition-colors group-hover:text-naturals-n10"
+          class="size-4 shrink-0 text-content-muted transition-colors group-hover:text-content-muted"
           icon="external-link"
         />
       </a>
@@ -100,36 +100,36 @@ const icsUrl = computed(() => {
         :href="getDocsLink('omni')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-naturals-n2 p-4 transition-colors hover:bg-naturals-n4"
+        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-naturals-n5 text-naturals-n11"
+          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="documentation" />
         </div>
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span
-            class="text-sm font-medium text-naturals-n13 transition-colors group-hover:text-naturals-n14"
+            class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >
             Documentation
           </span>
-          <span class="text-xs text-naturals-n9">Guides, API references, and tutorials</span>
+          <span class="text-xs text-content-muted">Guides, API references, and tutorials</span>
         </div>
         <TIcon
-          class="size-4 shrink-0 text-naturals-n7 transition-colors group-hover:text-naturals-n10"
+          class="size-4 shrink-0 text-content-muted transition-colors group-hover:text-content-muted"
           icon="external-link"
         />
       </a>
 
-      <div class="flex items-start gap-4 rounded-sm bg-naturals-n2 p-4">
+      <div class="flex items-start gap-4 rounded-sm bg-surface-card p-4">
         <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-naturals-n5 text-naturals-n11"
+          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="code-bracket" />
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-naturals-n13">GitHub Issues</span>
-          <span class="text-xs text-naturals-n9">Report a bug or request a feature</span>
+          <span class="text-sm font-medium text-content-default">GitHub Issues</span>
+          <span class="text-xs text-content-muted">Report a bug or request a feature</span>
           <div class="mt-1 flex items-center gap-2 text-xs">
             <a
               href="https://github.com/siderolabs/omni/issues"
@@ -139,7 +139,7 @@ const icsUrl = computed(() => {
             >
               Omni
             </a>
-            <span class="text-naturals-n6">·</span>
+            <span class="text-content-disabled">·</span>
             <a
               href="https://github.com/siderolabs/talos/issues"
               target="_blank"
@@ -148,7 +148,7 @@ const icsUrl = computed(() => {
             >
               Talos
             </a>
-            <span class="text-naturals-n6">·</span>
+            <span class="text-content-disabled">·</span>
             <a
               href="https://github.com/siderolabs/docs/issues"
               target="_blank"
@@ -165,36 +165,36 @@ const icsUrl = computed(() => {
         :href="getDocsLink('talos', '/overview/what-is-talos#community-&-support')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm bg-naturals-n2 p-4 transition-colors hover:bg-naturals-n4"
+        class="group flex items-center gap-4 rounded-sm bg-surface-card p-4 transition-colors hover:bg-surface-hover"
       >
         <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-naturals-n5 text-naturals-n11"
+          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="users" />
         </div>
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span
-            class="text-sm font-medium text-naturals-n13 transition-colors group-hover:text-naturals-n14"
+            class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >
             Community
           </span>
-          <span class="text-xs text-naturals-n9">Chat with the community on Slack and more</span>
+          <span class="text-xs text-content-muted">Chat with the community on Slack and more</span>
         </div>
         <TIcon
-          class="size-4 shrink-0 text-naturals-n7 transition-colors group-hover:text-naturals-n10"
+          class="size-4 shrink-0 text-content-muted transition-colors group-hover:text-content-muted"
           icon="external-link"
         />
       </a>
 
-      <div class="flex items-start gap-4 rounded-sm bg-naturals-n2 p-4">
+      <div class="flex items-start gap-4 rounded-sm bg-surface-card p-4">
         <div
-          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-naturals-n5 text-naturals-n11"
+          class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="calendar" />
         </div>
         <div class="flex flex-1 flex-col gap-1">
-          <span class="text-sm font-medium text-naturals-n13">Office Hours</span>
-          <span class="text-xs text-naturals-n9">
+          <span class="text-sm font-medium text-content-default">Office Hours</span>
+          <span class="text-xs text-content-muted">
             Monthly community call with Sidero Labs engineers
           </span>
           <div class="mt-1 flex items-center gap-3">

@@ -26,7 +26,7 @@ defineEmits<{
 </script>
 
 <template>
-  <p v-if="!matches.length" class="flex items-center gap-1.5 text-xs text-green-g1">
+  <p v-if="!matches.length" class="flex items-center gap-1.5 text-xs text-status-success-text">
     <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
     No vulnerabilities
   </p>
@@ -35,7 +35,7 @@ defineEmits<{
       v-for="[sev, count] in counts"
       :key="sev"
       :class="
-        cn('rounded-sm bg-naturals-n4 px-2 py-1 text-xs text-naturals-n11', {
+        cn('rounded-sm bg-surface-hover px-2 py-1 text-xs text-content-secondary', {
           'bg-red-600 text-white': sev === 'Critical',
           'bg-orange-700 text-white': sev === 'High',
           'bg-orange-500 text-white': sev === 'Medium',

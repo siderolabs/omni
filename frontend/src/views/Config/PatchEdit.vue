@@ -421,14 +421,14 @@ watch(
         <Tooltip :open="invalidWeight" placement="bottom-start">
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
           <template #description>
-            <div class="flex items-center gap-2 rounded bg-naturals-n3 p-2 text-xs">
-              <TIcon icon="warning" class="h-5 w-5 fill-current text-yellow-y1" />
+            <div class="flex items-center gap-2 rounded bg-surface-raised p-2 text-xs">
+              <TIcon icon="warning" class="h-5 w-5 fill-current text-status-warning-text" />
               Weight should be in range of {{ MIN_WEIGHT }}-{{ MAX_WEIGHT }}.
             </div>
           </template>
         </Tooltip>
       </div>
-      <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
+      <div class="font-sm flex-1 overflow-y-hidden rounded bg-surface-chrome px-2 py-3">
         <div v-if="configPatchLoading" class="flex h-full w-full items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>
@@ -444,7 +444,7 @@ watch(
       </div>
     </PageContainer>
     <div
-      class="flex h-16 shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
+      class="flex h-16 shrink-0 items-center gap-4 border-t border-border-default bg-surface-chrome px-5 py-3"
     >
       <TButton class="secondary" @click="() => $router.push(back)">Back</TButton>
       <div class="flex-1" />

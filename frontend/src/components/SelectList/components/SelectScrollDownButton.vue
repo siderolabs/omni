@@ -22,7 +22,7 @@ const forwarded = useForwardProps(delegatedProps)
     v-bind="forwarded"
     :class="
       cn(
-        'z-10 -mt-(--arrow-size) bg-linear-to-t from-naturals-n3 from-25% to-transparent',
+        'z-10 -mt-(--arrow-size) bg-linear-to-t from-surface-raised from-25% to-transparent',
         props.class,
       )
     "

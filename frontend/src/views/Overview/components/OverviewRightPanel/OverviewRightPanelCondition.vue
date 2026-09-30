@@ -42,12 +42,12 @@ const { condition } = defineProps<Props>()
 const textClass = computed(() => {
   switch (condition.severity) {
     case ControlPlaneStatusSpecConditionSeverity.Warning:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ControlPlaneStatusSpecConditionSeverity.Error:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
   }
 
-  return 'text-naturals-n12'
+  return 'text-content-default'
 })
 
 const text = computed(() => {

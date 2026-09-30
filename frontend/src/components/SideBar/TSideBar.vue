@@ -447,13 +447,13 @@ function getNodeItems(cluster: string, machine: string) {
 </script>
 
 <template>
-  <aside class="flex flex-col border-r border-naturals-n4 bg-naturals-n1">
+  <aside class="flex flex-col border-r border-border-default bg-surface-chrome">
     <div class="grow overflow-auto">
       <TSidebarList :items="rootItems" />
 
-      <div v-if="currentCluster" class="border-t border-naturals-n4">
-        <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Cluster</p>
-        <p class="truncate px-6 text-xs text-naturals-n13">
+      <div v-if="currentCluster" class="border-t border-border-default">
+        <p class="mt-5 mb-2 px-6 text-xs text-content-muted">Cluster</p>
+        <p class="truncate px-6 text-xs text-content-default">
           {{ currentCluster }}
         </p>
 
@@ -467,9 +467,9 @@ function getNodeItems(cluster: string, machine: string) {
           :cluster-id="currentCluster"
         />
 
-        <div v-if="currentMachine" class="border-t border-naturals-n4">
-          <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Node</p>
-          <p class="truncate px-6 text-xs text-naturals-n13">{{ node }}</p>
+        <div v-if="currentMachine" class="border-t border-border-default">
+          <p class="mt-5 mb-2 px-6 text-xs text-content-muted">Node</p>
+          <p class="truncate px-6 text-xs text-content-default">{{ node }}</p>
           <TSidebarList :items="getNodeItems(currentCluster, currentMachine)" />
         </div>
       </div>

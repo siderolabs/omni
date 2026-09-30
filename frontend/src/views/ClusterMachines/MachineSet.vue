@@ -165,7 +165,7 @@ function isMachineSetScalable(
     v-if="machines.length > 0 || requests.length > 0"
     as="section"
     :value="machineSetId"
-    class="grid border-t-8 border-naturals-n4 text-naturals-n14"
+    class="grid border-t-8 border-border-default text-content-emphasis"
     :class="
       isSubgrid ? 'col-span-full grid-cols-subgrid' : 'grid-cols-[repeat(4,1fr)_--spacing(24)]'
     "
@@ -177,7 +177,7 @@ function isMachineSetScalable(
         :id="sectionHeadingId"
         class="group/accordion flex shrink-0 items-stretch gap-0.5 truncate text-left"
       >
-        <div class="flex shrink-0 items-center rounded-l bg-naturals-n4 px-0.5">
+        <div class="flex shrink-0 items-center rounded-l bg-surface-hover px-0.5">
           <TIcon
             class="size-5 transition-transform duration-250 group-data-[state=open]/accordion:rotate-180"
             icon="drop-up"
@@ -185,7 +185,7 @@ function isMachineSetScalable(
           />
         </div>
 
-        <div class="flex min-w-0 items-center gap-1 rounded-r bg-naturals-n4 px-2 py-1.5">
+        <div class="flex min-w-0 items-center gap-1 rounded-r bg-surface-hover px-2 py-1.5">
           <TIcon icon="server-stack" class="size-4 shrink-0" aria-hidden="true" />
           <span class="grow truncate">
             {{ machineSetTitle(clusterID, machineSetId) }}
@@ -238,7 +238,7 @@ function isMachineSetScalable(
         v-for="machine in machines"
         :id="machine.metadata.id"
         :key="machine.metadata.id"
-        class="border-t border-naturals-n4 last-of-type:rounded-b-md"
+        class="border-t border-border-default last-of-type:rounded-b-md"
         :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
         :machine="machine"
         :remove-disabled="!canRemoveMachine"
@@ -247,14 +247,14 @@ function isMachineSetScalable(
       <MachineRequest
         v-for="request in requests"
         :key="request.metadata.id"
-        class="border-t border-naturals-n4 last-of-type:rounded-b-md"
+        class="border-t border-border-default last-of-type:rounded-b-md"
         :request-status="request"
         :can-destroy="canRemoveClusterMachines"
       />
 
       <div
         v-if="hiddenMachinesCount > 0"
-        class="col-span-full flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
+        class="col-span-full flex items-center gap-1 border-t border-border-default p-4 pl-9 text-xs"
       >
         {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
         <TButton variant="subtle" size="xs" @click="showMachinesCount = undefined">

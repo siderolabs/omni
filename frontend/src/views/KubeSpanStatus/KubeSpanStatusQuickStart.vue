@@ -189,13 +189,13 @@ async function enableKubeSpan() {
   <PageContainer class="@container flex h-full flex-col overflow-y-auto">
     <div class="mx-auto flex flex-col items-center">
       <div class="flex flex-col items-center gap-3 text-center">
-        <div class="flex size-14 items-center justify-center rounded-full bg-naturals-n3">
-          <TIcon icon="cloud-connection" class="size-7 text-primary-p3" />
+        <div class="flex size-14 items-center justify-center rounded-full bg-surface-raised">
+          <TIcon icon="cloud-connection" class="size-7 text-accent-text" />
         </div>
 
-        <h1 class="text-xl font-medium text-naturals-n14">KubeSpan is not enabled</h1>
+        <h1 class="text-xl font-medium text-content-emphasis">KubeSpan is not enabled</h1>
 
-        <p class="max-w-xl text-sm text-naturals-n11">
+        <p class="max-w-xl text-sm text-content-secondary">
           KubeSpan creates an encrypted WireGuard mesh between the nodes of this cluster, letting
           machines on different networks discover and securely communicate with each other. It is
           currently disabled for this cluster.
@@ -219,20 +219,20 @@ async function enableKubeSpan() {
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="flex flex-col gap-2 rounded-lg bg-naturals-n2 p-4 @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
+            class="flex flex-col gap-2 rounded-lg bg-surface-card p-4 @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
           >
             <div class="flex items-center gap-2">
-              <TIcon :icon="feature.icon" class="size-5 text-naturals-n13" />
-              <h3 class="text-sm font-medium text-naturals-n14">{{ feature.title }}</h3>
+              <TIcon :icon="feature.icon" class="size-5 text-content-default" />
+              <h3 class="text-sm font-medium text-content-emphasis">{{ feature.title }}</h3>
             </div>
-            <p class="text-xs text-naturals-n11">{{ feature.description }}</p>
+            <p class="text-xs text-content-secondary">{{ feature.description }}</p>
           </div>
         </div>
 
-        <div class="flex flex-col gap-4 rounded-lg bg-naturals-n2 p-6 @4xl:flex-1">
+        <div class="flex flex-col gap-4 rounded-lg bg-surface-card p-6 @4xl:flex-1">
           <div class="flex flex-col gap-1">
-            <h2 class="text-base font-medium text-naturals-n14">Enable KubeSpan</h2>
-            <p class="text-sm text-naturals-n11">
+            <h2 class="text-base font-medium text-content-emphasis">Enable KubeSpan</h2>
+            <p class="text-sm text-content-secondary">
               This applies the following cluster-wide config patch to every node. Patches are
               applied immediately and may result in graceful reboots.
             </p>
@@ -250,10 +250,10 @@ async function enableKubeSpan() {
               {{ requested ? 'KubeSpan enabling…' : 'Enable KubeSpan' }}
             </TButton>
 
-            <span v-if="!canManageConfigPatches" class="text-xs text-naturals-n9">
+            <span v-if="!canManageConfigPatches" class="text-xs text-content-muted">
               You do not have permission to manage config patches for this cluster.
             </span>
-            <span v-else-if="requested" class="text-xs text-naturals-n9">
+            <span v-else-if="requested" class="text-xs text-content-muted">
               KubeSpan status will appear here once the configuration is applied.
             </span>
           </div>
@@ -274,7 +274,7 @@ async function enableKubeSpan() {
 
       <ManagedByTemplatesWarning warning-style="popup" :resource="cluster" />
 
-      <p class="text-sm text-naturals-n11">
+      <p class="text-sm text-content-secondary">
         A cluster-wide config patch enabling KubeSpan will be created.
         <br />
         This applies immediately and may disrupt live traffic.
@@ -290,7 +290,7 @@ async function enableKubeSpan() {
           performance.
         </TAlert>
 
-        <p v-else class="flex max-w-md items-start gap-1.5 text-xs text-yellow-y1">
+        <p v-else class="flex max-w-md items-start gap-1.5 text-xs text-status-warning-text">
           <TIcon icon="warning" class="mt-px size-3.5 shrink-0" />
           <span>
             Wireguard encryption adds overhead to each packet that can reduce network throughput.

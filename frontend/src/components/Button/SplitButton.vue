@@ -65,7 +65,7 @@ const { width } = useElementSize(triggerRef)
 
     <DropdownMenuPortal>
       <DropdownMenuContent
-        class="z-50 max-h-[min(--spacing(70),var(--reka-dropdown-menu-content-available-height))] min-w-(--reka-dropdown-menu-trigger-width) overflow-auto rounded-md bg-naturals-n3 p-1.5 text-xs slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        class="z-50 max-h-[min(--spacing(70),var(--reka-dropdown-menu-content-available-height))] min-w-(--reka-dropdown-menu-trigger-width) overflow-auto rounded-md bg-surface-raised p-1.5 text-xs slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         side="bottom"
         side-flip
         :side-offset="4"
@@ -79,7 +79,7 @@ const { width } = useElementSize(triggerRef)
           v-for="action in actions"
           :key="action"
           value="New Tab"
-          class="cursor-pointer px-3 py-1.5 outline-none select-none hover:text-naturals-n13 focus:text-naturals-n13"
+          class="cursor-pointer px-3 py-1.5 outline-none select-none hover:text-content-default focus:text-content-default"
           @select="() => $emit('click', action)"
         >
           {{ action }}

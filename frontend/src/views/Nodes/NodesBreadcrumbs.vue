@@ -73,7 +73,7 @@ watchEffect(() => {
     </div>
 
     <div class="flex gap-1">
-      <span class="text-xs font-medium text-naturals-n12">Machine UUID:</span>
+      <span class="text-xs font-medium text-content-default">Machine UUID:</span>
       <span class="text-xs">{{ machineId }}</span>
       <CopyButton :text="machineId" />
     </div>

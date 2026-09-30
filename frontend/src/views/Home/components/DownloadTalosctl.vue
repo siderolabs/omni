@@ -95,11 +95,11 @@ const defaultBinary = computed(() => {
     </template>
 
     <div class="mb-5 flex flex-col gap-2">
-      <span class="text-xs text-naturals-n14">macOS and Linux (recommended)</span>
+      <span class="text-xs text-content-emphasis">macOS and Linux (recommended)</span>
       <CodeBlock code="brew install siderolabs/tap/sidero-tools" />
     </div>
 
-    <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
+    <span class="mb-2 text-xs text-content-emphasis">Manual installation</span>
 
     <TAlert v-if="binariesErr" title="Failed to get talosctl versions" type="error">
       {{ binariesErr }}

@@ -434,14 +434,14 @@ const submit = async () => {
             <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
           </div>
           <template v-if="machineClassMode === MachineClassMode.Manual">
-            <div class="text-naturals-n13">Conditions</div>
+            <div class="text-content-default">Conditions</div>
             <div class="flex flex-wrap items-center gap-2">
               <template v-for="(_, i) in conditions" :key="i">
                 <div
-                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-naturals-n8"
+                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-border-strong"
                 >
                   <div
-                    class="flex cursor-pointer items-center rounded-l-md bg-naturals-n3 px-2 transition-colors hover:bg-naturals-n7 hover:text-naturals-n14"
+                    class="flex cursor-pointer items-center rounded-l-md bg-surface-raised px-2 transition-colors hover:bg-surface-inert hover:text-content-emphasis"
                     @click="deleteCondition(i)"
                   >
                     <TIcon icon="delete" class="h-4 w-4" />
@@ -451,7 +451,7 @@ const submit = async () => {
                     role="textbox"
                     style="min-width: 28px"
                     spellcheck="false"
-                    class="rounded-r-md bg-naturals-n3 px-2 py-1 font-mono text-sm whitespace-pre text-naturals-n14"
+                    class="rounded-r-md bg-surface-raised px-2 py-1 font-mono text-sm whitespace-pre text-content-emphasis"
                     contenteditable
                     @focus="lastFocused = i"
                     @keyup="(event) => updateContent(i, event)"
@@ -517,7 +517,7 @@ const submit = async () => {
 
         <div class="flex flex-1 flex-col gap-2">
           <div v-if="machineClassMode === MachineClassMode.Manual">
-            <div class="text-naturals-n13">Matches</div>
+            <div class="text-content-default">Matches</div>
 
             <div v-if="machinesLoading" class="flex size-full items-center justify-center">
               <TSpinner class="size-6" />
@@ -559,7 +559,7 @@ const submit = async () => {
     </div>
 
     <div
-      class="flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
+      class="flex h-16 items-center justify-end gap-2 border-t border-border-strong bg-surface-chrome px-12 py-6 text-xs"
     >
       <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
         {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}
@@ -572,6 +572,6 @@ const submit = async () => {
 @reference "../../index.css";
 
 code {
-  @apply rounded bg-naturals-n6 px-1 py-0.5 font-mono text-naturals-n13;
+  @apply rounded bg-surface-inert px-1 py-0.5 font-mono text-content-default;
 }
 </style>

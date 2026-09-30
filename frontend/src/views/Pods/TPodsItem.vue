@@ -46,16 +46,16 @@ const age = computed(() => {
 <template>
   <CollapsibleRoot
     v-slot="{ open }"
-    class="group relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-naturals-n5 not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-naturals-n5"
+    class="group relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-border-strong not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-border-strong"
   >
     <ul class="flex w-full items-center justify-start">
-      <li class="flex w-1/6 items-center gap-1 text-xs text-naturals-n13">
+      <li class="flex w-1/6 items-center gap-1 text-xs text-content-default">
         <CollapsibleTrigger
-          class="cursor-pointer rounded transition-colors hover:bg-naturals-n7"
+          class="cursor-pointer rounded transition-colors hover:bg-surface-inert"
           :aria-label="open ? 'Collapse details' : 'Expand details'"
         >
           <TIcon
-            class="size-6 cursor-pointer text-naturals-n11 transition-transform duration-300 group-data-[state=open]:-rotate-180"
+            class="size-6 cursor-pointer text-content-secondary transition-transform duration-300 group-data-[state=open]:-rotate-180"
             icon="drop-up"
             aria-hidden="true"
           />
@@ -64,53 +64,53 @@ const age = computed(() => {
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.metadata?.namespace"
-          highlight-class="bg-naturals-n14"
+          highlight-class="bg-surface-inverse"
         />
       </li>
 
-      <li class="flex w-1/3 items-center text-xs text-naturals-n13">
+      <li class="flex w-1/3 items-center text-xs text-content-default">
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.metadata?.name"
-          highlight-class="bg-naturals-n14"
+          highlight-class="bg-surface-inverse"
         />
       </li>
 
-      <li class="flex w-1/6 items-center text-xs text-naturals-n13">
+      <li class="flex w-1/6 items-center text-xs text-content-default">
         <TStatus :title="item.status?.phase" />
       </li>
 
-      <li class="flex w-1/3 items-center justify-between text-xs text-naturals-n13">
+      <li class="flex w-1/3 items-center justify-between text-xs text-content-default">
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.spec?.nodeName"
-          highlight-class="bg-naturals-n14"
+          highlight-class="bg-surface-inverse"
         />
       </li>
     </ul>
 
-    <CollapsibleContent class="collapsible-content overflow-hidden text-xs text-naturals-n12">
+    <CollapsibleContent class="collapsible-content overflow-hidden text-xs text-content-default">
       <div class="flex items-center pt-6.5">
         <div class="flex w-1/6 flex-col gap-1.75 pl-7">
           <p>Restarts</p>
-          <p class="text-naturals-n13">{{ restartCount }}</p>
+          <p class="text-content-default">{{ restartCount }}</p>
         </div>
 
         <div class="flex w-1/3 flex-col gap-1.75">
           <p>Ready Containers</p>
-          <p class="text-naturals-n13">{{ readyContainers?.length }}</p>
+          <p class="text-content-default">{{ readyContainers?.length }}</p>
         </div>
 
         <div class="flex w-1/6 flex-col gap-1.75">
           <p>Age</p>
-          <p class="text-naturals-n13">
+          <p class="text-content-default">
             {{ age }}
           </p>
         </div>
 
         <div class="flex w-1/6 flex-col gap-1.75">
           <p>Pod IP</p>
-          <p class="text-naturals-n13">{{ item.status?.podIP }}</p>
+          <p class="text-content-default">{{ item.status?.podIP }}</p>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ const age = computed(() => {
           <div
             v-for="container in item.spec?.containers"
             :key="container.name"
-            class="rounded bg-naturals-n4 p-1 px-2"
+            class="rounded bg-surface-hover p-1 px-2"
           >
             {{ container.image }}
           </div>

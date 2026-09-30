@@ -89,9 +89,9 @@ const upgradeVersionScans = computed(() => {
 </script>
 
 <template>
-  <article class="flex flex-col gap-4 rounded border border-naturals-n5 p-4">
+  <article class="flex flex-col gap-4 rounded border border-border-strong p-4">
     <header class="flex flex-col gap-1">
-      <h2 class="flex items-center gap-1 text-sm text-naturals-n13">
+      <h2 class="flex items-center gap-1 text-sm text-content-default">
         <TIcon aria-hidden="true" icon="document-text" class="size-4" />
         Schematic
         <Tooltip :description="artifactTarget.schematic_id">
@@ -106,7 +106,7 @@ const upgradeVersionScans = computed(() => {
         <span class="resource-label label-blue">
           {{ artifactTarget.includes_control_plane ? 'control plane' : 'worker' }}
         </span>
-        <span class="text-xs text-naturals-n11">
+        <span class="text-xs text-content-secondary">
           applies to {{ artifactTarget.machine_count }}
           {{ pluralize('machine', artifactTarget.machine_count) }}
         </span>
@@ -118,7 +118,7 @@ const upgradeVersionScans = computed(() => {
         <div class="flex flex-col gap-1.5">
           <div
             v-if="currentVersionScan?.loading"
-            class="flex items-center gap-1.5 text-xs text-naturals-n11"
+            class="flex items-center gap-1.5 text-xs text-content-secondary"
           >
             <TSpinner class="size-4" />
             Running scan…
@@ -157,7 +157,7 @@ const upgradeVersionScans = computed(() => {
       </div>
 
       <div v-if="currentVersionScan && upgradeVersionScans.length" class="flex flex-col gap-3">
-        <h3 class="text-sm text-naturals-n11">Upgrade paths</h3>
+        <h3 class="text-sm text-content-secondary">Upgrade paths</h3>
         <UpgradePathCard
           v-for="{ scan, version, isPatch } in upgradeVersionScans"
           :key="version"
@@ -167,7 +167,7 @@ const upgradeVersionScans = computed(() => {
           :is-patch
         />
       </div>
-      <p v-else class="flex items-center gap-1.5 text-xs text-green-g1">
+      <p v-else class="flex items-center gap-1.5 text-xs text-status-success-text">
         <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
         Already on the latest available Talos version.
       </p>

@@ -150,7 +150,7 @@ const {
       ]"
     >
       <template #default="{ items, searchQuery }">
-        <div class="mb-1 bg-naturals-n2 px-6 py-2 pl-10 text-xs">
+        <div class="mb-1 bg-surface-card px-6 py-2 pl-10 text-xs">
           <div class="grid grid-cols-4 items-center justify-center gap-1 pr-12">
             <div>ID</div>
             <div>Creation Date</div>
@@ -160,20 +160,20 @@ const {
         </div>
 
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 pl-7 text-naturals-n12">
+          <div class="relative pr-3 pl-7 text-content-default">
             <div class="grid grid-cols-4 items-center justify-center gap-1 pr-12">
               <WordHighlighter
                 :query="searchQuery"
                 :text-to-highlight="item.metadata.id"
-                highlight-class="bg-naturals-n14"
+                highlight-class="bg-surface-inverse"
               />
-              <div class="text-naturals-n14">
+              <div class="text-content-emphasis">
                 {{ formatISO(item.spec.created_at as string, dateFormat) }}
               </div>
-              <div class="text-naturals-n14">
+              <div class="text-content-emphasis">
                 {{ prettyBytes(parseInt(item.spec.size ?? '0')) }}
               </div>
-              <div class="flex items-center gap-2 text-naturals-n14">
+              <div class="flex items-center gap-2 text-content-emphasis">
                 {{ item.spec.snapshot }}
                 <IconButton icon="copy" @click="copy(item.spec.snapshot ?? '')" />
               </div>

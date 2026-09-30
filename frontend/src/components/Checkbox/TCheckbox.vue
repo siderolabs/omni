@@ -25,11 +25,11 @@ const checked = defineModel<boolean>({ default: false })
     <CheckboxRoot
       v-model="checked"
       :disabled
-      class="flex size-3.5 items-center justify-center rounded-xs border border-naturals-n7 transition-colors data-disabled:border-naturals-n5 data-disabled:bg-naturals-n4 not-data-disabled:data-[state=checked]:border-primary-p6 not-data-disabled:data-[state=checked]:bg-primary-p6"
+      class="flex size-3.5 items-center justify-center rounded-xs border border-border-strong transition-colors data-disabled:border-border-strong data-disabled:bg-surface-hover not-data-disabled:data-[state=checked]:border-accent-fill not-data-disabled:data-[state=checked]:bg-accent-subtle"
     >
       <CheckboxIndicator class="transition-opacity data-[state=unchecked]:opacity-0" force-mount>
         <TIcon
-          class="size-full fill-current text-primary-p3"
+          class="size-full fill-current text-accent-text"
           :icon="indeterminate ? 'minus' : 'check'"
         />
       </CheckboxIndicator>
@@ -37,7 +37,7 @@ const checked = defineModel<boolean>({ default: false })
 
     <span
       v-if="label || $slots.default"
-      class="block flex-1 truncate text-xs text-naturals-n11 select-none"
+      class="block flex-1 truncate text-xs text-content-secondary select-none"
     >
       <slot>{{ label }}</slot>
     </span>

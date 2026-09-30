@@ -15,19 +15,19 @@ defineProps<{
 }>()
 
 const eventStyle = (state: string) => {
-  let color = 'bg-naturals-n7'
+  let color = 'bg-surface-inert'
   let icon: IconType = 'question'
 
   switch (state) {
     case 'Running':
-      color = 'bg-green-g2'
+      color = 'bg-status-success-default'
       icon = 'check'
 
       break
     case 'Starting':
     case 'Stopping':
     case 'Waiting':
-      color = 'bg-yellow-y2'
+      color = 'bg-status-warning-default'
       icon = 'loading'
 
       break
@@ -41,7 +41,7 @@ const eventStyle = (state: string) => {
       break
     case 'Failed':
       icon = 'error'
-      color = 'bg-red-r1'
+      color = 'bg-status-danger-default'
 
       break
   }
@@ -55,7 +55,7 @@ const eventStyle = (state: string) => {
 
 <template>
   <div class="pl-1">
-    <div class="flex h-full w-full flex-col gap-4 border-l-2 border-naturals-n4">
+    <div class="flex h-full w-full flex-col gap-4 border-l-2 border-border-default">
       <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-3">
         <div class="flex items-center gap-3">
           <div

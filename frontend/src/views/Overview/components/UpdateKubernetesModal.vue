@@ -218,7 +218,7 @@ const upgradeClick = async () => {
     <RadioGroup
       v-if="status"
       v-model="selectedVersion"
-      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
     >
       <template
         v-for="(
@@ -228,7 +228,7 @@ const upgradeClick = async () => {
       >
         <RadioGroupLabel
           as="div"
-          class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+          class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
         >
           {{ group }}
           {{
@@ -248,8 +248,8 @@ const upgradeClick = async () => {
             :disabled="!upgradeable"
           >
             <div
-              class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-naturals-n4"
-              :class="{ 'bg-naturals-n4': checked }"
+              class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+              :class="{ 'bg-surface-hover': checked }"
             >
               <TCheckbox
                 :model-value="checked"
@@ -281,7 +281,7 @@ const upgradeClick = async () => {
     </p>
     <p class="shrink-0 text-xs">This operation starts immediately.</p>
 
-    <div v-if="runningPrechecks" class="shrink-0 text-xs text-primary-p3">
+    <div v-if="runningPrechecks" class="shrink-0 text-xs text-accent-text">
       Running pre-checks to validate the upgrade...
     </div>
   </Modal>

@@ -140,20 +140,24 @@ const canUseLifecycleUpgrade = computed(() => {
 </script>
 
 <template>
-  <div class="border-b-naturals-n5 not-last-of-type:border-b">
+  <div class="border-b-border-strong not-last-of-type:border-b">
     <div
       class="grid grid-cols-[auto_1fr] gap-1 border-l-4 px-2 py-4"
-      :class="panelOpen ? 'border-l-primary-p2' : 'border-l-transparent'"
+      :class="panelOpen ? 'border-l-accent-fill' : 'border-l-transparent'"
     >
       <TCheckbox v-model="selected" class="shrink-0 justify-self-center" />
 
       <div
-        class="flex items-center gap-2 overflow-hidden text-xs text-naturals-n13"
+        class="flex items-center gap-2 overflow-hidden text-xs text-content-default"
         :class="{ 'opacity-50': machine.spec.tearing_down }"
       >
         <h2 class="list-item-link truncate">
           <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }">
-            <WordHighlighter :query="searchQuery" split-by-space highlight-class="bg-naturals-n14">
+            <WordHighlighter
+              :query="searchQuery"
+              split-by-space
+              highlight-class="bg-surface-inverse"
+            >
               {{ machineName }}
             </WordHighlighter>
           </RouterLink>
@@ -168,14 +172,14 @@ const canUseLifecycleUpgrade = computed(() => {
         <div class="grow" />
 
         <Tooltip v-if="machine.spec.tearing_down" description="The machine is being destroyed">
-          <TIcon icon="delete" class="h-4 w-4 text-red-r1" />
+          <TIcon icon="delete" class="h-4 w-4 text-status-danger-text" />
         </Tooltip>
 
         <div v-else class="flex items-center gap-1">
           <RouterLink
             v-if="clusterName && canReadClusters"
             :to="{ name: 'ClusterOverview', params: { cluster: clusterName } }"
-            class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:bg-naturals-n4 hover:text-naturals-n14"
+            class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:bg-surface-hover hover:text-content-emphasis"
           >
             <span class="max-md:hidden">{{ clusterName }}</span>
             <TIcon icon="clusters" aria-hidden="true" />
@@ -184,7 +188,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <RouterLink
             v-if="canReadMachineLogs"
             :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }"
-            class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:bg-naturals-n4 hover:text-naturals-n14"
+            class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:bg-surface-hover hover:text-content-emphasis"
           >
             <span class="max-md:hidden">Logs</span>
             <TIcon icon="log" aria-hidden="true" />
@@ -193,7 +197,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <Tooltip v-if="canAccessMaintenanceNodes" :description="maintenanceUpdateDescription">
             <button
               :disabled="!canDoMaintenanceUpdate"
-              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:not-disabled:bg-naturals-n4 hover:not-disabled:text-naturals-n14 disabled:opacity-40"
+              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:not-disabled:bg-surface-hover hover:not-disabled:text-content-emphasis disabled:opacity-40"
               @click="
                 canUseLifecycleUpgrade
                   ? $emit('openMaintenanceUpgrade', machine.metadata.id!)
@@ -267,7 +271,7 @@ const canUseLifecycleUpgrade = computed(() => {
       </div>
 
       <button
-        class="mt-0.75 size-4 shrink-0 justify-self-center text-naturals-n10 transition-colors hover:text-naturals-n14 active:text-naturals-n9"
+        class="mt-0.75 size-4 shrink-0 justify-self-center text-content-muted transition-colors hover:text-content-emphasis active:text-content-muted"
         aria-label="details"
         @click="$emit('openPanel')"
       >

@@ -170,10 +170,10 @@ function buildEdge(
     class: pending ? 'manifest-edge-pending' : undefined,
     style: {
       stroke: applied
-        ? 'var(--color-green-g1)'
+        ? 'var(--color-status-success-default)'
         : pending
-          ? 'var(--color-yellow-y1)'
-          : 'var(--color-red-r1)',
+          ? 'var(--color-status-warning-default)'
+          : 'var(--color-status-danger-default)',
       strokeWidth: 1.5,
       strokeDasharray: applied ? undefined : '4 4',
       opacity: !applied ? 0.35 : 0.7,
@@ -201,9 +201,9 @@ onNodeClick(({ node }) => {
     :nodes-draggable="false"
     :min-zoom="0.2"
     :max-zoom="3"
-    class="min-h-80 overflow-hidden rounded-sm border border-naturals-n4 bg-naturals-n0"
+    class="min-h-80 overflow-hidden rounded-sm border border-border-default bg-surface-page"
   >
-    <Background variant="dots" :gap="22" :size="2" pattern-color="var(--color-naturals-n4)" />
+    <Background variant="dots" :gap="22" :size="2" pattern-color="var(--color-surface-hover)" />
 
     <template #node-group="nodeProps">
       <ClusterManifestsGroupNode v-bind="nodeProps" />

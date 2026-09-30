@@ -62,7 +62,7 @@ useTitle('Extra Args')
 
 <template>
   <div class="flex flex-col gap-4 text-xs [&_code]:font-bold">
-    <span class="text-sm font-medium text-naturals-n14">Customization</span>
+    <span class="text-sm font-medium text-content-emphasis">Customization</span>
 
     <TInput
       v-model="formState.cmdline"
@@ -109,7 +109,9 @@ useTitle('Extra Args')
 
     <template v-if="quirks?.spec.supports_embedded_config">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-naturals-n14">Embedded machine configuration</span>
+        <span class="text-sm font-medium text-content-emphasis">
+          Embedded machine configuration
+        </span>
 
         <IconButton
           icon="fullscreen"
@@ -122,7 +124,7 @@ useTitle('Extra Args')
       <Expandable
         v-model:expanded="embeddedConfigExpanded"
         title="Embedded machine configuration"
-        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-naturals-n8"
+        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-border-strong"
       >
         <CodeEditor
           v-model="formState.embeddedMachineConfig"
@@ -155,7 +157,9 @@ useTitle('Extra Args')
 
     <template v-if="selectedSBC">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-naturals-n14">Extra overlay options (advanced)</span>
+        <span class="text-sm font-medium text-content-emphasis">
+          Extra overlay options (advanced)
+        </span>
 
         <IconButton
           icon="fullscreen"
@@ -168,7 +172,7 @@ useTitle('Extra Args')
       <Expandable
         v-model:expanded="overlayOptionsExpanded"
         title="Extra overlay options (advanced)"
-        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-naturals-n8"
+        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-border-strong"
       >
         <CodeEditor
           v-model="formState.overlayOptions"

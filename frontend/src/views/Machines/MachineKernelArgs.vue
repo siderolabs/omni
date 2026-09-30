@@ -47,27 +47,27 @@ const currentCmdline = computed(() => status.value?.spec.current_cmdline ?? '')
 <template>
   <PageContainer>
     <dl class="flex flex-col gap-2">
-      <dt id="current-kernel-cmdline" class="text-sm font-semibold text-naturals-n14">
+      <dt id="current-kernel-cmdline" class="text-sm font-semibold text-content-emphasis">
         Current Kernel Cmdline
       </dt>
       <dd
         aria-labelledby="current-kernel-cmdline"
-        class="rounded bg-naturals-n6 px-2.5 py-2 text-xs"
+        class="rounded bg-surface-inert px-2.5 py-2 text-xs"
       >
-        <code class="font-mono break-all whitespace-pre-wrap text-naturals-n13">
+        <code class="font-mono break-all whitespace-pre-wrap text-content-default">
           {{ currentCmdline || 'none' }}
         </code>
       </dd>
 
-      <dt id="extra-kernel-args" class="text-sm font-semibold text-naturals-n14">
+      <dt id="extra-kernel-args" class="text-sm font-semibold text-content-emphasis">
         Extra Kernel Args
       </dt>
       <dd
         aria-labelledby="extra-kernel-args"
-        class="my-0.5 flex items-center gap-2 rounded bg-naturals-n6 pr-2 text-xs"
+        class="my-0.5 flex items-center gap-2 rounded bg-surface-inert pr-2 text-xs"
       >
         <code
-          class="flex-1 rounded bg-naturals-n6 px-2.5 py-2 font-mono break-all whitespace-pre-wrap text-naturals-n13"
+          class="flex-1 rounded bg-surface-inert px-2.5 py-2 font-mono break-all whitespace-pre-wrap text-content-default"
         >
           {{ currentArgs || 'none' }}
         </code>

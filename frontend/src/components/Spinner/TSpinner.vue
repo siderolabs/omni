@@ -8,7 +8,7 @@ included in the LICENSE file.
   <div class="overflow-hidden">
     <svg class="spinner size-full" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
       <circle
-        class="path stroke-primary-p3"
+        class="path stroke-accent-fill"
         fill="none"
         stroke-width="9"
         stroke-linecap="round"

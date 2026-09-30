@@ -23,17 +23,17 @@ import TIcon from '@/components/Icon/TIcon.vue'
     :toast-options="{
       unstyled: true,
       classes: {
-        toast: 'flex w-sm gap-2 rounded border border-naturals-n5 bg-naturals-n0 p-2',
+        toast: 'flex w-sm gap-2 rounded border border-border-strong bg-surface-page p-2',
         closeButton:
-          'absolute top-2 right-2 rounded-full bg-naturals-n7 p-0.5 text-naturals-n14 hover:bg-naturals-n6 active:bg-naturals-n5',
+          'absolute top-2 right-2 rounded-full bg-surface-inert p-0.5 text-content-emphasis hover:bg-surface-inert active:bg-surface-inert',
         icon: 'size-5 shrink-0 self-center *:size-full',
         content: 'flex flex-col gap-1',
-        title: 'text-sm text-naturals-n14',
-        description: 'overflow-auto text-xs whitespace-pre-wrap text-naturals-n11',
+        title: 'text-sm text-content-emphasis',
+        description: 'overflow-auto text-xs whitespace-pre-wrap text-content-secondary',
 
-        error: 'border-l-4 border-l-red-r1 text-red-r1',
-        success: 'border-l-4 border-l-green-g1 text-green-g1',
-        warning: 'border-l-4 border-l-yellow-y1 text-yellow-y1',
+        error: 'border-l-4 border-l-status-danger-default text-status-danger-text',
+        success: 'border-l-4 border-l-status-success-default text-status-success-text',
+        warning: 'border-l-4 border-l-status-warning-default text-status-warning-text',
       },
     }"
   >

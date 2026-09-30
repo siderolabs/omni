@@ -55,7 +55,7 @@ useTitle('System Extensions')
 
 <template>
   <div class="flex flex-col gap-4 overflow-hidden">
-    <span class="text-sm font-medium text-naturals-n14">System Extensions</span>
+    <span class="text-sm font-medium text-content-emphasis">System Extensions</span>
 
     <p class="text-xs">
       <a
@@ -82,7 +82,7 @@ useTitle('System Extensions')
         @update:model-value="(value) => toggleExtension(item.name!, value)"
       >
         <div class="flex flex-col">
-          <span class="font-medium text-naturals-n14">
+          <span class="font-medium text-content-emphasis">
             {{ item.name }} {{ `(${item.version})` }}
           </span>
           <span>{{ item.description }}</span>

@@ -348,13 +348,13 @@ useTitle(['Clusters', 'Create'])
           Config Patches
         </TButton>
       </div>
-      <div class="text-naturals-n13">Cluster Labels</div>
+      <div class="text-content-default">Cluster Labels</div>
       <ItemLabels
         :resource="labelContainer"
         :add-label-func="addLabels"
         :remove-label-func="removeLabels"
       />
-      <div class="text-naturals-n13">Cluster Features</div>
+      <div class="text-content-default">Cluster Features</div>
       <div class="flex max-w-sm flex-col gap-3">
         <Tooltip placement="bottom">
           <template #description>
@@ -394,9 +394,9 @@ useTitle(['Clusters', 'Create'])
           "
         />
       </div>
-      <div class="text-naturals-n13">Machine Sets</div>
+      <div class="text-content-default">Machine Sets</div>
       <MachineSets />
-      <div class="text-naturals-n13">Available Machines</div>
+      <div class="text-content-default">Available Machines</div>
       <TList
         v-model:filter-value="filterValue"
         :opts="{
@@ -457,7 +457,7 @@ useTitle(['Clusters', 'Create'])
     </div>
 
     <div
-      class="flex h-16 shrink-0 items-center border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
+      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-3"
     >
       <ClusterMenu
         class="w-full"

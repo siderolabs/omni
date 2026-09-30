@@ -51,14 +51,14 @@ const id = useId()
 
 <template>
   <div class="inline-flex gap-2" :class="inlineTitle ? 'items-center' : 'flex-col'">
-    <Label class="text-sm text-naturals-n14" :class="{ 'sr-only': hiddenTitle }" :for="id">
+    <Label class="text-sm text-content-emphasis" :class="{ 'sr-only': hiddenTitle }" :for="id">
       {{ title }}
     </Label>
 
     <DateRangePickerRoot v-bind="forwarded" :id>
       <DateRangePickerField
         v-slot="{ segments }"
-        class="flex items-center rounded border border-naturals-n6 bg-naturals-n3 p-1 text-center text-sm text-naturals-n13 select-none data-invalid:border-red-r1"
+        class="flex items-center rounded border border-border-strong bg-surface-raised p-1 text-center text-sm text-content-default select-none data-invalid:border-status-danger-default"
       >
         <template v-for="item in segments.start" :key="item.part">
           <DateRangePickerInput v-if="item.part === 'literal'" :part="item.part" type="start">
@@ -67,13 +67,13 @@ const id = useId()
           <DateRangePickerInput
             v-else
             :part="item.part"
-            class="rounded p-0.5 focus:bg-naturals-n5 focus:outline-none data-placeholder:text-naturals-n8"
+            class="rounded p-0.5 focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
             type="start"
           >
             {{ item.value }}
           </DateRangePickerInput>
         </template>
-        <span class="mx-2 text-naturals-n8">-</span>
+        <span class="mx-2 text-content-muted">-</span>
         <template v-for="item in segments.end" :key="item.part">
           <DateRangePickerInput v-if="item.part === 'literal'" :part="item.part" type="end">
             {{ item.value }}
@@ -81,7 +81,7 @@ const id = useId()
           <DateRangePickerInput
             v-else
             :part="item.part"
-            class="rounded p-0.5 focus:bg-naturals-n5 focus:outline-none data-placeholder:text-naturals-n8"
+            class="rounded p-0.5 focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
             type="end"
           >
             {{ item.value }}
@@ -89,7 +89,7 @@ const id = useId()
         </template>
 
         <DateRangePickerTrigger
-          class="ml-4 rounded p-1 text-naturals-n10 hover:text-naturals-n13 focus:outline-none"
+          class="ml-4 rounded p-1 text-content-muted hover:text-content-default focus:outline-none"
         >
           <TIcon icon="calendar" class="h-4 w-4" />
         </DateRangePickerTrigger>
@@ -97,20 +97,20 @@ const id = useId()
 
       <DateRangePickerContent
         :side-offset="4"
-        class="data-[state=open]:data-[side=bottom]:animate-slideUpAndFade data-[state=open]:data-[side=left]:animate-slideRightAndFade data-[state=open]:data-[side=right]:animate-slideLeftAndFade data-[state=open]:data-[side=top]:animate-slideDownAndFade z-100 rounded border border-naturals-n6 bg-naturals-n3 shadow-lg will-change-[transform,opacity]"
+        class="data-[state=open]:data-[side=bottom]:animate-slideUpAndFade data-[state=open]:data-[side=left]:animate-slideRightAndFade data-[state=open]:data-[side=right]:animate-slideLeftAndFade data-[state=open]:data-[side=top]:animate-slideDownAndFade z-100 rounded border border-border-strong bg-surface-raised shadow-lg will-change-[transform,opacity]"
       >
-        <DateRangePickerArrow class="fill-naturals-n3 stroke-naturals-n6" />
+        <DateRangePickerArrow class="fill-surface-raised stroke-surface-inert" />
         <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-4">
           <DateRangePickerHeader class="flex items-center justify-between">
             <DateRangePickerPrev
-              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-naturals-n10 hover:border-naturals-n6 hover:bg-naturals-n5 hover:text-naturals-n13 focus:outline-none active:bg-naturals-n4"
+              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default focus:outline-none active:bg-surface-hover"
             >
               <TIcon icon="chevron-left" class="h-4 w-4" />
             </DateRangePickerPrev>
 
-            <DateRangePickerHeading class="text-sm font-medium text-naturals-n13" />
+            <DateRangePickerHeading class="text-sm font-medium text-content-default" />
             <DateRangePickerNext
-              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-naturals-n10 hover:border-naturals-n6 hover:bg-naturals-n5 hover:text-naturals-n13 focus:outline-none active:bg-naturals-n4"
+              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default focus:outline-none active:bg-surface-hover"
             >
               <TIcon icon="chevron-right" class="h-4 w-4" />
             </DateRangePickerNext>
@@ -126,7 +126,7 @@ const id = useId()
                   <DateRangePickerHeadCell
                     v-for="day in weekDays"
                     :key="day"
-                    class="w-8 rounded text-xs font-normal! text-naturals-n9"
+                    class="w-8 rounded text-xs font-normal! text-content-muted"
                   >
                     {{ day }}
                   </DateRangePickerHeadCell>
@@ -146,7 +146,7 @@ const id = useId()
                     <DateRangePickerCellTrigger
                       :day="weekDate"
                       :month="month.value"
-                      class="relative flex h-8 w-8 items-center justify-center rounded text-sm font-normal whitespace-nowrap text-naturals-n13 outline-none before:absolute before:top-1.25 before:hidden before:h-1 before:w-1 before:rounded-full before:bg-primary-p3 hover:bg-naturals-n5 focus:bg-naturals-n5 data-highlighted:bg-primary-p4/25 data-outside-view:text-naturals-n7 data-selected:bg-primary-p4! data-selected:text-naturals-n14 data-today:before:block data-unavailable:pointer-events-none data-unavailable:text-naturals-n7 data-unavailable:line-through"
+                      class="relative flex h-8 w-8 items-center justify-center rounded text-sm font-normal whitespace-nowrap text-content-default outline-none before:absolute before:top-1.25 before:hidden before:h-1 before:w-1 before:rounded-full before:bg-accent-fill hover:bg-surface-inert focus:bg-surface-inert data-highlighted:bg-accent-fill/25 data-outside-view:text-content-muted data-selected:bg-accent-fill! data-selected:text-content-emphasis data-today:before:block data-unavailable:pointer-events-none data-unavailable:text-content-muted data-unavailable:line-through"
                     />
                   </DateRangePickerCell>
                 </DateRangePickerGridRow>

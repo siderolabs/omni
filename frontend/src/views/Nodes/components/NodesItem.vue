@@ -58,7 +58,7 @@ const roles = computed(() =>
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="nodeName"
-          highlight-class="bg-naturals-n14"
+          highlight-class="bg-surface-inverse"
         />
       </RouterLink>
     </p>
@@ -67,14 +67,14 @@ const roles = computed(() =>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="ip"
-        highlight-class="bg-naturals-n14"
+        highlight-class="bg-surface-inverse"
       />
     </p>
     <p>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="os"
-        highlight-class="bg-naturals-n14"
+        highlight-class="bg-surface-inverse"
       />
     </p>
     <p class="flex flex-wrap">
@@ -95,7 +95,7 @@ const roles = computed(() =>
 @reference "../../../index.css";
 
 .nodes-list-item {
-  @apply flex items-center border-b border-naturals-n4 px-4 py-4;
+  @apply flex items-center border-b border-border-default px-4 py-4;
 }
 
 .nodes-list-item > p {
@@ -103,6 +103,6 @@ const roles = computed(() =>
 }
 
 .nodes-list-item > .node-name {
-  @apply text-xs font-medium text-naturals-n14 transition hover:text-naturals-n10;
+  @apply text-xs font-medium text-content-emphasis transition hover:text-content-muted;
 }
 </style>

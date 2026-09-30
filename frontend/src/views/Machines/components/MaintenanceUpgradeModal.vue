@@ -232,12 +232,12 @@ const doUpgrade = async () => {
         <RadioGroup
           id="talos-upgrade-version"
           v-model="selectedVersion"
-          class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+          class="flex flex-1 flex-col gap-2 overflow-y-auto text-content-default"
         >
           <template v-for="(group, label) in upgradeVersions" :key="label">
             <RadioGroupLabel
               as="div"
-              class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+              class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
             >
               {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
             </RadioGroupLabel>
@@ -250,8 +250,8 @@ const doUpgrade = async () => {
                 :value="version"
               >
                 <div
-                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-naturals-n4"
-                  :class="{ 'bg-naturals-n4': checked }"
+                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+                  :class="{ 'bg-surface-hover': checked }"
                 >
                   <TCheckbox
                     :model-value="checked"
@@ -284,9 +284,9 @@ const doUpgrade = async () => {
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded bg-naturals-n2 p-2 text-xs wrap-anywhere whitespace-pre-wrap text-naturals-n11"
-        ><template v-if="progress.length > 0"><template v-for="line in progress" :key="line.message"><span v-if="line.level === 'info'" class="text-naturals-n11">{{ line.message }}
-</span><span v-else-if="line.level === 'error'" class="text-red-r1">{{ line.message }}
+          class="grow basis-80 overflow-y-auto rounded bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
+        ><template v-if="progress.length > 0"><template v-for="line in progress" :key="line.message"><span v-if="line.level === 'info'" class="text-content-secondary">{{ line.message }}
+</span><span v-else-if="line.level === 'error'" class="text-status-danger-text">{{ line.message }}
 </span></template></template><template v-else>Starting upgrade...</template>
         </pre>
       </div>

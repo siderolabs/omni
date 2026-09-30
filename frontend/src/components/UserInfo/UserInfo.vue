@@ -47,7 +47,7 @@ const initials = computed(() => {
 
       <span
         v-else
-        class="flex size-full items-center justify-center bg-naturals-n10 font-mono font-medium text-naturals-n0 uppercase"
+        class="flex size-full items-center justify-center bg-surface-inverse font-mono font-medium text-content-inverse uppercase"
         :class="size === 'small' ? 'text-xs' : 'text-base'"
         aria-hidden="true"
       >
@@ -56,7 +56,7 @@ const initials = computed(() => {
     </div>
 
     <div class="flex grow flex-col overflow-hidden" :class="{ 'text-xs': size === 'small' }">
-      <span class="truncate text-naturals-n13">{{ fullname }}</span>
+      <span class="truncate text-content-default">{{ fullname }}</span>
       <span class="truncate">{{ email }}</span>
     </div>
 

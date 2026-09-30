@@ -30,14 +30,14 @@ const filteredSections = computed(() =>
 
 <template>
   <Card v-if="filteredSections.length > 0">
-    <h3 class="px-4 pt-3 pb-2 text-sm font-medium text-naturals-n14">{{ title }}</h3>
+    <h3 class="px-4 pt-3 pb-2 text-sm font-medium text-content-emphasis">{{ title }}</h3>
 
-    <dl class="flex flex-col items-start gap-1 p-4 text-xs wrap-anywhere text-naturals-n12">
+    <dl class="flex flex-col items-start gap-1 p-4 text-xs wrap-anywhere text-content-default">
       <template
         v-for="({ title: sectionTitle, value, emptyText }, sectionIndex) in filteredSections"
         :key="sectionIndex"
       >
-        <dt class="font-medium text-naturals-n14 not-first-of-type:mt-3">{{ sectionTitle }}</dt>
+        <dt class="font-medium text-content-emphasis not-first-of-type:mt-3">{{ sectionTitle }}</dt>
 
         <template v-if="typeof value === 'function'">
           <component :is="value" />

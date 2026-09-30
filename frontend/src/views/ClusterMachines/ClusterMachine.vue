@@ -87,7 +87,7 @@ const updateLock = async () => {
 
 <template>
   <div
-    class="col-span-full grid cursor-pointer grid-cols-subgrid p-2 pr-4 text-xs text-naturals-n14 hover:bg-naturals-n3"
+    class="col-span-full grid cursor-pointer grid-cols-subgrid p-2 pr-4 text-xs text-content-emphasis hover:bg-surface-raised"
     @click="openNodeInfo"
   >
     <div class="col-span-2 ml-6 flex items-center gap-2">

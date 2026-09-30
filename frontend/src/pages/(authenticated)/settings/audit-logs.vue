@@ -184,24 +184,27 @@ useTitle('Audit Logs')
       which can negatively impact Omni performance. Consider shortening the date range.
     </TAlert>
 
-    <div role="grid" class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-naturals-n13">
+    <div
+      role="grid"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-content-default"
+    >
       <div
         role="rowgroup"
-        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-naturals-n2 px-2 text-left"
+        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-surface-card px-2 text-left"
       >
         <div role="columnheader" aria-hidden="true" class="py-2 uppercase"></div>
         <div
           v-for="{ label, value } in tableHeaders"
           :key="value"
           role="columnheader"
-          class="cursor-pointer py-2 uppercase transition-colors select-none hover:text-naturals-n11 active:text-naturals-n9"
+          class="cursor-pointer py-2 uppercase transition-colors select-none hover:text-content-secondary active:text-content-muted"
           @click="toggleSort(value)"
         >
           <span class="inline-flex items-center">
             {{ label }}
 
             <TIcon
-              class="size-5 text-naturals-n10 transition-transform"
+              class="size-5 text-content-muted transition-transform"
               icon="dropdown"
               :class="{
                 invisible: orderByField !== value,
@@ -223,7 +226,7 @@ useTitle('Audit Logs')
               :key="vRow.key.toString()"
               :ref="measureElement"
               :data-index="vRow.index"
-              class="grid grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 border-t border-naturals-n5"
+              class="grid grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 border-t border-border-strong"
             >
               <AuditLogItem
                 :data="data[vRow.index]"

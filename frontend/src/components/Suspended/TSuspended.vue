@@ -28,7 +28,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 @reference "../../index.css";
 
 .suspended {
-  @apply flex w-full items-center justify-between rounded border border-l-4 border-red-r2 bg-naturals-n0 px-6 py-4 text-red-r1;
+  @apply flex w-full items-center justify-between rounded border border-l-4 border-status-danger-subtle-border bg-surface-page px-6 py-4 text-status-danger-text;
   min-height: 65px;
 }
 .suspended__wrapper {

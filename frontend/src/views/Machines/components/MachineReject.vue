@@ -63,7 +63,7 @@ const confirm = async () => {
     </ul>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
-    <p class="py-2 text-xs text-primary-p2">
+    <p class="py-2 text-xs text-accent-hover">
       Rejected machines will be removed from the pending machines list. You can use the rejected
       machines list or omnictl to accept them again.
     </p>

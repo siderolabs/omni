@@ -32,7 +32,7 @@ const toISOString = (inputDateTime: string) => {
   <ContentWrapper class="relative" :control="control">
     <input
       :id="control.id + '-input'"
-      class="-my-1 bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
+      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
       type="datetime-local"
       :value="dataTime"
       :disabled="!control.enabled"
@@ -54,7 +54,7 @@ const toISOString = (inputDateTime: string) => {
 @reference "../../index.css";
 
 input[type='datetime-local'] {
-  @apply rounded border border-naturals-n7 px-2 py-1;
+  @apply rounded border border-border-strong px-2 py-1;
 }
 
 input[type='datetime-local']::-webkit-inner-spin-button {

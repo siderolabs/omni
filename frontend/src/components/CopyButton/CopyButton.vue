@@ -26,12 +26,12 @@ const { copy, copied } = useClipboard({ copiedDuring: 1000 })
   >
     <TIcon
       icon="check"
-      class="absolute inset-0 text-green-g2 transition-all duration-300"
+      class="absolute inset-0 text-status-success-text transition-all duration-300"
       :class="[copied ? 'opacity-100' : 'opacity-0']"
     />
     <TIcon
       icon="copy"
-      class="absolute inset-0 text-primary-p2 transition-all duration-300"
+      class="absolute inset-0 text-accent-hover transition-all duration-300"
       :class="[copied ? 'opacity-0' : 'opacity-100']"
     />
   </button>

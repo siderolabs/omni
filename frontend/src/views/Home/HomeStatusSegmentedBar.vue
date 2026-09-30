@@ -34,17 +34,19 @@ function barTotal(bar: Bar) {
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex items-baseline justify-between gap-2">
-      <h2 :id="labelId" class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
-      <span v-if="total !== undefined" class="text-sm text-naturals-n11">{{ total }} total</span>
+      <h2 :id="labelId" class="text-xl font-medium text-content-emphasis">{{ title }}</h2>
+      <span v-if="total !== undefined" class="text-sm text-content-secondary">
+        {{ total }} total
+      </span>
     </div>
 
     <template v-for="(bar, barIndex) in bars" :key="bar.label ?? barIndex">
       <div class="flex flex-col gap-3" :aria-labelledby="labelId">
         <div class="flex flex-col gap-1">
-          <span v-if="bar.label" class="text-xs text-naturals-n11">{{ bar.label }}</span>
+          <span v-if="bar.label" class="text-xs text-content-secondary">{{ bar.label }}</span>
 
           <div
-            class="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-sm bg-naturals-n5"
+            class="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-sm bg-surface-inert"
             role="img"
             :aria-label="
               bar.segments.map((segment) => `${segment.label}: ${segment.value}`).join(', ')
@@ -74,10 +76,10 @@ function barTotal(bar: Bar) {
             class="size-2 rounded-xs"
             :style="{ backgroundColor: item.color }"
           />
-          <dt :id="`${labelId}-${barIndex}-dt-${index}`" class="text-naturals-n11">
+          <dt :id="`${labelId}-${barIndex}-dt-${index}`" class="text-content-secondary">
             {{ item.label }}
           </dt>
-          <dd :aria-labelledby="`${labelId}-${barIndex}-dt-${index}`" class="text-naturals-n14">
+          <dd :aria-labelledby="`${labelId}-${barIndex}-dt-${index}`" class="text-content-emphasis">
             {{ item.value }}
           </dd>
         </div>

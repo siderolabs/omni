@@ -170,7 +170,7 @@ const installerImage = computed(() => {
     />
 
     <template v-else>
-      <h3 class="text-sm text-naturals-n14">Vulnerability Scan</h3>
+      <h3 class="text-sm text-content-emphasis">Vulnerability Scan</h3>
       <p v-if="isEnterprise">
         The configured enterprise factory does not support talos version v{{
           resolvedTalosVersion
@@ -182,11 +182,11 @@ const installerImage = computed(() => {
       </p>
     </template>
 
-    <h2 v-if="!isReviewPage" class="text-sm text-naturals-n14">Schematic Ready</h2>
+    <h2 v-if="!isReviewPage" class="text-sm text-content-emphasis">Schematic Ready</h2>
 
     <p class="flex items-center gap-1">
       Your image schematic ID is:
-      <code class="rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
+      <code class="rounded bg-surface-hover px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
       <CopyButton aria-label="Copy schematic ID" :text="schematic.id" />
     </p>
 
@@ -196,7 +196,7 @@ const installerImage = computed(() => {
       :code="schematic.yml"
     />
 
-    <h3 class="text-sm text-naturals-n14">First Boot</h3>
+    <h3 class="text-sm text-content-emphasis">First Boot</h3>
     <p v-if="formState.hardwareType === 'metal'">
       Here are the options for the initial boot of Talos Linux on a bare-metal machine or a generic
       virtual machine:
@@ -226,7 +226,7 @@ const installerImage = computed(() => {
         v-else
         :key="link"
       >
-        <dt class="font-medium text-naturals-n14 not-first-of-type:mt-2">
+        <dt class="font-medium text-content-emphasis not-first-of-type:mt-2">
           {{ label }}
           <Tooltip v-if="documentation" description="Documentation">
             <a
@@ -242,7 +242,7 @@ const installerImage = computed(() => {
 
         <dd class="flex items-center gap-1.5">
           <template v-if="copyOnly">
-            <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
+            <code class="whitespace-wrap rounded bg-surface-hover px-2 py-1 wrap-anywhere">
               {{ link }}
             </code>
             <CopyButton :aria-label="`Copy ${label} link`" :text="link" />
@@ -294,7 +294,7 @@ const installerImage = computed(() => {
     </dl>
 
     <template v-if="notOnlyDiskImage && installerImage">
-      <h3 class="text-sm text-naturals-n14">Initial Installation</h3>
+      <h3 class="text-sm text-content-emphasis">Initial Installation</h3>
       <p>
         For the initial installation of Talos Linux (not applicable for disk image boot), add the
         following installer image to the machine configuration:
@@ -304,7 +304,7 @@ const installerImage = computed(() => {
     </template>
 
     <template v-if="!isEnterpriseFactory">
-      <h3 class="text-sm text-naturals-n14">PXE Boot with booter</h3>
+      <h3 class="text-sm text-content-emphasis">PXE Boot with booter</h3>
       <p>
         To easily PXE boot bare-metal machines using
         <a
@@ -323,8 +323,8 @@ const installerImage = computed(() => {
       />
     </template>
 
-    <h3 class="text-sm text-naturals-n14">Documentation</h3>
-    <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-primary-p3">
+    <h3 class="text-sm text-content-emphasis">Documentation</h3>
+    <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-accent-text">
       <li>
         <a
           class="link-primary"
@@ -464,8 +464,10 @@ const installerImage = computed(() => {
     <template
       v-if="formState.hardwareType === 'metal' && !formState.secureBoot && talosctlAvailable"
     >
-      <h3 class="text-sm text-naturals-n14">Extra Assets</h3>
-      <dl class="flex flex-col gap-2 [&_dd+dt]:mt-2 [&_dt]:font-medium [&_dt]:text-naturals-n14">
+      <h3 class="text-sm text-content-emphasis">Extra Assets</h3>
+      <dl
+        class="flex flex-col gap-2 [&_dd+dt]:mt-2 [&_dt]:font-medium [&_dt]:text-content-emphasis"
+      >
         <dt>Talosctl CLI</dt>
         <dd v-for="path in talosctlPaths" :key="path">
           <a class="link-primary" :href="path" target="_blank" rel="noopener noreferrer">

@@ -55,7 +55,7 @@ watchEffect(() => {
       <RadioGroup v-model="untaint">
         <RadioGroupLabel class="mb-3 block text-sm">
           Apply a patch (
-          <code class="text-xs text-naturals-n13">allowSchedulingOnControlPlanes: true</code>
+          <code class="text-xs text-content-default">allowSchedulingOnControlPlanes: true</code>
           ) that will enable scheduling user workloads on this node?
         </RadioGroupLabel>
 

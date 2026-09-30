@@ -19,18 +19,18 @@ const downloadOmnictlModalOpen = ref(false)
   <div class="flex h-full flex-col items-center justify-center gap-2">
     <div class="relative mb-6 h-16 w-16">
       <div
-        class="absolute top-0 left-0 h-full w-full translate-x-1.5 -translate-y-1.5 rotate-12 rounded-lg bg-naturals-n2"
+        class="absolute top-0 left-0 h-full w-full translate-x-1.5 -translate-y-1.5 rotate-12 rounded-lg bg-surface-card"
       />
 
       <div
-        class="absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-lg bg-naturals-n3"
+        class="absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-lg bg-surface-raised"
       >
-        <TIcon icon="warning" class="h-6 w-6 text-naturals-n11" />
+        <TIcon icon="warning" class="h-6 w-6 text-content-secondary" />
       </div>
     </div>
 
-    <p class="text-lg text-naturals-n14">You don't have access to Omni Web</p>
-    <p class="text-xs text-naturals-n10">At least Reader role is required</p>
+    <p class="text-lg text-content-emphasis">You don't have access to Omni Web</p>
+    <p class="text-xs text-content-muted">At least Reader role is required</p>
 
     <div class="mt-3 flex gap-3">
       <TButton

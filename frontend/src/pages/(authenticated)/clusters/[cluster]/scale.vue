@@ -257,9 +257,9 @@ useTitle('Scale')
     >
       <ManagedByTemplatesWarning :resource="currentCluster" />
 
-      <div class="text-naturals-n13">Machine Sets</div>
+      <div class="text-content-default">Machine Sets</div>
       <MachineSets />
-      <div class="text-naturals-n13">Available Machines</div>
+      <div class="text-content-default">Available Machines</div>
 
       <div class="flex h-max max-w-full shrink-0 flex-col gap-2">
         <div class="flex grow flex-col gap-4 overflow-hidden">
@@ -314,7 +314,7 @@ useTitle('Scale')
     </div>
 
     <div
-      class="flex h-16 shrink-0 items-center border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
+      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-3"
     >
       <ClusterMenu
         class="w-full"

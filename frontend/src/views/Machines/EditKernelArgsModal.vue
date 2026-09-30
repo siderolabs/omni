@@ -117,7 +117,7 @@ async function updateKernelArgs() {
 
     <div class="flex flex-col gap-6">
       <div v-if="unmetConditions?.length" class="flex flex-col gap-2">
-        <div class="font-bold text-primary-p3">
+        <div class="font-bold text-accent-text">
           Kernel args won't be updated immediately, there are unmet conditions
         </div>
 
@@ -125,7 +125,7 @@ async function updateKernelArgs() {
           <span
             v-for="(condition, index) in unmetConditions"
             :key="index"
-            class="my-0.5 rounded border-l-3 border-l-yellow-y1 bg-naturals-n5 py-1 pl-3 text-xs text-naturals-n13"
+            class="my-0.5 rounded border-l-3 border-l-status-warning-default bg-surface-inert py-1 pl-3 text-xs text-content-default"
           >
             {{ condition }}
           </span>

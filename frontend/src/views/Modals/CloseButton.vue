@@ -19,7 +19,7 @@ defineProps<Props>()
   <button
     type="button"
     aria-label="close"
-    class="size-6 text-naturals-n10 transition-colors hover:text-naturals-n14 active:text-naturals-n9"
+    class="size-6 text-content-muted transition-colors hover:text-content-emphasis active:text-content-muted"
   >
     <TIcon class="size-full" icon="close" />
   </button>

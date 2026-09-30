@@ -61,10 +61,10 @@ useTitle('OIDC Login')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
+    <div class="flex flex-col gap-2 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
-        <div class="text-xl font-bold text-naturals-n13">
+        <div class="text-xl font-bold text-content-default">
           <div>Authenticate Kubernetes Access</div>
         </div>
       </div>
@@ -82,18 +82,18 @@ useTitle('OIDC Login')
           />
           <div
             v-if="authCode"
-            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-naturals-n4 p-1 pl-2"
+            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-border-default p-1 pl-2"
           >
-            <div class="mr-2 text-sm text-naturals-n14">Access Code</div>
+            <div class="mr-2 text-sm text-content-emphasis">Access Code</div>
             <div class="flex-1" />
             <div
-              class="cursor-pointer rounded-l-md bg-naturals-n6 px-2 py-0.5 font-mono font-bold text-naturals-n14"
+              class="cursor-pointer rounded-l-md bg-surface-inert px-2 py-0.5 font-mono font-bold text-content-emphasis"
               @click="copyCode"
             >
               {{ copied ? 'Copied' : authCode }}
             </div>
             <div
-              class="cursor-pointer rounded-r-md bg-naturals-n6 px-2 py-1 text-naturals-n14 transition-colors hover:bg-naturals-n8"
+              class="cursor-pointer rounded-r-md bg-surface-inert px-2 py-1 text-content-emphasis transition-colors hover:bg-surface-hover"
               @click="copyCode"
             >
               <TIcon icon="copy" class="h-5" />
@@ -114,6 +114,6 @@ useTitle('OIDC Login')
 @reference "../../index.css";
 
 .user-info {
-  @apply rounded-md bg-naturals-n6 px-6 py-2;
+  @apply rounded-md bg-surface-inert px-6 py-2;
 }
 </style>

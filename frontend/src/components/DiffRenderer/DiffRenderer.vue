@@ -341,14 +341,22 @@ function prevMatch() {
   --diffs-tab-size: 2;
 
   /* Without these the diff tints are derived from the Shiki theme. */
-  --diffs-addition-color-override: var(--color-green-g1);
-  --diffs-deletion-color-override: var(--color-red-r1);
-  --diffs-modified-color-override: var(--color-yellow-y1);
+  --diffs-addition-color-override: var(--color-status-success-default);
+  --diffs-deletion-color-override: var(--color-status-danger-default);
+  --diffs-modified-color-override: var(--color-status-warning-default);
 
   /* Search match highlight. Blue because green, red and orange are all taken
      by added, removed and changed lines respectively. */
-  --diffs-selection-color-override: var(--color-blue-b1);
-  --diffs-bg-selection-override: color-mix(in srgb, var(--color-blue-b1) 32%, transparent);
-  --diffs-bg-selection-number-override: color-mix(in srgb, var(--color-blue-b1) 55%, transparent);
+  --diffs-selection-color-override: var(--color-status-info-default);
+  --diffs-bg-selection-override: color-mix(
+    in srgb,
+    var(--color-status-info-default) 32%,
+    transparent
+  );
+  --diffs-bg-selection-number-override: color-mix(
+    in srgb,
+    var(--color-status-info-default) 55%,
+    transparent
+  );
 }
 </style>

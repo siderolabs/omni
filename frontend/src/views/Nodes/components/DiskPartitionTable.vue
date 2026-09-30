@@ -58,11 +58,11 @@ const isEncrypted = (item?: Resource<VolumeStatusSpec>) => {
 const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     case Encryption.Enabled:
-      return 'text-green-g1'
+      return 'text-status-success-text'
     case Encryption.Unknown:
-      return 'text-naturals-n11'
+      return 'text-content-secondary'
   }
 }
 
@@ -102,18 +102,18 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
             <div class="flex items-center gap-2">
               <TIcon
                 :icon="getFilesystemIcon(getEffectiveFilesystem(volume, volumeStatus))"
-                class="size-4 shrink-0 text-naturals-n14"
+                class="size-4 shrink-0 text-content-emphasis"
               />
 
               <div>
                 <div
                   :id="`volume-${volume.metadata.id}-title`"
-                  class="max-w-40 truncate font-medium text-naturals-n14"
+                  class="max-w-40 truncate font-medium text-content-emphasis"
                   :title="volume.spec.partition_label || volume.spec.label || volume.metadata.id"
                 >
                   {{ volume.spec.partition_label || volume.spec.label || volume.metadata.id }}
                 </div>
-                <div class="text-xs text-naturals-n10">
+                <div class="text-xs text-content-muted">
                   {{ volume.spec.dev_path }}
                 </div>
               </div>
@@ -126,7 +126,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
 
           <TableCell>
             <span
-              class="inline-flex items-center gap-1 rounded bg-naturals-n4 px-1.5 py-0.75"
+              class="inline-flex items-center gap-1 rounded bg-surface-hover px-1.5 py-0.75"
               :class="getEncryptionClass(volumeStatus)"
             >
               <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />

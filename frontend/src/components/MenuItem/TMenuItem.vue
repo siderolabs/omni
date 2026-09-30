@@ -96,39 +96,39 @@ const componentAttributes = computed(() => {
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex w-full flex-col">
         <div
-          class="group/item my-0.5 flex w-full items-center justify-start border-transparent py-1.5 transition-all duration-200 group-aria-[current]/tree:border-primary-p3 hover:bg-naturals-n4"
+          class="group/item my-0.5 flex w-full items-center justify-start border-transparent py-1.5 transition-all duration-200 group-aria-[current]/tree:border-border-accent hover:bg-surface-hover"
           :class="{ 'gap-2 pr-6': level > 0, 'gap-4 border-l-2 px-6': level === 0 }"
           :style="{ 'padding-left': `${1.5 * (level + 1)}rem` }"
           @click="() => toggleSubmenu()"
         >
           <TIcon
             v-if="icon || iconSvgBase64"
-            class="size-4 text-naturals-n11 transition-all duration-200 group-hover/item:text-naturals-n13 group-aria-[current]/tree:text-naturals-n13"
+            class="size-4 text-content-secondary transition-all duration-200 group-hover/item:text-content-default group-aria-[current]/tree:text-content-default"
             :icon="icon"
             :svg-base64="iconSvgBase64"
           />
           <span
             :id="`sidebar-menu-${name.toLowerCase()}`"
-            class="flex-1 truncate text-xs text-naturals-n11 transition-colors duration-200 group-hover/item:text-naturals-n13 group-aria-[current]/tree:text-naturals-n13"
+            class="flex-1 truncate text-xs text-content-secondary transition-colors duration-200 group-hover/item:text-content-default group-aria-[current]/tree:text-content-default"
           >
             {{ name }}
           </span>
           <div
             v-if="label"
-            class="-my-2 flex min-w-5 items-center justify-center rounded-md bg-naturals-n4 px-1.5 py-0.5 text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-naturals-n2"
-            :class="labelDanger ? 'text-red-r1' : 'text-naturals-n13'"
+            class="-my-2 flex min-w-5 items-center justify-center rounded-md bg-surface-hover px-1.5 py-0.5 text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-surface-card"
+            :class="labelDanger ? 'text-status-danger-text' : 'text-content-default'"
           >
             <span>{{ label }}</span>
           </div>
 
           <div
             v-if="subItems?.length"
-            class="-my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-naturals-n4 transition-colors duration-200 group-hover/item:border-naturals-n7 group-hover/item:bg-naturals-n2"
+            class="-my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 group-hover/item:border-border-strong group-hover/item:bg-surface-card"
             role="button"
             @click.stop.prevent="() => toggleSubmenu(true)"
           >
             <TIcon
-              class="h-6 w-6 transition-colors transition-transform duration-250 group-hover/item:text-naturals-n13"
+              class="h-6 w-6 transition-colors transition-transform duration-250 group-hover/item:text-content-default"
               :class="{ 'rotate-180': !expanded }"
               icon="drop-up"
             />
@@ -138,7 +138,7 @@ const componentAttributes = computed(() => {
         <div
           v-if="expanded"
           class="relative overflow-hidden"
-          :class="{ 'border-y border-naturals-n4 bg-naturals-n0': level === 0 }"
+          :class="{ 'border-y border-border-default bg-surface-page': level === 0 }"
         >
           <div
             v-for="(item, index) in subItems ?? []"
@@ -148,7 +148,7 @@ const componentAttributes = computed(() => {
             <div
               class="absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 transition-colors duration-200"
               :class="[
-                index <= selectedIndex ? 'border-primary-p2' : 'border-naturals-n8',
+                index <= selectedIndex ? 'border-accent-fill' : 'border-border-strong',
                 { 'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path },
               ]"
               :style="linePadding"
@@ -156,7 +156,7 @@ const componentAttributes = computed(() => {
             <div
               v-if="index !== (subItems?.length ?? 0) - 1"
               class="absolute top-4 bottom-0 z-20 mx-5 w-2 border-l-2 transition-colors duration-200"
-              :class="index < selectedIndex ? 'border-primary-p2' : 'border-naturals-n8'"
+              :class="index < selectedIndex ? 'border-accent-fill' : 'border-border-strong'"
               :style="linePadding"
             />
             <TMenuItem

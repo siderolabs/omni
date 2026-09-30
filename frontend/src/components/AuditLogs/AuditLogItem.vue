@@ -58,7 +58,7 @@ function toggleRow() {
       @keydown.space.prevent="toggleRow"
     >
       <div role="cell" aria-hidden="true">
-        <div class="size-5 rounded-md bg-naturals-n5 p-0.5 text-naturals-n10">
+        <div class="size-5 rounded-md bg-surface-inert p-0.5 text-content-muted">
           <TIcon
             icon="dropdown"
             class="transition-transform group-data-[state=open]/trigger:rotate-180"
@@ -66,7 +66,7 @@ function toggleRow() {
         </div>
       </div>
 
-      <div role="cell" class="whitespace-nowrap text-naturals-n13">
+      <div role="cell" class="whitespace-nowrap text-content-default">
         <time :datetime="new Date(item.event_ts).toISOString()">
           {{ formatISO(new Date(item.event_ts).toISOString()) }}
         </time>
@@ -77,18 +77,18 @@ function toggleRow() {
           v-if="item.event_type.toUpperCase()"
           :query="search"
           :text-to-highlight="item.event_type.toUpperCase()"
-          highlight-class="bg-naturals-n14"
+          highlight-class="bg-surface-inverse"
           class="resource-label"
           :class="getLabelClassForEvent(item.event_type)"
         />
       </div>
 
-      <div role="cell" class="truncate text-naturals-n10">
+      <div role="cell" class="truncate text-content-muted">
         <WordHighlighter
           :query="search"
           :text-to-highlight="item.resource_type"
-          highlight-class="bg-naturals-n14"
-          class="text-naturals-n14"
+          highlight-class="bg-surface-inverse"
+          class="text-content-emphasis"
         />
       </div>
 
@@ -97,11 +97,11 @@ function toggleRow() {
           v-if="item.event_data.session.role"
           :query="search"
           :text-to-highlight="item.event_data.session.role"
-          highlight-class="bg-naturals-n14"
-          class="text-naturals-n14"
+          highlight-class="bg-surface-inverse"
+          class="text-content-emphasis"
         />
 
-        <span v-else class="text-naturals-n14">System / Service Account</span>
+        <span v-else class="text-content-emphasis">System / Service Account</span>
 
         <WordHighlighter
           :query="search"
@@ -110,8 +110,8 @@ function toggleRow() {
               ? item.event_data.session.email
               : item.event_data.session.user_agent
           "
-          highlight-class="bg-naturals-n14"
-          class="text-naturals-n10"
+          highlight-class="bg-surface-inverse"
+          class="text-content-muted"
         />
       </div>
     </CollapsibleTrigger>

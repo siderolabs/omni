@@ -30,13 +30,13 @@ function manifestPhaseName(phase?: ClusterKubernetesManifestsStatusSpecManifestS
 function manifestPhaseClass(phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) {
   switch (phase) {
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'text-green-g1'
+      return 'text-status-success-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-yellow-y1'
+      return 'text-status-warning-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-red-r1'
+      return 'text-status-danger-text'
     default:
-      return 'text-naturals-n9'
+      return 'text-content-muted'
   }
 }
 </script>

@@ -87,12 +87,14 @@ async function onConfirm() {
     <template #description>Node {{ nodeName }}</template>
 
     <div class="flex flex-col gap-2 text-xs">
-      <p v-if="clusterMachineErr" class="text-xs text-red-r1">
+      <p v-if="clusterMachineErr" class="text-xs text-status-danger-text">
         {{ clusterMachineErr }}
       </p>
 
       <p v-else-if="canRestore">Please confirm the action.</p>
-      <p v-else class="text-yellow-y1">Restoring the machine is not possible at this stage.</p>
+      <p v-else class="text-status-warning-text">
+        Restoring the machine is not possible at this stage.
+      </p>
     </div>
   </ConfirmModal>
 </template>

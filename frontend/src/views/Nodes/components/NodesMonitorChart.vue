@@ -224,13 +224,13 @@ const tipLeft = computed(() =>
 <template>
   <div class="flex flex-col">
     <div class="flex justify-between px-3 text-xs">
-      <span v-if="title" class="text-naturals-n13">{{ title }}</span>
+      <span v-if="title" class="text-content-default">{{ title }}</span>
       <span v-if="readout">{{ readout }}</span>
     </div>
 
     <div class="relative h-45">
       <div v-if="err || loading" class="flex h-full items-center justify-center">
-        <span v-if="err" class="flex items-center justify-center gap-4 text-sm text-naturals-n9">
+        <span v-if="err" class="flex items-center justify-center gap-4 text-sm text-content-muted">
           <ExclamationCircleIcon class="size-6" />
           {{ errCode === Code.UNAVAILABLE ? 'Talos API is not ready yet' : err }}
         </span>
@@ -262,7 +262,7 @@ const tipLeft = computed(() =>
             </linearGradient>
           </defs>
 
-          <g class="stroke-naturals-n5" stroke-dasharray="10">
+          <g class="stroke-surface-inert" stroke-dasharray="10">
             <line
               v-for="tick in yTicks"
               :key="tick.value"
@@ -281,7 +281,7 @@ const tipLeft = computed(() =>
             />
           </g>
 
-          <g class="fill-naturals-n8 text-[0.625rem] font-medium">
+          <g class="fill-content-muted text-[0.625rem] font-medium">
             <text
               v-for="tick in yTicks"
               :key="tick.value"
@@ -318,7 +318,7 @@ const tipLeft = computed(() =>
 
           <g v-if="tooltip">
             <line
-              class="stroke-naturals-n8"
+              class="stroke-content-muted"
               :x1="tooltip.x"
               :x2="tooltip.x"
               :y1="MARGIN_TOP"
@@ -330,7 +330,7 @@ const tipLeft = computed(() =>
               :cx="tooltip.x"
               :cy="marker.y"
               r="3"
-              class="stroke-naturals-n2"
+              class="stroke-surface-card"
               stroke-width="2"
               :style="{ fill: marker.color }"
             />
@@ -340,17 +340,17 @@ const tipLeft = computed(() =>
         <div
           v-if="tooltip"
           ref="tip"
-          class="pointer-events-none absolute top-2 flex flex-col gap-1 rounded bg-naturals-n3 px-3 py-2.5 text-xs whitespace-nowrap text-naturals-n14 shadow"
+          class="pointer-events-none absolute top-2 flex flex-col gap-1 rounded bg-surface-raised px-3 py-2.5 text-xs whitespace-nowrap text-content-emphasis shadow"
           :style="{ left: `${tipLeft}px` }"
         >
-          <div class="text-naturals-n11">{{ tooltip.time }}</div>
+          <div class="text-content-secondary">{{ tooltip.time }}</div>
           <div v-for="row in tooltip.rows" :key="row.key" class="flex items-center gap-2">
             <span
               aria-hidden="true"
               class="size-2 rounded-xs"
               :style="{ backgroundColor: row.color }"
             />
-            <span class="text-naturals-n11">{{ row.label }}</span>
+            <span class="text-content-secondary">{{ row.label }}</span>
             <span class="ml-auto">{{ row.value }}</span>
           </div>
         </div>
