@@ -82,7 +82,7 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
                   <WordHighlighter
                     :query="searchQuery"
                     :text-to-highlight="item.metadata.id"
-                    highlight-class="bg-surface-inverse"
+                    highlight-class="search-match"
                   />
                 </div>
               </div>

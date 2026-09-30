@@ -96,7 +96,7 @@ useTitle('Machine Classes')
                   :to="{ name: 'MachineClassEdit', params: { classname: item.metadata.id! } }"
                   class="list-item-link"
                 >
-                  <WordHighlighter highlight-class="bg-surface-inverse" :query="searchQuery">
+                  <WordHighlighter highlight-class="search-match" :query="searchQuery">
                     {{ item.metadata.id }}
                   </WordHighlighter>
                 </RouterLink>

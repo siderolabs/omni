@@ -99,21 +99,21 @@ const definitions = computed(() => {
                 <WordHighlighter
                   :query="search"
                   :text-to-highlight="spec.displayType"
-                  highlight-class="bg-surface-inverse"
+                  highlight-class="search-match"
                 />
               </RouterLink>
               <WordHighlighter
                 class="block font-mono text-content-muted"
                 :query="search"
                 :text-to-highlight="spec.type"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
             </TableCell>
             <TableCell>
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="spec.defaultNamespace"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
             </TableCell>
             <TableCell>

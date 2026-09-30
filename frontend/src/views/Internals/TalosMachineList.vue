@@ -78,7 +78,7 @@ const filtered = computed(() => {
                 <WordHighlighter
                   :query="search"
                   :text-to-highlight="m.name"
-                  highlight-class="bg-surface-inverse"
+                  highlight-class="search-match"
                 />
               </RouterLink>
 
@@ -86,21 +86,21 @@ const filtered = computed(() => {
                 v-else
                 :query="search"
                 :text-to-highlight="m.name"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
             </TableCell>
             <TableCell>
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="m.location"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
             </TableCell>
             <TableCell class="text-content-muted">
               <WordHighlighter
                 :query="search"
                 :text-to-highlight="m.id"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
             </TableCell>
             <TableCell>{{ m.connected ? 'Connected' : 'Disconnected' }}</TableCell>

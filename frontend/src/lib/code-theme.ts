@@ -8,10 +8,8 @@ import type { ThemeRegistration } from 'shiki'
 export const OMNI_CODE_THEME = 'omni-dark'
 
 /**
- * Green and red are deliberately unused for syntax: in a diff they belong to
- * added and removed lines, and reusing them for tokens muddies that signal.
- * Scalars stay close to the body colour so the eye lands on keys and on the
- * values that actually changed.
+ * Colours come from the design system's syntax roles, which keep green and red
+ * out of syntax so a token never reads as a diff change.
  */
 function palette() {
   const styles = getComputedStyle(document.documentElement)
@@ -20,31 +18,44 @@ function palette() {
   const read = (name: string) => styles.getPropertyValue(name).trim()
 
   return {
-    key: read('--color-status-info-default'),
-    scalar: read('--color-content-default'),
-    quoted: read('--color-accent-hover'),
-    constant: read('--color-status-warning-default'),
-    muted: read('--color-content-muted'),
-    comment: read('--color-content-muted'),
-    invalid: read('--color-status-danger-default'),
+    key: read('--color-syntax-key'),
+    scalar: read('--color-syntax-plain'),
+    quoted: read('--color-syntax-string'),
+    constant: read('--color-syntax-constant'),
+    keyword: read('--color-syntax-keyword'),
+    muted: read('--color-syntax-punctuation'),
+    comment: read('--color-syntax-comment'),
+    invalid: read('--color-syntax-invalid'),
+    match: read('--color-highlight-match'),
+    matchBorder: read('--color-highlight-match-border'),
 
-    surface: read('--color-surface-raised'),
+    panel: read('--color-surface-card'),
+    popover: read('--color-surface-raised'),
     canvas: read('--color-surface-page'),
     field: read('--color-surface-chrome'),
-    border: read('--color-border-strong'),
+    border: read('--color-border-default'),
     lineNumber: read('--color-content-muted'),
     activeLineNumber: read('--color-content-secondary'),
   }
 }
 
+/** Appends an alpha channel to a `#rrggbb` colour, for Monaco's hex-only colours. */
+function withAlpha(hex: string, alpha: number) {
+  const channel = Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, '0')
+
+  return `${hex}${channel}`
+}
+
 export function createOmniShikiTheme(): ThemeRegistration {
-  const { key, scalar, quoted, constant, muted, comment, invalid, ...chrome } = palette()
+  const { key, scalar, quoted, constant, keyword, muted, comment, invalid, ...chrome } = palette()
 
   return {
     name: OMNI_CODE_THEME,
     type: 'dark',
     colors: {
-      'editor.background': chrome.surface,
+      'editor.background': chrome.panel,
       'editor.foreground': scalar,
       'editorLineNumber.foreground': chrome.lineNumber,
       'editorLineNumber.activeForeground': chrome.activeLineNumber,
@@ -84,7 +95,7 @@ export function createOmniShikiTheme(): ThemeRegistration {
           'storage.type.tag-handle',
           'keyword.control.flow.block-scalar',
         ],
-        settings: { foreground: constant },
+        settings: { foreground: keyword },
       },
       {
         scope: ['punctuation', 'keyword.operator', 'meta.separator'],
@@ -105,7 +116,7 @@ export function createOmniShikiTheme(): ThemeRegistration {
  * scalar colour here instead of the diff viewer's `quoted`.
  */
 export function createOmniMonacoTheme(): monaco.editor.IStandaloneThemeData {
-  const { key, scalar, constant, muted, comment, invalid, ...chrome } = palette()
+  const { key, scalar, constant, keyword, muted, comment, invalid, ...chrome } = palette()
 
   return {
     base: 'vs-dark',
@@ -121,14 +132,14 @@ export function createOmniMonacoTheme(): monaco.editor.IStandaloneThemeData {
       // `true`, `false`, `null` and friends.
       { token: 'keyword', foreground: constant },
       // Explicit tags (`!!str`) and anchors/aliases (`&a`, `*a`).
-      { token: 'tag', foreground: constant },
-      { token: 'namespace', foreground: constant },
+      { token: 'tag', foreground: keyword },
+      { token: 'namespace', foreground: keyword },
       { token: 'operators', foreground: muted },
       { token: 'delimiter', foreground: muted },
       { token: 'meta.directive', foreground: muted },
     ],
     colors: {
-      'dropdown.background': chrome.surface,
+      'dropdown.background': chrome.popover,
 
       'editorStickyScroll.background': chrome.canvas,
 
@@ -138,13 +149,18 @@ export function createOmniMonacoTheme(): monaco.editor.IStandaloneThemeData {
       'editorLineNumber.foreground': chrome.lineNumber,
       'editorLineNumber.activeForeground': chrome.activeLineNumber,
 
-      'editorHoverWidget.background': chrome.surface,
+      'editorHoverWidget.background': chrome.popover,
       'editorHoverWidget.border': chrome.border,
 
       'editorOverviewRuler.border': '#00000000',
 
-      'editorWidget.background': chrome.surface,
+      'editorWidget.background': chrome.popover,
       'editorWidget.border': chrome.border,
+
+      'editor.findMatchBackground': withAlpha(chrome.matchBorder, 0.35),
+      'editor.findMatchBorder': chrome.matchBorder,
+      'editor.findMatchHighlightBackground': withAlpha(chrome.match, 0.8),
+      'editor.findMatchHighlightBorder': chrome.matchBorder,
 
       'input.background': chrome.field,
       'input.border': chrome.border,

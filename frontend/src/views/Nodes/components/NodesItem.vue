@@ -58,7 +58,7 @@ const roles = computed(() =>
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="nodeName"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
         />
       </RouterLink>
     </p>
@@ -67,14 +67,14 @@ const roles = computed(() =>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="ip"
-        highlight-class="bg-surface-inverse"
+        highlight-class="search-match"
       />
     </p>
     <p>
       <WordHighlighter
         :query="searchOption"
         :text-to-highlight="os"
-        highlight-class="bg-surface-inverse"
+        highlight-class="search-match"
       />
     </p>
     <p class="flex flex-wrap">

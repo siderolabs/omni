@@ -115,7 +115,7 @@ const secureBoot = computed(() => {
                 query: searchQuery ?? '',
                 splitBySpace: true,
                 textToHighlight: machine?.metadata?.id,
-                highlightClass: 'bg-surface-inverse',
+                highlightClass: 'search-match',
               }),
           },
         ]"

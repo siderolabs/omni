@@ -39,7 +39,7 @@ const machineName = useMachineName(() => machine)
               :query="searchQuery ?? ''"
               split-by-space
               :text-to-highlight="machineName"
-              highlight-class="bg-surface-inverse"
+              highlight-class="search-match"
             />
           </RouterLink>
           <ItemLabels :resource="machine" @select-label="(label) => $emit('filterLabels', label)" />

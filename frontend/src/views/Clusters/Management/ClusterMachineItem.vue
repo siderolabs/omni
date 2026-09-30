@@ -323,7 +323,7 @@ const onSavePatchConfig = (config: string) => {
             :query="searchQuery ?? ''"
             :text-to-highlight="machineName"
             split-by-space
-            highlight-class="bg-surface-inverse"
+            highlight-class="search-match"
           />
         </span>
 

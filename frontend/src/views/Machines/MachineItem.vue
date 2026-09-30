@@ -169,11 +169,7 @@ const canUseLifecycleUpgrade = computed(() => {
       >
         <h2 class="list-item-link truncate">
           <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }">
-            <WordHighlighter
-              :query="searchQuery"
-              split-by-space
-              highlight-class="bg-surface-inverse"
-            >
+            <WordHighlighter :query="searchQuery" split-by-space highlight-class="search-match">
               {{ machineName }}
             </WordHighlighter>
           </RouterLink>

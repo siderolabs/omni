@@ -90,7 +90,7 @@ function toggleRow() {
           <WordHighlighter
             :query="search"
             :text-to-highlight="item.event_type.toUpperCase()"
-            highlight-class="bg-surface-inverse"
+            highlight-class="search-match"
           />
         </span>
       </div>
@@ -99,7 +99,7 @@ function toggleRow() {
         <WordHighlighter
           :query="search"
           :text-to-highlight="item.resource_type"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
           class="text-content-emphasis"
         />
       </div>
@@ -109,7 +109,7 @@ function toggleRow() {
           v-if="item.event_data.session.role"
           :query="search"
           :text-to-highlight="item.event_data.session.role"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
           class="text-content-emphasis"
         />
 
@@ -122,7 +122,7 @@ function toggleRow() {
               ? item.event_data.session.email
               : item.event_data.session.user_agent
           "
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
           class="text-content-muted"
         />
       </div>

@@ -173,7 +173,7 @@ const extensionsLevel = computed(() => {
                 <WordHighlighter
                   :query="searchString"
                   :text-to-highlight="item.name"
-                  highlight-class="bg-surface-inverse"
+                  highlight-class="search-match"
                   class="text-content-emphasis"
                 />
                 <div class="flex">

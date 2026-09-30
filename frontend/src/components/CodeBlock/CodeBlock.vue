@@ -47,8 +47,7 @@ const highlighted = computedAsync(() => (code ? highlight(code, lang, search) : 
 :deep(.code-search-match) {
   border-radius: var(--radius-xs);
 
-  /* Blue: the syntax theme leaves it free, and it keeps token colours legible
-     where a solid fill would not. */
-  background-color: color-mix(in srgb, var(--color-status-info-default) 40%, transparent);
+  background-color: var(--color-highlight-match);
+  box-shadow: 0 0 0 1px var(--color-highlight-match-border);
 }
 </style>

@@ -65,7 +65,7 @@ const age = computed(() => {
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.metadata?.namespace"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
         />
       </li>
 
@@ -73,7 +73,7 @@ const age = computed(() => {
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.metadata?.name"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
         />
       </li>
 
@@ -85,7 +85,7 @@ const age = computed(() => {
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="item.spec?.nodeName"
-          highlight-class="bg-surface-inverse"
+          highlight-class="search-match"
         />
       </li>
     </ul>

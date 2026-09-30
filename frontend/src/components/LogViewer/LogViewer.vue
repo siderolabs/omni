@@ -84,7 +84,7 @@ watch(
             <WordHighlighter
               :query="searchOption"
               :text-to-highlight="filteredLogs[virtualRow.index].msg"
-              highlight-class="bg-surface-inverse"
+              highlight-class="search-match"
             />
           </div>
         </div>

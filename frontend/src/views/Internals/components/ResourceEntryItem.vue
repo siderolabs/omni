@@ -38,7 +38,7 @@ defineEmits<{
       <WordHighlighter
         :query="search"
         :text-to-highlight="item.metadata.id"
-        highlight-class="bg-surface-inverse"
+        highlight-class="search-match"
       />
     </div>
 

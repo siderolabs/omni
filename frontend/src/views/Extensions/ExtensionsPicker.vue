@@ -87,7 +87,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
           <WordHighlighter
             :query="filterExtensions"
             :text-to-highlight="extension.name!.slice('siderolabs/'.length)"
-            highlight-class="bg-surface-inverse"
+            highlight-class="search-match"
           />
         </div>
         <div class="text-xs wrap-break-word text-content-default">{{ extension.version }}</div>

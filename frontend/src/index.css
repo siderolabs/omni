@@ -49,4 +49,9 @@ included in the LICENSE file.
       @apply transition-colors hover:bg-surface-inert;
     }
   }
+
+  /* Text that matches a search query, in lists and tables. Code blocks use the same roles. */
+  .search-match {
+    @apply rounded-xs bg-highlight-match text-content-emphasis ring-1 ring-highlight-match-border;
+  }
 }

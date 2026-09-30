@@ -165,7 +165,7 @@ const {
               <WordHighlighter
                 :query="searchQuery"
                 :text-to-highlight="item.metadata.id"
-                highlight-class="bg-surface-inverse"
+                highlight-class="search-match"
               />
               <div class="text-content-emphasis">
                 {{ formatISO(item.spec.created_at as string, dateFormat) }}

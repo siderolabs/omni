@@ -89,7 +89,7 @@ const clusterDestroyDialogOpen = ref(false)
             :query="searchQuery"
             :text-to-highlight="item.metadata.id"
             split-by-space
-            highlight-class="bg-surface-inverse"
+            highlight-class="search-match"
           />
         </RouterLink>
 

@@ -210,7 +210,7 @@ function renderCollapseToggle(id: string) {
 
   button.type = 'button'
   button.className = cn([
-    'grid place-items-center rounded-sm p-0.5 opacity-60 transition hover:opacity-100',
+    'grid place-items-center rounded-sm p-0.5 text-content-muted transition hover:text-content-emphasis',
     isCollapsed ? '-rotate-90' : '',
   ])
   button.ariaExpanded = String(!isCollapsed)
@@ -340,22 +340,25 @@ function prevMatch() {
   --diffs-header-font-family: var(--font-sans);
   --diffs-tab-size: 2;
 
-  /* Without these the diff tints are derived from the Shiki theme. */
-  --diffs-addition-color-override: var(--color-status-success-default);
-  --diffs-deletion-color-override: var(--color-status-danger-default);
-  --diffs-modified-color-override: var(--color-status-warning-default);
+  /* Without these the diff tints are derived from the Shiki theme, and the
+     syntax colors lose contrast on them. The highlight roles are tuned so
+     every syntax token keeps 4.5:1 on a changed line. */
+  --diffs-addition-color-override: var(--color-status-success-text);
+  --diffs-deletion-color-override: var(--color-status-danger-text);
+  --diffs-modified-color-override: var(--color-status-warning-text);
+  --diffs-bg-addition-override: var(--color-highlight-added);
+  --diffs-bg-addition-number-override: var(--color-highlight-added-emphasis);
+  --diffs-bg-addition-emphasis-override: var(--color-highlight-added-emphasis);
+  --diffs-bg-deletion-override: var(--color-highlight-removed);
+  --diffs-bg-deletion-number-override: var(--color-highlight-removed-emphasis);
+  --diffs-bg-deletion-emphasis-override: var(--color-highlight-removed-emphasis);
+  --diffs-bg-separator-override: var(--color-surface-chrome);
 
-  /* Search match highlight. Blue because green, red and orange are all taken
-     by added, removed and changed lines respectively. */
-  --diffs-selection-color-override: var(--color-status-info-default);
-  --diffs-bg-selection-override: color-mix(
-    in srgb,
-    var(--color-status-info-default) 32%,
-    transparent
-  );
+  --diffs-selection-color-override: var(--color-highlight-match-border);
+  --diffs-bg-selection-override: var(--color-highlight-match);
   --diffs-bg-selection-number-override: color-mix(
     in srgb,
-    var(--color-status-info-default) 55%,
+    var(--color-highlight-match-border) 55%,
     transparent
   );
 }

@@ -321,7 +321,7 @@ const toggleDisabled = async (item: RouteItem) => {
             <WordHighlighter
               :text-to-highlight="group.name"
               :query="filter"
-              highlight-class="bg-surface-inverse"
+              highlight-class="search-match"
             />
 
             <span>ID</span>
@@ -351,7 +351,7 @@ const toggleDisabled = async (item: RouteItem) => {
                   <WordHighlighter
                     :text-to-highlight="item.name"
                     :query="filter"
-                    highlight-class="bg-surface-inverse"
+                    highlight-class="search-match"
                     class="truncate"
                   />
 
@@ -361,7 +361,7 @@ const toggleDisabled = async (item: RouteItem) => {
                 <WordHighlighter
                   :text-to-highlight="item.id"
                   :query="filter"
-                  highlight-class="bg-surface-inverse"
+                  highlight-class="search-match"
                 />
 
                 <div class="col-span-2 truncate">
