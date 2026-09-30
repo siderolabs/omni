@@ -383,7 +383,7 @@ useTitle('Overview')
               >
                 {{ service.name }}
               </RouterLink>
-              <TStatus :title="service.state" />
+              <TStatus :title="service.state ?? TCommonStatuses.UNKNOWN" />
               <TStatus :title="service.status" />
             </div>
           </template>

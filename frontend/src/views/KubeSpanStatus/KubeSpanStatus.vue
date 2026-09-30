@@ -30,6 +30,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -217,12 +218,9 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
           >
             <div class="flex items-center justify-between gap-1">
               <span class="truncate text-sm text-content-default">{{ peer.spec.label }}</span>
-              <span
-                class="rounded bg-current/20 px-1.5 py-0.5 text-xs uppercase"
-                :class="isOnline(peer) ? 'text-status-success-text' : 'text-status-danger-text'"
-              >
+              <StatusPill :tone="isOnline(peer) ? 'success' : 'danger'">
                 {{ isOnline(peer) ? 'Online' : 'Offline' }}
-              </span>
+              </StatusPill>
             </div>
 
             <div class="flex justify-between gap-3 text-[0.625rem] text-content-secondary">

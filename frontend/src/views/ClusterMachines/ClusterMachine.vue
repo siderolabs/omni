@@ -112,7 +112,7 @@ const updateLock = async () => {
           name: 'NodePendingUpdates',
           params: { cluster: clusterName, machine: machine.metadata.id! },
         }"
-        class="flex items-center gap-1 truncate text-sky-400"
+        class="flex items-center gap-1 truncate text-status-info-text hover:text-content-emphasis"
         @click.stop
       >
         <TIcon icon="time" class="size-4 min-w-max shrink-0" />
@@ -125,14 +125,14 @@ const updateLock = async () => {
         v-if="machine.spec.last_config_error"
         :description="machine.spec.last_config_error.trim()"
       >
-        <TIcon icon="error" class="mx-1.5 size-4 shrink-0 text-red-400" />
+        <TIcon icon="error" class="mx-1.5 size-4 shrink-0 text-status-danger-text" />
       </Tooltip>
 
       <Tooltip
         v-if="hasDiagnosticInfo"
         description="This node has diagnostic warnings. Click to see the details."
       >
-        <TIcon icon="warning" class="mx-1.5 size-4 shrink-0 text-yellow-400" />
+        <TIcon icon="warning" class="mx-1.5 size-4 shrink-0 text-status-warning-text" />
       </Tooltip>
 
       <Tooltip

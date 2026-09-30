@@ -7,205 +7,70 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { IconType } from '@/components/Icon/TIcon.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import { NodesViewFilterOptions, TCommonStatuses, TPodsViewFilterOptions } from '@/constants'
 
 type Props = {
-  title?: string
+  title: string
 }
 
 const { title } = defineProps<Props>()
 
-const iconData = computed((): { iconClass?: string; iconTypeValue?: IconType } => {
-  if (title) {
-    switch (title) {
-      case TPodsViewFilterOptions.RUNNING:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case NodesViewFilterOptions.READY:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TPodsViewFilterOptions.PENDING:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-status-warning-text',
-        }
-      case TPodsViewFilterOptions.FAILED:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case TPodsViewFilterOptions.UNKNOWN:
-        return {
-          iconTypeValue: 'unknown',
-          iconClass: 'text-accent-text',
-        }
-      case TPodsViewFilterOptions.SUCCEEDED:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.DISCONNECTED:
-        return {
-          iconTypeValue: 'warning',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.PROVISIONED:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-status-warning-text',
-        }
-      case TCommonStatuses.ACTIVE:
-      case TCommonStatuses.COMPLETED:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.FINISHED:
-        return {
-          iconTypeValue: 'stop-circle',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.FAILED:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.EXPIRED:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.REVOKED:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.ERROR:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case NodesViewFilterOptions.NOT_READY:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.STOPPING:
-      case TCommonStatuses.WAITING:
-      case TCommonStatuses.LOADING:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-accent-text',
-        }
-      case TCommonStatuses.UNKNOWN:
-        return {
-          iconTypeValue: 'unknown',
-          iconClass: 'text-accent-text',
-        }
-      case TCommonStatuses.HEALTH_UNKNOWN:
-        return {
-          iconTypeValue: 'question',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.PROVISION_FAILED:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.PROVISIONING:
-        return {
-          iconTypeValue: 'loading',
-          iconClass: 'text-status-warning-text',
-        }
-      case TCommonStatuses.DEPROVISIONING:
-        return {
-          iconTypeValue: 'delete',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.HEALTHY:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.UNHEALTHY:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.ENABLED:
-      case TCommonStatuses.ON:
-        return {
-          iconTypeValue: 'dot',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.DISABLED:
-      case TCommonStatuses.OFF:
-        return {
-          iconTypeValue: 'dot',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.TRUE:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.FALSE:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-content-muted',
-        }
-      case TCommonStatuses.UP_TO_DATE:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.OUTDATED:
-        return {
-          iconTypeValue: 'error',
-          iconClass: 'text-status-danger-text',
-        }
-      case TCommonStatuses.APPLIED:
-        return {
-          iconTypeValue: 'check-in-circle-classic',
-          iconClass: 'text-status-success-text',
-        }
-      case TCommonStatuses.PENDING:
-        return {
-          iconTypeValue: 'time',
-          iconClass: 'text-status-warning-text',
-        }
-      case TCommonStatuses.AWAITING_CONNECTION:
-        return {
-          iconTypeValue: 'question',
-          iconClass: 'text-content-muted',
-        }
-      default:
-        return {
-          iconTypeValue: 'unknown',
-          iconClass: 'text-accent-text',
-        }
-    }
+const status = computed<StatusAppearance>(() => {
+  switch (title) {
+    case TPodsViewFilterOptions.RUNNING:
+    case TPodsViewFilterOptions.SUCCEEDED:
+    case NodesViewFilterOptions.READY:
+    case TCommonStatuses.ACTIVE:
+    case TCommonStatuses.COMPLETED:
+    case TCommonStatuses.HEALTHY:
+    case TCommonStatuses.ENABLED:
+    case TCommonStatuses.ON:
+    case TCommonStatuses.UP_TO_DATE:
+    case TCommonStatuses.APPLIED:
+      return { tone: 'success', glyph: 'success' }
+    case TCommonStatuses.PENDING:
+    case TCommonStatuses.PROVISIONED:
+    case TCommonStatuses.PROVISIONING:
+      return { tone: 'warning', glyph: 'progress' }
+    case TCommonStatuses.FAILED:
+    case TCommonStatuses.ERROR:
+    case TCommonStatuses.PROVISION_FAILED:
+    case TCommonStatuses.UNHEALTHY:
+    case TCommonStatuses.OUTDATED:
+    case NodesViewFilterOptions.NOT_READY:
+      return { tone: 'danger', glyph: 'danger' }
+    case TCommonStatuses.DISCONNECTED:
+      return { tone: 'danger', glyph: 'warning' }
+    case TCommonStatuses.DEPROVISIONING:
+      return { tone: 'info', glyph: 'progress' }
+    case TCommonStatuses.INITIALIZED:
+    case TCommonStatuses.PREPARING:
+    case TCommonStatuses.STARTING:
+    case TCommonStatuses.STOPPING:
+    case TCommonStatuses.WAITING:
+    case TCommonStatuses.LOADING:
+      return { tone: 'info', glyph: 'progress' }
+    case TCommonStatuses.FINISHED:
+    case TCommonStatuses.SKIPPED:
+    case TCommonStatuses.EXPIRED:
+    case TCommonStatuses.DISABLED:
+    case TCommonStatuses.OFF:
+      return { tone: 'info', glyph: 'neutral' }
+    case TCommonStatuses.REVOKED:
+    case TCommonStatuses.FALSE:
+      return { tone: 'info', glyph: 'danger' }
+    case TCommonStatuses.TRUE:
+      return { tone: 'info', glyph: 'success' }
+    default:
+      return { tone: 'info', glyph: 'unknown' }
   }
-
-  return {}
 })
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
-    <TIcon
-      class="size-4"
-      :class="iconData.iconClass"
-      :icon="iconData.iconTypeValue ?? 'action-horizontal'"
-    />
-    <span v-if="title" class="text-xs" :class="iconData.iconClass">
-      {{ title }}
-    </span>
-  </div>
+  <StatusPill :tone="status.tone" :glyph="status.glyph">
+    {{ title }}
+  </StatusPill>
 </template>

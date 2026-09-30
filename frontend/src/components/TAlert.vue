@@ -32,20 +32,23 @@ const icons: Record<AlertType, IconType> = {
 
 <template>
   <div
-    class="rounded-md border border-l-4 border-border-strong bg-surface-page p-4"
+    class="rounded-md border p-4"
     :class="{
-      'border-l-status-danger-subtle-border': type === 'error',
-      'border-l-blue-400': type === 'info',
-      'border-l-status-success-default': type === 'success',
-      'border-l-status-warning-default': type === 'warn',
+      'border-l-3 border-status-danger-border border-l-status-danger-fill bg-status-danger-surface':
+        type === 'error',
+      'border-status-info-border bg-status-info-surface': type === 'info',
+      'border-l-3 border-status-success-border border-l-status-success-fill bg-status-success-surface':
+        type === 'success',
+      'border-l-3 border-status-warning-border border-l-status-warning-fill bg-status-warning-surface':
+        type === 'warn',
     }"
   >
     <div class="flex items-center">
       <div
         class="flex items-center justify-center"
         :class="{
-          'text-red-400': type === 'error',
-          'text-blue-400': type === 'info',
+          'text-status-danger-text': type === 'error',
+          'text-status-info-text': type === 'info',
           'text-status-success-text': type === 'success',
           'text-status-warning-text': type === 'warn',
         }"
@@ -56,15 +59,18 @@ const icons: Record<AlertType, IconType> = {
         <h3
           class="text-sm font-medium"
           :class="{
-            'text-red-400': type === 'error',
-            'text-blue-400': type === 'info',
+            'text-status-danger-text': type === 'error',
+            'text-status-info-text': type === 'info',
             'text-status-success-text': type === 'success',
             'text-status-warning-text': type === 'warn',
           }"
         >
           {{ title }}
         </h3>
-        <div v-if="$slots.default" class="text-sm font-normal whitespace-pre-wrap">
+        <div
+          v-if="$slots.default"
+          class="text-sm font-normal whitespace-pre-wrap text-content-default"
+        >
           <p>
             <slot></slot>
           </p>

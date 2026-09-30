@@ -9,6 +9,8 @@ import {
   type ClusterKubernetesManifestsStatusSpecManifestStatus,
   ClusterKubernetesManifestsStatusSpecManifestStatusPhase,
 } from '@/api/omni/specs/omni.pb'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 
 export interface ClusterManifestsManifestNodeData {
   manifest: ClusterKubernetesManifestsStatusSpecManifestStatus
@@ -27,16 +29,18 @@ function manifestPhaseName(phase?: ClusterKubernetesManifestsStatusSpecManifestS
   }
 }
 
-function manifestPhaseClass(phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) {
+function manifestPhaseStatus(
+  phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase,
+): StatusAppearance {
   switch (phase) {
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'text-status-success-text'
+      return { tone: 'success', glyph: 'success' }
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-status-warning-text'
+      return { tone: 'warning', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-status-danger-text'
+      return { tone: 'info', glyph: 'progress' }
     default:
-      return 'text-content-muted'
+      return { tone: 'info', glyph: 'unknown' }
   }
 }
 </script>
@@ -48,10 +52,7 @@ const { phase = ClusterKubernetesManifestsStatusSpecManifestStatusPhase.UNKNOWN 
 </script>
 
 <template>
-  <span
-    class="w-max rounded bg-current/20 px-1.5 py-0.5 text-[0.625rem]"
-    :class="manifestPhaseClass(phase)"
-  >
+  <StatusPill v-bind="manifestPhaseStatus(phase)">
     {{ manifestPhaseName(phase) }}
-  </span>
+  </StatusPill>
 </template>

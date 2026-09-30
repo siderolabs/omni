@@ -22,11 +22,11 @@ import {
 } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
@@ -178,26 +178,21 @@ useTitle(['Machines', 'Installation Media'])
                 {{ token.spec.name }}
               </template>
 
-              <span v-else class="resource-label label-red flex items-center gap-1">
-                <TIcon icon="warning" />
-                Deleted
-              </span>
+              <StatusPill v-else tone="danger">Deleted</StatusPill>
 
-              <span
+              <StatusPill
                 v-if="token?.spec.state === JoinTokenStatusSpecState.REVOKED"
-                class="resource-label label-red flex items-center gap-1"
+                tone="danger"
               >
-                <TIcon icon="warning" />
                 {{ TCommonStatuses.REVOKED }}
-              </span>
+              </StatusPill>
 
-              <span
+              <StatusPill
                 v-if="token?.spec.state === JoinTokenStatusSpecState.EXPIRED"
-                class="resource-label label-red flex items-center gap-1"
+                tone="danger"
               >
-                <TIcon icon="warning" />
                 {{ TCommonStatuses.EXPIRED }}
-              </span>
+              </StatusPill>
 
               <span v-if="tokenAutomatic" class="resource-label label-green">Automatic</span>
             </div>

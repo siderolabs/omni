@@ -116,10 +116,9 @@ function dismissNotification(id: string) {
       v-if="currentNotification"
       class="flex items-center justify-end gap-6 px-6 py-2 transition-colors"
       :class="{
-        'bg-status-danger-default/15': currentNotification.spec.type === NotificationSpecType.ERROR,
-        'bg-status-warning-default/15':
-          currentNotification.spec.type === NotificationSpecType.WARNING,
-        'bg-status-info-default/15': currentNotification.spec.type === NotificationSpecType.INFO,
+        'bg-status-danger-subtle': currentNotification.spec.type === NotificationSpecType.ERROR,
+        'bg-status-warning-subtle': currentNotification.spec.type === NotificationSpecType.WARNING,
+        'bg-status-info-subtle': currentNotification.spec.type === NotificationSpecType.INFO,
       }"
     >
       <div class="flex items-center gap-2">

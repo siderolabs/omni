@@ -2,6 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import type { StatusTone } from '@/components/Status/StatusPill.vue'
 import type {
   Match,
   RelatedVulnerability,
@@ -109,4 +110,16 @@ export function countBySeverity(matches: Match[]): Map<string, number> {
   }
 
   return new Map([...counts.entries()].sort(([a], [b]) => severityRank(a) - severityRank(b)))
+}
+
+export function toneFromSeverity(severity?: string): StatusTone {
+  switch (severity) {
+    case 'Critical':
+    case 'High':
+      return 'danger'
+    case 'Medium':
+      return 'warning'
+    default:
+      return 'info'
+  }
 }

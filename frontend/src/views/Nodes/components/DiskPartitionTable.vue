@@ -58,11 +58,11 @@ const isEncrypted = (item?: Resource<VolumeStatusSpec>) => {
 const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
-      return 'text-status-danger-text'
+      return 'bg-surface-hover text-content-default'
     case Encryption.Enabled:
-      return 'text-status-success-text'
+      return 'bg-status-success-subtle text-status-success-text ring-1 ring-status-success-subtle-border ring-inset'
     case Encryption.Unknown:
-      return 'text-content-secondary'
+      return 'bg-surface-hover text-content-secondary'
   }
 }
 
@@ -126,7 +126,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
 
           <TableCell>
             <span
-              class="inline-flex items-center gap-1 rounded bg-surface-hover px-1.5 py-0.75"
+              class="inline-flex items-center gap-1 rounded px-1.5 py-0.75"
               :class="getEncryptionClass(volumeStatus)"
             >
               <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />

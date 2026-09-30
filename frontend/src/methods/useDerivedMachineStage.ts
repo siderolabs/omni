@@ -7,67 +7,65 @@ import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 import type { MachineStatusSnapshotSpec } from '@/api/omni/specs/omni.pb'
 import { MachineStatusSnapshotSpecPowerStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb'
-import type { IconType } from '@/components/Icon/TIcon.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
 
-interface StatusDescriptor {
+interface StatusDescriptor extends StatusAppearance {
   name: string
-  icon: IconType
-  class: string
 }
 
 const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescriptor>> = {
   [MachineStatusEventMachineStage.BOOTING]: {
     name: 'Booting',
-    icon: 'loading',
-    class: 'text-status-warning-text',
+    tone: 'warning',
+    glyph: 'progress',
   },
   [MachineStatusEventMachineStage.INSTALLING]: {
     name: 'Installing',
-    icon: 'loading',
-    class: 'text-status-warning-text',
+    tone: 'warning',
+    glyph: 'progress',
   },
   [MachineStatusEventMachineStage.MAINTENANCE]: {
     name: 'Maintenance',
-    icon: 'settings',
-    class: 'text-content-secondary',
+    tone: 'info',
+    glyph: 'neutral',
   },
   [MachineStatusEventMachineStage.RUNNING]: {
     name: 'Running',
-    icon: 'check-in-circle',
-    class: 'text-status-success-text',
+    tone: 'success',
+    glyph: 'success',
   },
   [MachineStatusEventMachineStage.REBOOTING]: {
     name: 'Rebooting',
-    icon: 'loading',
-    class: 'text-status-warning-text',
+    tone: 'warning',
+    glyph: 'progress',
   },
   [MachineStatusEventMachineStage.SHUTTING_DOWN]: {
     name: 'Shutting Down',
-    icon: 'loading',
-    class: 'text-status-danger-text',
+    tone: 'info',
+    glyph: 'progress',
   },
   [MachineStatusEventMachineStage.RESETTING]: {
     name: 'Resetting',
-    icon: 'loading',
-    class: 'text-status-danger-text',
+    tone: 'info',
+    glyph: 'progress',
   },
   [MachineStatusEventMachineStage.UPGRADING]: {
     name: 'Upgrading',
-    icon: 'loading',
-    class: 'text-status-warning-text',
+    tone: 'warning',
+    glyph: 'progress',
   },
 }
 
 const powerStageStatus: Partial<Record<MachineStatusSnapshotSpecPowerStage, StatusDescriptor>> = {
   [MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERED_OFF]: {
     name: 'Powered Off',
-    icon: 'power-off',
-    class: 'text-status-danger-text',
+    tone: 'info',
+    glyph: 'neutral',
   },
   [MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERING_ON]: {
     name: 'Powering On',
-    icon: 'loading',
-    class: 'text-status-warning-text',
+    tone: 'warning',
+    glyph: 'progress',
   },
 }
 

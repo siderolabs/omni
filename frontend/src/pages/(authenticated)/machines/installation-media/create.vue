@@ -157,7 +157,7 @@ useTitle(['Machines', 'Installation Media', 'Create'])
         <Tooltip description="Reset wizard">
           <button
             type="button"
-            class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-status-danger-default p-0.5 text-status-danger-text transition hover:bg-status-danger-default hover:text-content-inverse active:brightness-75"
+            class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-status-danger-default p-0.5 text-status-danger-text transition hover:bg-status-danger-fill hover:text-status-danger-on-fill"
             @click="formState = {}"
           >
             <TIcon icon="close" class="size-full" aria-label="reset wizard" />

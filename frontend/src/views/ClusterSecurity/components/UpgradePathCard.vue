@@ -53,22 +53,22 @@ const canExpand = computed(
         <ul class="flex flex-wrap items-center gap-1.5 text-xs">
           <li
             v-if="diff.resolved.length"
-            class="rounded-sm bg-green-700 px-2 py-1 font-medium text-white"
+            class="rounded-sm bg-status-success-subtle px-2 py-1 font-medium text-status-success-text ring-1 ring-status-success-subtle-border ring-inset"
           >
             {{ diff.resolved.length }} fixed
           </li>
-          <li class="rounded-sm bg-surface-hover px-2 py-1 text-content-secondary">
+          <li class="rounded-sm bg-surface-hover px-2 py-1 text-content-default">
             {{ diff.remaining.length }} remaining
           </li>
           <li
             v-if="diff.introduced.length"
-            class="rounded-sm bg-red-700 px-2 py-1 font-medium text-white"
+            class="rounded-sm bg-status-danger-subtle px-2 py-1 font-medium text-status-danger-text ring-1 ring-status-danger-subtle-border ring-inset"
           >
             {{ diff.introduced.length }} new
           </li>
           <li
             v-if="!diff.resolved.length && !diff.introduced.length"
-            class="rounded-sm bg-surface-hover px-2 py-1 text-content-secondary"
+            class="rounded-sm bg-surface-hover px-2 py-1 text-content-default"
           >
             No change
           </li>

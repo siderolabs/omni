@@ -160,7 +160,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
     <div class="flex flex-col gap-4">
       <div
         v-if="orphaned"
-        class="rounded border border-status-danger-default bg-status-danger-default/10 p-3 text-xs text-status-danger-text"
+        class="rounded border border-l-3 border-status-danger-border border-l-status-danger-fill bg-status-danger-surface p-3 text-xs text-content-default"
         role="alert"
       >
         The image factory this preset uses is no longer configured in Omni, so its images can no

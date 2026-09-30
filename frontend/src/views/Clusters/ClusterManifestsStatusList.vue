@@ -18,6 +18,8 @@ import {
   KubernetesManifestGroupSpecMode,
 } from '@/api/omni/specs/omni.pb'
 import TListItem from '@/components/List/TListItem.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 
 const { manifestsStatus } = defineProps<{
   manifestsStatus: Resource<ClusterKubernetesManifestsStatusSpec>
@@ -75,18 +77,20 @@ const modeName = (mode?: KubernetesManifestGroupSpecMode) => {
   }
 }
 
-const groupPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase) => {
+const groupPhaseStatus = (
+  phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase,
+): StatusAppearance => {
   switch (phase) {
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
-      return 'text-status-success-text'
+      return { tone: 'success', glyph: 'success' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return 'text-status-warning-text'
+      return { tone: 'warning', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return 'text-accent-text'
+      return { tone: 'info', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
-      return 'text-status-danger-text'
+      return { tone: 'info', glyph: 'progress' }
     default:
-      return 'text-content-muted'
+      return { tone: 'info', glyph: 'unknown' }
   }
 }
 
@@ -97,7 +101,7 @@ const manifestPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecManifest
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
       return 'text-status-warning-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-status-danger-text'
+      return 'text-status-info-text'
     default:
       return 'text-content-muted'
   }
@@ -123,9 +127,9 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
   >
     <div class="flex flex-1 items-center gap-4">
       <span class="font-bold">{{ group.id }}</span>
-      <span class="resource-label label-green" :class="groupPhaseClass(group.phase)">
+      <StatusPill v-bind="groupPhaseStatus(group.phase)">
         {{ groupPhaseName(group.phase) }}
-      </span>
+      </StatusPill>
       <span class="text-xs text-content-muted">
         Mode:
         <span class="text-content-default">{{ modeName(group.mode) }}</span>

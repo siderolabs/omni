@@ -86,7 +86,7 @@ async function onConfirm() {
       <p>Please confirm the action.</p>
 
       <template v-if="clusters.length">
-        <p class="text-accent-text">
+        <p class="text-status-warning-text">
           The {{ pluralize('machine', machines.length) }}
           {{ pluralize('is', machines.length) }} part of the
           {{ pluralize('clusters', clusters.length) }}
@@ -101,7 +101,7 @@ async function onConfirm() {
           resort, e.g. in a case of a hardware failure.
         </p>
 
-        <p class="font-bold text-accent-text">
+        <p class="font-bold text-status-warning-text">
           The {{ pluralize('machine', machines.length) }} will need to be wiped and reinstalled to
           be used again with Omni.
         </p>

@@ -19,6 +19,7 @@ import {
   type ClusterStatusSpec,
   ClusterStatusSpecPhase,
   ConfigApplyStatus,
+  MachineSetPhase,
   type MachineSetSpec,
   type MachineSetSpecMachineAllocation,
   MachineSetSpecMachineAllocationType,
@@ -48,7 +49,6 @@ import {
   UpdateLocked,
   VirtualNamespace,
 } from '@/api/resources'
-import MachineSetPhase from '@/views/ClusterMachines/MachineSetPhase.vue'
 
 import Clusters from './index.vue'
 

@@ -281,7 +281,7 @@ const upgradeClick = async () => {
     </p>
     <p class="shrink-0 text-xs">This operation starts immediately.</p>
 
-    <div v-if="runningPrechecks" class="shrink-0 text-xs text-accent-text">
+    <div v-if="runningPrechecks" class="shrink-0 text-xs text-content-secondary">
       Running pre-checks to validate the upgrade...
     </div>
   </Modal>

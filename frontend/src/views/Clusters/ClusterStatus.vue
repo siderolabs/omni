@@ -8,8 +8,8 @@ included in the LICENSE file.
 import type { Resource } from '@/api/grpc'
 import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusSpecPhase } from '@/api/omni/specs/omni.pb'
-import type { IconType } from '@/components/Icon/TIcon.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 
 type Props = {
   cluster?: Resource<ClusterStatusSpec>
@@ -36,46 +36,25 @@ const phaseName = (cluster?: Resource<ClusterStatusSpec>): string => {
   }
 }
 
-const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): IconType => {
+const phaseStatus = (cluster?: Resource<ClusterStatusSpec>): StatusAppearance => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return 'loading'
-    case ClusterStatusSpecPhase.RUNNING:
-      if (cluster?.spec.ready) {
-        return 'check-in-circle'
-      } else {
-        return 'error'
-      }
+      return { tone: 'warning', glyph: 'progress' }
     case ClusterStatusSpecPhase.DESTROYING:
-      return 'delete'
-    default:
-      return 'unknown'
-  }
-}
-
-const phaseClass = (cluster?: Resource<ClusterStatusSpec>): string => {
-  switch (cluster?.spec.phase) {
-    case ClusterStatusSpecPhase.SCALING_UP:
-    case ClusterStatusSpecPhase.SCALING_DOWN:
-      return 'text-status-warning-text'
+      return { tone: 'info', glyph: 'progress' }
     case ClusterStatusSpecPhase.RUNNING:
-      if (cluster?.spec.ready) {
-        return 'text-status-success-text'
-      } else {
-        return 'text-status-danger-text'
-      }
-    case ClusterStatusSpecPhase.DESTROYING:
-      return 'text-status-danger-text'
+      return cluster?.spec.ready
+        ? { tone: 'success', glyph: 'success' }
+        : { tone: 'danger', glyph: 'danger' }
     default:
-      return 'text-status-warning-text'
+      return { tone: 'info', glyph: 'unknown' }
   }
 }
 </script>
 
 <template>
-  <div :class="phaseClass(cluster)" class="flex items-center gap-1">
-    <TIcon :icon="phaseIcon(cluster)" class="h-4" aria-hidden="true" />
-    <span class="contents max-sm:sr-only">{{ phaseName(cluster) }}</span>
-  </div>
+  <StatusPill v-bind="phaseStatus(cluster)">
+    {{ phaseName(cluster) }}
+  </StatusPill>
 </template>

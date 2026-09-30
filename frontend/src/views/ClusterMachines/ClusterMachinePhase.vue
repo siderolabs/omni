@@ -9,8 +9,8 @@ import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelConnected } from '@/api/resources'
-import type { IconType } from '@/components/Icon/TIcon.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
@@ -57,9 +57,9 @@ const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
   }
 }
 
-const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
+const stageStatus = (machine: Resource<ClusterMachineStatusSpec>): StatusAppearance => {
   if (!connected(machine)) {
-    return 'unknown'
+    return { tone: 'info', glyph: 'unknown' }
   }
 
   switch (machine?.spec.stage) {
@@ -68,50 +68,20 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
     case ClusterMachineStatusSpecStage.UPGRADING:
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
-    case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
-      return 'loading'
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return 'power'
-    case ClusterMachineStatusSpecStage.POWERED_OFF:
-      return 'power'
-    case ClusterMachineStatusSpecStage.RUNNING:
-      if (machine?.spec.ready) {
-        return 'check-in-circle'
-      } else {
-        return 'error'
-      }
-    case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
-      return 'loading'
-    case ClusterMachineStatusSpecStage.DESTROYING:
-      return 'delete'
-    default:
-      return 'unknown'
-  }
-}
-
-const stageClass = (machine: Resource<ClusterMachineStatusSpec>): string => {
-  switch (machine?.spec.stage) {
-    case ClusterMachineStatusSpecStage.BOOTING:
-    case ClusterMachineStatusSpecStage.INSTALLING:
-    case ClusterMachineStatusSpecStage.UPGRADING:
-    case ClusterMachineStatusSpecStage.CONFIGURING:
-    case ClusterMachineStatusSpecStage.REBOOTING:
-    case ClusterMachineStatusSpecStage.POWERING_ON:
-      return 'text-status-warning-text'
-    case ClusterMachineStatusSpecStage.RUNNING:
-      if (machine?.spec.ready || !connected(machine)) {
-        return 'text-status-success-text'
-      } else {
-        return 'text-status-danger-text'
-      }
-    case ClusterMachineStatusSpecStage.POWERED_OFF:
-      return 'text-content-muted'
+      return { tone: 'warning', glyph: 'progress' }
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return 'text-status-danger-text'
+      return { tone: 'info', glyph: 'progress' }
+    case ClusterMachineStatusSpecStage.POWERED_OFF:
+      return { tone: 'info', glyph: 'neutral' }
+    case ClusterMachineStatusSpecStage.RUNNING:
+      return machine?.spec.ready
+        ? { tone: 'success', glyph: 'success' }
+        : { tone: 'danger', glyph: 'danger' }
     default:
-      return 'text-status-warning-text'
+      return { tone: 'info', glyph: 'unknown' }
   }
 }
 
@@ -123,19 +93,18 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div :class="stageClass(machine)">
+  <div>
     <Tooltip
       placement="bottom"
       :description="
         connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'
       "
     >
-      <div class="flex items-center gap-1" :class="!connected(machine) && 'brightness-50'">
-        <TIcon :icon="stageIcon(machine)" class="h-4" />
-        <div data-testid="cluster-machine-stage-name" class="flex-1 truncate">
+      <StatusPill v-bind="stageStatus(machine)">
+        <span data-testid="cluster-machine-stage-name" class="truncate">
           {{ stageName(machine) || '' }}
-        </div>
-      </div>
+        </span>
+      </StatusPill>
     </Tooltip>
   </div>
 </template>

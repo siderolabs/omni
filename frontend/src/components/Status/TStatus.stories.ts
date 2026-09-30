@@ -37,12 +37,6 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-export const NoTitle: Story = {
-  args: {
-    title: undefined,
-  },
-}
-
 export const AllTitles: Story = {
   decorators: [
     () => ({ template: '<div class="grid grid-cols-4 items-center gap-2"><story/></div>' }),

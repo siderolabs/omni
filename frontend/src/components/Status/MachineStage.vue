@@ -11,9 +11,8 @@ import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import { MachineStatusSnapshotSpecPowerStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelConnected } from '@/api/resources'
-import TIcon from '@/components/Icon/TIcon.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
-import { cn } from '@/methods/utils'
 
 const { machine } = defineProps<{
   machine: Resource<MachineStatusLinkSpec>
@@ -29,21 +28,21 @@ const isConnected = computed(
       MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERED_OFF ||
     machine.metadata.labels?.[MachineStatusLabelConnected] === '',
 )
+
+const tone = computed(() =>
+  machine.spec.tearing_down || !isConnected.value || !status.value ? 'info' : status.value.tone,
+)
+
+const glyph = computed(() => {
+  if (machine.spec.tearing_down) return 'progress'
+  if (!isConnected.value) return 'unknown'
+
+  return status.value?.glyph ?? 'unknown'
+})
 </script>
 
 <template>
-  <span
-    v-if="status"
-    :class="
-      cn(
-        'inline-flex items-center gap-1 text-xs',
-        status.class,
-        { 'brightness-50': machine.spec.tearing_down || !isConnected },
-        $attrs.class,
-      )
-    "
-  >
-    <TIcon :icon="isConnected ? status.icon : 'unknown'" class="size-4" aria-hidden="true" />
+  <StatusPill v-if="status" :tone :glyph>
     {{ status.name }}
-  </span>
+  </StatusPill>
 </template>

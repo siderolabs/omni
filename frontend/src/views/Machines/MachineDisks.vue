@@ -164,7 +164,7 @@ const organizedDisks = computed(() =>
               </span>
               <span
                 v-if="diskInfo.disk.spec.readonly"
-                class="rounded bg-status-warning-default/20 px-2 py-1 text-xs text-status-warning-text"
+                class="rounded bg-status-warning-subtle px-2 py-1 text-xs text-status-warning-text ring-1 ring-status-warning-subtle-border ring-inset"
               >
                 Read-only
               </span>

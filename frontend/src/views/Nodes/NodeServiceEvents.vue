@@ -15,19 +15,19 @@ defineProps<{
 }>()
 
 const eventStyle = (state: string) => {
-  let color = 'bg-surface-inert'
+  let color = 'bg-status-info-fill text-status-info-on-fill'
   let icon: IconType = 'question'
 
   switch (state) {
     case 'Running':
-      color = 'bg-status-success-default'
+      color = 'bg-status-success-fill text-status-success-on-fill'
       icon = 'check'
 
       break
     case 'Starting':
     case 'Stopping':
     case 'Waiting':
-      color = 'bg-status-warning-default'
+      color = 'bg-status-warning-fill text-status-warning-on-fill'
       icon = 'loading'
 
       break
@@ -40,8 +40,9 @@ const eventStyle = (state: string) => {
 
       break
     case 'Failed':
+    case 'Corrupted':
       icon = 'error'
-      color = 'bg-status-danger-default'
+      color = 'bg-status-danger-fill text-status-danger-on-fill'
 
       break
   }
@@ -63,7 +64,7 @@ const eventStyle = (state: string) => {
             :class="eventStyle(event.state!).color"
             style="margin-left: -11px"
           >
-            <TIcon :icon="eventStyle(event.state!).icon" class="h-3 w-3 text-white" />
+            <TIcon :icon="eventStyle(event.state!).icon" class="h-3 w-3" />
           </div>
           <div class="font-bold">{{ event.state }}</div>
         </div>

@@ -90,7 +90,9 @@ const showReleaseNotes = false
           </div>
         </div>
 
-        <div v-if="showReleaseNotes" class="bg-status-warning-default p-2">Release notes</div>
+        <div v-if="showReleaseNotes" class="bg-status-warning-fill p-2 text-status-warning-on-fill">
+          Release notes
+        </div>
       </div>
 
       <HomeGeneralInformation class="lg:w-72" />

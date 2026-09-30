@@ -55,7 +55,7 @@ watchEffect(() => {
         <div
           v-for="warning in joinTokenStatus?.spec.warnings"
           :key="warning.machine"
-          class="my-1 rounded border-l-2 border-status-warning-default bg-surface-hover px-4 py-2"
+          class="my-1 rounded border-l-3 border-l-status-warning-fill bg-surface-hover px-4 py-2"
         >
           <div class="truncate">
             ID:

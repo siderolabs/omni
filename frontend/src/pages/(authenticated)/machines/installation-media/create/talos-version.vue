@@ -128,7 +128,7 @@ useTitle('Talos Version')
         Documentation for Talos Linux {{ resolvedTalosVersion }}
       </h2>
       <ul
-        class="list-inside list-disc space-y-2 text-xs text-accent-text"
+        class="list-inside list-disc space-y-2 text-xs text-status-warning-text"
         aria-labelledby="docs-label-id"
       >
         <li>

@@ -94,15 +94,15 @@ const itemLabel = (item: KubernetesSyncManifestResponse) => {
 
 const highlightDiff = (line: string) => {
   if (line.startsWith('@@')) {
-    return 'text-neutral-500'
+    return 'text-content-muted'
   }
 
   if (line.startsWith('- ')) {
-    return 'text-red-500'
+    return 'text-status-danger-text'
   }
 
   if (line.startsWith('+ ')) {
-    return 'text-green-500'
+    return 'text-status-success-text'
   }
 
   return ''
@@ -178,7 +178,7 @@ useTitle('Bootstrap Manifests')
           </span>
           <span
             :class="{
-              'text-accent-text':
+              'text-status-info-text':
                 item.diff &&
                 syncParams.dry_run &&
                 item.response_type !== KubernetesSyncManifestResponseResponseType.UNKNOWN,

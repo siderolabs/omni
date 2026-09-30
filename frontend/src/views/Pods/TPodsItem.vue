@@ -13,6 +13,7 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import TIcon from '@/components/Icon/TIcon.vue'
 import TStatus from '@/components/Status/TStatus.vue'
+import { TCommonStatuses } from '@/constants'
 
 const { item, now } = defineProps<{
   now: Date
@@ -77,7 +78,7 @@ const age = computed(() => {
       </li>
 
       <li class="flex w-1/6 items-center text-xs text-content-default">
-        <TStatus :title="item.status?.phase" />
+        <TStatus :title="item.status?.phase ?? TCommonStatuses.UNKNOWN" />
       </li>
 
       <li class="flex w-1/3 items-center justify-between text-xs text-content-default">

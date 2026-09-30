@@ -8,8 +8,9 @@ included in the LICENSE file.
 import { computed } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
+import type { StatusTone } from '@/components/Status/StatusPill.vue'
 import { cn } from '@/methods/utils'
-import { countBySeverity } from '@/views/ClusterSecurity/util/matchUtils'
+import { countBySeverity, toneFromSeverity } from '@/views/ClusterSecurity/util/matchUtils'
 import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
 
 const { matches, activeFilter } = defineProps<{
@@ -23,6 +24,13 @@ const counts = computed(() => countBySeverity(matches))
 defineEmits<{
   clickSeverity: [string]
 }>()
+
+const statusDotClass: Record<StatusTone, string> = {
+  success: 'bg-status-success-text',
+  warning: 'bg-status-warning-text',
+  danger: 'bg-status-danger-text',
+  info: 'bg-status-info-text',
+}
 </script>
 
 <template>
@@ -35,19 +43,25 @@ defineEmits<{
       v-for="[sev, count] in counts"
       :key="sev"
       :class="
-        cn('rounded-sm bg-surface-hover px-2 py-1 text-xs text-content-secondary', {
-          'bg-red-600 text-white': sev === 'Critical',
-          'bg-orange-700 text-white': sev === 'High',
-          'bg-orange-500 text-white': sev === 'Medium',
-          'bg-yellow-500 text-black': sev === 'Low',
-          'transition-[filter] hover:brightness-120 active:brightness-80': clickable,
-          'opacity-30': activeFilter && activeFilter !== sev,
-        })
+        cn(
+          'flex items-center gap-1.5 rounded-sm border border-border-strong px-2 py-1 text-xs text-content-secondary',
+          {
+            'cursor-pointer transition-colors hover:bg-surface-hover': clickable,
+            'bg-surface-hover text-content-default': activeFilter === sev,
+            'text-content-muted': activeFilter && activeFilter !== sev,
+          },
+        )
       "
       :role="clickable ? 'button' : undefined"
       @click="$emit('clickSeverity', sev)"
     >
-      {{ count }} {{ sev }}
+      <span
+        class="size-2 shrink-0 rounded-full"
+        :class="statusDotClass[toneFromSeverity(sev)]"
+        aria-hidden="true"
+      />
+      <span class="font-semibold text-content-emphasis">{{ count }}</span>
+      {{ sev }}
     </li>
   </ul>
 </template>

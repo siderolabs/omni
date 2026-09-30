@@ -25,8 +25,8 @@ defineProps<Props>()
         target="_blank"
         rel="noopener noreferrer"
       >
-        <TIcon icon="warning" class="mr-2 h-4 w-4 text-yellow-400" />
-        <div class="text-yellow-400">{{ diagnostic.message }}</div>
+        <TIcon icon="warning" class="mr-2 h-4 w-4 text-status-warning-text" />
+        <div class="text-status-warning-text">{{ diagnostic.message }}</div>
       </a>
       <template #details>
         <div class="diagnostic-sublist">
@@ -48,7 +48,7 @@ defineProps<Props>()
 @reference "../../index.css";
 
 .diagnostic-item {
-  @apply flex flex-row transition-colors hover:brightness-125;
+  @apply flex flex-row transition-colors hover:underline;
 }
 
 .diagnostic-sublist {
