@@ -17,13 +17,13 @@
           preference = localStorage.getItem('theme') || 'system'
         } catch (e) {}
         var theme =
-          preference === 'light' || preference === 'dark'
+          preference === 'light' || preference === 'dark' || preference === 'dim'
             ? preference
             : window.matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light'
         document.documentElement.setAttribute('data-theme', theme)
-        document.documentElement.style.colorScheme = theme
+        document.documentElement.style.colorScheme = theme === 'light' ? 'light' : 'dark'
       })()
     </script>
   </head>

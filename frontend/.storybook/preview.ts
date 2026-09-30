@@ -30,6 +30,7 @@ const preview: Preview = {
         icon: 'mirror',
         items: [
           { value: 'dark', title: 'Dark', icon: 'moon' },
+          { value: 'dim', title: 'Dim', icon: 'circlehollow' },
           { value: 'light', title: 'Light', icon: 'sun' },
         ],
         dynamicTitle: true,
@@ -53,7 +54,8 @@ const preview: Preview = {
     // Stories have no App.vue to apply the theme, so the toolbar sets the
     // preference that components like the code editor watch, and applies it.
     (_story, { globals }) => {
-      const theme: Theme = globals.theme === 'light' ? 'light' : 'dark'
+      const theme: Theme =
+        globals.theme === 'light' || globals.theme === 'dim' ? globals.theme : 'dark'
 
       useTheme().preference.value = theme
       applyTheme(theme)

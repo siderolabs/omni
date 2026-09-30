@@ -27,7 +27,7 @@ import {
   UsersIcon,
   WindowIcon,
 } from '@heroicons/vue/24/outline'
-import { LifebuoyIcon } from '@heroicons/vue/24/solid'
+import { LifebuoyIcon, MoonIcon as MoonSolidIcon } from '@heroicons/vue/24/solid'
 import { defineAsyncComponent } from 'vue'
 
 export const icons = {
@@ -116,6 +116,7 @@ export const icons = {
   'machines-manual': defineAsyncComponent(() => import('../icons/IconMachinesManual.vue')),
   minus: defineAsyncComponent(() => import('../icons/IconMinus.vue')),
   moon: MoonIcon,
+  'moon-solid': MoonSolidIcon,
   'no-connection': defineAsyncComponent(() => import('../icons/IconNoConnection.vue')),
   'no-symbol': defineAsyncComponent(() => import('../icons/IconNoSymbol.vue')),
   nodes: defineAsyncComponent(() => import('../icons/IconNodes.vue')),

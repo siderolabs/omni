@@ -38,7 +38,7 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { useTheme } from '@/methods/theme'
+import { colorScheme, useTheme } from '@/methods/theme'
 
 const { diffs, withSearch } = defineProps<{
   diffs: DiffEntry[]
@@ -194,7 +194,7 @@ function toggleCollapsed(id: string) {
 function viewerOptions(): CodeViewOptions<undefined, undefined> {
   return {
     theme: OMNI_CODE_THEME,
-    themeType: theme.value,
+    themeType: colorScheme(theme.value),
     overflow: wordWrap.value ? 'wrap' : 'scroll',
     diffStyle: diffStyle.value,
     stickyHeaders: true,
