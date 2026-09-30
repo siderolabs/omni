@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { add } from 'date-fns'
+import { add, type Duration, milliseconds, millisecondsToSeconds } from 'date-fns'
 import { enums, generateKey } from 'openpgp/lightweight'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
@@ -26,7 +26,7 @@ export const createJoinToken = async (name: string, expirationDays?: number) => 
 export const createServiceAccount = async (
   name: string,
   role: string,
-  expirationDays: number = 365,
+  expiration: Duration = { days: 365 },
 ) => {
   const email = `${name}@${role === RoleInfraProvider ? InfraProviderServiceAccountDomain : ServiceAccountDomain}`
 
@@ -34,7 +34,7 @@ export const createServiceAccount = async (
     type: 'ecc',
     curve: 'ed25519Legacy',
     userIDs: [{ email: email }],
-    keyExpirationTime: expirationDays * 24 * 60 * 60,
+    keyExpirationTime: millisecondsToSeconds(milliseconds(expiration)),
     config: {
       preferredCompressionAlgorithm: enums.compression.zlib,
       preferredSymmetricAlgorithm: enums.symmetric.aes256,
@@ -58,12 +58,19 @@ export const createServiceAccount = async (
   return btoa(raw)
 }
 
-export const renewServiceAccount = async (id: string, expirationDays: number = 365) => {
+// Converts a service account identity into the name the management API expects.
+const getServiceAccountName = (id: string) => {
+  const [name, domain] = id.split('@')
+
+  return domain === InfraProviderServiceAccountDomain ? `infra-provider:${name}` : name
+}
+
+export const renewServiceAccount = async (id: string, duration: Duration = { days: 365 }) => {
   const { privateKey, publicKey } = await generateKey({
     type: 'ecc',
     curve: 'ed25519Legacy',
     userIDs: [{ email: id }],
-    keyExpirationTime: expirationDays * 24 * 60 * 60,
+    keyExpirationTime: millisecondsToSeconds(milliseconds(duration)),
     config: {
       preferredCompressionAlgorithm: enums.compression.zlib,
       preferredSymmetricAlgorithm: enums.symmetric.aes256,
@@ -71,9 +78,7 @@ export const renewServiceAccount = async (id: string, expirationDays: number = 3
     },
   })
 
-  const parts = id.split('@')
-  const name =
-    parts[1] === InfraProviderServiceAccountDomain ? `infra-provider:${parts[0]}` : parts[0]
+  const name = getServiceAccountName(id)
 
   await ManagementService.RenewServiceAccount({
     armored_pgp_public_key: publicKey,
@@ -88,4 +93,11 @@ export const renewServiceAccount = async (id: string, expirationDays: number = 3
   const raw = JSON.stringify(saKey)
 
   return btoa(raw)
+}
+
+export const revokeServiceAccountKey = async (id: string, publicKeyId: string) => {
+  await ManagementService.RevokeServiceAccountKey({
+    name: getServiceAccountName(id),
+    public_key_id: publicKeyId,
+  })
 }

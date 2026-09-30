@@ -61,11 +61,13 @@ const destroy = async () => {
 <template>
   <ConfirmModal
     v-model:open="open"
-    :title="`Delete the ${object} ${identity} ?`"
+    :title="`Delete ${object}`"
     action-label="Delete"
     :loading="isDestroying"
     @confirm="destroy"
   >
+    <template #description>{{ identity }}</template>
+
     <p class="text-xs">Please confirm the action.</p>
   </ConfirmModal>
 </template>

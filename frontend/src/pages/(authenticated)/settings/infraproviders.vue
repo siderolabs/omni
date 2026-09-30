@@ -36,7 +36,7 @@ import { useTitle } from '@/methods/title'
 import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
-import ServiceAccountRenewModal from '@/views/Users/components/ServiceAccountRenewModal.vue'
+import ServiceAccountRenewKeyModal from '@/views/Users/components/ServiceAccountRenewKeyModal.vue'
 
 definePage({
   name: 'InfraProviders',
@@ -54,7 +54,7 @@ const serviceAccCreateModal = ref<{
   open: false,
 })
 
-const serviceAccountRenewModal = ref<{
+const rotateKeyModal = ref<{
   open: boolean
   identity?: string
 }>({
@@ -97,7 +97,7 @@ const openRotateSecretKey = async (name: string) => {
   }
 
   if (identity) {
-    serviceAccountRenewModal.value = {
+    rotateKeyModal.value = {
       open: true,
       identity: saName,
     }
@@ -211,10 +211,10 @@ useTitle('Infra Providers')
       :role="serviceAccCreateModal.role"
     />
 
-    <ServiceAccountRenewModal
-      v-if="serviceAccountRenewModal.identity"
-      v-model:open="serviceAccountRenewModal.open"
-      :identity="serviceAccountRenewModal.identity"
+    <ServiceAccountRenewKeyModal
+      v-if="rotateKeyModal.identity"
+      v-model:open="rotateKeyModal.open"
+      :identity="rotateKeyModal.identity"
     />
 
     <InfraProviderSetupModal v-model:open="infraProviderSetupModalOpen" />

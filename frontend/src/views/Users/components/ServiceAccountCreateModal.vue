@@ -55,7 +55,7 @@ const handleCreate = async () => {
   isCreating.value = true
 
   try {
-    key.value = await createServiceAccount(name.value, role.value, expiration.value)
+    key.value = await createServiceAccount(name.value, role.value, { days: expiration.value })
 
     showSuccess('Service Account Was Created')
   } catch (e) {

@@ -39,11 +39,11 @@ const handleRenew = async () => {
   isRenewing.value = true
 
   try {
-    key.value = await renewServiceAccount(identity, expiration.value)
+    key.value = await renewServiceAccount(identity, { days: expiration.value })
 
-    showSuccess('Service Account Key Was Renewed')
+    showSuccess('New Service Account Key Created')
   } catch (e) {
-    showError('Failed to Renew Service Account', e instanceof Error ? e.message : String(e))
+    showError('Failed to Renew Service Account Key', e instanceof Error ? e.message : String(e))
   } finally {
     isRenewing.value = false
   }
@@ -53,7 +53,7 @@ const handleRenew = async () => {
 <template>
   <Modal
     v-model:open="open"
-    :title="`Renew the Key for the Account ${identity}`"
+    title="Renew Service Account Key"
     :cancel-label="key ? 'Close' : 'Cancel'"
     :action-label="key ? undefined : 'Generate New Key'"
     :action-disabled="!canManageUsers && authType !== AuthType.SAML"
@@ -61,6 +61,13 @@ const handleRenew = async () => {
     content-class="max-w-xl"
     @confirm="handleRenew"
   >
+    <template #description>{{ identity }}</template>
+
+    <p class="mb-4 text-sm">
+      This adds a new key to the service account. Existing keys stay valid until they expire or are
+      revoked.
+    </p>
+
     <ServiceAccountKey v-if="key" :secret-key="key" />
 
     <TInput

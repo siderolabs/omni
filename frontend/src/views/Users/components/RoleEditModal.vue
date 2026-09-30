@@ -85,12 +85,14 @@ const handleRoleUpdate = async () => {
 <template>
   <Modal
     v-model:open="open"
-    :title="`Edit ${object} ${identity}`"
+    :title="`Edit ${object}`"
     :action-label="`Update ${object}`"
     :action-disabled="!role || !userId || !canManageUsers"
     :loading="isEditing"
     @confirm="handleRoleUpdate"
   >
+    <template #description>{{ identity }}</template>
+
     <TSelectList v-if="role" v-model="role" title="Role" :values="roles" class="w-full" />
   </Modal>
 </template>

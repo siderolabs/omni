@@ -26,8 +26,10 @@ test.describe.configure({ mode: 'serial' })
 async function deleteServiceAccountViaUI(page: Page, name: string): Promise<void> {
   const fullID = `${name}@serviceaccount.omni.sidero.dev`
 
-  const row = page.getByRole('row').filter({ hasText: fullID })
-  await row.getByRole('button').click()
+  await page
+    .getByRole('listitem', { name: fullID })
+    .getByRole('button', { name: 'service account actions' })
+    .click()
 
   await page.getByRole('menuitem', { name: 'Delete Service Account' }).click()
 
@@ -62,7 +64,7 @@ test.describe('Account limits', () => {
     await expect(page.getByText('Service Accounts', { exact: true }).first()).toBeVisible()
 
     // Clean up any leftover e2e service accounts from previous runs.
-    const saRows = page.getByRole('row').getByText('@serviceaccount.omni.sidero.dev')
+    const saRows = page.getByRole('listitem').getByText('@serviceaccount.omni.sidero.dev')
     const saCount = await saRows.count()
 
     for (let i = saCount - 1; i >= 0; i--) {

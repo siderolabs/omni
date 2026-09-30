@@ -16,10 +16,10 @@ import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { AdvertisedEndpointsSpec } from '@/api/omni/specs/virtual.pb'
 import { AdvertisedEndpointsID, AdvertisedEndpointsType, VirtualNamespace } from '@/api/resources'
 
-import ServiceAccountRenewModal from './ServiceAccountRenewModal.vue'
+import ServiceAccountRenewKeyModal from './ServiceAccountRenewKeyModal.vue'
 
-const meta: Meta<typeof ServiceAccountRenewModal> = {
-  component: ServiceAccountRenewModal,
+const meta: Meta<typeof ServiceAccountRenewKeyModal> = {
+  component: ServiceAccountRenewKeyModal,
   args: {
     open: true,
     'onUpdate:open': fn(),

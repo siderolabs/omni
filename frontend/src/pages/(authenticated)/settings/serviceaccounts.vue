@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -17,23 +17,66 @@ import {
   ServiceAccountStatusType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
-import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
+import TAlert from '@/components/TAlert.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { usePermissions } from '@/methods/auth'
+import { useResourcePagination } from '@/methods/resource/useResourcePagination'
+import { useResourceSearch } from '@/methods/resource/useResourceSearch'
 import { relativeISO } from '@/methods/time'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import RoleEditModal from '@/views/Users/components/RoleEditModal.vue'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
-import ServiceAccountItem from '@/views/Users/ServiceAccountItem.vue'
+import ServiceAccountItem from '@/views/Users/components/ServiceAccountItem.vue'
+import ServiceAccountRenewKeyModal from '@/views/Users/components/ServiceAccountRenewKeyModal.vue'
+import ServiceAccountRevokeKeyModal from '@/views/Users/components/ServiceAccountRevokeKeyModal.vue'
+import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
 definePage({
   name: 'ServiceAccounts',
 })
 
+useTitle('Service Accounts')
+
 const { canManageUsers } = usePermissions()
 
 const serviceAccCreateModalOpen = ref(false)
+const filterValue = ref('')
+
+const userDestroyModal = ref<{ open: boolean; identity?: string }>({ open: false })
+const roleEditModal = ref<{ open: boolean; identity?: string; userId?: string }>({ open: false })
+const rotateKeyModal = ref<{ open: boolean; identity?: string }>({ open: false })
+const keyRevokeModal = ref<{ open: boolean; identity?: string; publicKeyId?: string }>({
+  open: false,
+})
+
+const expandedIds = ref(new Set<string>())
+
+function toggleExpanded(id: string) {
+  if (expandedIds.value.has(id)) {
+    expandedIds.value.delete(id)
+  } else {
+    expandedIds.value.add(id)
+  }
+}
+
+const { watchOptions: searchState, searchQuery } = useResourceSearch({ filterValue })
+
+const {
+  total,
+  watchOptions: paginationState,
+  currentPage,
+  currentPageSize,
+  pageCount,
+  pageSizeSelectValues,
+} = useResourcePagination({
+  resetOn: [searchState],
+})
 
 const { data: identities } = useResourceWatch<IdentityStatusSpec>({
   runtime: Runtime.Omni,
@@ -44,26 +87,41 @@ const { data: identities } = useResourceWatch<IdentityStatusSpec>({
   selectors: [LabelIdentityTypeServiceAccount],
 })
 
+const {
+  data: serviceAccounts,
+  loading,
+  err,
+} = useResourceWatch<ServiceAccountStatusSpec>(
+  () => ({
+    runtime: Runtime.Omni,
+    resource: {
+      type: ServiceAccountStatusType,
+      namespace: EphemeralNamespace,
+    },
+    ...paginationState.value,
+    ...searchState.value,
+  }),
+  { total },
+)
+
+const identityMap = computed(() => new Map(identities.value.map((s) => [s.metadata.id!, s])))
+
+const keyRevokeModalKeys = computed(
+  () =>
+    serviceAccounts.value.find((sa) => sa.metadata.id === keyRevokeModal.value.identity)?.spec
+      .public_keys ?? [],
+)
+
 const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
-  const identity = identities.value.find((s) => s.metadata.id === serviceAcc.metadata.id)
+  const identity = identityMap.value.get(serviceAcc.metadata.id!)
 
-  if (!identity?.spec.last_active) return 'Never'
-
-  return relativeISO(identity.spec.last_active)
+  return identity?.spec.last_active ? relativeISO(identity.spec.last_active) : 'Never'
 }
-
-const getExpiration = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
-  return relativeISO(serviceAcc.spec.expiration ?? '')
-}
-
-useTitle('Service Accounts')
 </script>
 
 <template>
   <PageContainer class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
-      <PageHeader title="Settings" subtitle="Service Accounts" class="flex-1" />
-    </div>
+    <PageHeader title="Settings" subtitle="Service Accounts" />
 
     <div class="flex grow flex-col gap-2">
       <div class="flex justify-end">
@@ -77,62 +135,99 @@ useTitle('Service Accounts')
           Create Service Account
         </TButton>
       </div>
-      <TList
-        :opts="{
-          type: undefined as unknown as ServiceAccountStatusSpec,
-          runtime: Runtime.Omni,
-          resource: {
-            type: ServiceAccountStatusType,
-            namespace: EphemeralNamespace,
-          },
-        }"
-        pagination
-        class="flex-1"
-        search
+
+      <TInput v-model="filterValue" icon="search" />
+
+      <TSelectList
+        v-model="currentPageSize"
+        class="self-end"
+        title="Items per Page"
+        :values="pageSizeSelectValues"
+      />
+
+      <div v-if="loading" class="flex grow items-center justify-center">
+        <TSpinner class="size-6" />
+      </div>
+
+      <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+
+      <TAlert v-else-if="serviceAccounts.length === 0" type="info" title="No Records">
+        No service accounts found.
+      </TAlert>
+
+      <div
+        v-else
+        class="grid grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_--spacing(24)] gap-3"
       >
-        <template #default="{ items }">
-          <div class="users-header">
-            <div class="users-grid">
-              <div>ID</div>
-              <div>Role</div>
-              <div>Last Active</div>
-              <div>Expiration</div>
-            </div>
-          </div>
+        <div
+          class="col-span-full grid grid-cols-subgrid bg-surface-card px-3 py-2.5 text-xs max-lg:hidden"
+        >
+          <div class="pl-6">ID</div>
+          <div>Role</div>
+          <div>Last Active</div>
+          <div>Keys</div>
+          <div>Expiration</div>
+          <div>Actions</div>
+        </div>
+
+        <ul class="col-span-full grid grid-cols-subgrid gap-3">
           <ServiceAccountItem
-            v-for="item in items"
+            v-for="item in serviceAccounts"
             :key="item.metadata.id"
-            :item="{
-              ...item,
-              spec: {
-                ...item.spec,
-                ...identities.find((s) => s.metadata.id === item.metadata.id)?.spec,
-              },
-            }"
+            :item
             :last-active="getLastActive(item)"
-            :expiration="getExpiration(item)"
+            :search-query="searchQuery"
+            :model-value="expandedIds.has(item.metadata.id!)"
+            @update:model-value="toggleExpanded(item.metadata.id!)"
+            @rotate="rotateKeyModal = { open: true, identity: item.metadata.id }"
+            @edit="
+              roleEditModal = {
+                open: true,
+                identity: item.metadata.id,
+                userId: identityMap.get(item.metadata.id!)?.spec.user_id,
+              }
+            "
+            @delete="userDestroyModal = { open: true, identity: item.metadata.id }"
+            @revoke-key="
+              (publicKeyId) =>
+                (keyRevokeModal = { open: true, identity: item.metadata.id, publicKeyId })
+            "
           />
-        </template>
-      </TList>
+        </ul>
+      </div>
     </div>
 
+    <Pagination v-model:current-page="currentPage" :page-count="pageCount" />
+
     <ServiceAccountCreateModal v-model:open="serviceAccCreateModalOpen" />
+
+    <ServiceAccountRenewKeyModal
+      v-if="rotateKeyModal.identity"
+      v-model:open="rotateKeyModal.open"
+      :identity="rotateKeyModal.identity"
+    />
+
+    <ServiceAccountRevokeKeyModal
+      v-if="keyRevokeModal.identity && keyRevokeModal.publicKeyId"
+      v-model:open="keyRevokeModal.open"
+      :identity="keyRevokeModal.identity"
+      :public-key-id="keyRevokeModal.publicKeyId"
+      :keys="keyRevokeModalKeys"
+    />
+
+    <RoleEditModal
+      v-if="roleEditModal.identity && roleEditModal.userId"
+      v-model:open="roleEditModal.open"
+      :identity="roleEditModal.identity"
+      :user-id="roleEditModal.userId"
+      is-service-account
+    />
+
+    <UserDestroyModal
+      v-if="userDestroyModal.identity"
+      v-model:open="userDestroyModal.open"
+      :identity="userDestroyModal.identity"
+      is-service-account
+    />
   </PageContainer>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.users-grid {
-  @apply grid grid-cols-4 pr-10;
-}
-
-.users-header {
-  @apply mb-1 bg-surface-card;
-  padding: 10px 16px;
-}
-
-.users-header > * {
-  @apply text-xs;
-}
-</style>
