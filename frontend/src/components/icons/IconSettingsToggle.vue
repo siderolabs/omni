@@ -28,6 +28,6 @@ included in the LICENSE file.
       clip-rule="evenodd"
       d="M8 9C8.55228 9 9 8.55228 9 8C9 7.44772 8.55228 7 8 7C7.44772 7 7 7.44772 7 8C7 8.55228 7.44772 9 8 9ZM8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z"
     />
-    <circle cx="13" cy="3" r="2.5" fill="#FF5F2A" />
+    <circle cx="13" cy="3" r="2.5" class="fill-accent-default" />
   </svg>
 </template>

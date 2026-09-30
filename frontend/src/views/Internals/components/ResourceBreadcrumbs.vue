@@ -92,7 +92,7 @@ function selectType(value?: string) {
   <nav aria-label="Breadcrumb" class="flex flex-wrap items-center">
     <RouterLink
       v-if="type"
-      class="p-2 leading-none font-medium text-content-emphasis transition hover:opacity-50"
+      class="p-2 leading-none font-medium text-content-emphasis transition hover:text-content-secondary"
       :to="listRoute"
     >
       Resources
@@ -102,7 +102,7 @@ function selectType(value?: string) {
 
     <template v-if="runtime === 'talos'">
       <svg
-        class="size-5 shrink-0 opacity-50"
+        class="size-5 shrink-0 text-content-muted"
         xmlns="http://www.w3.org/2000/svg"
         fill="currentColor"
         viewBox="0 0 20 20"
@@ -123,7 +123,7 @@ function selectType(value?: string) {
 
     <template v-if="type">
       <svg
-        class="size-5 shrink-0 opacity-50"
+        class="size-5 shrink-0 text-content-muted"
         xmlns="http://www.w3.org/2000/svg"
         fill="currentColor"
         viewBox="0 0 20 20"

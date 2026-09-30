@@ -33,7 +33,7 @@ const forwarded = useForwardProps(delegatedProps)
     v-bind="forwarded"
     :class="
       cn(
-        'flex max-h-full w-full items-center justify-between gap-1 rounded text-content-emphasis transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'flex max-h-full w-full items-center justify-between gap-1 rounded text-content-emphasis transition-colors disabled:cursor-not-allowed disabled:text-content-disabled',
         {
           'border border-border-strong bg-surface-card px-3 py-2.25 text-xs': variant === 'default',
           'p-2 leading-none hover:bg-surface-hover': variant === 'breadcrumb',

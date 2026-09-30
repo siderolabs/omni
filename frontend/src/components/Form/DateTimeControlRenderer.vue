@@ -32,7 +32,7 @@ const toISOString = (inputDateTime: string) => {
   <ContentWrapper class="relative" :control="control">
     <input
       :id="control.id + '-input'"
-      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
+      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted transition-colors focus:border-transparent"
       type="datetime-local"
       :value="dataTime"
       :disabled="!control.enabled"

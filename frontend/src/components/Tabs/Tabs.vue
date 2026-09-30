@@ -48,7 +48,7 @@ defineSlots<{
       <TabsIndicator
         class="absolute bottom-0 left-0 h-0.5 w-(--reka-tabs-indicator-size) translate-x-(--reka-tabs-indicator-position) translate-y-px transition-[width,translate] duration-300"
       >
-        <div class="size-full bg-accent-fill"></div>
+        <div class="size-full bg-accent-default"></div>
       </TabsIndicator>
 
       <slot name="triggers"></slot>

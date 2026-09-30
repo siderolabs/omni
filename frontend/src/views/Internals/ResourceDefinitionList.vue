@@ -89,7 +89,11 @@ const definitions = computed(() => {
         </template>
 
         <template #body>
-          <TableRow v-for="spec in definitions" :key="spec.type" class="relative hover:bg-white/5">
+          <TableRow
+            v-for="spec in definitions"
+            :key="spec.type"
+            class="relative hover:bg-surface-subtle"
+          >
             <TableCell>
               <!-- Stretched over the row so the whole row is clickable while staying a real link -->
               <RouterLink

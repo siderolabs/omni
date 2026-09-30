@@ -28,7 +28,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
   <ContentWrapper class="relative" :control="control">
     <input
       :id="control.id + '-input'"
-      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted outline-hidden transition-colors focus:border-transparent focus:outline-hidden"
+      class="-my-1 bg-transparent text-xs text-content-default placeholder-content-muted transition-colors focus:border-transparent"
       type="time"
       :value="dataTime"
       :disabled="!control.enabled"

@@ -47,14 +47,14 @@ watchEffect(() => {
   <div class="flex flex-col gap-2">
     <div class="flex items-center">
       <RouterLink
-        class="py-2 pr-2 leading-none font-medium transition hover:opacity-50"
+        class="py-2 pr-2 leading-none font-medium transition-colors hover:text-content-secondary"
         :to="{ name: 'ClusterOverview', params: { cluster: clusterId } }"
       >
         {{ clusterId }}
       </RouterLink>
 
       <svg
-        class="h-5 w-5 shrink-0 opacity-50"
+        class="h-5 w-5 shrink-0 text-content-muted"
         xmlns="http://www.w3.org/2000/svg"
         fill="currentColor"
         viewBox="0 0 20 20"

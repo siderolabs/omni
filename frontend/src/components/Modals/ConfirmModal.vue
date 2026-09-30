@@ -56,7 +56,7 @@ const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
   <AlertDialogRoot v-bind="forwarded">
     <AlertDialogPortal>
       <AlertDialogOverlay
-        class="fixed inset-0 z-30 bg-surface-page/90 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 bg-surface-scrim fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       />
 
       <AlertDialogContent

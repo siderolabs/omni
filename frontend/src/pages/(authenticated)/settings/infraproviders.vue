@@ -173,8 +173,8 @@ useTitle('Infra Providers')
               </div>
 
               <div
-                class="truncate text-xs text-content-default"
-                :class="{ 'opacity-50': !item.spec.version }"
+                class="truncate text-xs"
+                :class="item.spec.version ? 'text-content-emphasis' : 'text-content-muted'"
               >
                 {{ item.spec.version || 'Unknown version' }}
               </div>

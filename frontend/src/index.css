@@ -20,7 +20,7 @@ included in the LICENSE file.
 
 @layer base {
   body {
-    @apply bg-surface-page text-content-secondary antialiased;
+    @apply bg-surface-page text-content-default antialiased;
   }
 
   * {
@@ -31,6 +31,18 @@ included in the LICENSE file.
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+
+  /*
+  The keyboard focus ring, drawn once for everything. It is shadow-focus from
+  the design system expressed as an outline, so it does not compete with ring-*
+  and shadow-* utilities for box-shadow. A component may hide it only where it
+  draws its own focus state (an input wrapper's accent edge, a highlighted menu
+  row).
+  */
+  :focus-visible {
+    outline: 3px solid var(--talos-border-focus);
+    outline-offset: 0;
+  }
 }
 
 @layer components {
@@ -39,7 +51,7 @@ included in the LICENSE file.
   }
 
   .list-item-link {
-    @apply font-bold text-content-emphasis transition hover:text-content-muted;
+    @apply font-bold text-content-emphasis transition hover:text-content-secondary;
   }
 
   .resource-label {

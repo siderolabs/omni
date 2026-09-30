@@ -24,7 +24,7 @@ const modelValue = defineModel<string>()
     </span>
 
     <div
-      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border border-border-strong p-2 transition-colors focus-within:border-border-strong has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
+      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border border-border-strong p-2 transition-colors focus-within:border-border-accent has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
     >
       <span v-if="title && !overheadTitle" class="mr-1 min-w-fit text-xs after:content-[':']">
         {{ title }}

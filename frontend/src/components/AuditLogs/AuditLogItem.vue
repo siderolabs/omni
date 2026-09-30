@@ -58,7 +58,7 @@ function toggleRow() {
       as="div"
       role="row"
       tabindex="0"
-      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-2 py-2.5 select-none group-hover/root:bg-white/5"
+      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-2 py-2.5 select-none group-hover/root:bg-surface-hover"
       @keydown.enter.prevent="toggleRow"
       @keydown.space.prevent="toggleRow"
     >
@@ -130,7 +130,7 @@ function toggleRow() {
 
     <CollapsibleContent
       role="row"
-      class="collapsible-content col-span-full overflow-hidden group-hover/root:bg-white/5"
+      class="collapsible-content col-span-full overflow-hidden group-hover/root:bg-surface-hover"
     >
       <div role="cell" class="px-2 pb-2">
         <CodeBlock :code="JSON.stringify(item, null, 2)" lang="json" :search />

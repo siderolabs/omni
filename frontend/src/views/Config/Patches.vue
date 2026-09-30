@@ -340,7 +340,7 @@ const toggleDisabled = async (item: RouteItem) => {
                 v-for="item in group.items"
                 :key="item.name"
                 class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-surface-raised hover:text-content-default"
-                :class="{ 'opacity-50': item.disabled }"
+                :class="{ 'text-content-muted': item.disabled }"
                 role="listitem"
                 :aria-label="item.id"
                 @click="() => $router.push(item.route)"

@@ -31,7 +31,7 @@ const model = defineModel<number>()
       />
 
       <StepperTrigger
-        class="size-6 shrink-0 items-center justify-center rounded-sm border-2 border-accent-fill bg-accent-fill text-xs text-content-emphasis shadow-sm transition group-data-disabled:cursor-not-allowed group-data-disabled:opacity-50 group-data-[state=inactive]:border-border-strong group-data-[state=inactive]:bg-transparent group-data-[state=inactive]:text-content-disabled not-group-data-disabled:hover:brightness-125 active:brightness-75"
+        class="size-6 shrink-0 items-center justify-center rounded-sm border-2 border-accent-fill bg-accent-fill text-xs text-content-on-accent shadow-sm transition group-data-disabled:cursor-not-allowed group-data-disabled:opacity-50 group-data-[state=inactive]:border-border-strong group-data-[state=inactive]:bg-transparent group-data-[state=inactive]:text-content-muted not-group-data-disabled:hover:border-accent-fill-hover not-group-data-disabled:hover:bg-accent-fill-hover not-group-data-disabled:group-data-[state=inactive]:hover:bg-surface-hover active:border-accent-fill-active active:bg-accent-fill-active"
       >
         <StepperIndicator>{{ step }}</StepperIndicator>
       </StepperTrigger>

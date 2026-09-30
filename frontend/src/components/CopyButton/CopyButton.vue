@@ -19,11 +19,7 @@ const { copy, copied } = useClipboard({ copiedDuring: 1000 })
 </script>
 
 <template>
-  <button
-    aria-label="copy"
-    class="relative size-4 hover:brightness-125 active:brightness-75"
-    @click.stop="copy(text)"
-  >
+  <button aria-label="copy" class="group relative size-4" @click.stop="copy(text)">
     <TIcon
       icon="check"
       class="absolute inset-0 text-status-success-text transition-all duration-300"
@@ -31,7 +27,7 @@ const { copy, copied } = useClipboard({ copiedDuring: 1000 })
     />
     <TIcon
       icon="copy"
-      class="absolute inset-0 text-accent-hover transition-all duration-300"
+      class="absolute inset-0 text-content-secondary transition-all duration-300 group-hover:text-content-emphasis"
       :class="[copied ? 'opacity-0' : 'opacity-100']"
     />
   </button>

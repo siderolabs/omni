@@ -159,13 +159,13 @@ const canUseLifecycleUpgrade = computed(() => {
   <div class="border-b-border-strong not-last-of-type:border-b">
     <div
       class="grid grid-cols-[auto_1fr] gap-1 border-l-4 px-2 py-4"
-      :class="panelOpen ? 'border-l-accent-fill' : 'border-l-transparent'"
+      :class="panelOpen ? 'border-l-border-accent' : 'border-l-transparent'"
     >
       <TCheckbox v-model="selected" class="shrink-0 justify-self-center" />
 
       <div
         class="flex items-center gap-2 overflow-hidden text-xs text-content-default"
-        :class="{ 'opacity-50': machine.spec.tearing_down }"
+        :class="{ 'text-content-muted': machine.spec.tearing_down }"
       >
         <h2 class="list-item-link truncate">
           <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }">
@@ -228,7 +228,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <Tooltip v-if="canAccessMaintenanceNodes" :description="maintenanceUpdateDescription">
             <button
               :disabled="!canDoMaintenanceUpdate"
-              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:not-disabled:bg-surface-hover hover:not-disabled:text-content-emphasis disabled:opacity-40"
+              class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:not-disabled:bg-surface-hover hover:not-disabled:text-content-emphasis disabled:text-content-disabled"
               @click="
                 canUseLifecycleUpgrade
                   ? $emit('openMaintenanceUpgrade', machine.metadata.id!)

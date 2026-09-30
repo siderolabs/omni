@@ -150,7 +150,7 @@ function isLastChild(item?: DeviceTreeItem) {
 
     <TreeRoot
       v-else
-      class="h-full overflow-y-auto rounded-lg text-xs/none text-content-muted"
+      class="h-full overflow-y-auto rounded-lg text-xs/none text-content-default"
       :items="tree"
       :get-key="(item) => item.id"
       :default-expanded="tree.map((t) => t.id)"
@@ -159,12 +159,12 @@ function isLastChild(item?: DeviceTreeItem) {
         <TreeItem
           :key="item._id"
           v-bind="item.bind"
-          class="group/tree-item relative w-full py-1 outline-none"
+          class="group/tree-item relative w-full py-1"
           :class="!item.hasChildren ? 'pl-9' : 'cursor-pointer pl-1'"
         >
           <div
             v-if="item.hasChildren"
-            class="flex h-7.5 items-center justify-between gap-2 rounded-lg bg-surface-chrome pr-2 pl-4 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-border-strong hover:bg-surface-inert"
+            class="flex h-7.5 items-center justify-between gap-2 rounded-lg bg-surface-card pr-2 pl-4 hover:bg-surface-hover"
           >
             <div class="flex min-w-0 items-center gap-4">
               <TIcon :icon="item.value.icon" class="size-4 shrink-0 text-content-emphasis" />
@@ -202,12 +202,12 @@ function isLastChild(item?: DeviceTreeItem) {
 
               <span
                 v-if="asDevice(item.value as DeviceTreeItem)?.device.spec.driver"
-                class="rounded bg-surface-hover px-2 py-1.5 whitespace-nowrap text-content-emphasis"
+                class="rounded bg-surface-hover px-2 py-1.5 whitespace-nowrap text-content-default"
               >
                 {{ asDevice(item.value as DeviceTreeItem)?.device.spec.driver }}
               </span>
 
-              <span class="font-mono">
+              <span class="font-mono text-content-muted">
                 {{ asDevice(item.value as DeviceTreeItem)?.device.metadata.id }}
               </span>
             </div>

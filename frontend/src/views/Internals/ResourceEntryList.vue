@@ -255,7 +255,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
                   :key="vRow.key.toString()"
                   :ref="measureElement"
                   :data-index="vRow.index"
-                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 border-t border-border-strong"
+                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 border-t border-border-subtle"
                 >
                   <ResourceEntryItem
                     :item="items[vRow.index]"

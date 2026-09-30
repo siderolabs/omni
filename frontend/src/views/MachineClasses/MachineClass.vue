@@ -438,7 +438,7 @@ const submit = async () => {
             <div class="flex flex-wrap items-center gap-2">
               <template v-for="(_, i) in conditions" :key="i">
                 <div
-                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-border-strong"
+                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-border-accent"
                 >
                   <div
                     class="flex cursor-pointer items-center rounded-l-md bg-surface-raised px-2 transition-colors hover:bg-surface-inert hover:text-content-emphasis"

@@ -89,7 +89,7 @@ const id = useId()
         </template>
 
         <DateRangePickerTrigger
-          class="ml-4 rounded p-1 text-content-muted hover:text-content-default focus:outline-none"
+          class="ml-4 rounded p-1 text-content-muted hover:text-content-default"
         >
           <TIcon icon="calendar" class="h-4 w-4" />
         </DateRangePickerTrigger>
@@ -103,14 +103,14 @@ const id = useId()
         <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-4">
           <DateRangePickerHeader class="flex items-center justify-between">
             <DateRangePickerPrev
-              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default focus:outline-none active:bg-surface-hover"
+              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default active:bg-surface-hover"
             >
               <TIcon icon="chevron-left" class="h-4 w-4" />
             </DateRangePickerPrev>
 
             <DateRangePickerHeading class="text-sm font-medium text-content-default" />
             <DateRangePickerNext
-              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default focus:outline-none active:bg-surface-hover"
+              class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default active:bg-surface-hover"
             >
               <TIcon icon="chevron-right" class="h-4 w-4" />
             </DateRangePickerNext>
@@ -146,7 +146,7 @@ const id = useId()
                     <DateRangePickerCellTrigger
                       :day="weekDate"
                       :month="month.value"
-                      class="relative flex h-8 w-8 items-center justify-center rounded text-sm font-normal whitespace-nowrap text-content-default outline-none before:absolute before:top-1.25 before:hidden before:h-1 before:w-1 before:rounded-full before:bg-accent-fill hover:bg-surface-inert focus:bg-surface-inert data-highlighted:bg-accent-fill/25 data-outside-view:text-content-muted data-selected:bg-accent-fill! data-selected:text-content-emphasis data-today:before:block data-unavailable:pointer-events-none data-unavailable:text-content-muted data-unavailable:line-through"
+                      class="relative flex h-8 w-8 items-center justify-center rounded text-sm font-normal whitespace-nowrap text-content-default outline-none before:absolute before:top-1.25 before:hidden before:h-1 before:w-1 before:rounded-full before:bg-accent-text hover:bg-surface-inert focus:bg-surface-inert data-highlighted:bg-accent-subtle data-outside-view:text-content-muted data-selected:bg-accent-fill! data-selected:text-content-on-accent data-today:before:block data-unavailable:pointer-events-none data-unavailable:text-content-muted data-unavailable:line-through"
                     />
                   </DateRangePickerCell>
                 </DateRangePickerGridRow>

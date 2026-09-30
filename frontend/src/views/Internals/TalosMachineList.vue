@@ -66,9 +66,9 @@ const filtered = computed(() => {
             v-for="m in filtered"
             :key="m.id"
             class="relative"
-            :class="m.connected ? 'hover:bg-white/5' : 'opacity-50'"
+            :class="m.connected ? 'hover:bg-surface-hover' : 'text-content-muted'"
           >
-            <TableCell class="text-content-emphasis">
+            <TableCell :class="m.connected && 'text-content-emphasis'">
               <!-- Stretched over the row so the whole row is clickable while staying a real link -->
               <RouterLink
                 v-if="m.connected"

@@ -32,11 +32,7 @@ onKeyStroke('Escape', (event) => {
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="expanded"
-        class="fixed inset-0 z-40 bg-surface-page/90"
-        @click="expanded = false"
-      />
+      <div v-if="expanded" class="fixed inset-0 z-40 bg-surface-scrim" @click="expanded = false" />
     </Transition>
 
     <div

@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts"></script>
 
 <template>
-  <tr class="border-border-strong not-in-[thead]:[[role=button]]:hover:bg-white/5">
+  <tr class="border-border-strong not-in-[thead]:[[role=button]]:hover:bg-surface-hover">
     <slot></slot>
   </tr>
 </template>

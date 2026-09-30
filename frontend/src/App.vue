@@ -48,7 +48,7 @@ const darkThemeEnabled = computed(() => {
 
     <div class="relative flex grow overflow-hidden">
       <div
-        class="pointer-events-none absolute inset-0 z-10 bg-black/75 opacity-0 transition-opacity duration-300"
+        class="pointer-events-none absolute inset-0 z-10 bg-surface-scrim opacity-0 transition-opacity duration-300"
         :class="{ 'max-md:pointer-events-auto max-md:opacity-100': isSidebarOpen }"
         @click="isSidebarOpen = false"
       ></div>

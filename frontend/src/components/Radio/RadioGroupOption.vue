@@ -18,7 +18,7 @@ defineProps<{
       <div
         class="size-3.5 shrink-0 rounded-full border bg-clip-content p-0.5 transition-colors duration-250"
         :class="
-          checked ? 'border-accent-fill bg-accent-fill' : 'border-border-strong bg-transparent'
+          checked ? 'border-accent-fill bg-accent-fill' : 'border-border-control bg-transparent'
         "
       ></div>
 

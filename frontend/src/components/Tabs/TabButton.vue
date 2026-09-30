@@ -15,7 +15,7 @@ const forwarded = useForwardPropsEmits(props)
   <TabsTrigger
     v-bind="forwarded"
     :as="disabled ? 'button' : as"
-    class="text-sm transition-colors not-data-disabled:hover:text-content-default data-disabled:cursor-not-allowed data-disabled:opacity-75 data-[state=active]:text-content-default"
+    class="text-sm transition-colors not-data-disabled:hover:text-content-default data-disabled:cursor-not-allowed data-disabled:text-content-disabled data-[state=active]:text-content-default"
   >
     <slot></slot>
   </TabsTrigger>
