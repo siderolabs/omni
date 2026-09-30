@@ -20,8 +20,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/grpc"
+	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 func TestRegisterPublicKey(t *testing.T) {
@@ -143,4 +148,66 @@ LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
 			require.NoError(t, err)
 		})
 	}
+}
+
+// TestRevokePublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
+func TestRevokePublicKeyDenials(t *testing.T) {
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	authServer, err := grpc.NewAuthServer(st, config.Services{
+		Api: config.Service{
+			AdvertisedURL: new("http://localhost:8099"),
+		},
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	ctx := ctxstore.WithValue(t.Context(), omniauth.EnabledAuthContextKey{Enabled: true})
+	ctx = ctxstore.WithValue(ctx, omniauth.RoleContextKey{Role: role.Admin})
+	ctx = ctxstore.WithValue(ctx, omniauth.IdentityContextKey{Identity: "caller@a.com"})
+
+	someoneElses := authres.NewPublicKey("aa9e26dbdc5b4e5d9fa5ed21d0f3a2e1")
+	someoneElses.TypedSpec().Value.Identity = &specs.Identity{Email: "someone-else@a.com"}
+
+	require.NoError(t, st.Create(ctx, someoneElses))
+
+	_, othersErr := authServer.RevokePublicKey(ctx, &auth.RevokePublicKeyRequest{PublicKeyId: someoneElses.Metadata().ID()})
+	_, missingErr := authServer.RevokePublicKey(ctx, &auth.RevokePublicKeyRequest{PublicKeyId: "4a5e1cf0a7b24bd2bb0a6f1d3e7c9088"})
+
+	require.Error(t, othersErr)
+	require.Error(t, missingErr)
+	require.Equal(t, othersErr.Error(), missingErr.Error())
+	require.Equal(t, codes.PermissionDenied, status.Code(othersErr))
+}
+
+// TestConfirmPublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
+func TestConfirmPublicKeyDenials(t *testing.T) {
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	authServer, err := grpc.NewAuthServer(st, config.Services{
+		Api: config.Service{
+			AdvertisedURL: new("http://localhost:8099"),
+		},
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	ctx := ctxstore.WithValue(t.Context(), omniauth.EnabledAuthContextKey{Enabled: true})
+	ctx = ctxstore.WithValue(ctx, omniauth.VerifiedEmailContextKey{Email: "caller@a.com"})
+
+	identity := authres.NewIdentity("caller@a.com")
+	identity.TypedSpec().Value.UserId = "3f1b7f26-97f6-4d0a-9b4e-2a6b1c0f9d55"
+
+	require.NoError(t, st.Create(ctx, identity))
+
+	someoneElses := authres.NewPublicKey("c1de4a7b90f24e6ab3d5182f6c0e9a44")
+	someoneElses.Metadata().Labels().Set(authres.LabelPublicKeyUserID, "8c2e0f11-5a33-4f8d-bb97-1d4e6a0c7b32")
+
+	require.NoError(t, st.Create(ctx, someoneElses))
+
+	_, othersErr := authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: someoneElses.Metadata().ID()})
+	_, missingErr := authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: "6b0f92c4ad314e7f88a3c5d1e0724b19"})
+
+	require.Error(t, othersErr)
+	require.Error(t, missingErr)
+	require.Equal(t, othersErr.Error(), missingErr.Error())
+	require.Equal(t, codes.PermissionDenied, status.Code(othersErr))
 }

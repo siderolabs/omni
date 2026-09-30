@@ -100,6 +100,52 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	}, claims)
 }
 
+// TestGetPrivateClaimsFromScopesClusterNotFound checks that a scope for a cluster that is not there contributes no groups.
+func TestGetPrivateClaimsFromScopesClusterNotFound(t *testing.T) {
+	ctx := t.Context()
+
+	userIdentity := "test-user"
+	userID := "test-user-id"
+
+	accessPolicy := auth.NewAccessPolicy()
+
+	accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{
+		{
+			Users:    []string{userIdentity},
+			Clusters: []string{"some-other-cluster"},
+			Kubernetes: &specs.AccessPolicyRule_Kubernetes{
+				Impersonate: &specs.AccessPolicyRule_Kubernetes_Impersonate{
+					Groups: []string{"foobar"},
+				},
+			},
+		},
+	}
+
+	identity := auth.NewIdentity(userIdentity)
+	identity.TypedSpec().Value.UserId = userID
+
+	user := auth.NewUser(userID)
+	user.TypedSpec().Value.Role = string(role.None)
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	require.NoError(t, st.Create(ctx, accessPolicy))
+	require.NoError(t, st.Create(ctx, identity))
+	require.NoError(t, st.Create(ctx, user))
+
+	// the cluster resource is deliberately not created
+
+	s := token.NewStorage(st)
+
+	claims, err := s.GetPrivateClaimsFromScopes(ctx, userIdentity, "", []string{
+		oidc.ScopeOpenID,
+		external.ScopeClusterPrefix + "no-such-cluster",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]any{"cluster": "no-such-cluster", "groups": []string(nil)}, claims)
+}
+
 func TestSetUserinfoFromScopes(t *testing.T) {
 	ctx := t.Context()
 

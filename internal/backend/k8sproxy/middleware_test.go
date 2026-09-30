@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -282,6 +283,10 @@ func TestAuthorize(t *testing.T) {
 			require.Equal(t, tc.expectedCode, resp.StatusCode)
 
 			if tc.expectedCode != http.StatusOK {
+				body, readErr := io.ReadAll(resp.Body)
+				require.NoError(t, readErr)
+				require.Empty(t, body, "a rejected request carries no detail in its body")
+
 				return
 			}
 

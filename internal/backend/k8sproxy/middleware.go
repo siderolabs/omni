@@ -65,7 +65,6 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 			ctxzap.Error(ctx, "failed to validate JWT token", zap.Error(err))
 
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(err.Error())) //nolint:errcheck
 
 			return
 		}
