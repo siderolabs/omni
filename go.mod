@@ -3,8 +3,10 @@ module github.com/siderolabs/omni
 go 1.27.1
 
 replace (
-	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	// forked saml library that has the fix for Fusion Auth ACS parsing (crewjam/saml#626)
+	// signs the HTTP-Redirect binding for AuthnRequest and LogoutRequest correctly,
+	// and rejects an empty LogoutResponse instead of panicking
+	github.com/crewjam/saml => github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
@@ -27,6 +29,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
 	github.com/aws/smithy-go v1.28.1
+	github.com/beevik/etree v1.7.0
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v7 v7.0.0
@@ -146,7 +149,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 // indirect
-	github.com/beevik/etree v1.7.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

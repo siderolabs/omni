@@ -118,7 +118,7 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 
 	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t), map[string]string{
 		"identity": saml.IdentityAttribute,
-	}, "")
+	}, "", nil)
 
 	authConfig := auth.NewAuthConfig()
 	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{
@@ -429,7 +429,7 @@ func TestEnsureUserRecoveryAdmin(t *testing.T) {
 			ctx := t.Context()
 			st := setupEnsureUser(ctx, t, tt.assignRole, tt.updateOnEachLogin)
 
-			sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, tt.recoveryAdmin)
+			sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, tt.recoveryAdmin, nil)
 
 			require.NoError(t, sp.EnsureUser(ctx, lockedOutEmail, samlLabels))
 
@@ -451,7 +451,7 @@ func TestEnsureUserRecoveryAdminNotCreated(t *testing.T) {
 
 	const newcomer = "newcomer@example.com"
 
-	sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, newcomer)
+	sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, newcomer, nil)
 
 	require.NoError(t, sp.EnsureUser(ctx, newcomer, map[string]string{developerLabel: ""}))
 
@@ -507,7 +507,7 @@ func TestCreateSessionQuerySource(t *testing.T) {
 
 			require.NoError(t, st.Create(ctx, authConfig))
 
-			sp := saml.NewSessionProvider(st, tracker, zaptest.NewLogger(t), nil, "")
+			sp := saml.NewSessionProvider(st, tracker, zaptest.NewLogger(t), nil, "", nil)
 
 			form := url.Values{}
 

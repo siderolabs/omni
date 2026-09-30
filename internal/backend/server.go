@@ -9,6 +9,7 @@ package backend
 import (
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -321,6 +322,17 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			return nil, nil //nolint:nilnil
 		}
 
+		var signingCert *tls.Certificate
+
+		if certFile := s.cfg.Auth.Saml.GetCertFile(); certFile != "" {
+			cert, err := tls.LoadX509KeyPair(certFile, s.cfg.Auth.Saml.GetKeyFile())
+			if err != nil {
+				return nil, fmt.Errorf("failed to load SAML signing certificate: %w", err)
+			}
+
+			signingCert = &cert
+		}
+
 		return saml.NewHandler(
 			s.omniRuntime.ValidatedState(),
 			s.authConfig.TypedSpec().Value.Saml,
@@ -328,6 +340,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			s.cfg.Services.Api.URL(),
 			s.cfg.Auth.GetRecoveryAdmin(),
 			s.cfg.Auth.Saml.GetAllowIdpInitiated(),
+			signingCert,
 		)
 	}()
 	if err != nil {
@@ -938,8 +951,13 @@ func registerAuthHandlers(
 
 		saml.RegisterHandlers(samlHandler, mux, logger, advertisedURL)
 
+		handler, err := saml.CreateLogoutHandler(samlHandler, advertisedURL, logger)
+		if err != nil {
+			return err
+		}
+
 		loginHandler = samlHandler.HandleStartAuthFlow
-		logoutHandler = saml.CreateLogoutHandler(samlHandler, advertisedURL, logger)
+		logoutHandler = handler
 	case oidcProvider != nil:
 		handler, err := oidc.NewOIDCHandler(cfg.Services.Api.GetAdvertisedURL(), cfg.Auth.Oidc, oidcProvider)
 		if err != nil {

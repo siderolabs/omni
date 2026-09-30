@@ -1293,6 +1293,17 @@ func (s *SAML) SetAllowIdpInitiated(v bool) {
 	s.AllowIdpInitiated = &v
 }
 
+func (s *SAML) GetCertFile() string {
+	if s == nil || s.CertFile == nil {
+		return *new(string)
+	}
+	return *s.CertFile
+}
+
+func (s *SAML) SetCertFile(v string) {
+	s.CertFile = &v
+}
+
 func (s *SAML) GetEnabled() bool {
 	if s == nil || s.Enabled == nil {
 		return *new(bool)
@@ -1302,6 +1313,17 @@ func (s *SAML) GetEnabled() bool {
 
 func (s *SAML) SetEnabled(v bool) {
 	s.Enabled = &v
+}
+
+func (s *SAML) GetKeyFile() string {
+	if s == nil || s.KeyFile == nil {
+		return *new(string)
+	}
+	return *s.KeyFile
+}
+
+func (s *SAML) SetKeyFile(v string) {
+	s.KeyFile = &v
 }
 
 func (s *SAML) GetMetadata() string {

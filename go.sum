@@ -386,6 +386,8 @@ github.com/neticdk/go-stdlib v1.0.1 h1:3P6tJIICo8kvMMEFWSZCk+iRh+HoN8P/51WwMO+Ka
 github.com/neticdk/go-stdlib v1.0.1/go.mod h1:KP9nLuDoanLbM8Wturn+hage2FtcrJaF1+1Znu+MKEw=
 github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a h1:yvECMRkpMB7l/yipbBvloe7ECd5/FR5JwQcpXGodxg8=
 github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
+github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c h1:Z3Lw3zMBoa2BUcXdKX/SxEi5eu875GJSutPBrMiP1vk=
+github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c/go.mod h1:6WchMcmyjQveGycr2BnOKa05UlR9v5z7jU2l//YKhJk=
 github.com/onsi/ginkgo/v2 v2.32.0 h1:Hw7s2pVrQo/8Yz5N77qdnpHaoc+c6cC9WIV1Jce+J6E=
 github.com/onsi/ginkgo/v2 v2.32.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.42.1 h1:iN1rCUX+44NZ1Dc97MPoeFYbFR0vh8zxoxMFwKdyZ6I=
@@ -528,8 +530,6 @@ github.com/tidwall/sjson v1.2.5 h1:kLy8mja+1c9jlljvWTlSazM7cKDRfJuR/bOJhcY5NcY=
 github.com/tidwall/sjson v1.2.5/go.mod h1:Fvgq9kS/6ociJEDnK0Fk1cpYF4FIW6ZF7LAe+6jwd28=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7otjonDflCTK0BCfls4SPy3NcCVb5dqqmbRknE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1:KO6IkyS8Y3j8OdNO85qEYBsRPuteD+YciPomcXdrMnk=
-github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe h1:yEOKa5C22XlVd77FvZON16ORl6gXJ9F5mPSizYwix50=
-github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe/go.mod h1:6WchMcmyjQveGycr2BnOKa05UlR9v5z7jU2l//YKhJk=
 github.com/valyala/fastjson v1.6.10 h1:/yjJg8jaVQdYR3arGxPE2X5z89xrlhS0eGXdv+ADTh4=
 github.com/valyala/fastjson v1.6.10/go.mod h1:e6FubmQouUNP73jtMLmcbxS6ydWIpOfhz34TSfO3JaE=
 github.com/vishvananda/netns v0.0.5 h1:DfiHV+j8bA32MFM7bfEunvT8IAqQ/NzSJHtcmW5zdEY=

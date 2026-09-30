@@ -706,8 +706,21 @@ type SAML struct {
 	// mappings.
 	AttributeRules SAMLAttributeRules `json:"attributeRules" yaml:"attributeRules"`
 
+	// CertFile is the path to the PEM certificate Omni uses to sign SAML requests.
+	// When it is set together with the key (.keyFile), Omni signs both the
+	// AuthnRequest and the LogoutRequest, and advertises the certificate in its
+	// metadata at /saml/metadata. The certificate has to be registered at the IdP
+	// before it is set, otherwise the IdP rejects the login. Some IdPs start
+	// encrypting assertions once the metadata carries the certificate. Omni decrypts
+	// them with the key.
+	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
+
 	// Enabled controls whether the SAML authentication provider is enabled.
 	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
+
+	// KeyFile is the path to the PEM private key of the SAML signing certificate
+	// (.certFile). Only RSA keys are supported.
+	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
 
 	// LabelRules defines mapping of SAML assertion attributes into Omni identity
 	// labels.

@@ -408,6 +408,60 @@ func TestValidateFactoryAuthConfig(t *testing.T) {
 	}
 }
 
+func TestValidateSAMLSigningConfig(t *testing.T) {
+	schema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
+	for _, tt := range []validateConfigCase{
+		{
+			name:   "cert without key",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Saml.SetCertFile("/run/secrets/saml.crt")
+			},
+			validateErr: `config value ".auth.saml.keyFile" or flag "--auth-saml-key": is required when "certFile" is set`,
+		},
+		{
+			name:   "key without cert",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Saml.SetKeyFile("/run/secrets/saml.key")
+			},
+			validateErr: `config value ".auth.saml.certFile" or flag "--auth-saml-cert": is required when "keyFile" is set`,
+		},
+		{
+			name:   "empty cert with key",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Saml.SetCertFile("")
+				cfg.Auth.Saml.SetKeyFile("/run/secrets/saml.key")
+			},
+			validateErr: `config value ".auth.saml.certFile" or flag "--auth-saml-cert": must not be empty`,
+		},
+		{
+			name:   "empty key with cert",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Saml.SetCertFile("/run/secrets/saml.crt")
+				cfg.Auth.Saml.SetKeyFile("")
+			},
+			validateErr: `config value ".auth.saml.keyFile" or flag "--auth-saml-key": must not be empty`,
+		},
+		{
+			name:   "cert and key",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Saml.SetCertFile("/run/secrets/saml.crt")
+				cfg.Auth.Saml.SetKeyFile("/run/secrets/saml.key")
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.run(t, schema)
+		})
+	}
+}
+
 func TestFactoryRequiresAuth(t *testing.T) {
 	t.Parallel()
 

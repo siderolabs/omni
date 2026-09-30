@@ -8,7 +8,6 @@ package saml
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -57,6 +56,7 @@ func NewSessionProvider(
 	logger *zap.Logger,
 	attributeRules map[string]string,
 	recoveryAdmin string,
+	sloCookieKey []byte,
 ) *SessionProvider {
 	return &SessionProvider{
 		state:          state,
@@ -64,6 +64,7 @@ func NewSessionProvider(
 		logger:         logger,
 		attributeRules: attributeRules,
 		recoveryAdmin:  strings.ToLower(recoveryAdmin),
+		sloCookieKey:   sloCookieKey,
 	}
 }
 
@@ -75,6 +76,7 @@ type SessionProvider struct {
 	logger         *zap.Logger
 	attributeRules map[string]string
 	recoveryAdmin  string
+	sloCookieKey   []byte
 }
 
 // CreateSession is called when we have received a valid SAML assertion and
@@ -189,8 +191,9 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 
 	if nameID := assertion.Subject.NameID; nameID != nil {
 		data := sloSessionData{
-			NameID: nameID.Value,
-			Format: nameID.Format,
+			NameID:   nameID.Value,
+			Format:   nameID.Format,
+			IssuedAt: time.Now().Unix(),
 		}
 
 		for _, authnStatement := range assertion.AuthnStatements {
@@ -201,12 +204,12 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 			}
 		}
 
-		if cookieValue, marshalErr := json.Marshal(data); marshalErr != nil {
-			sp.logger.Warn("failed to marshal SLO session cookie data", zap.Error(marshalErr))
+		if cookieValue, encodeErr := encodeNameIDCookie(data, sp.sloCookieKey); encodeErr != nil {
+			sp.logger.Warn("failed to encode SLO session cookie data", zap.Error(encodeErr))
 		} else {
 			http.SetCookie(w, &http.Cookie{
 				Name:     NameIDCookieName,
-				Value:    base64.URLEncoding.EncodeToString(cookieValue),
+				Value:    cookieValue,
 				MaxAge:   int(sloSessionCookieTTL.Seconds()),
 				Path:     "/",
 				HttpOnly: true,

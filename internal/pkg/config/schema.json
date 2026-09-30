@@ -1052,6 +1052,10 @@
           "metadata"
         ]
       },
+      "dependentRequired": {
+        "certFile": ["keyFile"],
+        "keyFile": ["certFile"]
+      },
       "properties": {
         "labelRules": {
           "description": "LabelRules defines mapping of SAML assertion attributes into Omni identity labels.",
@@ -1097,6 +1101,18 @@
           "description": "Enabled controls whether the SAML authentication provider is enabled.",
           "x-cli-flag": "auth-saml-enabled",
           "type": "boolean"
+        },
+        "certFile": {
+          "description": "CertFile is the path to the PEM certificate Omni uses to sign SAML requests. When it is set together with the key (.keyFile), Omni signs both the AuthnRequest and the LogoutRequest, and advertises the certificate in its metadata at /saml/metadata. The certificate has to be registered at the IdP before it is set, otherwise the IdP rejects the login. Some IdPs start encrypting assertions once the metadata carries the certificate. Omni decrypts them with the key.",
+          "x-cli-flag": "auth-saml-cert",
+          "type": "string",
+          "minLength": 1
+        },
+        "keyFile": {
+          "description": "KeyFile is the path to the PEM private key of the SAML signing certificate (.certFile). Only RSA keys are supported.",
+          "x-cli-flag": "auth-saml-key",
+          "type": "string",
+          "minLength": 1
         }
       }
     },
