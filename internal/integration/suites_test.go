@@ -1348,6 +1348,11 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 		)
 
 		t.Run(
+			"SeveralNodesShouldBeDenied",
+			AssertSeveralNodesDenied(t.Context(), options.omniClient, clientFactory, clusterName),
+		)
+
+		t.Run(
 			"FrontendAPIShouldBeTested",
 			AssertFrontendResourceAPI(t.Context(), options.omniClient, options.serviceAccountKey, options.HTTPEndpoint, clusterName),
 		)

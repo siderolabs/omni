@@ -1626,6 +1626,41 @@ var (
 
 const grpcMetadataPrefix = "Grpc-Metadata-"
 
+// AssertSeveralNodesDenied checks that a request naming several nodes is refused by the access check, rather than for
+// being unsupported, when the caller may not reach them.
+//
+//nolint:gocognit,maintidx
+func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
+		defer cancel()
+
+		machines, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+			ctx, rootCli.Omni().State(),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+
+		require.NoError(t, err)
+		require.Positive(t, machines.Len())
+
+		existing := machines.Get(0).Metadata().ID()
+
+		cli, err := clientFactory.getClient(ctx, role.None)
+		require.NoError(t, err)
+
+		conn := cli.Talos().WithCluster(clusterName).WithNodes(existing, existing)
+
+		_, err = resapi.NewResourceServiceClient(conn).Get(ctx, &resapi.GetRequest{
+			Namespace: "network",
+			Type:      "HostnameStatuses.net.talos.dev",
+			Id:        "hostname",
+		})
+
+		require.Error(t, err)
+		require.Equal(t, codes.PermissionDenied, status.Code(err))
+	}
+}
+
 //nolint:gocognit,maintidx
 func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serviceAccountKey, httpEndpoint, clusterName string) TestFunc {
 	return func(t *testing.T) {
