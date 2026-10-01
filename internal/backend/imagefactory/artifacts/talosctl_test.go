@@ -18,16 +18,17 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/imagefactory/artifacts"
 )
 
-func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
+func TestTalosctlHandler(t *testing.T) {
 	var upstreamRequests atomic.Int32
 
 	upstream := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		upstreamRequests.Add(1)
 
-		require.Equal(t, "/talosctl/v1.2.3", req.URL.Path)
+		require.Equal(t, "/talosctl/1.2.3", req.URL.Path)
 
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusOK)
@@ -40,26 +41,33 @@ func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	require.NoError(t, st.Create(t.Context(), omni.NewTalosVersion("1.2.3")))
 
-	imageFactoryClients := imagefactory.NewClients(st, imageFactoryClient)
+	handler := artifacts.NewTalosctlHandler(st, imagefactory.NewClients(st, imageFactoryClient), zaptest.NewLogger(t))
 
-	handler := artifacts.NewTalosctlHandler(imageFactoryClients, zaptest.NewLogger(t))
+	get := func(version string) *httptest.ResponseRecorder {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/talosctl/downloads/"+version, nil)
+		req.SetPathValue("version", version)
 
-	validReq := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/talosctl/downloads/v1.2.3", nil)
-	validReq.SetPathValue("version", "v1.2.3")
+		resp := httptest.NewRecorder()
+		handler.ServeHTTP(resp, req)
 
-	validResp := httptest.NewRecorder()
-	handler.ServeHTTP(validResp, validReq)
+		return resp
+	}
 
-	require.Equal(t, http.StatusOK, validResp.Code)
+	require.Equal(t, http.StatusOK, get("1.2.3").Code)
 	require.Equal(t, int32(1), upstreamRequests.Load())
 
-	invalidReq := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/talosctl/downloads/..%2fsecret", nil)
-	invalidReq.SetPathValue("version", "../secret")
+	// second request for the same version is served from the cache
+	require.Equal(t, http.StatusOK, get("1.2.3").Code)
+	require.Equal(t, int32(1), upstreamRequests.Load())
 
-	invalidResp := httptest.NewRecorder()
-	handler.ServeHTTP(invalidResp, invalidReq)
+	// a well-formed version Omni does not track never reaches the factory
+	require.Equal(t, http.StatusNotFound, get("1.2.4").Code)
+	require.Equal(t, http.StatusNotFound, get("v1.2.3").Code)
+	require.Equal(t, http.StatusNotFound, get("1.2.3+build").Code)
+	require.Equal(t, int32(1), upstreamRequests.Load())
 
-	require.Equal(t, http.StatusBadRequest, invalidResp.Code)
+	require.Equal(t, http.StatusBadRequest, get("../secret").Code)
 	require.Equal(t, int32(1), upstreamRequests.Load())
 }

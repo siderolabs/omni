@@ -12,16 +12,19 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/cache"
 )
 
 // NewTalosctlHandler returns a handler listing the talosctl downloads available for a Talos
-// version.
-func NewTalosctlHandler(clients *imagefactory.Clients, logger *zap.Logger) http.Handler {
+// version Omni tracks as a TalosVersion resource.
+func NewTalosctlHandler(st state.State, clients *imagefactory.Clients, logger *zap.Logger) http.Handler {
 	// The list of versions does not update very often, so we can cache it.
 	var cacherMap sync.Map
 
@@ -48,6 +51,21 @@ func NewTalosctlHandler(clients *imagefactory.Clients, logger *zap.Logger) http.
 			return
 		}
 
+		ctx := actor.MarkContextAsInternalActor(r.Context())
+
+		if _, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, st, talosVersion); err != nil {
+			if state.IsNotFoundError(err) {
+				writeResult(result{Status: "unknown Talos version"}, http.StatusNotFound)
+
+				return
+			}
+
+			logger.Error("failed to get Talos version", zap.Error(err))
+			writeResult(result{Status: "failed to get Talos version"}, http.StatusInternalServerError)
+
+			return
+		}
+
 		actual, _ := cacherMap.LoadOrStore(talosVersion, &cache.Value[[]string]{Duration: time.Hour})
 
 		cacher, ok := actual.(*cache.Value[[]string])
@@ -57,8 +75,6 @@ func NewTalosctlHandler(clients *imagefactory.Clients, logger *zap.Logger) http.
 
 			return
 		}
-
-		ctx := actor.MarkContextAsInternalActor(r.Context())
 
 		data, err := cacher.GetOrUpdate(func() ([]string, error) {
 			client, err := clients.ForTalosVersion(ctx, talosVersion)

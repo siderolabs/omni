@@ -894,7 +894,7 @@ func makeMux(
 
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/api/omnictl/", http.StripPrefix("/api/omnictl/", omnictlHndlr), "files")
-	muxHandle("/api/talosctl/downloads/{version}", artifacts.NewTalosctlHandler(imageFactoryClients, logger), "talosctl-downloads")
+	muxHandle("/api/talosctl/downloads/{version}", artifacts.NewTalosctlHandler(state.Default(), imageFactoryClients, logger), "talosctl-downloads")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
