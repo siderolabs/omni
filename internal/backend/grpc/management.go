@@ -1355,7 +1355,11 @@ func (s *managementServer) auditTalosAccess(ctx context.Context, fullMethodName,
 
 	fullMethodName = strings.TrimLeft(fullMethodName, "/")
 
-	if err := s.auditor.AuditTalosAccess(ctx, fullMethodName, clusterID, nodeID); err != nil {
+	if err := s.auditor.AuditTalosAccess(ctx, auditlog.TalosAccess{
+		FullMethodName: fullMethodName,
+		ClusterName:    clusterID,
+		MachineIP:      nodeID,
+	}); err != nil {
 		return fmt.Errorf("failed to audit talos access: %w", err)
 	}
 
@@ -1556,7 +1560,7 @@ type AuditLogger interface {
 	FollowStart(ctx context.Context, startTsMs int64) (int64, error)
 	FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error)
 	FollowSubscribe() (<-chan struct{}, func())
-	AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error
+	AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error
 	AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error
 	AuditAuditLogFollow(ctx context.Context, fromID, startTsMs int64) error
 }

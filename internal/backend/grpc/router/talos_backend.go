@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -151,29 +152,22 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		return ctx, nil, err
 	}
 
+	hasModifyAccess, accessErr := backend.checkAccess(ctx)
+
+	// the audit entry records the outcome, so it is written once the access is decided and for a refusal too
 	if backend.talosAuditor != nil {
-		if err = backend.talosAuditor.AuditTalosAccess(ctx, strings.TrimLeft(fullMethodName, "/"), backend.clusterID, getNodeID(md)); err != nil {
+		if err = backend.talosAuditor.AuditTalosAccess(ctx, auditlog.TalosAccess{
+			FullMethodName: strings.TrimLeft(fullMethodName, "/"),
+			ClusterName:    backend.clusterID,
+			MachineIP:      getNodeID(md),
+			Denied:         accessErr != nil,
+		}); err != nil {
 			return ctx, nil, err
 		}
 	}
 
-	hasModifyAccess := false
-
-	_, authErr := auth.Check(ctx, auth.WithRole(role.Operator))
-	// insecure access mode should only be possible for the operator role users
-	if authErr != nil && backend.clusterID == "" {
-		return ctx, nil, status.Error(codes.PermissionDenied, "permission denied")
-	}
-
-	if authErr == nil {
-		hasModifyAccess = true
-	}
-
-	if !hasModifyAccess {
-		// at least read access is required
-		if _, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
-			return ctx, nil, err
-		}
+	if accessErr != nil {
+		return ctx, nil, accessErr
 	}
 
 	md = md.Copy()
@@ -200,6 +194,25 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	outCtx := metadata.NewOutgoingContext(ctx, md)
 
 	return outCtx, backend.conn, nil
+}
+
+// checkAccess decides whether the caller may reach this backend, and whether it may modify.
+func (backend *TalosBackend) checkAccess(ctx context.Context) (bool, error) {
+	if _, err := auth.Check(ctx, auth.WithRole(role.Operator)); err == nil {
+		return true, nil
+	}
+
+	// insecure access mode should only be possible for the operator role users
+	if backend.clusterID == "" {
+		return false, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	// at least read access is required
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		return false, err
+	}
+
+	return false, nil
 }
 
 func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, nodes []dns.Info, hasModifyAccess bool) {

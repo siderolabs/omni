@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/certs"
@@ -59,7 +60,7 @@ const (
 
 // TalosAuditor is an interface for auditing Talos access.
 type TalosAuditor interface {
-	AuditTalosAccess(context.Context, string, string, string) error
+	AuditTalosAccess(context.Context, auditlog.TalosAccess) error
 }
 
 // Router wraps grpc-proxy StreamDirector.

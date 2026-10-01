@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/siderolabs/gen/xtesting/must"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -387,6 +388,52 @@ func TestK8SAccessAuditSkipsReadLikeRequests(t *testing.T) {
 
 			require.Len(t, events, 1)
 			require.Equal(t, "k8s_access", events[0]["event_type"])
+		})
+	}
+}
+
+// TestTalosAccessRecordsTheOutcome checks that a refused Talos access is recorded, carrying the outcome, and that an
+// allowed one is recorded without it.
+func TestTalosAccessRecordsTheOutcome(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		denied bool
+	}{
+		{name: "allowed"},
+		{name: "refused", denied: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			l := must.Value(audit.NewLog(t.Context(), config.LogsAudit{Enabled: new(true)}, testDB(t), zaptest.NewLogger(t)))(t)
+
+			ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{
+				Session: auditlog.Session{UserAgent: "Mozilla/5.0", Email: "user@example.com"},
+			})
+
+			require.NoError(t, l.AuditTalosAccess(ctx, auditlog.TalosAccess{
+				FullMethodName: "machine.MachineService/Hostname",
+				ClusterName:    "cluster1",
+				MachineIP:      "node1",
+				Denied:         test.denied,
+			}))
+
+			events := readAuditEvents(t, l)
+			require.Len(t, events, 1)
+
+			eventData, ok := events[0]["event_data"].(map[string]any)
+			require.True(t, ok)
+
+			talosAccess, ok := eventData["talos_access"].(map[string]any)
+			require.True(t, ok)
+
+			assert.Equal(t, "talos_access", events[0]["event_type"])
+			assert.Equal(t, "machine.MachineService/Hostname", talosAccess["full_method_name"])
+			assert.Equal(t, "cluster1", talosAccess["cluster_name"])
+
+			if test.denied {
+				assert.Equal(t, true, talosAccess["denied"])
+			} else {
+				assert.NotContains(t, talosAccess, "denied")
+			}
 		})
 	}
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 )
 
 type testNodeResolver struct{}
@@ -179,6 +180,45 @@ func TestTalosBackendAuditsAfterVerifier(t *testing.T) {
 	require.Equal(t, "machine.MachineService/Hostname", auditor.fullMethod)
 	require.Equal(t, "test-cluster", auditor.clusterID)
 	require.Equal(t, "some-node", auditor.nodeID)
+	require.False(t, auditor.denied)
+}
+
+// TestTalosBackendAuditsRefusedAccess checks that a request the backend refuses is recorded too, marked as refused.
+func TestTalosBackendAuditsRefusedAccess(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
+
+	conn, err := dial("127.0.0.1:10501")
+	require.NoError(t, err)
+
+	auditor := &capturingTalosAuditor{}
+
+	backend := router.NewTalosBackend(
+		"test-backend",
+		"test-cluster",
+		&testNodeResolver{},
+		conn,
+		true, // the caller carries no role, so the backend refuses it
+		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+			return handler(context.WithValue(ctx, auditVerifierKey{}, "verified"), req)
+		},
+		st.Default(),
+		auditor,
+	)
+
+	ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("node", "some-node", "cluster", "test-cluster"))
+
+	_, _, err = backend.GetConnection(ctx, machine.MachineService_Hostname_FullMethodName)
+	require.Error(t, err)
+
+	require.Equal(t, 1, auditor.calls)
+	require.True(t, auditor.denied)
+	require.Equal(t, "machine.MachineService/Hostname", auditor.fullMethod)
+	require.Equal(t, "test-cluster", auditor.clusterID)
+	require.Equal(t, "some-node", auditor.nodeID)
 }
 
 func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string, st state.State) (func() error, error) {
@@ -220,13 +260,17 @@ type capturingTalosAuditor struct {
 	fullMethod     string
 	clusterID      string
 	nodeID         string
+	denied         bool
+	calls          int
 }
 
-func (c *capturingTalosAuditor) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
+func (c *capturingTalosAuditor) AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error {
 	c.verifierMarker = ctx.Value(auditVerifierKey{})
-	c.fullMethod = fullMethodName
-	c.clusterID = clusterID
-	c.nodeID = nodeID
+	c.fullMethod = access.FullMethodName
+	c.clusterID = access.ClusterName
+	c.nodeID = access.MachineIP
+	c.denied = access.Denied
+	c.calls++
 
 	return nil
 }

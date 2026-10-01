@@ -438,12 +438,12 @@ func (w *AuditWrap) Wrap(handler http.Handler) http.Handler {
 }
 
 // AuditTalosAccess logs a Talos access event. It does nothing if the audit log is disabled.
-func (w *AuditWrap) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
+func (w *AuditWrap) AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error {
 	if w.log == nil {
 		return nil
 	}
 
-	return w.log.AuditTalosAccess(ctx, fullMethodName, clusterID, nodeID)
+	return w.log.AuditTalosAccess(ctx, access)
 }
 
 // AuditAuditLogAccess logs an audit log access event. It does nothing if the audit log is disabled.
