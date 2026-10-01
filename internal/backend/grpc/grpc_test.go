@@ -322,7 +322,7 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 	runtimes := map[string]runtime.Runtime{
 		omniruntime.Name: runtime.NewProxyRuntime(suite.runtime),
 	}
-	resapi.RegisterResourceServiceServer(suite.server, grpcomni.NewResourceServer(suite.state, runtimes, nil))
+	resapi.RegisterResourceServiceServer(suite.server, grpcomni.NewResourceServer(suite.state, runtimes, nil, nil))
 	management.RegisterManagementServiceServer(suite.server, grpcomni.NewManagementServer(
 		suite.state,
 		imageFactoryClient,

@@ -132,7 +132,7 @@ func NewRouter(
 			Name: "omni_grpc_proxy_talos_backend_cache_misses_total",
 			Help: "Number of gRPC Proxy Talos backend cache misses.",
 		}, typeLabel),
-		omniBackend:  NewOmniBackend("omni", nodeResolver, omniConn),
+		omniBackend:  NewOmniBackend("omni", omniConn),
 		nodeResolver: nodeResolver,
 		verifier:     verifier,
 		cosiState:    cosiState,

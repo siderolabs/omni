@@ -83,6 +83,7 @@ func MakeServiceServers(
 			omniRuntime.ValidatedState(),
 			runtimes,
 			omniRuntime.GetCOSIRuntime(),
+			dnsService,
 		),
 		&oidcServer{
 			provider: oidcProvider,

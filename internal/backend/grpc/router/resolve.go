@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -111,4 +112,14 @@ func resolveErrorFor(ctx context.Context, resolveErr error) error {
 	}
 
 	return resolveErr
+}
+
+// ResolveMachines returns the IDs of the machines the node headers point to.
+func ResolveMachines(ctx context.Context, nodeResolver NodeResolver, md metadata.MD) ([]string, error) {
+	nodes, err := resolveNodes(nodeResolver, md)
+	if err != nil {
+		return nil, resolveErrorFor(ctx, err)
+	}
+
+	return xslices.Map(nodes, func(info dns.Info) string { return info.ID }), nil
 }

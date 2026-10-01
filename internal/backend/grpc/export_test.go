@@ -6,12 +6,15 @@
 package grpc
 
 import (
+	"context"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -94,8 +97,13 @@ func NewAuthServer(st state.State, services config.Services, logger *zap.Logger)
 	return newAuthServer(st, services, logger)
 }
 
-func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
-	return newResourceServer(st, runtimes, depGrapher)
+func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher, nodeResolver router.NodeResolver) *ResourceServer {
+	return newResourceServer(st, runtimes, depGrapher, nodeResolver)
+}
+
+// MachineOptions is exported for testing.
+func (s *ResourceServer) MachineOptions(ctx context.Context, md metadata.MD) ([]runtime.QueryOption, error) {
+	return s.machineOptions(ctx, md)
 }
 
 // BuildServiceAccountKubeconfig is exported for testing.
