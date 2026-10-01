@@ -1090,7 +1090,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 	})
 
 	streamInterceptor := grpc.StreamServerInterceptor(func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		md, ok := metadata.FromIncomingContext(ctx)
+		md, ok := metadata.FromIncomingContext(ss.Context())
 		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
 			return handler(srv, &grpc_middleware.WrappedServerStream{
 				ServerStream:   ss,
