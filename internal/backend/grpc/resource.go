@@ -35,20 +35,22 @@ type DependencyGrapher interface {
 	GetDependencyGraph() (*controller.DependencyGraph, error)
 }
 
-func newResourceServer(state state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
+func newResourceServer(state state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher, nodeResolver router.NodeResolver) *ResourceServer {
 	return &ResourceServer{
-		runtimes:   runtimes,
-		state:      state,
-		depGrapher: depGrapher,
+		runtimes:     runtimes,
+		state:        state,
+		depGrapher:   depGrapher,
+		nodeResolver: nodeResolver,
 	}
 }
 
 // ResourceServer implements resources CRUD API.
 type ResourceServer struct {
 	resources.UnimplementedResourceServiceServer
-	runtimes   map[string]runtime.Runtime
-	depGrapher DependencyGrapher
-	state      state.State
+	runtimes     map[string]runtime.Runtime
+	depGrapher   DependencyGrapher
+	state        state.State
+	nodeResolver router.NodeResolver
 }
 
 func (s *ResourceServer) lookupFromContext(ctx context.Context) (runtime.Runtime, error) { //nolint:ireturn
@@ -73,6 +75,20 @@ func (s *ResourceServer) lookupFromContext(ctx context.Context) (runtime.Runtime
 	}
 
 	return r, nil
+}
+
+// machineOptions turns the node headers of the request into machine IDs. Only the Talos runtime reads them.
+func (s *ResourceServer) machineOptions(ctx context.Context, md metadata.MD) ([]runtime.QueryOption, error) {
+	if source := md.Get(message.RuntimeHeaderKey); len(source) == 0 || source[0] != common.Runtime_Talos.String() {
+		return nil, nil
+	}
+
+	machines, err := router.ResolveMachines(ctx, s.nodeResolver, md)
+	if err != nil {
+		return nil, err
+	}
+
+	return []runtime.QueryOption{runtime.WithMachines(machines...)}, nil
 }
 
 func (s *ResourceServer) register(server grpc.ServiceRegistrar) {
@@ -102,9 +118,12 @@ func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*re
 
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	if machines := md.Get(router.ResolvedMachinesHeaderKey); machines != nil {
-		opts = append(opts, runtime.WithMachines(machines...))
+	machineOpts, err := s.machineOptions(ctx, md)
+	if err != nil {
+		return nil, err
 	}
+
+	opts = append(opts, machineOpts...)
 
 	result, err := r.Get(ctx, opts...)
 	if err != nil {
@@ -140,9 +159,12 @@ func (s *ResourceServer) List(ctx context.Context, in *resources.ListRequest) (*
 		opts = append(opts, runtime.WithFieldSelector(s[0]))
 	}
 
-	if machines := md.Get(router.ResolvedMachinesHeaderKey); machines != nil {
-		opts = append(opts, runtime.WithMachines(machines...))
+	machineOpts, err := s.machineOptions(ctx, md)
+	if err != nil {
+		return nil, err
 	}
+
+	opts = append(opts, machineOpts...)
 
 	if in.Offset > 0 {
 		opts = append(opts, runtime.WithOffset(int(in.Offset)))
@@ -204,9 +226,12 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 		opts = append(opts, runtime.WithFieldSelector(s[0]))
 	}
 
-	if machines := md.Get(router.ResolvedMachinesHeaderKey); len(machines) > 0 {
-		opts = append(opts, runtime.WithMachines(machines...))
+	machineOpts, err := s.machineOptions(ctx, md)
+	if err != nil {
+		return err
 	}
+
+	opts = append(opts, machineOpts...)
 
 	if in.Id != "" {
 		opts = append(opts, runtime.WithName(in.Id))
