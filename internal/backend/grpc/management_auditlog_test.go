@@ -418,7 +418,7 @@ func (a *auditLogAccessAuditor) Reader(context.Context, auditlog.ReadFilters) (a
 	return &sliceAuditLogReader{data: a.events}, nil
 }
 
-func (a *auditLogAccessAuditor) AuditTalosAccess(context.Context, string, string, string) error {
+func (a *auditLogAccessAuditor) AuditTalosAccess(context.Context, auditlog.TalosAccess) error {
 	return nil
 }
 

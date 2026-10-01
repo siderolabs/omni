@@ -172,7 +172,7 @@ func (l *Log) LogUpdateWithConflicts(ptr resource.Pointer) UpdateWithConflictsHo
 }
 
 // AuditTalosAccess logs the talos access event.
-func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clusterID string, nodeID string) error {
+func (l *Log) AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error {
 	data := extractData(ctx, options{
 		userAgent:     internalAgent,
 		newDataIfNone: true,
@@ -181,13 +181,7 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 		return nil
 	}
 
-	if data.TalosAccess == nil {
-		data.TalosAccess = &auditlog.TalosAccess{}
-	}
-
-	data.TalosAccess.FullMethodName = fullMethodName
-	data.TalosAccess.ClusterName = clusterID
-	data.TalosAccess.MachineIP = nodeID
+	data.TalosAccess = &access
 
 	return l.auditLogger.Write(ctx, auditlog.Event{
 		Type:       "talos_access",

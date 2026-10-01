@@ -243,7 +243,9 @@ type e2eAuditor struct {
 	*auditlogsqlite.Store
 }
 
-func (a *e2eAuditor) AuditTalosAccess(context.Context, string, string, string) error { return nil }
+func (a *e2eAuditor) AuditTalosAccess(context.Context, auditlog.TalosAccess) error {
+	return nil
+}
 
 func (a *e2eAuditor) AuditAuditLogAccess(context.Context, auditlog.ReadFilters) error { return nil }
 

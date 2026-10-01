@@ -157,11 +157,11 @@ func (c *capturingAuditLogger) FollowSubscribe() (<-chan struct{}, func()) {
 	return nil, func() {}
 }
 
-func (c *capturingAuditLogger) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
+func (c *capturingAuditLogger) AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error {
 	c.ctx = captureContext(ctx)
-	c.fullMethod = fullMethodName
-	c.clusterID = clusterID
-	c.nodeID = nodeID
+	c.fullMethod = access.FullMethodName
+	c.clusterID = access.ClusterName
+	c.nodeID = access.MachineIP
 
 	return c.err
 }

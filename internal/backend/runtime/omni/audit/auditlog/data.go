@@ -135,6 +135,7 @@ type TalosAccess struct {
 	FullMethodName string `json:"full_method_name,omitempty"`
 	ClusterName    string `json:"cluster_name,omitempty"`
 	MachineIP      string `json:"machine_ip,omitempty"`
+	Denied         bool   `json:"denied,omitempty"`
 }
 
 // AuditLogAccess struct contains information about the access to the audit log itself.
