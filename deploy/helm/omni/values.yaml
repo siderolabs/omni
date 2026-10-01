@@ -188,12 +188,17 @@ config:
       # KeyFile is the path to the TLS key file for the service.
       #keyFile: ""
     # @ignored
-    # LocalResourceService contains local resource service configuration. Omni runs a local service to allow access
-    # to its resources without authorization checks. It is primarily used by infra providers (e.g., sidecars).
+    # LocalResourceService contains local resource service configuration.
+    #
+    # Deprecated: unused, has no effect.
     localResourceService:
       # Enabled controls whether the local resource service is enabled.
+      #
+      # Deprecated: unused, has no effect.
       #enabled: true
-      # Port is the network port the local resource service listens on.
+      # Port is the network port the local resource service listened on.
+      #
+      # Deprecated: unused, has no effect.
       #port: 8081
     # @ignored
     # EmbeddedDiscoveryService contains embedded discovery service configuration. Omni can run an embedded discovery

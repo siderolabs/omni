@@ -202,9 +202,15 @@ func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.IntVar("services.loadBalancer.minPort", &flagConfig.Services.LoadBalancer.MinPort)
 	b.IntVar("services.loadBalancer.maxPort", &flagConfig.Services.LoadBalancer.MaxPort)
 
-	// LocalResourceService
+	// deprecated, kept so that existing configs and command lines still load
+	//nolint:staticcheck
 	b.IntVar("services.localResourceService.port", &flagConfig.Services.LocalResourceService.Port)
+	//nolint:errcheck
+	b.cmd.Flags().MarkDeprecated(b.mustFlagName("services.localResourceService.port"), "unused, has no effect")
+	//nolint:staticcheck
 	b.BoolVar("services.localResourceService.enabled", &flagConfig.Services.LocalResourceService.Enabled)
+	//nolint:errcheck
+	b.cmd.Flags().MarkDeprecated(b.mustFlagName("services.localResourceService.enabled"), "unused, has no effect")
 
 	// Embedded discovery service
 	b.BoolVar("services.embeddedDiscoveryService.enabled", &flagConfig.Services.EmbeddedDiscoveryService.Enabled)

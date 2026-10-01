@@ -30,10 +30,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	protobufserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/crewjam/saml/samlsp"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,7 +46,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
@@ -297,12 +294,6 @@ func (s *Server) Run(ctx context.Context) error {
 
 	for _, subsystem := range subsystems {
 		eg.Go(subsystem.run)
-	}
-
-	if s.cfg.Services.LocalResourceService.GetEnabled() {
-		if err = runLocalResourceServer(ctx, runtimeState, serverOptions, eg, s.logger, s.cfg.Services.LocalResourceService.GetPort()); err != nil {
-			return fmt.Errorf("failed to run local resource server: %w", err)
-		}
 	}
 
 	if s.cfg.Services.EmbeddedDiscoveryService.GetEnabled() {
@@ -1069,68 +1060,6 @@ func setRealIPRequest(req *http.Request) *http.Request {
 	newReq.Header.Set("X-Forwarded-For", actualIP)
 
 	return newReq
-}
-
-func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptions []grpc.ServerOption, eg *errgroup.Group, logger *zap.Logger, port int) error {
-	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", port))
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
-	}
-
-	unaryInterceptor := grpc.UnaryServerInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
-			return handler(actor.MarkContextAsInfraProvider(
-				ctx,
-				md.Get(constants.InfraProviderMetadataKey)[0],
-			), req)
-		}
-
-		return handler(actor.MarkContextAsInternalActor(ctx), req)
-	})
-
-	streamInterceptor := grpc.StreamServerInterceptor(func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		md, ok := metadata.FromIncomingContext(ss.Context())
-		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
-			return handler(srv, &grpc_middleware.WrappedServerStream{
-				ServerStream:   ss,
-				WrappedContext: actor.MarkContextAsInfraProvider(ss.Context(), md.Get(constants.InfraProviderMetadataKey)[0]),
-			})
-		}
-
-		return handler(srv, &grpc_middleware.WrappedServerStream{
-			ServerStream:   ss,
-			WrappedContext: actor.MarkContextAsInternalActor(ss.Context()),
-		})
-	})
-
-	serverOptions = append([]grpc.ServerOption{
-		grpc.ChainUnaryInterceptor(unaryInterceptor),
-		grpc.ChainStreamInterceptor(streamInterceptor),
-	}, serverOptions...)
-
-	grpcServer := grpc.NewServer(serverOptions...)
-
-	readOnlyState := state.WrapCore(state.Filter(st, func(ctx context.Context, access state.Access) error {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if ok && md.Get(constants.InfraProviderMetadataKey) != nil {
-			return nil
-		}
-
-		if !access.Verb.Readonly() {
-			return status.Error(codes.PermissionDenied, "only read-only access is permitted")
-		}
-
-		return nil
-	}))
-
-	v1alpha1.RegisterStateServer(grpcServer, protobufserver.NewState(readOnlyState))
-
-	logger.Info("starting local resource server")
-
-	grpcutil.RunServer(ctx, grpcServer, listener, eg, logger)
-
-	return nil
 }
 
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {

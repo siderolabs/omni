@@ -7,3 +7,20 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
 previous = "v1.12.2"
+
+[notes.image-factory-api-token]
+title = "Image Factory API Token Authentication"
+description = """\
+Omni can now authenticate to the image factory with an API token instead of the deprecated download and node tokens. \
+Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--primary-factory-token-file`), pointing to a file \
+containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
+self-hosted factories using htpasswd.
+"""
+
+[notes.local-resource-service]
+title = "Local Resource Service Removal"
+description = """\
+The local resource service, which served Omni resources on a local listener, is removed. Consumers should reach \
+Omni through its regular API with a service account instead. Its `services.localResourceService` settings and \
+flags have no effect.
+"""
