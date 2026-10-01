@@ -1353,6 +1353,11 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 		)
 
 		t.Run(
+			"ResolutionErrorsShouldBeTested",
+			AssertResolutionErrorsAuthz(t.Context(), options.omniClient, clientFactory, clusterName),
+		)
+
+		t.Run(
 			"FrontendAPIShouldBeTested",
 			AssertFrontendResourceAPI(t.Context(), options.omniClient, options.serviceAccountKey, options.HTTPEndpoint, clusterName),
 		)

@@ -182,6 +182,7 @@ func (r *Router) releaseForMachine(clusterID, machineID string) {
 
 // Director implements proxy.StreamDirector function.
 func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mode, []proxy.Backend, error) {
+	signedMethodName := fullMethodName
 	fullMethodName = strings.TrimLeft(fullMethodName, "/")
 
 	// Proxy explicitly local APIs to the local backend.
@@ -204,7 +205,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	if runtime := md.Get(message.RuntimeHeaderKey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
 		backend, err := r.getTalosBackend(ctx, md)
 		if err != nil {
-			return proxy.One2One, nil, err
+			return proxy.One2One, nil, reportResolveError(ctx, r.verifier, r.authEnabled, signedMethodName, err)
 		}
 
 		return proxy.One2One, []proxy.Backend{backend}, nil
