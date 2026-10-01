@@ -12,22 +12,18 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
-	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
@@ -114,31 +110,14 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		md = metadata.New(nil)
 	}
 
-	// we can't use regular gRPC server interceptors here, as proxy interface is a bit different
-
-	// prepare context values for the verifier
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: backend.authEnabled})
-	ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, fullMethodName)})
-
 	grpcutil.SetShouldLog(ctx, "talos-backend")
 
 	if backend.clusterID != "" {
 		grpcutil.AddLogPair(ctx, "cluster", backend.clusterID)
 	}
 
-	// perform authentication, result of the authentication should be written to ctx
-	_, err := backend.verifier(
-		ctx, nil, nil,
-		func(innerCtx context.Context, _ any) (any, error) {
-			// save enhanced context
-			//nolint:fatcontext
-			ctx = innerCtx
-
-			return nil, nil //nolint:nilnil
-		},
-	)
+	ctx, err := authenticate(ctx, backend.verifier, backend.authEnabled, md, fullMethodName)
 	if err != nil {
-		// authentication failed
 		return ctx, nil, err
 	}
 
@@ -198,17 +177,18 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 
 // checkAccess decides whether the caller may reach this backend, and whether it may modify.
 func (backend *TalosBackend) checkAccess(ctx context.Context) (bool, error) {
-	if _, err := auth.Check(ctx, auth.WithRole(role.Operator)); err == nil {
+	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator))
+	if err == nil {
 		return true, nil
 	}
 
 	// insecure access mode should only be possible for the operator role users
 	if backend.clusterID == "" {
-		return false, status.Error(codes.PermissionDenied, "permission denied")
+		return false, err
 	}
 
 	// at least read access is required
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+	if _, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
 		return false, err
 	}
 

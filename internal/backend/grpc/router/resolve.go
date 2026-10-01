@@ -6,12 +6,18 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/siderolabs/go-api-signature/pkg/message"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 const (
@@ -68,4 +74,41 @@ func resolveNodes(nodeResolver NodeResolver, md metadata.MD) ([]dns.Info, error)
 	}
 
 	return nodes, nil
+}
+
+// authenticate verifies the signature of a proxied request, as the regular gRPC interceptors do not run for it.
+func authenticate(ctx context.Context, verifier grpc.UnaryServerInterceptor, authEnabled bool, md metadata.MD, fullMethodName string) (context.Context, error) {
+	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: authEnabled})
+	ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, fullMethodName)})
+
+	_, err := verifier(ctx, nil, nil, func(innerCtx context.Context, _ any) (any, error) {
+		ctx = innerCtx //nolint:fatcontext
+
+		return nil, nil //nolint:nilnil
+	})
+
+	return ctx, err
+}
+
+// reportResolveError verifies the caller of a request whose nodes or cluster could not be resolved, and returns the
+// error that caller receives.
+func reportResolveError(ctx context.Context, verifier grpc.UnaryServerInterceptor, authEnabled bool, fullMethodName string, resolveErr error) error {
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	ctx, err := authenticate(ctx, verifier, authEnabled, md, fullMethodName)
+	if err != nil {
+		return err
+	}
+
+	return resolveErrorFor(ctx, resolveErr)
+}
+
+// resolveErrorFor returns the resolution error to callers that can read every machine, and the regular access error to
+// everyone else.
+func resolveErrorFor(ctx context.Context, resolveErr error) error {
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		return err
+	}
+
+	return resolveErr
 }

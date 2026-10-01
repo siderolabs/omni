@@ -1661,6 +1661,47 @@ func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, c
 	}
 }
 
+// AssertResolutionErrorsAuthz checks that the Talos API answers a caller without access the same way whichever target
+// it names, so the answer does not depend on the target.
+func AssertResolutionErrorsAuthz(testCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
+		defer cancel()
+
+		machines, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+			ctx, rootCli.Omni().State(),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+
+		require.NoError(t, err)
+		require.Positive(t, machines.Len())
+
+		existing := machines.Get(0).Metadata().ID()
+
+		// signed, so the comparison is about access and not about the signature
+		cli, err := clientFactory.getClient(ctx, role.None)
+		require.NoError(t, err)
+
+		t.Run("Node", func(t *testing.T) {
+			_, knownErr := cli.Talos().WithCluster(clusterName).WithNodes(existing).Version(ctx, &emptypb.Empty{})
+			_, unknownErr := cli.Talos().WithCluster(clusterName).WithNodes(uuid.NewString()).Version(ctx, &emptypb.Empty{})
+
+			require.Error(t, knownErr)
+			require.Error(t, unknownErr)
+			require.Equal(t, knownErr.Error(), unknownErr.Error())
+		})
+
+		t.Run("Cluster", func(t *testing.T) {
+			_, knownErr := cli.Talos().WithCluster(clusterName).Version(ctx, &emptypb.Empty{})
+			_, unknownErr := cli.Talos().WithCluster("no-such-cluster-"+uuid.NewString()).Version(ctx, &emptypb.Empty{})
+
+			require.Error(t, knownErr)
+			require.Error(t, unknownErr)
+			require.Equal(t, knownErr.Error(), unknownErr.Error())
+		})
+	}
+}
+
 //nolint:gocognit,maintidx
 func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serviceAccountKey, httpEndpoint, clusterName string) TestFunc {
 	return func(t *testing.T) {
