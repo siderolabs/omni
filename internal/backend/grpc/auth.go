@@ -115,6 +115,15 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		return nil, err
 	}
 
+	// the role carried by the request is parsed before any lookup happens
+	var requestedRole role.Role
+
+	if request.GetSkipUserRole() {
+		if requestedRole, err = role.Parse(request.GetRole()); err != nil {
+			return nil, fmt.Errorf("failed to parse role for public key: %w", err)
+		}
+	}
+
 	result := &authpb.RegisterPublicKeyResponse{
 		PublicKeyId: pubKey.id,
 		LoginUrl:    s.buildLoginURL(pubKey.id),
@@ -138,7 +147,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 	userID := identity.TypedSpec().Value.GetUserId()
 
-	roleStr := request.GetRole()
+	pubKeyRole := requestedRole
 
 	// if skipUserRole is false, we use the role of the user
 	if !request.GetSkipUserRole() {
@@ -161,12 +170,9 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 			return nil, err
 		}
 
-		roleStr = user.TypedSpec().Value.Role
-	}
-
-	pubKeyRole, err := role.Parse(roleStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse role for public key: %w", err)
+		if pubKeyRole, err = role.Parse(user.TypedSpec().Value.Role); err != nil {
+			return nil, fmt.Errorf("failed to parse role for public key: %w", err)
+		}
 	}
 
 	setPubKeyAttributes := func(k *authres.PublicKey) {
