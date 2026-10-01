@@ -762,6 +762,11 @@ func (m *ClusterMachineTalosVersionSpec) CloneVT() *ClusterMachineTalosVersionSp
 	r := new(ClusterMachineTalosVersionSpec)
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
+	if rhs := m.AcceptedIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AcceptedIds = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2086,6 +2091,11 @@ func (m *MachineConfigGenOptionsSpec) CloneVT() *MachineConfigGenOptionsSpec {
 	r := new(MachineConfigGenOptionsSpec)
 	r.InstallImage = m.InstallImage.CloneVT()
 	r.TalosVersion = m.TalosVersion
+	if rhs := m.AcceptedIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AcceptedIds = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2331,6 +2341,11 @@ func (m *SchematicConfigurationSpec) CloneVT() *SchematicConfigurationSpec {
 	r := new(SchematicConfigurationSpec)
 	r.SchematicId = m.SchematicId
 	r.TalosVersion = m.TalosVersion
+	if rhs := m.AcceptedIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AcceptedIds = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4520,6 +4535,15 @@ func (this *ClusterMachineTalosVersionSpec) EqualVT(that *ClusterMachineTalosVer
 	if this.SchematicId != that.SchematicId {
 		return false
 	}
+	if len(this.AcceptedIds) != len(that.AcceptedIds) {
+		return false
+	}
+	for i, vx := range this.AcceptedIds {
+		vy := that.AcceptedIds[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6373,6 +6397,15 @@ func (this *MachineConfigGenOptionsSpec) EqualVT(that *MachineConfigGenOptionsSp
 	if this.TalosVersion != that.TalosVersion {
 		return false
 	}
+	if len(this.AcceptedIds) != len(that.AcceptedIds) {
+		return false
+	}
+	for i, vx := range this.AcceptedIds {
+		vy := that.AcceptedIds[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6691,6 +6724,15 @@ func (this *SchematicConfigurationSpec) EqualVT(that *SchematicConfigurationSpec
 	}
 	if this.TalosVersion != that.TalosVersion {
 		return false
+	}
+	if len(this.AcceptedIds) != len(that.AcceptedIds) {
+		return false
+	}
+	for i, vx := range this.AcceptedIds {
+		vy := that.AcceptedIds[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -10420,6 +10462,15 @@ func (m *ClusterMachineTalosVersionSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.AcceptedIds) > 0 {
+		for iNdEx := len(m.AcceptedIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.AcceptedIds[iNdEx])
+			copy(dAtA[i:], m.AcceptedIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AcceptedIds[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.SchematicId) > 0 {
 		i -= len(m.SchematicId)
 		copy(dAtA[i:], m.SchematicId)
@@ -14146,6 +14197,15 @@ func (m *MachineConfigGenOptionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.AcceptedIds) > 0 {
+		for iNdEx := len(m.AcceptedIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.AcceptedIds[iNdEx])
+			copy(dAtA[i:], m.AcceptedIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AcceptedIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.TalosVersion) > 0 {
 		i -= len(m.TalosVersion)
 		copy(dAtA[i:], m.TalosVersion)
@@ -14773,6 +14833,15 @@ func (m *SchematicConfigurationSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AcceptedIds) > 0 {
+		for iNdEx := len(m.AcceptedIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.AcceptedIds[iNdEx])
+			copy(dAtA[i:], m.AcceptedIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AcceptedIds[iNdEx])))
+			i--
+			dAtA[i] = 0x22
+		}
 	}
 	if len(m.TalosVersion) > 0 {
 		i -= len(m.TalosVersion)
@@ -18567,6 +18636,12 @@ func (m *ClusterMachineTalosVersionSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if len(m.AcceptedIds) > 0 {
+		for _, s := range m.AcceptedIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20038,6 +20113,12 @@ func (m *MachineConfigGenOptionsSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if len(m.AcceptedIds) > 0 {
+		for _, s := range m.AcceptedIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20275,6 +20356,12 @@ func (m *SchematicConfigurationSpec) SizeVT() (n int) {
 	l = len(m.TalosVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.AcceptedIds) > 0 {
+		for _, s := range m.AcceptedIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -27310,6 +27397,38 @@ func (m *ClusterMachineTalosVersionSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SchematicId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AcceptedIds = append(m.AcceptedIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -36641,6 +36760,38 @@ func (m *MachineConfigGenOptionsSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.TalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AcceptedIds = append(m.AcceptedIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -38131,6 +38282,38 @@ func (m *SchematicConfigurationSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.TalosVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AcceptedIds = append(m.AcceptedIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

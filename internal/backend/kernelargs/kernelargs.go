@@ -37,6 +37,16 @@ var forbiddenKeys = []string{
 	"talos.board",                        // Talos 1.12 and older refuse to install with a board set and no overlay, Omni supports 1.9 and later
 }
 
+// joinKeys are the SideroLink join args, the part of the protected args that connects the machine to Omni.
+var joinKeys = []string{constants.KernelParamSideroLink, constants.KernelParamEventsSink, constants.KernelParamLoggingKernel}
+
+// IsJoinArg reports whether the arg carries a SideroLink join arg in any of its whitespace-separated tokens.
+func IsJoinArg(arg string) bool {
+	return slices.ContainsFunc(strings.Fields(arg), func(token string) bool {
+		return hasKey(token, joinKeys)
+	})
+}
+
 // ksppKeys are the KSPP parameters Talos refuses to boot without, so their negation is rejected.
 var ksppKeys = []string{"slab_nomerge", "pti"}
 

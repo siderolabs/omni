@@ -475,6 +475,8 @@ message ClusterMachineConfigPatchesSpec {
 message ClusterMachineTalosVersionSpec {
   string talos_version = 1;
   string schematic_id = 2;
+  // AcceptedIds are the schematic ids accepted as up to date next to SchematicId.
+  repeated string accepted_ids = 3;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
@@ -1326,6 +1328,9 @@ message MachineConfigGenOptionsSpec {
 
   // TalosVersion is the Talos version the machine runs.
   string talos_version = 3;
+
+  // AcceptedIds are the schematic ids accepted as up to date next to InstallImage.SchematicId.
+  repeated string accepted_ids = 4;
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.
@@ -1411,6 +1416,8 @@ message SchematicConfigurationSpec {
   string schematic_id = 1;
   string talos_version = 2;
   reserved 3;
+  // AcceptedIds are the schematic ids accepted as up to date next to SchematicId.
+  repeated string accepted_ids = 4;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.

@@ -452,7 +452,7 @@ func (ctrl *StatusController) reconcileUpgrade(
 				rc.machineConfigStatus.TypedSpec().Value.SchematicId = ""
 				rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = ""
 			} else {
-				rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.installImage.SchematicId
+				rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.machineStatus.TypedSpec().Value.Schematic.GetFullId()
 				rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = rc.installImage.ImageFactoryHost
 			}
 		}
@@ -568,7 +568,7 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 	logger.Info("upgrading the machine",
 		zap.String("from_version", installed.version),
 		zap.String("to_version", rc.installImage.TalosVersion),
-		zap.String("from_schematic", installed.currentSchematic),
+		zap.String("from_schematic", installed.schematic),
 		zap.String("to_schematic", rc.installImage.SchematicId),
 		zap.String("image", image),
 		zap.String("machine", rc.ID()))
@@ -853,11 +853,10 @@ func (ctrl *StatusController) runClusterLifecycle(
 
 // installedImage is the version and schematic read live from a node, plus whether they match the target.
 type installedImage struct {
-	version          string
-	schematic        string
-	factoryHost      string
-	currentSchematic string
-	atTarget         bool
+	version     string
+	schematic   string
+	factoryHost string
+	atTarget    bool
 }
 
 // checkInstalledImage reads the node's running version and schematic live and compares them to the target.
@@ -900,11 +899,10 @@ func (ctrl *StatusController) checkInstalledImage(
 	}
 
 	return installedImage{
-		version:          actualVersion,
-		schematic:        rc.installImage.SchematicId,
-		factoryHost:      rc.installImage.ImageFactoryHost,
-		currentSchematic: schematicInfo.FullID,
-		atTarget:         actualVersion == rc.installImage.TalosVersion && schematicInfo.FullID == rc.installImage.SchematicId,
+		version:     actualVersion,
+		schematic:   schematicInfo.FullID,
+		factoryHost: rc.installImage.ImageFactoryHost,
+		atTarget:    actualVersion == rc.installImage.TalosVersion && omni.SchematicUpToDate(schematicInfo.FullID, rc.installImage.SchematicId, rc.acceptedIDs),
 	}, nil
 }
 
@@ -1584,7 +1582,7 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
 		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
 
-		upgradeDiff = currentSchematicID != rc.installImage.SchematicId ||
+		upgradeDiff = !omni.SchematicUpToDate(currentSchematicID, rc.installImage.SchematicId, rc.acceptedIDs) ||
 			currentTalosVersion != rc.installImage.TalosVersion
 	}
 

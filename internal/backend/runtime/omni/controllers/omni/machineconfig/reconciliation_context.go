@@ -45,6 +45,7 @@ type ReconciliationContext struct {
 	machineStatusSnapshot *omni.MachineStatusSnapshot
 	clusterMachine        *omni.ClusterMachine
 	installImage          *specs.MachineConfigGenOptionsSpec_InstallImage
+	acceptedIDs           []string
 
 	lastConfigError string
 	installDisk     string
@@ -250,6 +251,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	}
 
 	rc.installImage = genOptions.TypedSpec().Value.InstallImage
+	rc.acceptedIDs = genOptions.TypedSpec().Value.AcceptedIds
+
 	if rc.installImage == nil {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
@@ -274,8 +277,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	// Invalid schematic means the machine was not provisioned via image factory.
 	// Skip schematic comparison — schematic plays no role in upgrade decisions for these machines.
 	if !rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
-		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId ||
-			rc.machineStatus.TypedSpec().Value.Schematic.FullId != rc.installImage.SchematicId
+		schematicMismatch = !omni.SchematicUpToDate(machineConfigStatus.TypedSpec().Value.SchematicId, rc.installImage.SchematicId, rc.acceptedIDs) ||
+			!omni.SchematicUpToDate(rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId, rc.acceptedIDs)
 	}
 
 	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
@@ -322,7 +325,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply != "" &&
 		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply == link.TypedSpec().Value.NodePublicKey
 
-	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
+	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, rc.acceptedIDs, schematicMismatch, talosVersionMismatch)
 
 	return rc, nil
 }

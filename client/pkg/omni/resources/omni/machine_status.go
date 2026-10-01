@@ -279,6 +279,11 @@ func IsCompositeBlockDevice(disk *specs.MachineStatusSpec_HardwareStatus_BlockDe
 	return len(disk.SecondaryDisks) > 0 || disk.BusPath == "/virtual"
 }
 
+// SchematicUpToDate reports whether a machine running the given schematic is up to date: it runs the target schematic or an accepted one.
+func SchematicUpToDate(running, target string, accepted []string) bool {
+	return running == target || slices.Contains(accepted, running)
+}
+
 // GetMachineStatusSystemDisk looks up a system disk for the Talos machine.
 func GetMachineStatusSystemDisk(res *MachineStatus) string {
 	if res == nil || res.TypedSpec().Value.Hardware == nil {

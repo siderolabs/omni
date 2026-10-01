@@ -66,7 +66,7 @@ func NewStatusController(imageFactoryClients *imagefactory.Clients, lifecycleMan
 	return ctrl
 }
 
-//nolint:gocyclo,cyclop
+//nolint:gocyclo,cyclop,maintidx
 func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, ms *omni.MachineStatus, status *omni.MachineUpgradeStatus) error {
 	helpers.SyncLabels(ms, status, omni.LabelCluster, omni.LabelMachineSet)
 
@@ -158,7 +158,9 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 	status.TypedSpec().Value.CurrentTalosVersion = talosVersion
 
 	// Note: "platform" and "secure boot state" should probably never change in an install image, therefore, the following checks are enough
-	installImagesEqual := schematicSpec.FullId == desiredSchematicID && talosVersionEqual
+	acceptedIDs := schematicConfiguration.TypedSpec().Value.AcceptedIds
+	schematicMismatch := !omni.SchematicUpToDate(schematicSpec.FullId, desiredSchematicID, acceptedIDs)
+	installImagesEqual := !schematicMismatch && talosVersionEqual
 
 	if installImagesEqual {
 		status.TypedSpec().Value.Status = "machine is up to date"
@@ -232,9 +234,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		ImageFactoryHost:     imageFactoryClient.Host(),
 	}
 
-	schematicMismatch := schematicSpec.FullId != desiredSchematicID
-
-	if err = ctrl.upgrade(ctx, logger, ms, installImage, schematicMismatch); err != nil {
+	if err = ctrl.upgrade(ctx, logger, ms, installImage, acceptedIDs, schematicMismatch); err != nil {
 		if talos.IsClientNotReadyError(err) {
 			status.TypedSpec().Value.Status = "Talos client is not yet ready: " + err.Error()
 			status.TypedSpec().Value.Error = ""
@@ -300,9 +300,9 @@ func (ctrl *StatusController) checkCooldown(status *omni.MachineUpgradeStatus, l
 // upgrade runs Talos's LifecycleService.Upgrade for machines that support it (Talos 1.13+),
 // falling back to the deprecated MachineService.Upgrade for older ones.
 func (ctrl *StatusController) upgrade(
-	ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, schematicMismatch bool,
+	ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string, schematicMismatch bool,
 ) error {
-	switch op := lifecycle.DecideOp(ms, installImage, schematicMismatch, false); op {
+	switch op := lifecycle.DecideOp(ms, installImage, acceptedIDs, schematicMismatch, false); op {
 	case lifecycle.OpMaintenanceUpgrade:
 		return ctrl.lifecycleUpgrade(ctx, logger, ms, installImage)
 	case lifecycle.OpLegacyUpgrade:

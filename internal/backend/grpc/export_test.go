@@ -6,12 +6,14 @@
 package grpc
 
 import (
+	"context"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -101,4 +103,9 @@ func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depG
 // BuildServiceAccountKubeconfig is exported for testing.
 func BuildServiceAccountKubeconfig(cfg *config.Params, cluster, user, token string) ([]byte, error) {
 	return (&managementServer{cfg: cfg}).buildServiceAccountKubeconfig(cluster, user, token)
+}
+
+// EnsureSchematic is exported for testing.
+func (s *managementServer) EnsureSchematic(ctx context.Context, talosVersion string, machineStatus *omni.MachineStatus) (string, string, error) {
+	return s.ensureSchematic(ctx, talosVersion, machineStatus)
 }
