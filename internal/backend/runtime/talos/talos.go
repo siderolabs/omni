@@ -80,6 +80,11 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 	case 1:
 		st, release, err = r.callerState(ctx, "", opts.Machines[0], opts.Resource)
 	default:
+		// the nodes all belong to one cluster by now, so the first one decides the access
+		if _, _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
+			return err
+		}
+
 		return errors.New("multiple machines are not supported for Watch")
 	}
 
@@ -129,6 +134,11 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 	case 1:
 		st, release, err = r.callerState(ctx, "", opts.Machines[0], opts.Resource)
 	default:
+		// the nodes all belong to one cluster by now, so the first one decides the access
+		if _, _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
+			return nil, err
+		}
+
 		return nil, errors.New("multiple machines are not supported for Get")
 	}
 
@@ -264,21 +274,23 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 
 // callerState returns the resource state of the target for a request made on behalf of the caller in the context:
 // either the cluster, or the machine when machineID is set.
-func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourceType string) (state.State, func(), error) {
+// authorize decides whether the caller may reach the cluster, or the cluster of the machine, and returns the context
+// carrying the role the access policy gives it there.
+func (r *Runtime) authorize(ctx context.Context, clusterID, machineID string) (context.Context, string, error) {
 	if machineID != "" {
 		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, r.clientFactory.omniState, omni.NewMachineStatus(machineID).Metadata())
 		if err != nil {
-			return nil, nil, err
+			return nil, "", err
 		}
 
 		clusterID = machineStatus.TypedSpec().Value.Cluster
 	} else if clusterID == "" {
-		return nil, nil, status.Error(codes.InvalidArgument, "either a cluster or a machine is required")
+		return nil, "", status.Error(codes.InvalidArgument, "either a cluster or a machine is required")
 	}
 
 	ctx, err := accesspolicy.ApplyClusterAccessPolicy(ctx, clusterID, r.clientFactory.omniState)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
 	requiredRole := role.Reader
@@ -287,6 +299,15 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 	}
 
 	if _, err = auth.CheckGRPC(ctx, auth.WithRole(requiredRole)); err != nil {
+		return nil, "", err
+	}
+
+	return ctx, clusterID, nil
+}
+
+func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourceType string) (state.State, func(), error) {
+	ctx, clusterID, err := r.authorize(ctx, clusterID, machineID)
+	if err != nil {
 		return nil, nil, err
 	}
 
