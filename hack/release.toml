@@ -16,3 +16,11 @@ Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--pr
 containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
 self-hosted factories using htpasswd.
 """
+
+[notes.local-resource-service]
+title = "Local Resource Service Removal"
+description = """\
+The local resource service, which served Omni resources on a local listener, is removed. Consumers should reach \
+Omni through its regular API with a service account instead. Its `services.localResourceService` settings and \
+flags have no effect.
+"""

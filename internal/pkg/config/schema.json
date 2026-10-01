@@ -360,7 +360,7 @@
           }
         },
         "localResourceService": {
-          "description": "LocalResourceService contains local resource service configuration. Omni runs a local service to allow access to its resources without authorization checks. It is primarily used by infra providers (e.g., sidecars).",
+          "description": "LocalResourceService contains local resource service configuration.\n\nDeprecated: unused, has no effect.",
           "$ref": "#/definitions/LocalResourceService"
         },
         "embeddedDiscoveryService": {
@@ -543,8 +543,9 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "description": "Enabled controls whether the local resource service is enabled.",
+          "description": "Enabled controls whether the local resource service is enabled.\n\nDeprecated: unused, has no effect.",
           "x-cli-flag": "local-resource-server-enabled",
+          "deprecated": true,
           "type": "boolean",
           "default": true,
           "goJSONSchema": {
@@ -552,8 +553,9 @@
           }
         },
         "port": {
-          "description": "Port is the network port the local resource service listens on.",
+          "description": "Port is the network port the local resource service listened on.\n\nDeprecated: unused, has no effect.",
           "x-cli-flag": "local-resource-server-port",
+          "deprecated": true,
           "type": "integer",
           "default": 8081,
           "goJSONSchema": {

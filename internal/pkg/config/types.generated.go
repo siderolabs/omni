@@ -425,9 +425,13 @@ type LoadBalancerService struct {
 
 type LocalResourceService struct {
 	// Enabled controls whether the local resource service is enabled.
+	//
+	// Deprecated: unused, has no effect.
 	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
-	// Port is the network port the local resource service listens on.
+	// Port is the network port the local resource service listened on.
+	//
+	// Deprecated: unused, has no effect.
 	Port *int `json:"port,omitempty,omitzero" yaml:"port,omitempty"`
 }
 
@@ -803,9 +807,9 @@ type Services struct {
 	// for creating and managing load balancers of the clusters' control planes.
 	LoadBalancer LoadBalancerService `json:"loadBalancer" yaml:"loadBalancer"`
 
-	// LocalResourceService contains local resource service configuration. Omni runs a
-	// local service to allow access to its resources without authorization checks. It
-	// is primarily used by infra providers (e.g., sidecars).
+	// LocalResourceService contains local resource service configuration.
+	//
+	// Deprecated: unused, has no effect.
 	LocalResourceService LocalResourceService `json:"localResourceService" yaml:"localResourceService"`
 
 	// MachineAPI contains SideroLink API service configuration. It is responsible for

@@ -1265,11 +1265,6 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 		)
 
 		t.Run(
-			"UnauthenticatedRequestsShouldBeAllowedByLocalResourceServer",
-			AssertUnauthenticatedLocalResourceServerAccess(t.Context()),
-		)
-
-		t.Run(
 			"InvalidSignatureShouldBeDenied",
 			AssertAPIInvalidSignature(t.Context(), options.omniClient),
 		)
