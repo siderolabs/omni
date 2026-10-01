@@ -59,11 +59,26 @@ func (e eValidation) GRPCStatus() *status.Status {
 func ValidationError(err error) error {
 	if multiErr, ok := errors.AsType[*multierror.Error](err); ok {
 		multiErr.Errors = distinct(multiErr.Errors)
+
+		if refused := refusal(multiErr.Errors); refused != nil {
+			err = refused
+		}
 	}
 
 	return eValidation{
 		fmt.Errorf("%s%w", errPrefix, err),
 	}
+}
+
+// refusal returns the error of a validation that refused the request, which answers it on its own.
+func refusal(errs []error) error {
+	for _, err := range errs {
+		if status.Code(err) == codes.PermissionDenied {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func distinct(slice []error) []error {
