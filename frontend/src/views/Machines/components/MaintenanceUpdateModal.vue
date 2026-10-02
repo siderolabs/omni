@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import { compare } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -23,7 +22,7 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TAlert from '@/components/TAlert.vue'
-import { majorMinorVersion } from '@/methods'
+import { talosUpgradeTargets } from '@/methods/talosUpgradeTargets'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
@@ -74,40 +73,7 @@ const inProgressMessage = computed(() =>
     : 'A Talos upgrade is already in progress on this machine.',
 )
 
-interface VersionGroup {
-  versions: string[]
-  unsupported: boolean
-}
-
-const upgradeVersions = computed(() => {
-  if (!currentVersion.value) return {}
-
-  const upgradeVersions =
-    versionMap.value.get(currentVersion.value)?.spec.upgradable_talos_versions ?? []
-
-  return [currentVersion.value, ...upgradeVersions]
-    .map((v) => versionMap.value.get(v))
-    .filter(
-      (v): v is NonNullable<typeof v> =>
-        !!v && (!v.spec.deprecated || v.spec.version === currentVersion.value),
-    )
-    .sort((a, b) => compare(b.spec.version!, a.spec.version!))
-    .reduce<Record<string, VersionGroup>>((prev, { spec: { unsupported, version } }) => {
-      const majorMinor = majorMinorVersion(version!)
-
-      prev[majorMinor] ||= {
-        versions: [],
-        unsupported: true,
-      }
-
-      if (!unsupported || version === currentVersion.value) {
-        prev[majorMinor].versions.push(version!)
-        prev[majorMinor].unsupported = false
-      }
-
-      return prev
-    }, {})
-})
+const upgradeVersions = computed(() => talosUpgradeTargets(versionMap.value, currentVersion.value))
 
 const upgradeClick = async () => {
   if (machine.value?.spec.message_status?.talos_version === `v${selectedVersion.value}`) {

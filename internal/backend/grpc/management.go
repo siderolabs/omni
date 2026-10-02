@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -1120,6 +1121,19 @@ func (s *managementServer) checkTalosUpgradeTarget(
 		return lifecycle.WrapErr(err, fmt.Sprintf("failed to look up TalosVersion %q", sourceID))
 	}
 
+	// deprecated targets are only reachable as upgrades from a deprecated source, so a machine stuck on an old Talos
+	// can climb out through them, but is never moved back into them
+	if targetTalosVersion.TypedSpec().Value.Deprecated {
+		if !sourceTalosVersion.TypedSpec().Value.Deprecated {
+			return status.Errorf(codes.FailedPrecondition,
+				"requested Talos version %q is no longer supported", targetVersion)
+		}
+
+		if err = ensureTalosUpgrade(currentVersion, targetVersion); err != nil {
+			return err
+		}
+	}
+
 	if slices.Contains(sourceTalosVersion.TypedSpec().Value.UpgradableTalosVersions, targetID) {
 		return nil
 	}
@@ -1127,6 +1141,26 @@ func (s *managementServer) checkTalosUpgradeTarget(
 	return status.Errorf(codes.FailedPrecondition,
 		"requested Talos version %q is not a supported target from the version running in memory (%q)",
 		targetVersion, currentVersion)
+}
+
+// ensureTalosUpgrade rejects a target which is not newer than the current version.
+func ensureTalosUpgrade(currentVersion, targetVersion string) error {
+	current, err := semver.ParseTolerant(currentVersion)
+	if err != nil {
+		return status.Errorf(codes.FailedPrecondition, "failed to parse the current Talos version %q: %s", currentVersion, err)
+	}
+
+	target, err := semver.ParseTolerant(targetVersion)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to parse the requested Talos version %q: %s", targetVersion, err)
+	}
+
+	if target.LTE(current) {
+		return status.Errorf(codes.FailedPrecondition,
+			"requested Talos version %q is no longer supported, only upgrades from %q are allowed", targetVersion, currentVersion)
+	}
+
+	return nil
 }
 
 func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {

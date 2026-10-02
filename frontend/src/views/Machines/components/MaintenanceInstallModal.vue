@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import { compare } from 'semver'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -30,8 +29,8 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TAlert from '@/components/TAlert.vue'
-import { majorMinorVersion } from '@/methods'
 import { installDiskSelectItems } from '@/methods/installdisk'
+import { talosUpgradeTargets } from '@/methods/talosUpgradeTargets'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 
@@ -115,40 +114,7 @@ watch(installDiskStatus, (status) => {
   }
 })
 
-interface VersionGroup {
-  versions: string[]
-  unsupported: boolean
-}
-
-const installVersions = computed(() => {
-  if (!currentVersion.value) return {}
-
-  const upgradeTargets =
-    versionMap.value.get(currentVersion.value)?.spec.upgradable_talos_versions ?? []
-
-  return [currentVersion.value, ...upgradeTargets]
-    .map((v) => versionMap.value.get(v))
-    .filter(
-      (v): v is NonNullable<typeof v> =>
-        !!v && (!v.spec.deprecated || v.spec.version === currentVersion.value),
-    )
-    .sort((a, b) => compare(b.spec.version!, a.spec.version!))
-    .reduce<Record<string, VersionGroup>>((prev, { spec: { unsupported, version } }) => {
-      const majorMinor = majorMinorVersion(version!)
-
-      prev[majorMinor] ||= {
-        versions: [],
-        unsupported: true,
-      }
-
-      if (!unsupported || version === currentVersion.value) {
-        prev[majorMinor].versions.push(version!)
-        prev[majorMinor].unsupported = false
-      }
-
-      return prev
-    }, {})
-})
+const installVersions = computed(() => talosUpgradeTargets(versionMap.value, currentVersion.value))
 
 const versionsLoading = computed(() => talosVersionsLoading.value || machineLoading.value)
 
