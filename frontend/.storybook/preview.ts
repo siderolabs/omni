@@ -14,6 +14,7 @@ import { createMemoryHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
 import AppToast from '../src/components/AppToast/AppToast.vue'
+import { applyTheme, type Theme, useTheme } from '../src/methods/theme'
 
 // Relative faker dates count back from the current hour rather than the current moment, so
 // seeded stories render the same timestamps between runs. Set at load so mocks generated at
@@ -21,6 +22,24 @@ import AppToast from '../src/components/AppToast/AppToast.vue'
 faker.setDefaultRefDate(() => startOfHour(new Date()))
 
 const preview: Preview = {
+  globalTypes: {
+    theme: {
+      description: 'Colour theme',
+      toolbar: {
+        title: 'Theme',
+        icon: 'mirror',
+        items: [
+          { value: 'dark', title: 'Dark', icon: 'moon' },
+          { value: 'dim', title: 'Dim', icon: 'circlehollow' },
+          { value: 'light', title: 'Light', icon: 'sun' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
+  initialGlobals: {
+    theme: 'dark',
+  },
   beforeEach() {
     faker.seed(0)
   },
@@ -32,6 +51,17 @@ const preview: Preview = {
     }),
   ],
   decorators: [
+    // Stories have no App.vue to apply the theme, so the toolbar sets the
+    // preference that components like the code editor watch, and applies it.
+    (_story, { globals }) => {
+      const theme: Theme =
+        globals.theme === 'light' || globals.theme === 'dim' ? globals.theme : 'dark'
+
+      useTheme().preference.value = theme
+      applyTheme(theme)
+
+      return { template: '<story />' }
+    },
     vueRouter(undefined, {
       vueRouterOptions: {
         history: createMemoryHistory(),

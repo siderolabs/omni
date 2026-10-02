@@ -10,21 +10,24 @@ import {
   ChartBarIcon,
   CircleStackIcon,
   CodeBracketIcon,
+  ComputerDesktopIcon,
   CpuChipIcon,
   DocumentIcon,
   DocumentTextIcon,
+  MoonIcon,
   PauseCircleIcon,
   PlayCircleIcon,
   PowerIcon,
   ServerIcon,
   ServerStackIcon,
+  SunIcon,
   TagIcon,
   UserIcon,
   UserPlusIcon,
   UsersIcon,
   WindowIcon,
 } from '@heroicons/vue/24/outline'
-import { LifebuoyIcon } from '@heroicons/vue/24/solid'
+import { LifebuoyIcon, MoonIcon as MoonSolidIcon } from '@heroicons/vue/24/solid'
 import { defineAsyncComponent } from 'vue'
 
 export const icons = {
@@ -64,6 +67,7 @@ export const icons = {
   clusters: defineAsyncComponent(() => import('../icons/IconClusters.vue')),
   'code-bracket': CodeBracketIcon,
   complete: defineAsyncComponent(() => import('../icons/IconComplete.vue')),
+  'computer-desktop': ComputerDesktopIcon,
   copy: defineAsyncComponent(() => import('../icons/IconCopy.vue')),
   'cpu-chip': CpuChipIcon,
   dashboard: defineAsyncComponent(() => import('../icons/IconDashboard.vue')),
@@ -111,6 +115,8 @@ export const icons = {
   ),
   'machines-manual': defineAsyncComponent(() => import('../icons/IconMachinesManual.vue')),
   minus: defineAsyncComponent(() => import('../icons/IconMinus.vue')),
+  moon: MoonIcon,
+  'moon-solid': MoonSolidIcon,
   'no-connection': defineAsyncComponent(() => import('../icons/IconNoConnection.vue')),
   'no-symbol': defineAsyncComponent(() => import('../icons/IconNoSymbol.vue')),
   nodes: defineAsyncComponent(() => import('../icons/IconNodes.vue')),
@@ -139,6 +145,7 @@ export const icons = {
   sidero: defineAsyncComponent(() => import('../icons/IconSidero.vue')),
   stop: defineAsyncComponent(() => import('../icons/IconStop.vue')),
   'stop-circle': defineAsyncComponent(() => import('../icons/IconStopCircle.vue')),
+  sun: SunIcon,
   tag: TagIcon,
   talos: defineAsyncComponent(() => import('../icons/IconTalos.vue')),
   'talos-config': defineAsyncComponent(() => import('../icons/IconTalosConfig.vue')),

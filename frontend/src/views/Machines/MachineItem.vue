@@ -193,7 +193,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <StatusGlyph
             :glyph="connectionLabel.tone === 'danger' ? 'danger' : 'success'"
             class="shrink-0"
-            :class="connectionLabel.tone !== 'danger' && 'text-status-success-text'"
+            :class="connectionLabel.tone !== 'danger' && 'text-status-success-default'"
             aria-hidden="true"
           />
 

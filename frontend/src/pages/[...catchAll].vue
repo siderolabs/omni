@@ -26,7 +26,7 @@ useTitle('Page Not Found')
 @reference "../index.css";
 
 .code {
-  @apply font-bold text-surface-card;
+  @apply font-bold text-surface-hover;
   font-size: 300px;
   line-height: 300px;
 }

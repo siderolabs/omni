@@ -43,6 +43,14 @@ const statusPillClass: Record<StatusTone, string> = {
   danger: 'bg-status-danger-subtle text-status-danger-text ring-status-danger-subtle-border',
   info: 'bg-status-info-subtle text-status-info-text ring-status-info-subtle-border',
 }
+
+/** The glyph is a graphic: it takes the state's `default`, which holds 3:1 on the chip's pastel as well as on a surface. */
+const statusGlyphClass: Record<StatusTone, string> = {
+  success: 'text-status-success-default',
+  warning: 'text-status-warning-default',
+  danger: 'text-status-danger-default',
+  info: 'text-status-info-default',
+}
 </script>
 
 <template>
@@ -61,7 +69,13 @@ const statusPillClass: Record<StatusTone, string> = {
       class="size-2 shrink-0 rounded-full bg-current"
       aria-hidden="true"
     />
-    <StatusGlyph v-else :glyph="glyph ?? glyphFromTone[tone]" class="shrink-0" aria-hidden="true" />
+    <StatusGlyph
+      v-else
+      :glyph="glyph ?? glyphFromTone[tone]"
+      class="shrink-0"
+      :class="statusGlyphClass[tone]"
+      aria-hidden="true"
+    />
     <slot />
   </span>
 </template>

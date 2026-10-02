@@ -5,38 +5,41 @@
 import type * as monaco from 'monaco-editor'
 import type { ThemeRegistration } from 'shiki'
 
-export const OMNI_CODE_THEME = 'omni-dark'
+import type { Theme } from '@/methods/theme'
+
+export const OMNI_CODE_THEME = 'omni'
 
 /**
  * Colours come from the design system's syntax roles, which keep green and red
  * out of syntax so a token never reads as a diff change.
  */
-function palette() {
-  const styles = getComputedStyle(document.documentElement)
+const ROLES = {
+  key: '--color-syntax-key',
+  scalar: '--color-syntax-plain',
+  quoted: '--color-syntax-string',
+  constant: '--color-syntax-constant',
+  keyword: '--color-syntax-keyword',
+  muted: '--color-syntax-punctuation',
+  comment: '--color-syntax-comment',
+  invalid: '--color-syntax-invalid',
+  match: '--color-highlight-match',
+  matchBorder: '--color-highlight-match-border',
 
-  // Monaco only accepts bare hex, so whitespace around the value has to go.
-  const read = (name: string) => styles.getPropertyValue(name).trim()
+  panel: '--color-surface-card',
+  popover: '--color-surface-raised',
+  canvas: '--color-surface-page',
+  field: '--color-surface-chrome',
+  border: '--color-border-default',
+  lineNumber: '--color-content-muted',
+  activeLineNumber: '--color-content-secondary',
+} as const
 
-  return {
-    key: read('--color-syntax-key'),
-    scalar: read('--color-syntax-plain'),
-    quoted: read('--color-syntax-string'),
-    constant: read('--color-syntax-constant'),
-    keyword: read('--color-syntax-keyword'),
-    muted: read('--color-syntax-punctuation'),
-    comment: read('--color-syntax-comment'),
-    invalid: read('--color-syntax-invalid'),
-    match: read('--color-highlight-match'),
-    matchBorder: read('--color-highlight-match-border'),
+type Palette = Record<keyof typeof ROLES, string>
 
-    panel: read('--color-surface-card'),
-    popover: read('--color-surface-raised'),
-    canvas: read('--color-surface-page'),
-    field: read('--color-surface-chrome'),
-    border: read('--color-border-default'),
-    lineNumber: read('--color-content-muted'),
-    activeLineNumber: read('--color-content-secondary'),
-  }
+function palette(read: (property: string) => string) {
+  return Object.fromEntries(
+    Object.entries(ROLES).map(([role, property]) => [role, read(property)]),
+  ) as Palette
 }
 
 /** Appends an alpha channel to a `#rrggbb` colour, for Monaco's hex-only colours. */
@@ -48,8 +51,14 @@ function withAlpha(hex: string, alpha: number) {
   return `${hex}${channel}`
 }
 
+/**
+ * Shiki writes colours into inline styles, so referencing the variables lets
+ * highlighted code follow the page between light and dark without re-rendering.
+ */
 export function createOmniShikiTheme(): ThemeRegistration {
-  const { key, scalar, quoted, constant, keyword, muted, comment, invalid, ...chrome } = palette()
+  const { key, scalar, quoted, constant, keyword, muted, comment, invalid, ...chrome } = palette(
+    (property) => `var(${property})`,
+  )
 
   return {
     name: OMNI_CODE_THEME,
@@ -114,12 +123,18 @@ export function createOmniShikiTheme(): ThemeRegistration {
  * Monarch token names rather than TextMate scopes. Monarch cannot tell a quoted
  * scalar from a plain one — both are `string` — so quoted values get the plain
  * scalar colour here instead of the diff viewer's `quoted`.
+ *
+ * Monaco only accepts bare hex, so the values are read from the page as it is
+ * now: define the theme again after the page theme changes.
  */
-export function createOmniMonacoTheme(): monaco.editor.IStandaloneThemeData {
-  const { key, scalar, constant, keyword, muted, comment, invalid, ...chrome } = palette()
+export function createOmniMonacoTheme(theme: Theme): monaco.editor.IStandaloneThemeData {
+  const styles = getComputedStyle(document.documentElement)
+  const { key, scalar, constant, keyword, muted, comment, invalid, ...chrome } = palette(
+    (property) => styles.getPropertyValue(property).trim(),
+  )
 
   return {
-    base: 'vs-dark',
+    base: theme === 'light' ? 'vs' : 'vs-dark',
     inherit: true,
     rules: [
       { token: 'comment', foreground: comment, fontStyle: 'italic' },
