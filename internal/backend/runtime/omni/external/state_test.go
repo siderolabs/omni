@@ -99,6 +99,44 @@ func TestStateList(t *testing.T) {
 			},
 			errCheck: check.ErrorContains(`failed to validate: empty value for "omni.sidero.dev/cluster" is not supported`),
 		},
+		"inverted cluster ID in query": {
+			kind: etcdBackupPtr,
+			opts: []state.ListOption{
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, "cluster1", resource.NotMatches)),
+			},
+			errCheck: check.ErrorContains(`failed to validate: inverted value for "omni.sidero.dev/cluster" is not supported`),
+		},
+		"two cluster IDs in query": {
+			kind: etcdBackupPtr,
+			opts: []state.ListOption{
+				state.WithLabelQuery(
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+					resource.LabelEqual(omni.LabelCluster, "cluster2"),
+				),
+			},
+			errCheck: check.ErrorContains(`failed to validate: multiple values for "omni.sidero.dev/cluster" are not supported`),
+		},
+		"the same cluster ID twice in query": {
+			kind: etcdBackupPtr,
+			opts: []state.ListOption{
+				state.WithLabelQuery(
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+				),
+			},
+			coreState: &coreState{
+				m: map[resource.ID]pair.Pair[*omni.ClusterUUID, error]{
+					"cluster1": pair.MakePair(makeClusterUUID("cluster1", uuidStr1), error(nil)),
+				},
+			},
+			storeFactory: &backupStore{
+				m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
+					uuidStr1: pair.MakePair(makeIter(happyResult[0], happyResult[1]), error(nil)),
+				},
+			},
+			errCheck: check.NoError(),
+			result:   happyResult,
+		},
 		"cluster uuid not found": {
 			kind: etcdBackupPtr,
 			opts: []state.ListOption{
@@ -308,5 +346,86 @@ func makeIter(slc ...pair.Pair[resource.ID, time.Time]) iter.Seq2[etcdbackup.Inf
 				return
 			}
 		}
+	}
+}
+
+func TestStateWatchKindClusterTerms(t *testing.T) {
+	uuidStr1 := uuid.New().String()
+	etcdBackupPtr := omni.NewEtcdBackup("", time.Time{}).Metadata()
+
+	tests := map[string]struct {
+		errCheck check.Check
+		opts     []state.WatchKindOption
+	}{
+		"one cluster ID": {
+			opts: []state.WatchKindOption{
+				state.WithBootstrapContents(true),
+				state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, "cluster1")),
+			},
+			errCheck: check.NoError(),
+		},
+		"the same cluster ID twice": {
+			opts: []state.WatchKindOption{
+				state.WithBootstrapContents(true),
+				state.WatchWithLabelQuery(
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+				),
+			},
+			errCheck: check.NoError(),
+		},
+		"inverted cluster ID": {
+			opts: []state.WatchKindOption{
+				state.WithBootstrapContents(true),
+				state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, "cluster1", resource.NotMatches)),
+			},
+			errCheck: check.ErrorContains(`inverted value for "omni.sidero.dev/cluster" is not supported`),
+		},
+		"two cluster IDs": {
+			opts: []state.WatchKindOption{
+				state.WithBootstrapContents(true),
+				state.WatchWithLabelQuery(
+					resource.LabelEqual(omni.LabelCluster, "cluster1"),
+					resource.LabelEqual(omni.LabelCluster, "cluster2"),
+				),
+			},
+			errCheck: check.ErrorContains(`multiple values for "omni.sidero.dev/cluster" are not supported`),
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := &external.State{
+				CoreState: &coreState{
+					m: map[resource.ID]pair.Pair[*omni.ClusterUUID, error]{
+						"cluster1": pair.MakePair(makeClusterUUID("cluster1", uuidStr1), error(nil)),
+					},
+				},
+				StoreFactory: &backupStore{
+					m: map[string]pair.Pair[iter.Seq2[etcdbackup.Info, error], error]{
+						uuidStr1: pair.MakePair(makeIter(), error(nil)),
+					},
+				},
+				Logger: zaptest.NewLogger(t),
+			}
+
+			ch := make(chan state.Event, 1)
+
+			err := s.WatchKind(t.Context(), etcdBackupPtr, ch, tt.opts...)
+
+			tt.errCheck(t, err)
+
+			if err != nil {
+				return
+			}
+
+			// the watch only reaches cluster1 in the store if the terms were converted into a query for it
+			select {
+			case event := <-ch:
+				assert.Equal(t, state.Bootstrapped, event.Type, "unexpected event: %v", event.Error)
+			case <-time.After(10 * time.Second):
+				t.Fatal("no event received")
+			}
+		})
 	}
 }
