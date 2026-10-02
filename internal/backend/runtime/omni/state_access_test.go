@@ -8,14 +8,24 @@ package omni_test
 import (
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 var allVerbs = []state.Verb{
@@ -68,5 +78,88 @@ func TestFilterAccessByTypeAllRegisteredResources(t *testing.T) {
 			assert.Equal(t, codes.PermissionDenied, status.Code(err),
 				"type %q with verb %v returned unexpected error code: %v", rds.Type, verb, err)
 		}
+	}
+}
+
+// TestCheckForKindAccessClusterTerms covers the cluster a label query is authorized against.
+//
+// The user below has no Omni-wide role and reaches cluster1 only through an access policy, so a query
+// that does not select cluster1 and nothing else must be rejected.
+func TestCheckForKindAccessClusterTerms(t *testing.T) {
+	t.Parallel()
+
+	const identity = "user-1@example.com"
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	accessPolicy := authres.NewAccessPolicy()
+	accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{
+		{
+			Users:    []string{identity},
+			Clusters: []string{"cluster1"},
+			Role:     string(role.Reader),
+		},
+	}
+
+	require.NoError(t, st.Create(t.Context(), accessPolicy))
+	require.NoError(t, st.Create(t.Context(), authres.NewIdentity(identity)))
+
+	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.None})
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: identity})
+
+	clusterTerm := func(clusterID string, opts ...resource.TermOption) resource.LabelTerm {
+		var query resource.LabelQuery
+
+		resource.LabelEqual(omnires.LabelCluster, clusterID, opts...)(&query)
+
+		return query.Terms[0]
+	}
+
+	for name, tt := range map[string]struct {
+		terms   []resource.LabelTerm
+		allowed bool
+	}{
+		"the cluster the policy covers": {
+			terms:   []resource.LabelTerm{clusterTerm("cluster1")},
+			allowed: true,
+		},
+		"the same cluster twice": {
+			terms:   []resource.LabelTerm{clusterTerm("cluster1"), clusterTerm("cluster1")},
+			allowed: true,
+		},
+		"another cluster": {
+			terms: []resource.LabelTerm{clusterTerm("cluster2")},
+		},
+		"every cluster but the covered one": {
+			terms: []resource.LabelTerm{clusterTerm("cluster1", resource.NotMatches)},
+		},
+		"the covered cluster, with another one excluded": {
+			terms:   []resource.LabelTerm{clusterTerm("cluster1"), clusterTerm("cluster2", resource.NotMatches)},
+			allowed: true,
+		},
+		"two different clusters, the covered one first": {
+			terms: []resource.LabelTerm{clusterTerm("cluster1"), clusterTerm("cluster2")},
+		},
+		"two different clusters, the covered one last": {
+			terms: []resource.LabelTerm{clusterTerm("cluster2"), clusterTerm("cluster1")},
+		},
+		"no cluster at all": {
+			terms: nil,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			err := omni.CheckForKindAccess(ctx, st, state.List, omnires.NewClusterMachineStatus("").Metadata(), tt.terms)
+
+			if tt.allowed {
+				assert.NoError(t, err)
+
+				return
+			}
+
+			assert.Equal(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
+		})
 	}
 }

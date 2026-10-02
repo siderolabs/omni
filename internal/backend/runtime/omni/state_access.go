@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
+	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -312,7 +313,10 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 	requireAll := false
 
 	if isClusterRelatedType(kind.Type()) {
-		clusterID = clusterIDFromLabelTerms(labelTerms)
+		// terms that do not name a single cluster leave the ID empty, which requires access to all clusters
+		if id, err := labels.ExactValue(labelTerms, omni.LabelCluster); err == nil {
+			clusterID = id
+		}
 
 		requireAll = clusterID == ""
 	}
@@ -344,16 +348,6 @@ func clusterIDFromMetadata(resMD *resource.Metadata) resource.ID {
 		cluster, _ := resMD.Labels().Get(omni.LabelCluster)
 
 		return cluster
-	}
-
-	return ""
-}
-
-func clusterIDFromLabelTerms(labelTerms []resource.LabelTerm) resource.ID {
-	for _, term := range labelTerms {
-		if term.Key == omni.LabelCluster && term.Op == resource.LabelOpEqual {
-			return term.Value[0]
-		}
 	}
 
 	return ""
