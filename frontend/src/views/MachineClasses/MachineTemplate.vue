@@ -5,6 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { Runtime } from '@/api/common/omni.pb'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
@@ -30,7 +32,7 @@ const initialLabels = defineModel<Record<string, LabelSelectItem>>('initialLabel
 const providerConfig = defineModel<Record<string, unknown>>('providerConfig', { required: true })
 const grpcTunnel = defineModel<GrpcTunnelMode>('grpcTunnel', { required: true })
 
-const defaultTunnelMode = (() => {
+const defaultTunnelMode = computed(() => {
   switch (grpcTunnel.value) {
     default:
     case GrpcTunnelMode.UNSET:
@@ -40,7 +42,7 @@ const defaultTunnelMode = (() => {
     case GrpcTunnelMode.ENABLED:
       return GRPCTunnelMode.Enabled
   }
-})()
+})
 
 const { data: infraProviderStatus } = useResourceWatch<InfraProviderStatusSpec>(() => ({
   skip: !infraProvider,
