@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import { compare } from 'semver'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 
 import type { Error } from '@/api/common/common.pb'
@@ -22,7 +21,7 @@ import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/res
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TAlert from '@/components/TAlert.vue'
-import { majorMinorVersion } from '@/methods'
+import { talosUpgradeTargets } from '@/methods/talosUpgradeTargets'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { machineId } = defineProps<{
@@ -83,40 +82,7 @@ watch(open, (open) => {
   inProgressFromServer.value = false
 })
 
-interface VersionGroup {
-  versions: string[]
-  unsupported: boolean
-}
-
-const upgradeVersions = computed(() => {
-  if (!currentVersion.value) return {}
-
-  const upgradeTargets =
-    versionMap.value.get(currentVersion.value)?.spec.upgradable_talos_versions ?? []
-
-  return [currentVersion.value, ...upgradeTargets]
-    .map((v) => versionMap.value.get(v))
-    .filter(
-      (v): v is NonNullable<typeof v> =>
-        !!v && (!v.spec.deprecated || v.spec.version === currentVersion.value),
-    )
-    .sort((a, b) => compare(b.spec.version!, a.spec.version!))
-    .reduce<Record<string, VersionGroup>>((prev, { spec: { unsupported, version } }) => {
-      const majorMinor = majorMinorVersion(version!)
-
-      prev[majorMinor] ||= {
-        versions: [],
-        unsupported: true,
-      }
-
-      if (!unsupported || version === currentVersion.value) {
-        prev[majorMinor].versions.push(version!)
-        prev[majorMinor].unsupported = false
-      }
-
-      return prev
-    }, {})
-})
+const upgradeVersions = computed(() => talosUpgradeTargets(versionMap.value, currentVersion.value))
 
 const versionsLoading = computed(() => talosVersionsLoading.value || machineLoading.value)
 

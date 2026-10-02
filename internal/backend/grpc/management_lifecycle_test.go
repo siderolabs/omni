@@ -230,6 +230,100 @@ func TestMaintenanceLifecycleInFlightGuard(t *testing.T) {
 	require.Contains(t, status.Convert(err).Message(), "already in progress")
 }
 
+func TestMaintenanceUpgradeDeprecatedTargets(t *testing.T) {
+	const (
+		identityID = "user@example.com"
+		machineID  = "machine-1"
+	)
+
+	// 1.7 and 1.8 are deprecated, every version can reach every other one per the compatibility matrix
+	versions := map[string]bool{
+		"1.7.5": true,
+		"1.7.6": true,
+		"1.8.0": true,
+		"1.9.0": false,
+	}
+
+	for _, tt := range []struct {
+		name       string
+		current    string
+		target     string
+		wantErrMsg string
+	}{
+		{
+			name:       "deprecated to deprecated",
+			current:    "1.7.5",
+			target:     "1.8.0",
+			wantErrMsg: "schematic is not ready",
+		},
+		{
+			name:       "deprecated to supported",
+			current:    "1.8.0",
+			target:     "1.9.0",
+			wantErrMsg: "schematic is not ready",
+		},
+		{
+			name:       "deprecated patch upgrade",
+			current:    "1.7.5",
+			target:     "1.7.6",
+			wantErrMsg: "schematic is not ready",
+		},
+		{
+			name:       "deprecated to older deprecated",
+			current:    "1.8.0",
+			target:     "1.7.6",
+			wantErrMsg: "only upgrades",
+		},
+		{
+			name:       "deprecated patch downgrade",
+			current:    "1.7.6",
+			target:     "1.7.5",
+			wantErrMsg: "only upgrades",
+		},
+		{
+			name:       "supported to deprecated",
+			current:    "1.9.0",
+			target:     "1.8.0",
+			wantErrMsg: "no longer supported",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// the machine schematic is never ready, so a target which passes the version checks fails right after them
+			st := newMaintenanceLifecycleTestState(t, identityID, machineID, true, "", func(s *specs.MachineStatusSpec) {
+				s.Maintenance = true
+				s.TalosVersion = "v" + tt.current
+			})
+
+			for version, deprecated := range versions {
+				talosVersion := omnires.NewTalosVersion(version)
+				talosVersion.TypedSpec().Value.Version = version
+				talosVersion.TypedSpec().Value.Deprecated = deprecated
+
+				for target := range versions {
+					if target != version {
+						talosVersion.TypedSpec().Value.UpgradableTalosVersions = append(talosVersion.TypedSpec().Value.UpgradableTalosVersions, target)
+					}
+				}
+
+				require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), talosVersion))
+			}
+
+			server := grpcomni.NewManagementServer(st, nil, zaptest.NewLogger(t), false, nil, nil)
+
+			ctx := managementPowerTestContext(t.Context(), identityID, role.Operator)
+
+			_, err := server.MaintenanceUpgrade(ctx, &management.MaintenanceUpgradeRequest{
+				MachineId: machineID,
+				Version:   tt.target,
+			})
+
+			require.Error(t, err)
+			require.Equal(t, codes.FailedPrecondition, status.Code(err), "unexpected status: %v", err)
+			require.Contains(t, status.Convert(err).Message(), tt.wantErrMsg)
+		})
+	}
+}
+
 type fakeLifecycleManager struct {
 	runErr error
 }
