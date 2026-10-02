@@ -97,7 +97,7 @@ onMounted(() => focus && inputRef.value?.focus())
     <div
       class="flex max-h-full items-center justify-start gap-x-tight gap-y-snug rounded border transition-colors focus-within:border-border-accent has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
       :class="[
-        compact ? 'px-tight py-micro' : 'px-tight py-2.25',
+        compact ? 'px-tight py-micro' : 'px-tight py-tight',
         secondary ? 'border-transparent' : 'border-border-strong',
       ]"
     >

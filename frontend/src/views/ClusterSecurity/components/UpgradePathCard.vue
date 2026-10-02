@@ -50,7 +50,7 @@ const canExpand = computed(
       <TSpinner v-if="scan.loading" class="size-4" />
 
       <template v-else-if="diff">
-        <ul class="flex flex-wrap items-center gap-1.5 text-xs">
+        <ul class="flex flex-wrap items-center gap-micro text-xs">
           <li
             v-if="diff.resolved.length"
             class="rounded-sm bg-status-success-subtle px-tight py-micro font-medium text-status-success-text ring-1 ring-status-success-subtle-border ring-inset"
@@ -106,7 +106,7 @@ const canExpand = computed(
       class="flex flex-col gap-compact border-t border-border-strong px-compact py-snug"
     >
       <section v-if="diff.resolved.length" class="flex flex-col gap-tight">
-        <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-success-text">
+        <h4 class="flex items-center gap-micro text-xs font-medium text-status-success-text">
           <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
           Fixed by this upgrade ({{ diff.resolved.length }})
         </h4>
@@ -114,7 +114,7 @@ const canExpand = computed(
       </section>
 
       <section v-if="diff.introduced.length" class="flex flex-col gap-tight">
-        <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-danger-text">
+        <h4 class="flex items-center gap-micro text-xs font-medium text-status-danger-text">
           <TIcon icon="exclamation-triangle" class="size-4 shrink-0" aria-hidden="true" />
           Introduced by this upgrade ({{ diff.introduced.length }})
         </h4>

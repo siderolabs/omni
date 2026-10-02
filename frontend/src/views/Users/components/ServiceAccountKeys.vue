@@ -47,7 +47,7 @@ const sortedKeys = computed(() =>
 
     <p
       v-if="!sortedKeys.length"
-      class="col-span-full border-t border-border-default p-tight pl-9 text-xs text-content-muted"
+      class="col-span-full border-t border-border-default p-tight pl-section text-xs text-content-muted"
     >
       No keys
     </p>

@@ -126,7 +126,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
 
           <TableCell>
             <span
-              class="inline-flex items-center gap-micro rounded px-1.5 py-0.75"
+              class="inline-flex items-center gap-micro rounded p-micro"
               :class="getEncryptionClass(volumeStatus)"
             >
               <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />

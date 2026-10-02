@@ -125,7 +125,7 @@ async function updateKernelArgs() {
           <span
             v-for="(condition, index) in unmetConditions"
             :key="index"
-            class="my-0.5 rounded border-l-3 border-l-status-warning-fill bg-surface-inert py-micro pl-snug text-xs text-content-default"
+            class="my-micro rounded border-l-3 border-l-status-warning-fill bg-surface-inert py-micro pl-snug text-xs text-content-default"
           >
             {{ condition }}
           </span>

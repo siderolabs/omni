@@ -67,7 +67,7 @@ const icsUrl = computed(() => {
   <Modal v-model:open="open" cancel-label="Close" title="Get support">
     <template #description>Various ways to get help with Omni and Talos</template>
 
-    <div class="flex w-105 flex-col gap-2.5">
+    <div class="flex w-105 flex-col gap-snug">
       <a
         v-if="support?.spec.support_enabled"
         href="https://support.siderolabs.com/"
@@ -80,7 +80,7 @@ const icsUrl = computed(() => {
         >
           <TIcon class="size-5" icon="lifebuoy" />
         </div>
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div class="flex min-w-0 flex-1 flex-col gap-micro">
           <span
             class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >
@@ -107,7 +107,7 @@ const icsUrl = computed(() => {
         >
           <TIcon class="size-5" icon="documentation" />
         </div>
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div class="flex min-w-0 flex-1 flex-col gap-micro">
           <span
             class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >
@@ -174,7 +174,7 @@ const icsUrl = computed(() => {
         >
           <TIcon class="size-5" icon="users" />
         </div>
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div class="flex min-w-0 flex-1 flex-col gap-micro">
           <span
             class="text-sm font-medium text-content-default transition-colors group-hover:text-content-emphasis"
           >

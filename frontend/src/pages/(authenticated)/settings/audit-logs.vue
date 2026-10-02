@@ -190,7 +190,7 @@ useTitle('Audit Logs')
     >
       <div
         role="rowgroup"
-        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-surface-card px-tight text-left"
+        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-micro bg-surface-card px-tight text-left"
       >
         <div role="columnheader" aria-hidden="true" class="py-tight uppercase"></div>
         <div
@@ -226,7 +226,7 @@ useTitle('Audit Logs')
               :key="vRow.key.toString()"
               :ref="measureElement"
               :data-index="vRow.index"
-              class="grid grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 border-t border-border-strong"
+              class="grid grid-cols-[36px_160px_180px_220px_1fr] gap-x-micro border-t border-border-strong"
             >
               <AuditLogItem
                 :data="data[vRow.index]"

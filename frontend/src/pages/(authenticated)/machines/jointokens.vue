@@ -196,7 +196,7 @@ useTitle(['Machines', 'Join Tokens'])
                 >
                   Download Machine Join Config
                 </TActionsBoxItem>
-                <div class="my-0.5 w-full border-b border-border-strong" />
+                <div class="my-micro w-full border-b border-border-strong" />
                 <TActionsBoxItem
                   v-if="!item.spec.is_default"
                   icon="check"

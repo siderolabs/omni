@@ -150,8 +150,8 @@ const {
       ]"
     >
       <template #default="{ items, searchQuery }">
-        <div class="mb-micro bg-surface-card px-base py-tight pl-10 text-xs">
-          <div class="grid grid-cols-4 items-center justify-center gap-micro pr-12">
+        <div class="mb-micro bg-surface-card px-base py-tight text-xs">
+          <div class="grid grid-cols-4 items-center justify-center gap-micro pr-section">
             <div>ID</div>
             <div>Creation Date</div>
             <div>Size</div>
@@ -160,8 +160,8 @@ const {
         </div>
 
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-snug pl-7 text-content-default">
-            <div class="grid grid-cols-4 items-center justify-center gap-micro pr-12">
+          <div class="relative px-snug text-content-default">
+            <div class="grid grid-cols-4 items-center justify-center gap-micro pr-section">
               <WordHighlighter
                 :query="searchQuery"
                 :text-to-highlight="item.metadata.id"

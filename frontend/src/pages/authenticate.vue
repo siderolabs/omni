@@ -281,7 +281,7 @@ useTitle('Authenticate')
         </div>
       </div>
 
-      <div v-if="!publicKeyId && authFlow === Auth.CLI" class="mx-12">
+      <div v-if="!publicKeyId && authFlow === Auth.CLI" class="mx-section">
         Public key ID parameter is missing...
       </div>
       <div v-else-if="!identity">Redirecting to the authentication provider...</div>

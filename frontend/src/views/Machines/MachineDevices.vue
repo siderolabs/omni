@@ -160,7 +160,7 @@ function isLastChild(item?: DeviceTreeItem) {
           :key="item._id"
           v-bind="item.bind"
           class="group/tree-item relative w-full py-micro"
-          :class="!item.hasChildren ? 'pl-9' : 'cursor-pointer pl-micro'"
+          :class="!item.hasChildren ? 'pl-section' : 'cursor-pointer pl-micro'"
         >
           <div
             v-if="item.hasChildren"
@@ -172,7 +172,7 @@ function isLastChild(item?: DeviceTreeItem) {
             </div>
 
             <div class="flex items-center gap-compact">
-              <div class="rounded-md bg-surface-hover px-1.5 py-0.5 font-medium">
+              <div class="rounded-md bg-surface-hover p-micro font-medium">
                 {{ countDevices(item.value as DeviceTreeItem) }}
               </div>
 
@@ -202,7 +202,7 @@ function isLastChild(item?: DeviceTreeItem) {
 
               <span
                 v-if="asDevice(item.value as DeviceTreeItem)?.device.spec.driver"
-                class="rounded bg-surface-hover px-tight py-1.5 whitespace-nowrap text-content-default"
+                class="rounded bg-surface-hover px-tight py-tight whitespace-nowrap text-content-default"
               >
                 {{ asDevice(item.value as DeviceTreeItem)?.device.spec.driver }}
               </span>

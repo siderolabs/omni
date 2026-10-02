@@ -314,7 +314,7 @@ useTitle('Scale')
     </div>
 
     <div
-      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-snug"
+      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-base py-snug"
     >
       <ClusterMenu
         class="w-full"

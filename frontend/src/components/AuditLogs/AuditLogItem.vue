@@ -58,12 +58,14 @@ function toggleRow() {
       as="div"
       role="row"
       tabindex="0"
-      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-tight py-2.5 select-none group-hover/root:bg-surface-hover"
+      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-tight py-snug select-none group-hover/root:bg-surface-hover"
       @keydown.enter.prevent="toggleRow"
       @keydown.space.prevent="toggleRow"
     >
       <div role="cell" aria-hidden="true">
-        <div class="size-5 rounded-md bg-surface-inert p-0.5 text-content-muted">
+        <div
+          class="flex size-5 items-center justify-center rounded-md bg-surface-inert text-content-muted"
+        >
           <TIcon
             icon="dropdown"
             class="size-4 transition-transform group-data-[state=open]/trigger:rotate-180"
@@ -80,7 +82,7 @@ function toggleRow() {
       <div role="cell">
         <span
           v-if="item.event_type.toUpperCase()"
-          class="resource-label inline-flex items-center gap-1.5"
+          class="resource-label inline-flex items-center gap-micro"
         >
           <span
             aria-hidden="true"

@@ -96,7 +96,7 @@ const detailsModal = ref<{
 
     <p
       v-else-if="!clusterStatus || targetsLoading"
-      class="flex items-center gap-1.5 text-sm text-content-secondary"
+      class="flex items-center gap-micro text-sm text-content-secondary"
     >
       <TSpinner class="size-4" />
       Loading cluster information…

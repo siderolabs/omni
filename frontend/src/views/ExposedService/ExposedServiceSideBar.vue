@@ -68,8 +68,11 @@ const errors = computed(() => {
             icon="window"
             regular-link
           />
-          <div v-if="errors.length" class="flex items-center gap-compact pr-5 pl-base text-xs">
-            <TIcon icon="exclamation-triangle" class="ml-0.5 size-4 text-status-warning-default" />
+          <div
+            v-if="errors.length"
+            class="flex items-center gap-compact border-x-2 border-transparent px-base text-xs"
+          >
+            <TIcon icon="exclamation-triangle" class="size-4 text-status-warning-default" />
             <div class="flex-1 truncate text-status-warning-text">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors
@@ -82,12 +85,14 @@ const errors = computed(() => {
                   </div>
                 </div>
               </template>
-              <IconButton icon="question-mark-circle" class="mr-0.5" />
+              <IconButton icon="question-mark-circle" />
             </Tooltip>
           </div>
         </template>
         <template v-else>
-          <p class="my-micro items-center justify-start px-base py-1.5 text-xs text-content-muted">
+          <p
+            class="my-micro items-center justify-start px-base py-tight text-xs text-content-muted"
+          >
             No exposed services
           </p>
         </template>

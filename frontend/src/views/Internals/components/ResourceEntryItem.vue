@@ -29,7 +29,7 @@ defineEmits<{
     tabindex="0"
     :aria-selected="selected"
     :class="{ 'bg-surface-raised': selected }"
-    class="col-span-full grid cursor-pointer grid-cols-subgrid items-center py-2.5 select-none hover:bg-surface-subtle"
+    class="col-span-full grid cursor-pointer grid-cols-subgrid items-center py-snug select-none hover:bg-surface-subtle"
     @click="$emit('open')"
     @keydown.enter.prevent="$emit('open')"
     @keydown.space.prevent="$emit('open')"

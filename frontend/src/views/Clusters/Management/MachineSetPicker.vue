@@ -96,7 +96,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
           <RadioGroup
             ref="optionsView"
             v-model="machineSetIndex"
-            class="flex h-30 scrollbar-none flex-col items-center gap-0.5 overflow-y-auto"
+            class="flex h-30 scrollbar-none flex-col items-center gap-micro overflow-y-auto"
             @scroll.stop
           >
             <RadioGroupOption

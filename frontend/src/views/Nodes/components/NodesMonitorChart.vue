@@ -343,7 +343,7 @@ const tipLeft = computed(() =>
         <div
           v-if="tooltip"
           ref="tip"
-          class="pointer-events-none absolute top-2 flex flex-col gap-micro rounded bg-surface-raised px-snug py-2.5 text-xs whitespace-nowrap text-content-emphasis shadow"
+          class="pointer-events-none absolute top-2 flex flex-col gap-micro rounded bg-surface-raised px-snug py-snug text-xs whitespace-nowrap text-content-emphasis shadow"
           :style="{ left: `${tipLeft}px` }"
         >
           <div class="text-content-secondary">{{ tooltip.time }}</div>

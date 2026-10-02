@@ -47,7 +47,7 @@ const age = computed(() => {
 <template>
   <CollapsibleRoot
     v-slot="{ open }"
-    class="group relative mb-micro flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-tight transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-border-strong not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-border-strong"
+    class="group relative mb-micro flex w-full min-w-md flex-col border py-compact pr-snug pl-tight transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-border-strong not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-border-strong"
   >
     <ul class="flex w-full items-center justify-start">
       <li class="flex w-1/6 items-center gap-micro text-xs text-content-default">
@@ -91,31 +91,31 @@ const age = computed(() => {
     </ul>
 
     <CollapsibleContent class="collapsible-content overflow-hidden text-xs text-content-default">
-      <div class="flex items-center pt-6.5">
-        <div class="flex w-1/6 flex-col gap-1.75 pl-7">
+      <div class="flex items-center pt-base">
+        <div class="flex w-1/6 flex-col gap-tight pl-base">
           <p>Restarts</p>
           <p class="text-content-default">{{ restartCount }}</p>
         </div>
 
-        <div class="flex w-1/3 flex-col gap-1.75">
+        <div class="flex w-1/3 flex-col gap-tight">
           <p>Ready Containers</p>
           <p class="text-content-default">{{ readyContainers?.length }}</p>
         </div>
 
-        <div class="flex w-1/6 flex-col gap-1.75">
+        <div class="flex w-1/6 flex-col gap-tight">
           <p>Age</p>
           <p class="text-content-default">
             {{ age }}
           </p>
         </div>
 
-        <div class="flex w-1/6 flex-col gap-1.75">
+        <div class="flex w-1/6 flex-col gap-tight">
           <p>Pod IP</p>
           <p class="text-content-default">{{ item.status?.podIP }}</p>
         </div>
       </div>
 
-      <div class="mt-5 flex flex-col gap-3.75 px-7">
+      <div class="mt-base flex flex-col gap-compact px-base">
         <div class="font-bold">Containers</div>
         <div class="flex flex-wrap gap-tight">
           <div

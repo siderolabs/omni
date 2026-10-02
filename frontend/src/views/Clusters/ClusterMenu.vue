@@ -50,7 +50,7 @@ const workersCount = computed(() => {
       <div v-if="warning" class="flex items-start gap-micro text-xs text-content-default">
         <StatusGlyph
           glyph="warning"
-          class="mt-0.5 size-3 shrink-0 text-status-warning-default"
+          class="mt-px size-3 shrink-0 text-status-warning-default"
           aria-hidden="true"
         />
         {{ warning }}

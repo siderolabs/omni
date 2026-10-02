@@ -439,7 +439,7 @@ useTitle('Overview')
   @apply flex;
 }
 .overview-data-role:not(:last-of-type) {
-  margin-right: 6px;
+  @apply mr-tight;
 }
 .overview-services-heading {
   @apply mb-compact flex items-center;

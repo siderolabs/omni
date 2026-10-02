@@ -230,7 +230,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
         {{ error.message }}
       </TAlert>
 
-      <p v-else-if="loading" class="flex items-center gap-1.5 text-xs">
+      <p v-else-if="loading" class="flex items-center gap-micro text-xs">
         <TSpinner class="size-4" />
         Generating links...
       </p>

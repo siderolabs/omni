@@ -177,9 +177,9 @@ function isMachineSetScalable(
     >
       <AccordionTrigger
         :id="sectionHeadingId"
-        class="group/accordion flex shrink-0 items-stretch gap-0.5 truncate text-left"
+        class="group/accordion flex shrink-0 items-stretch gap-px truncate text-left"
       >
-        <div class="flex shrink-0 items-center rounded-l bg-surface-hover px-0.5">
+        <div class="flex shrink-0 items-center rounded-l bg-surface-hover px-micro">
           <TIcon
             class="size-5 transition-transform duration-250 group-data-[state=open]/accordion:rotate-180"
             icon="drop-up"
@@ -187,7 +187,9 @@ function isMachineSetScalable(
           />
         </div>
 
-        <div class="flex min-w-0 items-center gap-micro rounded-r bg-surface-hover px-tight py-1.5">
+        <div
+          class="flex min-w-0 items-center gap-micro rounded-r bg-surface-hover px-tight py-tight"
+        >
           <TIcon icon="server-stack" class="size-4 shrink-0" aria-hidden="true" />
           <span class="grow truncate">
             {{ machineSetTitle(clusterID, machineSetId) }}
@@ -256,7 +258,7 @@ function isMachineSetScalable(
 
       <div
         v-if="hiddenMachinesCount > 0"
-        class="col-span-full flex items-center gap-micro border-t border-border-default p-compact pl-9 text-xs"
+        class="col-span-full flex items-center gap-micro border-t border-border-default p-compact pl-section text-xs"
       >
         {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
         <TButton variant="subtle" size="xs" @click="showMachinesCount = undefined">

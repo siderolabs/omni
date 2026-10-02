@@ -386,7 +386,7 @@ useTitle('Monitor')
 @reference "../../../../../../index.css";
 
 .monitor {
-  @apply flex flex-col justify-start pb-5;
+  @apply flex flex-col justify-start pb-base;
 }
 .monitor-charts-box {
   @apply flex flex-col overflow-hidden;
@@ -410,11 +410,11 @@ useTitle('Monitor')
 .monitor-chart-wide {
   @apply border-b-border-subtle;
   margin-right: 0 !important;
-  padding-bottom: 29px;
+  @apply pb-section;
   border-radius: 4px 4px 0 0;
 }
 .monitor-data-wrapper {
-  @apply flex w-full flex-1 flex-col overflow-hidden rounded-b border-x border-b border-border-default bg-surface-card px-tight pt-5 text-xs text-content-default lg:px-section;
+  @apply flex w-full flex-1 flex-col overflow-hidden rounded-b border-x border-b border-border-default bg-surface-card px-tight pt-base text-xs text-content-default lg:px-section;
 }
 .monitor-data-box {
   @apply flex-1 overflow-x-auto bg-surface-card py-snug;

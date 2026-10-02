@@ -242,7 +242,7 @@ const doInstall = async () => {
           <template v-for="(group, label) in installVersions" :key="label">
             <RadioGroupLabel
               as="div"
-              class="sticky top-0 w-full bg-surface-hover p-micro pl-7 text-sm font-bold"
+              class="sticky top-0 w-full bg-surface-hover p-micro pl-section text-sm font-bold"
             >
               {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
             </RadioGroupLabel>

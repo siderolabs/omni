@@ -227,7 +227,7 @@ const extensionsLevel = computed(() => {
 
     <div
       v-if="!readOnly"
-      class="flex h-16 shrink-0 items-center justify-end border-t border-border-strong bg-surface-chrome px-12"
+      class="flex h-16 shrink-0 items-center justify-end border-t border-border-strong bg-surface-chrome px-section"
     >
       <TButton
         variant="highlighted"

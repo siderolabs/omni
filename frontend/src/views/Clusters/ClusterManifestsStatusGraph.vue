@@ -85,17 +85,17 @@ const manifestYAML = computed(() => {
         class="flex flex-wrap items-center justify-between rounded-lg border border-border-default bg-surface-card p-tight"
       >
         <div class="flex items-center gap-compact text-xs">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
             <span>Applied</span>
           </div>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
             <span>Deleting</span>
           </div>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-dashed border-status-warning-default"></div>
             <span>Pending</span>
           </div>

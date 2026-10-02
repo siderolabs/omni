@@ -228,7 +228,7 @@ const upgradeClick = async () => {
       >
         <RadioGroupLabel
           as="div"
-          class="sticky top-0 w-full bg-surface-hover p-micro pl-7 text-sm font-bold"
+          class="sticky top-0 w-full bg-surface-hover p-micro pl-section text-sm font-bold"
         >
           {{ group }}
           {{

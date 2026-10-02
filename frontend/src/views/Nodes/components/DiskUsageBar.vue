@@ -80,7 +80,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       >
         <span
           v-if="partitionPercent(volume.spec.size, disk.spec.size) > 10"
-          class="truncate px-1.5 font-medium"
+          class="truncate px-micro font-medium"
         >
           {{ volume.spec.partition_label || volume.spec.label || '' }}
           <span>
@@ -95,7 +95,9 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         title="Unallocated"
         class="flex min-w-0 items-center justify-center overflow-hidden bg-[repeating-linear-gradient(-45deg,var(--stripe-color),var(--stripe-color)_var(--stripe-size),transparent_var(--stripe-size),transparent_calc(var(--stripe-size)*2))] text-content-default [--stripe-color:var(--color-surface-hover)] [--stripe-size:12px]"
       >
-        <span v-if="unallocatedPercent > 10" class="truncate px-1.5 font-medium">Unallocated</span>
+        <span v-if="unallocatedPercent > 10" class="truncate px-micro font-medium">
+          Unallocated
+        </span>
       </div>
     </div>
 
@@ -103,7 +105,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       <div
         v-for="volume in volumes"
         :key="'legend-' + volume.metadata.id"
-        class="flex items-center gap-1.5"
+        class="flex items-center gap-micro"
       >
         <span class="inline-block size-2.5 rounded-sm" :class="getVolumeClass(volume)" />
         <span class="font-medium text-content-default">
@@ -113,7 +115,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
           {{ prettyBytes(volume.spec.size ?? 0) }}
         </span>
       </div>
-      <div v-if="unallocatedPercent > 0" class="flex items-center gap-1.5">
+      <div v-if="unallocatedPercent > 0" class="flex items-center gap-micro">
         <span class="inline-block size-2.5 rounded-sm bg-surface-inert" />
         <span class="font-medium text-content-default">Unallocated</span>
         <span class="font-medium text-content-muted">

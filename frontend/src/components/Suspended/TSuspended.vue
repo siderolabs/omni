@@ -12,7 +12,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
   <div
     class="flex min-h-16.25 w-full items-center justify-between rounded border border-l-4 border-status-danger-subtle-border bg-surface-page px-base py-compact text-status-danger-text"
   >
-    <div class="flex items-center gap-5">
+    <div class="flex items-center gap-base">
       <TIcon class="size-5 shrink-0" icon="exclamation" />
       <p>
         This account is currently

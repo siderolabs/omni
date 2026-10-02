@@ -78,7 +78,7 @@ useTitle('Machine Classes')
           </div>
         </div>
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-snug pl-7 text-content-default">
+          <div class="relative px-snug text-content-default">
             <IconButton
               icon="delete"
               aria-label="delete"
@@ -127,10 +127,10 @@ useTitle('Machine Classes')
 @reference "../../../index.css";
 
 .header {
-  @apply mb-micro bg-surface-card px-base py-tight pl-10 text-xs;
+  @apply mb-micro bg-surface-card px-base py-tight text-xs;
 }
 
 .list-grid {
-  @apply grid grid-cols-3 items-center justify-center gap-micro pr-12;
+  @apply grid grid-cols-3 items-center justify-center gap-micro pr-section;
 }
 </style>

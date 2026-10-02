@@ -55,12 +55,12 @@ const selectedIndex = computed(() => {
 const linePadding = computed(() => {
   if (level === 0) {
     return {
-      left: '14px',
+      left: '34px',
     }
   }
 
   return {
-    left: `${24 * level + 11}px`,
+    left: `${24 * level + 31}px`,
   }
 })
 
@@ -96,7 +96,7 @@ const componentAttributes = computed(() => {
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex w-full flex-col">
         <div
-          class="group/item my-0.5 flex w-full items-center justify-start border-transparent py-1.5 transition-all duration-200 group-aria-[current]/tree:border-border-accent hover:bg-surface-hover"
+          class="group/item flex w-full items-center justify-start border-transparent py-tight transition-all duration-200 group-aria-[current]/tree:border-border-accent hover:bg-surface-hover"
           :class="{ 'gap-tight pr-base': level > 0, 'gap-compact border-l-2 px-base': level === 0 }"
           :style="{ 'padding-left': `${1.5 * (level + 1)}rem` }"
           @click="() => toggleSubmenu()"
@@ -115,7 +115,7 @@ const componentAttributes = computed(() => {
           </span>
           <div
             v-if="label"
-            class="-my-tight flex min-w-5 items-center justify-center rounded-md bg-surface-hover px-1.5 py-0.5 text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-surface-card"
+            class="-my-tight flex min-w-5 items-center justify-center rounded-md bg-surface-hover p-micro text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-surface-card"
             :class="labelDanger ? 'text-status-danger-text' : 'text-content-default'"
           >
             <span>{{ label }}</span>
@@ -146,7 +146,7 @@ const componentAttributes = computed(() => {
             class="relative flex gap-tight transition-all duration-200"
           >
             <div
-              class="absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 transition-colors duration-200"
+              class="absolute top-0 z-20 h-4 border-b-2 border-l-2 transition-colors duration-200"
               :class="[
                 index <= selectedIndex ? 'border-accent-fill' : 'border-border-strong',
                 { 'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path },
@@ -155,7 +155,7 @@ const componentAttributes = computed(() => {
             />
             <div
               v-if="index !== (subItems?.length ?? 0) - 1"
-              class="absolute top-4 bottom-0 z-20 mx-5 w-2 border-l-2 transition-colors duration-200"
+              class="absolute top-4 bottom-0 z-20 w-2 border-l-2 transition-colors duration-200"
               :class="index < selectedIndex ? 'border-accent-fill' : 'border-border-strong'"
               :style="linePadding"
             />

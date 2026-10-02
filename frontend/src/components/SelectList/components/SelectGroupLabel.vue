@@ -22,7 +22,7 @@ const forwarded = useForwardProps(delegatedProps)
     v-bind="forwarded"
     :class="
       cn(
-        'sticky top-0 z-10 -mx-1.5 bg-surface-raised px-1.5 py-micro pl-[calc(--spacing(1.5)+(--spacing(4)))] text-[0.625rem] font-semibold tracking-wider text-content-default uppercase',
+        'sticky top-0 z-10 -mx-micro bg-surface-raised py-micro pr-micro pl-base text-[0.625rem] font-semibold tracking-wider text-content-default uppercase',
         props.class,
       )
     "

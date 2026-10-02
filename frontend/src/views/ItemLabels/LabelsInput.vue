@@ -96,7 +96,7 @@ watch(filterValue, () => {
         <div
           v-for="(label, index) in filterLabels"
           :key="label.key"
-          class="-mx-micro -my-tight rounded-md border p-0.5 transition-all"
+          class="-mx-micro -my-tight rounded-md border p-micro transition-all"
           :class="selectedLabel === index ? 'border-border-accent' : 'border-transparent'"
         >
           <ItemLabel

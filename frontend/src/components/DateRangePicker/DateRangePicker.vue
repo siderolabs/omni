@@ -67,7 +67,7 @@ const id = useId()
           <DateRangePickerInput
             v-else
             :part="item.part"
-            class="rounded p-0.5 focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
+            class="rounded p-micro focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
             type="start"
           >
             {{ item.value }}
@@ -81,7 +81,7 @@ const id = useId()
           <DateRangePickerInput
             v-else
             :part="item.part"
-            class="rounded p-0.5 focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
+            class="rounded p-micro focus:bg-surface-inert focus:outline-none data-placeholder:text-content-muted"
             type="end"
           >
             {{ item.value }}

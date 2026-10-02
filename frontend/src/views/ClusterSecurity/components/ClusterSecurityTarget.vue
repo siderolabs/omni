@@ -115,10 +115,10 @@ const upgradeVersionScans = computed(() => {
 
     <div class="flex flex-col gap-snug">
       <div class="flex flex-wrap items-center justify-between gap-snug">
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-col gap-tight">
           <div
             v-if="currentVersionScan?.loading"
-            class="flex items-center gap-1.5 text-xs text-content-secondary"
+            class="flex items-center gap-micro text-xs text-content-secondary"
           >
             <TSpinner class="size-4" />
             Running scan…
@@ -167,7 +167,7 @@ const upgradeVersionScans = computed(() => {
           :is-patch
         />
       </div>
-      <p v-else class="flex items-center gap-1.5 text-xs text-status-success-text">
+      <p v-else class="flex items-center gap-micro text-xs text-status-success-text">
         <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
         Already on the latest available Talos version.
       </p>

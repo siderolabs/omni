@@ -28,7 +28,7 @@ const { theme } = useTheme()
         toast:
           'flex w-sm gap-tight rounded border border-border-strong bg-surface-raised p-tight shadow-dropdown',
         closeButton:
-          'absolute top-2 right-2 rounded-full bg-surface-hover p-0.5 text-content-emphasis hover:bg-surface-inert',
+          'absolute top-2 right-2 rounded-full bg-surface-hover p-micro text-content-emphasis hover:bg-surface-inert',
         icon: 'size-5 shrink-0 self-center *:size-full',
         content: 'flex flex-col gap-micro',
         title: 'text-sm text-content-emphasis',

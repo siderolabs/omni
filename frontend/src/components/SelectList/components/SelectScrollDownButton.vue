@@ -21,10 +21,7 @@ const forwarded = useForwardProps(delegatedProps)
   <SelectScrollDownButton
     v-bind="forwarded"
     :class="
-      cn(
-        'z-10 -mt-(--arrow-size) bg-linear-to-t from-surface-raised from-25% to-transparent',
-        props.class,
-      )
+      cn('z-10 -mt-compact bg-linear-to-t from-surface-raised from-25% to-transparent', props.class)
     "
   >
     <slot></slot>
