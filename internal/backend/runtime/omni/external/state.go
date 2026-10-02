@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -146,28 +147,44 @@ func parseListOptions(opts []state.ListOption) (parsedListOptions, error) {
 		return result, errors.New("ID query is not supported")
 	}
 
-	for _, q := range opt.LabelQueries {
-		for _, t := range q.Terms {
-			keyOp := ordered.MakePair(t.Key, t.Op)
-
-			switch keyOp {
-			case ordered.MakePair(omni.LabelCluster, resource.LabelOpEqual):
-				if len(t.Value) == 0 || t.Value[0] == "" {
-					return result, fmt.Errorf("empty value for %q is not supported", t.Key)
-				}
-
-				result.ClusterID = t.Value[0]
-			default:
-				return result, fmt.Errorf("unsupported label query term %v", keyOp)
-			}
-		}
+	clusterID, err := clusterIDFromLabelQueries(opt.LabelQueries)
+	if err != nil {
+		return result, err
 	}
 
-	if result.ClusterID == "" {
-		return result, errors.New("cluster ID must be specified in query")
-	}
+	result.ClusterID = clusterID
 
 	return result, nil
+}
+
+// clusterIDFromLabelQueries returns the cluster the backups are requested for, rejecting every other term.
+func clusterIDFromLabelQueries(queries resource.LabelQueries) (string, error) {
+	var terms []resource.LabelTerm
+
+	for _, q := range queries {
+		for _, t := range q.Terms {
+			if keyOp := ordered.MakePair(t.Key, t.Op); keyOp != ordered.MakePair(omni.LabelCluster, resource.LabelOpEqual) {
+				return "", fmt.Errorf("unsupported label query term %v", keyOp)
+			}
+
+			if t.Invert {
+				return "", fmt.Errorf("inverted value for %q is not supported", t.Key)
+			}
+		}
+
+		terms = append(terms, q.Terms...)
+	}
+
+	clusterID, err := labels.ExactValue(terms, omni.LabelCluster)
+	if err != nil {
+		return "", err
+	}
+
+	if clusterID == "" {
+		return "", errors.New("cluster ID must be specified in query")
+	}
+
+	return clusterID, nil
 }
 
 type parsedListOptions struct {
@@ -231,30 +248,12 @@ func convertOpts(opts []state.WatchKindOption) ([]state.ListOption, error) {
 		return nil, errors.New("skip protobuf unmarshal is not supported")
 	}
 
-	var result []state.ListOption
-
-	for _, q := range wo.LabelQueries {
-		for _, term := range q.Terms {
-			keyOp := ordered.MakePair(term.Key, term.Op)
-
-			switch keyOp {
-			case ordered.MakePair(omni.LabelCluster, resource.LabelOpEqual):
-				if len(term.Value) == 0 || term.Value[0] == "" {
-					return nil, fmt.Errorf("empty value for %q is not supported", term.Key)
-				}
-
-				result = append(result, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, term.Value[0])))
-			default:
-				return nil, fmt.Errorf("unsupported label query term %v", keyOp)
-			}
-		}
+	clusterID, err := clusterIDFromLabelQueries(wo.LabelQueries)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(result) == 0 {
-		return nil, errors.New("cluster ID must be specified in query")
-	}
-
-	return result, nil
+	return []state.ListOption{state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID))}, nil
 }
 
 // Watch implements [state.CoreState] interface.

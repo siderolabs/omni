@@ -2,10 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Package labels implements label selector parser.
+// Package labels implements label selector parsing, and reading values back out of the parsed terms.
 package labels
 
 import (
+	"fmt"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,4 +36,30 @@ func ParseSelectors(selectors []string) (resource.LabelQueries, error) {
 	}
 
 	return res, nil
+}
+
+// ExactValue returns the value the terms require the label to have, and an empty string if they do not require one.
+//
+// Terms for other labels, and inverted terms, which exclude a value rather than requiring one, are ignored.
+// Two terms requiring different values are an error, since the terms then require no value at all.
+func ExactValue(terms []resource.LabelTerm, key string) (string, error) {
+	var value string
+
+	for _, term := range terms {
+		// an inverted term narrows the result down, it never requires a value
+		if term.Key != key || term.Op != resource.LabelOpEqual || term.Invert {
+			continue
+		}
+
+		switch {
+		case len(term.Value) == 0 || term.Value[0] == "":
+			return "", fmt.Errorf("empty value for %q is not supported", key)
+		case value != "" && value != term.Value[0]:
+			return "", fmt.Errorf("multiple values for %q are not supported", key)
+		}
+
+		value = term.Value[0]
+	}
+
+	return value, nil
 }
