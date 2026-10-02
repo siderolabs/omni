@@ -301,3 +301,90 @@ func TestParseQuery(t *testing.T) {
 		})
 	}
 }
+
+// interpretedTerm lists the parts of a label term ExactValue reads.
+//
+// The conversion stops compiling when resource.LabelTerm gains a field, so a new way to write a term
+// cannot pass through unread. Work out what the new field changes about which resources a term selects,
+// and make ExactValue still return the value the terms require, or an error when they require more than
+// one. Only then add the field here.
+type interpretedTerm struct {
+	Key    string
+	Value  []string
+	Op     resource.LabelOp
+	Invert bool
+}
+
+var _ = interpretedTerm(resource.LabelTerm{})
+
+func TestExactValue(t *testing.T) {
+	t.Parallel()
+
+	const key = "example.com/cluster"
+
+	term := func(value string, opts ...resource.TermOption) resource.LabelTerm {
+		var query resource.LabelQuery
+
+		resource.LabelEqual(key, value, opts...)(&query)
+
+		return query.Terms[0]
+	}
+
+	for name, tt := range map[string]struct {
+		expected string
+		terms    []resource.LabelTerm
+		fails    bool
+	}{
+		"no terms": {},
+		"one value": {
+			terms:    []resource.LabelTerm{term("cluster1")},
+			expected: "cluster1",
+		},
+		"the same value twice": {
+			terms:    []resource.LabelTerm{term("cluster1"), term("cluster1")},
+			expected: "cluster1",
+		},
+		"a term for another label": {
+			terms:    []resource.LabelTerm{{Key: "another", Op: resource.LabelOpEqual, Value: []string{"value"}}, term("cluster1")},
+			expected: "cluster1",
+		},
+		"a term with another operator": {
+			terms: []resource.LabelTerm{{Key: key, Op: resource.LabelOpExists}},
+		},
+		"an inverted value": {
+			terms: []resource.LabelTerm{term("cluster1", resource.NotMatches)},
+		},
+		"a value with another one excluded": {
+			terms:    []resource.LabelTerm{term("cluster1"), term("cluster2", resource.NotMatches)},
+			expected: "cluster1",
+		},
+		"two different values": {
+			terms: []resource.LabelTerm{term("cluster1"), term("cluster2")},
+			fails: true,
+		},
+		"an empty value": {
+			terms: []resource.LabelTerm{term("")},
+			fails: true,
+		},
+		"a term without a value": {
+			terms: []resource.LabelTerm{{Key: key, Op: resource.LabelOpEqual}},
+			fails: true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			value, err := labels.ExactValue(tt.terms, key)
+
+			if tt.fails {
+				require.Error(t, err)
+				require.Empty(t, value)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, value)
+		})
+	}
+}

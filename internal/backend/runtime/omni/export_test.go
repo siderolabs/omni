@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
@@ -38,4 +39,9 @@ func GetEmbeddedEtcdClientWithServer(params *config.EtcdParams, logger *zap.Logg
 // FilterAccessByType exposes filterAccessByType for tests.
 func FilterAccessByType(access state.Access) error {
 	return filterAccessByType(access)
+}
+
+// CheckForKindAccess exposes checkForKindAccess for tests.
+func CheckForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm) error {
+	return checkForKindAccess(ctx, st, verb, kind, labelTerms)
 }
