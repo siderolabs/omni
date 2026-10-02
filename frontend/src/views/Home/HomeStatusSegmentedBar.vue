@@ -46,7 +46,7 @@ function barTotal(bar: Bar) {
           <span v-if="bar.label" class="text-xs text-content-secondary">{{ bar.label }}</span>
 
           <div
-            class="flex h-2.5 w-full gap-0.5 overflow-hidden rounded-sm bg-surface-inert ring-1 ring-border-control ring-inset"
+            class="flex h-2.5 w-full gap-px overflow-hidden rounded-sm bg-surface-inert ring-1 ring-border-control ring-inset"
             role="img"
             :aria-label="
               bar.segments.map((segment) => `${segment.label}: ${segment.value}`).join(', ')
@@ -65,7 +65,7 @@ function barTotal(bar: Bar) {
         </div>
       </div>
 
-      <dl class="flex flex-wrap gap-x-compact gap-y-1.5">
+      <dl class="flex flex-wrap gap-x-compact gap-y-tight">
         <div
           v-for="(item, index) in bar.segments"
           :key="item.label"

@@ -35,7 +35,7 @@ defineProps<{
       <slot />
     </div>
     <Tooltip v-if="control.errors" :description="control.errors">
-      <TIcon icon="exclamation-triangle" class="-my-1.5 h-4 w-4 text-status-warning-default" />
+      <TIcon icon="exclamation-triangle" class="-my-tight h-4 w-4 text-status-warning-default" />
     </Tooltip>
   </div>
 </template>

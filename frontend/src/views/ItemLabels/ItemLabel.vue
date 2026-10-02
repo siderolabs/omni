@@ -61,12 +61,7 @@ const description = computed(() => {
       v-bind="$attrs"
       @click.stop="$emit('selectLabel')"
     >
-      <TIcon
-        v-if="label.icon"
-        :icon="label.icon"
-        class="-ml-0.5 size-3.5 shrink-0"
-        :class="iconClass"
-      />
+      <TIcon v-if="label.icon" :icon="label.icon" class="size-3.5 shrink-0" :class="iconClass" />
       <span class="truncate">
         <template v-if="label.value">
           <span :class="keyClass">{{ label.id }}:</span>

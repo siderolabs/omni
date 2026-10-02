@@ -140,7 +140,7 @@ useTitle('Clusters')
       <template #default="{ items, searchQuery }">
         <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-snug">
           <div
-            class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-2.5 text-xs max-lg:hidden"
+            class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-snug text-xs max-lg:hidden"
           >
             <div class="pl-base">Name</div>
             <div>Machines Healthy</div>

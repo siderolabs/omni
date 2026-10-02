@@ -34,17 +34,17 @@ const statusDotClass: Record<StatusTone, string> = {
 </script>
 
 <template>
-  <p v-if="!matches.length" class="flex items-center gap-1.5 text-xs text-status-success-text">
+  <p v-if="!matches.length" class="flex items-center gap-micro text-xs text-status-success-text">
     <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
     No vulnerabilities
   </p>
-  <ul v-else class="flex flex-wrap items-center gap-1.5">
+  <ul v-else class="flex flex-wrap items-center gap-micro">
     <li
       v-for="[sev, count] in counts"
       :key="sev"
       :class="
         cn(
-          'flex items-center gap-1.5 rounded-sm border border-border-strong px-tight py-micro text-xs text-content-secondary',
+          'flex items-center gap-micro rounded-sm border border-border-strong px-tight py-micro text-xs text-content-secondary',
           {
             'cursor-pointer transition-colors hover:bg-surface-hover': clickable,
             'bg-surface-hover text-content-default': activeFilter === sev,

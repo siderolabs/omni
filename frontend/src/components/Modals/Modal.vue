@@ -66,12 +66,12 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
       <DialogContent
         :class="
           cn(
-            'fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-surface-raised px-(--padding-x) py-section zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
+            'fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-surface-raised px-section py-section zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
             $attrs.class,
           )
         "
       >
-        <div class="mb-5 flex shrink-0 items-start justify-between gap-compact">
+        <div class="mb-base flex shrink-0 items-start justify-between gap-compact">
           <div class="flex flex-col">
             <DialogTitle class="font-medium text-content-emphasis">{{ title }}</DialogTitle>
             <DialogDescription v-if="$slots.description" class="text-sm">
@@ -91,7 +91,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           :class="
             cn(
               'min-h-0 grow overflow-y-auto',
-              { '-mx-(--padding-x)': disableContentPadding },
+              { '-mx-section': disableContentPadding },
               contentClass,
             )
           "

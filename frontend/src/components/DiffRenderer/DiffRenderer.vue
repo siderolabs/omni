@@ -213,7 +213,7 @@ function renderCollapseToggle(id: string) {
 
   button.type = 'button'
   button.className = cn([
-    'grid place-items-center rounded-sm p-0.5 text-content-muted transition hover:text-content-emphasis',
+    'grid place-items-center rounded-sm p-micro text-content-muted transition hover:text-content-emphasis',
     isCollapsed ? '-rotate-90' : '',
   ])
   button.ariaExpanded = String(!isCollapsed)

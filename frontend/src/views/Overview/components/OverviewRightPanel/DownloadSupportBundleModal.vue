@@ -209,7 +209,7 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
         <TCheckbox v-model="encrypt" :disabled="encryptLocked" label="Encrypt for Sidero Labs" />
       </Tooltip>
 
-      <p class="mt-micro ml-5.5 text-xs text-content-muted">
+      <p class="mt-micro ml-base text-xs text-content-muted">
         {{
           encrypt
             ? 'Only Sidero Labs team will be able to open the bundle, so it is safe to attach to an issue or a ticket.'
@@ -274,7 +274,7 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
             :description="state.error"
           >
             <div
-              class="flex cursor-pointer items-center gap-tight px-compact py-0.5 hover:bg-surface-hover"
+              class="flex cursor-pointer items-center gap-tight px-compact py-micro hover:bg-surface-hover"
             >
               <TIcon
                 class="h-4 w-4"

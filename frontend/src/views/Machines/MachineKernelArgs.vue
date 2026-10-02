@@ -52,7 +52,7 @@ const currentCmdline = computed(() => status.value?.spec.current_cmdline ?? '')
       </dt>
       <dd
         aria-labelledby="current-kernel-cmdline"
-        class="rounded bg-surface-inert px-2.5 py-tight text-xs"
+        class="rounded bg-surface-inert px-snug py-tight text-xs"
       >
         <code class="font-mono break-all whitespace-pre-wrap text-content-default">
           {{ currentCmdline || 'none' }}
@@ -64,10 +64,10 @@ const currentCmdline = computed(() => status.value?.spec.current_cmdline ?? '')
       </dt>
       <dd
         aria-labelledby="extra-kernel-args"
-        class="my-0.5 flex items-center gap-tight rounded bg-surface-inert pr-tight text-xs"
+        class="my-micro flex items-center gap-tight rounded bg-surface-inert pr-tight text-xs"
       >
         <code
-          class="flex-1 rounded bg-surface-inert px-2.5 py-tight font-mono break-all whitespace-pre-wrap text-content-default"
+          class="flex-1 rounded bg-surface-inert px-snug py-tight font-mono break-all whitespace-pre-wrap text-content-default"
         >
           {{ currentArgs || 'none' }}
         </code>

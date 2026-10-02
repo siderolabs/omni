@@ -20,7 +20,7 @@ defineProps<{
 <template>
   <div
     class="flex flex-col gap-micro"
-    :class="cn({ 'mb-7': !subtitle, 'mb-tight': subtitle }, $props.class)"
+    :class="cn({ 'mb-base': !subtitle, 'mb-tight': subtitle }, $props.class)"
   >
     <div class="flex items-center gap-base">
       <h3 class="text-xl font-medium text-content-emphasis">{{ title }}</h3>

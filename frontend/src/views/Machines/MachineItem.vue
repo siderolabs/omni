@@ -184,7 +184,7 @@ const canUseLifecycleUpgrade = computed(() => {
         <button
           v-if="connectionLabel"
           type="button"
-          class="flex shrink-0 items-center gap-micro rounded-sm px-micro py-0.5 hover:bg-surface-hover"
+          class="flex shrink-0 items-center gap-micro rounded-sm p-micro hover:bg-surface-hover"
           :class="
             connectionLabel.tone === 'danger' ? 'text-status-danger-text' : 'text-content-secondary'
           "
@@ -302,7 +302,7 @@ const canUseLifecycleUpgrade = computed(() => {
       </div>
 
       <button
-        class="mt-0.75 size-4 shrink-0 justify-self-center text-content-muted transition-colors hover:text-content-emphasis active:text-content-muted"
+        class="mt-micro size-4 shrink-0 justify-self-center text-content-muted transition-colors hover:text-content-emphasis active:text-content-muted"
         aria-label="details"
         @click="$emit('openPanel')"
       >

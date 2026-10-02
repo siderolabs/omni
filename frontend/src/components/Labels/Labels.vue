@@ -62,7 +62,7 @@ const removeLabel = (key: string) => {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1.5 text-xs">
+  <div class="flex flex-wrap items-center gap-micro text-xs">
     <ItemLabel
       v-for="(label, key) in modelValue"
       :key="key"

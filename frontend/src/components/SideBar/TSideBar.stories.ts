@@ -46,6 +46,12 @@ import TSideBar from './TSideBar.vue'
 
 const meta: Meta<typeof TSideBar> = {
   component: TSideBar,
+  parameters: {
+    layout: 'fullscreen',
+  },
+  decorators: [
+    () => ({ template: '<div class="h-screen flex"><story /><div class="grow" /></div>' }),
+  ],
 }
 
 export default meta

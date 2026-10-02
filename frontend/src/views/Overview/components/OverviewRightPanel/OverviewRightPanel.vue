@@ -289,7 +289,7 @@ const exportClusterTemplateModalOpen = ref(false)
 </script>
 
 <template>
-  <div class="min-w-67 rounded border border-border-default bg-surface-card py-5">
+  <div class="min-w-67 rounded border border-border-default bg-surface-card py-base">
     <div class="flex flex-col gap-compact px-compact lg:px-base">
       <h3 class="text-sm text-content-default">Cluster Details</h3>
       <ManagedByTemplatesWarning warning-style="short" />

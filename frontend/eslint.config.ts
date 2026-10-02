@@ -58,8 +58,7 @@ export default withVueTs(
     rules: {
       'design-system/no-raw-color': 'error',
       'design-system/no-raw-font-size': 'error',
-      // Off until spacing adopts the design system spacing in #3500 / #3501
-      'design-system/no-off-menu-spacing': 'off',
+      'design-system/no-off-menu-spacing': 'error',
       'design-system/no-primitive-token': 'error',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',

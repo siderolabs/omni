@@ -71,7 +71,7 @@ useTitle('OIDC Login')
         </div>
       </div>
 
-      <div v-if="!authRequestId" class="mx-12">Public key ID parameter is missing...</div>
+      <div v-if="!authRequestId" class="mx-section">Public key ID parameter is missing...</div>
       <template v-else>
         <div class="flex w-full flex-col gap-compact">
           <div>The Kubernetes access is going to be granted for the user:</div>
@@ -84,12 +84,12 @@ useTitle('OIDC Login')
           />
           <div
             v-if="authCode"
-            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-border-default p-micro pl-tight"
+            class="flex w-full items-center justify-center gap-micro rounded-lg border border-border-default p-micro pl-tight"
           >
             <div class="mr-tight text-sm text-content-emphasis">Access Code</div>
             <div class="flex-1" />
             <div
-              class="cursor-pointer rounded-l-md bg-surface-inert px-tight py-0.5 font-mono font-bold text-content-emphasis"
+              class="cursor-pointer rounded-l-md bg-surface-inert px-tight py-micro font-mono font-bold text-content-emphasis"
               @click="copyCode"
             >
               {{ copied ? 'Copied' : authCode }}
@@ -101,7 +101,7 @@ useTitle('OIDC Login')
               <TIcon icon="copy" class="size-5" />
             </div>
           </div>
-          <div v-else class="my-0.5 flex w-full flex-col gap-snug">
+          <div v-else class="my-micro flex w-full flex-col gap-snug">
             <TButton class="w-full" variant="highlighted" @click="confirmOIDCRequest">
               Grant Access
             </TButton>

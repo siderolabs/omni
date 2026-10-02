@@ -124,7 +124,7 @@ useTitle(() => getMachineName(machine.value) || machineId.value)
 
 <template>
   <div v-if="machine && isPartOfCluster" class="flex h-full flex-col pt-base">
-    <div class="mb-7 flex flex-col gap-compact px-compact md:px-base">
+    <div class="mb-base flex flex-col gap-compact px-compact md:px-base">
       <NodesHeader :cluster-id="clusterId" :machine-id="machineId" />
 
       <TAlert

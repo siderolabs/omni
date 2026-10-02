@@ -119,7 +119,7 @@ useTitle('Talos Version')
 
       <br />
       Selecting
-      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-micro">Automatic</code>
       will automatically get the latest version, even if it changes.
     </p>
 
@@ -177,7 +177,7 @@ useTitle('Talos Version')
 
     <p class="text-xs">
       Selecting
-      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-micro">Automatic</code>
       will automatically get the default join token, even if it changes.
     </p>
 

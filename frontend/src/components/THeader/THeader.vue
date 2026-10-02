@@ -70,7 +70,7 @@ function dismissNotification(id: string) {
     >
       <div class="flex items-center gap-compact">
         <TButton
-          class="relative size-6 p-0! md:hidden"
+          class="relative size-6 p-0 md:hidden"
           aria-controls="sidebar"
           :aria-expanded="sidebarOpen"
           @click="$emit('toggleSidebar')"

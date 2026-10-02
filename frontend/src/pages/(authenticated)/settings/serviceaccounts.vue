@@ -160,7 +160,7 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
         class="grid grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_--spacing(24)] gap-snug"
       >
         <div
-          class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-2.5 text-xs max-lg:hidden"
+          class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-snug text-xs max-lg:hidden"
         >
           <div class="pl-base">ID</div>
           <div>Role</div>

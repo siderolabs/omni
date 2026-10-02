@@ -438,7 +438,7 @@ const submit = async () => {
             <div class="flex flex-wrap items-center gap-tight">
               <template v-for="(_, i) in conditions" :key="i">
                 <div
-                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-border-accent"
+                  class="flex gap-px rounded-md border border-transparent transition-colors focus-within:border-border-accent"
                 >
                   <div
                     class="flex cursor-pointer items-center rounded-l-md bg-surface-raised px-tight transition-colors hover:bg-surface-inert hover:text-content-emphasis"
@@ -559,7 +559,7 @@ const submit = async () => {
     </div>
 
     <div
-      class="flex h-16 items-center justify-end gap-tight border-t border-border-strong bg-surface-chrome px-12 py-base text-xs"
+      class="flex h-16 items-center justify-end gap-tight border-t border-border-strong bg-surface-chrome px-section py-base text-xs"
     >
       <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
         {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}

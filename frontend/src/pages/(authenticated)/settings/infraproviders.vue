@@ -161,7 +161,7 @@ useTitle('Infra Providers')
                   class="size-8 text-content-default"
                 />
 
-                <div class="flex flex-col gap-0.5">
+                <div class="flex flex-col gap-micro">
                   <span v-if="item.spec.name" class="text-md text-content-default">
                     {{ item.spec.name }}
                   </span>

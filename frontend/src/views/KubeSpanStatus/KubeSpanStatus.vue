@@ -137,18 +137,18 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
           class="flex flex-wrap items-center justify-between gap-compact rounded-lg border border-border-default bg-surface-card p-tight"
         >
           <div class="flex items-center gap-compact text-xs text-content-secondary">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-micro">
               <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
               <span>Online</span>
             </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-micro">
               <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
               <span>Offline</span>
             </div>
 
-            <div class="flex items-center gap-1.5">
-              <div class="flex items-center gap-0.5">
+            <div class="flex items-center gap-micro">
+              <div class="flex items-center gap-micro">
                 <div class="h-0 w-2 rounded-[1px] border-t-2 border-status-success-default"></div>
                 <div class="h-0 w-2 rounded-[1px] border-t-4 border-status-success-default"></div>
                 <div class="h-0 w-2 rounded-[1px] border-t-8 border-status-success-default"></div>
@@ -227,7 +227,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
 
             <div class="flex justify-between gap-snug text-[0.625rem] text-content-secondary">
               <span class="flex items-center gap-micro">
-                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
+                <span class="inline-flex items-center gap-micro text-content-emphasis">
                   <TIcon icon="long-arrow-down" class="size-3" />
                   <span class="font-medium tracking-wide uppercase">RX</span>
                 </span>
@@ -236,7 +236,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
               </span>
 
               <span class="flex items-center gap-micro">
-                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
+                <span class="inline-flex items-center gap-micro text-content-emphasis">
                   <span class="font-medium tracking-wide uppercase">TX</span>
                   <TIcon icon="long-arrow-top" class="size-3" />
                 </span>

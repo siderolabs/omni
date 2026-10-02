@@ -444,7 +444,7 @@ watch(
       </div>
     </PageContainer>
     <div
-      class="flex h-16 shrink-0 items-center gap-compact border-t border-border-default bg-surface-chrome px-5 py-snug"
+      class="flex h-16 shrink-0 items-center gap-compact border-t border-border-default bg-surface-chrome px-base py-snug"
     >
       <TButton class="secondary" @click="() => $router.push(back)">Back</TButton>
       <div class="flex-1" />

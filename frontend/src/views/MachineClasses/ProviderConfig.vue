@@ -78,7 +78,7 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
               <div class="flex flex-col gap-micro">
                 <div>{{ item.spec.name }}</div>
                 <div
-                  class="rounded bg-surface-hover px-tight py-0.5 text-xs text-content-secondary"
+                  class="rounded bg-surface-hover px-tight py-micro text-xs text-content-secondary"
                 >
                   id:
                   <WordHighlighter

@@ -218,7 +218,7 @@ const installerImage = computed(() => {
         {{ linksError.message }}
       </TAlert>
 
-      <p v-else-if="linksLoading" class="flex items-center gap-1.5">
+      <p v-else-if="linksLoading" class="flex items-center gap-micro">
         <TSpinner class="size-4" />
         Generating links...
       </p>
@@ -242,7 +242,7 @@ const installerImage = computed(() => {
           </Tooltip>
         </dt>
 
-        <dd class="flex items-center gap-1.5">
+        <dd class="flex items-center gap-micro">
           <template v-if="copyOnly">
             <code class="whitespace-wrap rounded bg-surface-hover px-tight py-micro wrap-anywhere">
               {{ link }}

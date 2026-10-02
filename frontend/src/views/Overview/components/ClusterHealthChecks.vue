@@ -66,7 +66,7 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
 <template>
   <div
     v-if="healthChecks.length"
-    class="mb-5 rounded border border-border-default bg-surface-card pt-5"
+    class="mb-base rounded border border-border-default bg-surface-card pt-base"
   >
     <div class="flex items-center gap-micro px-base pb-compact">
       <span class="flex-1 text-sm text-content-default">Health Checks</span>

@@ -112,7 +112,7 @@ useTitle('Pods')
       </div>
 
       <ul
-        class="mb-micro flex rounded bg-surface-card px-section py-2.5 text-xs text-content-default"
+        class="mb-micro flex rounded bg-surface-card px-section py-snug text-xs text-content-default"
       >
         <li class="w-1/6">Namespace</li>
         <li class="w-1/3">Name</li>

@@ -452,7 +452,7 @@ function getNodeItems(cluster: string, machine: string) {
       <TSidebarList :items="rootItems" />
 
       <div v-if="currentCluster" class="border-t border-border-default">
-        <p class="mt-5 mb-tight px-base text-xs text-content-muted">Cluster</p>
+        <p class="mt-base mb-tight px-base text-xs text-content-muted">Cluster</p>
         <p class="truncate px-base text-xs text-content-default">
           {{ currentCluster }}
         </p>
@@ -468,7 +468,7 @@ function getNodeItems(cluster: string, machine: string) {
         />
 
         <div v-if="currentMachine" class="border-t border-border-default">
-          <p class="mt-5 mb-tight px-base text-xs text-content-muted">Node</p>
+          <p class="mt-base mb-tight px-base text-xs text-content-muted">Node</p>
           <p class="truncate px-base text-xs text-content-default">{{ node }}</p>
           <TSidebarList :items="getNodeItems(currentCluster, currentMachine)" />
         </div>

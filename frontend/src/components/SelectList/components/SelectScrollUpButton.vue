@@ -22,6 +22,7 @@ const forwarded = useForwardProps(delegatedProps)
     v-bind="forwarded"
     :class="
       cn(
+        // eslint-disable-next-line design-system/no-off-menu-spacing --arrow-size is on system
         'z-10 -mb-(--arrow-size) bg-linear-to-b from-surface-raised from-25% to-transparent',
         props.class,
       )

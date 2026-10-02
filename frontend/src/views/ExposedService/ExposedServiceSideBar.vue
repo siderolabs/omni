@@ -46,11 +46,19 @@ const errors = computed(() => {
   <Disclosure as="div" class="border-t border-border-default" default-open>
     <template #default="{ open }">
       <DisclosureButton as="div" class="disclosure">
-        <div class="title">
-          <p class="title-name truncate">Exposed Services</p>
-          <div class="expand-button">
+        <div
+          class="group my-micro flex items-center justify-start gap-compact border-l-2 border-transparent px-base py-tight transition-all duration-200 hover:bg-surface-hover"
+        >
+          <p
+            class="flex-1 text-xs text-content-muted transition-all duration-200 group-hover:text-content-default"
+          >
+            Exposed Services
+          </p>
+          <div
+            class="-my-micro flex size-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 group-hover:bg-surface-card hover:border-border-strong"
+          >
             <TIcon
-              class="h-6 w-6 transition-colors transition-transform duration-250 hover:text-content-default"
+              class="size-6 transition-all duration-250 hover:text-content-default"
               :class="{ 'rotate-180': !open }"
               icon="drop-up"
             />
@@ -68,8 +76,11 @@ const errors = computed(() => {
             icon="window"
             regular-link
           />
-          <div v-if="errors.length" class="flex items-center gap-compact pr-5 pl-base text-xs">
-            <TIcon icon="exclamation-triangle" class="ml-0.5 size-4 text-status-warning-default" />
+          <div
+            v-if="errors.length"
+            class="flex items-center gap-compact border-l-2 border-transparent px-base text-xs"
+          >
+            <TIcon icon="exclamation-triangle" class="size-4 text-status-warning-default" />
             <div class="flex-1 truncate text-status-warning-text">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors
@@ -82,12 +93,14 @@ const errors = computed(() => {
                   </div>
                 </div>
               </template>
-              <IconButton icon="question-mark-circle" class="mr-0.5" />
+              <IconButton icon="question-mark-circle" />
             </Tooltip>
           </div>
         </template>
         <template v-else>
-          <p class="my-micro items-center justify-start px-base py-1.5 text-xs text-content-muted">
+          <p
+            class="my-micro items-center justify-start px-base py-tight text-xs text-content-muted"
+          >
             No exposed services
           </p>
         </template>
@@ -95,45 +108,3 @@ const errors = computed(() => {
     </template>
   </Disclosure>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.title {
-  @apply my-micro flex items-center justify-start gap-compact border-l-2 border-transparent px-base py-1.5 transition-all duration-200 hover:bg-surface-hover;
-}
-
-.title:hover .title-name {
-  @apply text-content-default;
-}
-
-.title-active .title {
-  @apply border-border-accent;
-}
-
-.title-active .title-icon {
-  @apply text-content-muted;
-}
-
-.title-active .title-name {
-  @apply text-content-muted;
-}
-
-.title-icon {
-  @apply text-content-muted transition-all duration-200;
-  width: 16px;
-  height: 16px;
-}
-
-.title-name {
-  @apply flex-1 text-xs text-content-muted transition-all duration-200;
-}
-
-.expand-button {
-  @apply -my-micro flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 hover:border-border-strong;
-}
-
-.title:hover .expand-button {
-  @apply bg-surface-card;
-}
-</style>
