@@ -24,6 +24,7 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -162,4 +163,46 @@ func TestCheckForKindAccessClusterTerms(t *testing.T) {
 			assert.Equal(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
 		})
 	}
+}
+
+// TestKernelArgsIsNotClusterScoped verifies that a cluster label on a KernelArgs resource does not
+// authorize the request.
+func TestKernelArgsIsNotClusterScoped(t *testing.T) {
+	t.Parallel()
+
+	const identity = "user-2@example.com"
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	accessPolicy := authres.NewAccessPolicy()
+	accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{
+		{
+			Users:    []string{identity},
+			Clusters: []string{"alpha"},
+			Role:     string(role.Operator),
+		},
+	}
+
+	require.NoError(t, innerSt.Create(t.Context(), accessPolicy))
+	require.NoError(t, innerSt.Create(t.Context(), authres.NewIdentity(identity)))
+
+	st := state.WrapCore(validated.NewState(innerSt, omni.AuthorizationValidationOptions(innerSt)...))
+
+	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.None})
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: identity})
+
+	// a cluster resource of the covered cluster is still writable through the policy
+	configPatch := omnires.NewConfigPatch("patch-1")
+	configPatch.Metadata().Labels().Set(omnires.LabelCluster, "alpha")
+
+	assert.NoError(t, st.Create(ctx, configPatch))
+
+	// kernel args name a machine, so a cluster label does not scope them
+	kernelArgs := omnires.NewKernelArgs("m1")
+	kernelArgs.Metadata().Labels().Set(omnires.LabelCluster, "alpha")
+
+	err := st.Create(ctx, kernelArgs)
+
+	assert.Equal(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
 }

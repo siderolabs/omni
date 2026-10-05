@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -44,4 +45,9 @@ func FilterAccessByType(access state.Access) error {
 // CheckForKindAccess exposes checkForKindAccess for tests.
 func CheckForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm) error {
 	return checkForKindAccess(ctx, st, verb, kind, labelTerms)
+}
+
+// AuthorizationValidationOptions exposes authorizationValidationOptions for tests.
+func AuthorizationValidationOptions(st state.State) []validated.StateOption {
+	return authorizationValidationOptions(st)
 }

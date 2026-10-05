@@ -97,7 +97,6 @@ var (
 		omni.SchematicConfigurationType,
 		omni.ExtensionsConfigurationType,
 		omni.MachineUpgradeStatusType,
-		omni.KernelArgsType,
 		omni.KernelArgsStatusType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,

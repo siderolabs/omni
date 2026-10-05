@@ -874,7 +874,25 @@ func TestMachineSetValidation(t *testing.T) {
 
 	err = st.Create(ctx, machineSet3)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "worker machine set must not have ID")
+	assert.ErrorContains(t, err, `worker machine set ID must not end with "-control-planes"`)
+
+	// the same name is reserved for a cluster that does not exist yet, so it cannot be taken in advance
+	squattingMachineSet := omnires.NewMachineSet("test-cluster-eu-control-planes")
+
+	squattingMachineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	squattingMachineSet.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
+
+	err = st.Create(ctx, squattingMachineSet)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `worker machine set ID must not end with "-control-planes"`)
+
+	// an ordinary worker machine set of the same shape is still fine
+	ordinaryMachineSet := omnires.NewMachineSet("test-cluster-eu-workers")
+
+	ordinaryMachineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	ordinaryMachineSet.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
+
+	assert.NoError(t, st.Create(ctx, ordinaryMachineSet))
 
 	// no cluster exists
 
@@ -3132,6 +3150,40 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	require.NoError(t, st.Create(ctx, req))                               // assert that we can create the destroy request now
 }
 
+func TestNodeForceDestroyRequestClusterLabel(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.NodeForceDestroyRequestValidationOptions(innerSt)...)
+
+	clusterMachine := omnires.NewClusterMachine("node-1")
+	clusterMachine.Metadata().Labels().Set(omnires.LabelCluster, "beta")
+
+	require.NoError(t, st.Create(ctx, clusterMachine))
+
+	withCluster := func(id, cluster string) *omnires.NodeForceDestroyRequest {
+		req := omnires.NewNodeForceDestroyRequest(id)
+		req.Metadata().Labels().Set(omnires.LabelCluster, cluster)
+
+		return req
+	}
+
+	// a request naming a cluster the node is not in is refused
+	err := st.Create(ctx, withCluster("node-1", "alpha"))
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `label "omni.sidero.dev/cluster" is "alpha"`)
+
+	// the node's own cluster is accepted
+	require.NoError(t, st.Create(ctx, withCluster("node-1", "beta")))
+
+	// no cluster label at all stays accepted, it is not scoped to a cluster
+	require.NoError(t, st.Destroy(ctx, omnires.NewNodeForceDestroyRequest("node-1").Metadata()))
+	require.NoError(t, st.Create(ctx, omnires.NewNodeForceDestroyRequest("node-1")))
+}
+
 func TestJoinTokenValidation(t *testing.T) {
 	t.Parallel()
 
@@ -3978,4 +4030,121 @@ func TestEulaValidation(t *testing.T) {
 		require.True(t, validated.IsValidationError(err))
 		require.ErrorContains(t, err, "EULA has already been accepted")
 	})
+}
+
+func TestConfigPatchLevelValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.ConfigPatchValidationOptions(innerSt)...)
+
+	patch := func(id string, labels ...string) *omnires.ConfigPatch {
+		res := omnires.NewConfigPatch(id)
+
+		for i := 0; i < len(labels); i += 2 {
+			res.Metadata().Labels().Set(labels[i], labels[i+1])
+		}
+
+		require.NoError(t, res.TypedSpec().Value.SetUncompressedData([]byte("machine:\n  env:\n    a: b")))
+
+		return res
+	}
+
+	// the machine label targets the machine in every cluster, so nothing may be combined with it
+	for name, labels := range map[string][]string{
+		"with cluster":         {omnires.LabelCluster, "alpha", omnires.LabelMachine, "m1"},
+		"with machine set":     {omnires.LabelMachineSet, "ms1", omnires.LabelMachine, "m1"},
+		"with cluster machine": {omnires.LabelClusterMachine, "m1", omnires.LabelMachine, "m1"},
+	} {
+		err := st.Create(ctx, patch("machine-"+name, labels...))
+		require.True(t, validated.IsValidationError(err), "expected validation error for %q", name)
+		assert.ErrorContains(t, err, "cannot be combined with", name)
+	}
+
+	// a patch narrows a cluster down in one way only
+	err := st.Create(ctx, patch("two-narrowings", omnires.LabelCluster, "alpha", omnires.LabelMachineSet, "ms1", omnires.LabelClusterMachine, "m1"))
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot be set together")
+
+	// a narrowing label without a cluster label matches nothing, so it is refused rather than ignored
+	for name, labels := range map[string][]string{
+		"machine set":     {omnires.LabelMachineSet, "ms1"},
+		"cluster machine": {omnires.LabelClusterMachine, "m1"},
+	} {
+		err = st.Create(ctx, patch("no-cluster-"+name, labels...))
+		require.True(t, validated.IsValidationError(err), "expected validation error for %q", name)
+		assert.ErrorContains(t, err, "is required alongside", name)
+	}
+
+	// every single level stays accepted
+	require.NoError(t, st.Create(ctx, patch("machine-level", omnires.LabelMachine, "m1")))
+	require.NoError(t, st.Create(ctx, patch("cluster-level", omnires.LabelCluster, "alpha")))
+	require.NoError(t, st.Create(ctx, patch("cluster-machine-level", omnires.LabelCluster, "alpha", omnires.LabelClusterMachine, "m1")))
+	require.NoError(t, st.Create(ctx, patch("machine-set-level", omnires.LabelCluster, "alpha", omnires.LabelMachineSet, "ms1")))
+
+	// the same pair cannot be introduced by an update that leaves the patch data alone
+	existing, err := safe.StateGetByID[*omnires.ConfigPatch](ctx, st, "machine-level")
+	require.NoError(t, err)
+
+	existing.Metadata().Labels().Set(omnires.LabelCluster, "alpha")
+
+	err = st.Update(ctx, existing)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot be combined with")
+}
+
+func TestMachineSetNodeClusterAgreesWithMachineSet(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
+
+	for _, name := range []string{"alpha", "beta"} {
+		cluster := omnires.NewCluster(name)
+		cluster.TypedSpec().Value.TalosVersion = "1.12.1"
+
+		require.NoError(t, st.Create(ctx, cluster))
+	}
+
+	machineSet := omnires.NewMachineSet("beta-workers")
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "beta")
+
+	require.NoError(t, st.Create(ctx, machineSet))
+
+	node := omnires.NewMachineSetNode("m1", machineSet)
+	node.Metadata().Labels().Set(omnires.LabelCluster, "alpha")
+
+	// the node names alpha while its machine set belongs to beta
+	err := st.Create(ctx, node)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `label "omni.sidero.dev/cluster" is "alpha"`)
+
+	// the machine set's own cluster is accepted
+	node.Metadata().Labels().Set(omnires.LabelCluster, "beta")
+	require.NoError(t, st.Create(ctx, node))
+}
+
+func TestKernelArgsClusterLabelRejected(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.KernelArgsValidationOptions()...)
+
+	withCluster := omnires.NewKernelArgs("m1")
+	withCluster.Metadata().Labels().Set(omnires.LabelCluster, "alpha")
+
+	err := st.Create(ctx, withCluster)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `label "omni.sidero.dev/cluster" is not supported`)
+
+	require.NoError(t, st.Create(ctx, omnires.NewKernelArgs("m1")))
 }

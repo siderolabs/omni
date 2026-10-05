@@ -445,3 +445,109 @@ func TestMachineExtensionsDeleteWithHeldOutput(t *testing.T) {
 		})
 	})
 }
+
+// TestMachineExtensionsOtherClusterTarget verifies that a configuration applies only to the machines
+// of its own cluster.
+func TestMachineExtensionsOtherClusterTarget(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		// both name alpha while pointing into beta, one per narrowing level
+		byClusterMachine := omni.NewExtensionsConfiguration("alpha-cluster-machine-level")
+		byClusterMachine.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		byClusterMachine.Metadata().Labels().Set(omni.LabelClusterMachine, "beta-machine")
+		byClusterMachine.TypedSpec().Value.Extensions = []string{"alpha-level"}
+
+		byMachineSet := omni.NewExtensionsConfiguration("alpha-machine-set-level")
+		byMachineSet.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		byMachineSet.Metadata().Labels().Set(omni.LabelMachineSet, "beta-other-set")
+		byMachineSet.TypedSpec().Value.Extensions = []string{"alpha-level"}
+
+		// an ordinary alpha configuration and machine, to show the controller is running
+		alphaClusterLevel := omni.NewExtensionsConfiguration("alpha-cluster-level")
+		alphaClusterLevel.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		alphaClusterLevel.TypedSpec().Value.Extensions = []string{"alpha-level"}
+
+		require.NoError(t, st.Create(ctx, byClusterMachine))
+		require.NoError(t, st.Create(ctx, byMachineSet))
+		require.NoError(t, st.Create(ctx, alphaClusterLevel))
+
+		// reached only by the cluster machine level configuration
+		first := omni.NewClusterMachine("beta-machine")
+		first.Metadata().Labels().Set(omni.LabelCluster, "beta")
+		first.Metadata().Labels().Set(omni.LabelMachineSet, "beta-machine-set")
+
+		// reached only by the machine set level configuration
+		second := omni.NewClusterMachine("beta-machine-2")
+		second.Metadata().Labels().Set(omni.LabelCluster, "beta")
+		second.Metadata().Labels().Set(omni.LabelMachineSet, "beta-other-set")
+
+		alphaMachine := omni.NewClusterMachine("alpha-machine")
+		alphaMachine.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		alphaMachine.Metadata().Labels().Set(omni.LabelMachineSet, "alpha-machine-set")
+
+		require.NoError(t, st.Create(ctx, first))
+		require.NoError(t, st.Create(ctx, second))
+		require.NoError(t, st.Create(ctx, alphaMachine))
+
+		require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		rtestutils.AssertResource(ctx, t, testContext.State, "alpha-machine", func(res *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"alpha-level"}, res.TypedSpec().Value.Extensions)
+		})
+
+		// the finalizer shows the two configurations were reconciled, without which the assertions
+		// below would hold before the controller had done anything
+		for _, id := range []string{"alpha-cluster-machine-level", "alpha-machine-set-level"} {
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ExtensionsConfiguration, assertion *assert.Assertions) {
+				assertion.True(res.Metadata().Finalizers().Has(omnictrl.MachineExtensionsControllerName))
+			})
+		}
+
+		rtestutils.AssertNoResource[*omni.MachineExtensions](ctx, t, testContext.State, "beta-machine")
+		rtestutils.AssertNoResource[*omni.MachineExtensions](ctx, t, testContext.State, "beta-machine-2")
+	})
+}
+
+// TestMachineExtensionsForeignConfigDoesNotShadow verifies that a configuration of another cluster
+// does not take the place of the machine's own when the machine is allocated.
+func TestMachineExtensionsForeignConfigDoesNotShadow(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+
+		betaClusterLevel := omni.NewExtensionsConfiguration("beta-cluster-level")
+		betaClusterLevel.Metadata().Labels().Set(omni.LabelCluster, "beta")
+		betaClusterLevel.TypedSpec().Value.Extensions = []string{"beta-level"}
+
+		forged := omni.NewExtensionsConfiguration("alpha-cluster-machine-level")
+		forged.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		forged.Metadata().Labels().Set(omni.LabelClusterMachine, "beta-machine")
+		forged.TypedSpec().Value.Extensions = []string{"alpha-level"}
+
+		require.NoError(t, st.Create(ctx, betaClusterLevel))
+		require.NoError(t, st.Create(ctx, forged))
+
+		require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		// allocated after both configurations exist, so the reconcile comes through the mapper
+		clusterMachine := omni.NewClusterMachine("beta-machine")
+		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "beta")
+		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "beta-machine-set")
+
+		require.NoError(t, testContext.State.Create(ctx, clusterMachine))
+
+		rtestutils.AssertResource(ctx, t, testContext.State, "beta-machine", func(res *omni.MachineExtensions, assertion *assert.Assertions) {
+			assertion.Equal([]string{"beta-level"}, res.TypedSpec().Value.Extensions)
+		})
+	})
+}

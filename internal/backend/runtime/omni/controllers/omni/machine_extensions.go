@@ -106,12 +106,15 @@ func (ctrl *MachineExtensionsController) MapInput(ctx context.Context, _ *zap.Lo
 			return nil, fmt.Errorf("cluster machine %q doesn't have machine set label set", ptr.ID())
 		}
 
+		// each level is looked up in the machine's own cluster
 		for _, queries := range [][]resource.LabelQueryOption{
 			{
 				resource.LabelEqual(omni.LabelClusterMachine, ptr.ID()),
+				resource.LabelEqual(omni.LabelCluster, clusterName),
 			},
 			{
 				resource.LabelEqual(omni.LabelMachineSet, machineSet),
+				resource.LabelEqual(omni.LabelCluster, clusterName),
 			},
 			{
 				resource.LabelEqual(omni.LabelCluster, clusterName),
@@ -308,6 +311,9 @@ func (ctrl *MachineExtensionsController) matchExtensionConfigByLabel(labelName, 
 }
 
 func (ctrl *MachineExtensionsController) getRelatedClusterMachines(ctx context.Context, r controller.QRuntime, configuration *omni.ExtensionsConfiguration) ([]*omni.ClusterMachine, error) {
+	// a configuration applies only to the machines of its own cluster
+	cluster, clusterSet := configuration.Metadata().Labels().Get(omni.LabelCluster)
+
 	for _, label := range []string{
 		omni.LabelClusterMachine,
 		omni.LabelMachineSet,
@@ -328,10 +334,19 @@ func (ctrl *MachineExtensionsController) getRelatedClusterMachines(ctx context.C
 				return nil, err
 			}
 
+			if machineCluster, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster); clusterSet && machineCluster != cluster {
+				return nil, nil
+			}
+
 			return []*omni.ClusterMachine{clusterMachine}, nil
 		}
 
-		clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(label, value)))
+		query := []resource.LabelQueryOption{resource.LabelEqual(label, value)}
+		if clusterSet && label != omni.LabelCluster {
+			query = append(query, resource.LabelEqual(omni.LabelCluster, cluster))
+		}
+
+		clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(query...))
 		if err != nil {
 			return nil, err
 		}
