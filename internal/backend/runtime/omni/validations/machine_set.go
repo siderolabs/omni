@@ -169,8 +169,9 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			return fmt.Errorf("control plane machine set must have ID %q", cpID)
 		}
 
-		if res.Metadata().ID() == cpID {
-			return fmt.Errorf("worker machine set must not have ID %q", cpID)
+		// reserved for the control planes of the cluster it names, which may not exist yet
+		if controlPlanesSuffix := "-" + omni.ControlPlanesIDSuffix; strings.HasSuffix(res.Metadata().ID(), controlPlanesSuffix) {
+			return fmt.Errorf("worker machine set ID must not end with %q", controlPlanesSuffix)
 		}
 
 		return nil

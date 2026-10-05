@@ -7,6 +7,7 @@ package validations
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/state"
 
@@ -32,6 +33,11 @@ const (
 // kernelArgsValidationOptions returns the validation options for the kernel args resource.
 func kernelArgsValidationOptions() []validated.StateOption {
 	validate := func(res *omni.KernelArgs) error {
+		// the resource is named after a machine, not a cluster
+		if _, ok := res.Metadata().Labels().Get(omni.LabelCluster); ok {
+			return fmt.Errorf("label %q is not supported, kernel args apply to the machine the resource is named after", omni.LabelCluster)
+		}
+
 		args := res.TypedSpec().Value.GetArgs()
 
 		if err := validateUserStringSlice("args", args, MaxKernelArgsCount, MaxKernelArgLength); err != nil {

@@ -16,6 +16,23 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
+// validateClusterLabelMatches checks the cluster label of res against the cluster the target belongs to.
+//
+// The label is optional, and without it the resource is not scoped to a cluster at all.
+func validateClusterLabelMatches(res resource.Resource, target resource.Resource) error {
+	cluster, ok := res.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return nil
+	}
+
+	targetCluster, _ := target.Metadata().Labels().Get(omni.LabelCluster)
+	if cluster != targetCluster {
+		return fmt.Errorf("label %q is %q, but %s belongs to cluster %q", omni.LabelCluster, cluster, target.Metadata(), targetCluster)
+	}
+
+	return nil
+}
+
 // relationLabelsValidationOptions returns the validation options for the relation labels on the resources.
 func relationLabelsValidationOptions() []validated.StateOption {
 	validateLabelIsSet := func(res resource.Resource, key string) error {

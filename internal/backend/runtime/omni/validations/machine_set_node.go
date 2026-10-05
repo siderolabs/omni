@@ -119,6 +119,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				return fmt.Errorf("adding machine set node to the machine set %q is not allowed: the machine set is tearing down", machineSet.Metadata().ID())
 			}
 
+			if err = validateClusterLabelMatches(res, machineSet); err != nil {
+				return err
+			}
+
 			if omni.GetMachineAllocation(machineSet) != nil {
 				if err = validateAutoMachineAllocation(ctx, st, res, machineSet); err != nil {
 					return err
