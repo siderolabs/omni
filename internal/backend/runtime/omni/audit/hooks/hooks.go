@@ -159,11 +159,6 @@ func handlePublicKey(data *auditlog.Data, res resource.Resource) error {
 		return errors.New("missing user ID on public key creation")
 	}
 
-	r, err := role.Parse(publicKey.TypedSpec().Value.GetRole())
-	if err != nil {
-		return err
-	}
-
 	data.Session.Fingerprint = res.Metadata().ID()
 	data.Session.PublicKeyExpiration = publicKey.TypedSpec().Value.GetExpiration().Seconds
 
@@ -174,7 +169,6 @@ func handlePublicKey(data *auditlog.Data, res resource.Resource) error {
 	if data.Session.Email == "" {
 		data.Session.UserID = userID
 		data.Session.Email = publicKey.TypedSpec().Value.GetIdentity().GetEmail()
-		data.Session.Role = r
 	}
 
 	return nil

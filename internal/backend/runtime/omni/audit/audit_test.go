@@ -32,7 +32,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
@@ -61,7 +60,6 @@ func TestAudit(t *testing.T) {
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 
 	res.TypedSpec().Value.Identity = &specs.Identity{Email: "dmitry.matrenichev@siderolabs.com"}
-	res.TypedSpec().Value.Role = string(role.Admin)
 	res.TypedSpec().Value.PublicKey = nil
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
@@ -154,7 +152,6 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 
 	res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
-	res.TypedSpec().Value.Role = string(role.Admin)
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
 	createCtx := func() context.Context {
@@ -280,7 +277,6 @@ func newPublicKey(t *testing.T, id string) *auth.PublicKey {
 
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 	res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
-	res.TypedSpec().Value.Role = string(role.Admin)
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
 	return res

@@ -98,6 +98,9 @@ message PublicKeySpec {
   google.protobuf.Timestamp expiration = 3;
   bool confirmed = 4;
   Identity identity = 5;
+  // Role is deprecated, the role of the user behind the key is used instead.
+  //
+  // Deprecated: unused. Reserve the field number when it is removed.
   string role = 6;
   Type type = 7;
 }

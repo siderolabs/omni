@@ -85,8 +85,9 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
 	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.Expiration)
-	publicKeyResource.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole()
 
+	// unused, will be removed in a later release
+	publicKeyResource.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
 	publicKeyResource.TypedSpec().Value.Confirmed = true
 
 	publicKeyResource.TypedSpec().Value.Identity = &specs.Identity{

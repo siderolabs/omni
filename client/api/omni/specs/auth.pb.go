@@ -376,12 +376,15 @@ type PublicKeySpec struct {
 	//
 	// Deprecated: will be removed once all environments are migrated to use roles.
 	// TODO: remove after all environments are migrated to use roles.
-	Scopes        []string               `protobuf:"bytes,2,rep,name=scopes,proto3" json:"scopes,omitempty"`
-	Expiration    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
-	Confirmed     bool                   `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
-	Identity      *Identity              `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
-	Role          string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
-	Type          PublicKeySpec_Type     `protobuf:"varint,7,opt,name=type,proto3,enum=specs.PublicKeySpec_Type" json:"type,omitempty"`
+	Scopes     []string               `protobuf:"bytes,2,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	Expiration *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	Confirmed  bool                   `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	Identity   *Identity              `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
+	// Role is deprecated, the role of the user behind the key is used instead.
+	//
+	// Deprecated: unused. Reserve the field number when it is removed.
+	Role          string             `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
+	Type          PublicKeySpec_Type `protobuf:"varint,7,opt,name=type,proto3,enum=specs.PublicKeySpec_Type" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

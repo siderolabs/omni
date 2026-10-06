@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/pkg/auth/authenticator"
 )
 
 type mockRoleProvider struct {
@@ -48,20 +49,27 @@ func TestAccessValidator(t *testing.T) {
 		role: role.Reader,
 	}
 
-	accessValidator, err := workloadproxy.NewSignatureAccessValidator(st, roleProvider, zaptest.NewLogger(t))
+	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), roleProvider, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	key, err := pgp.GenerateKey("test", "", "test@example.com", 8*time.Hour)
 	require.NoError(t, err)
 
-	publicKey := auth.NewPublicKey("test-public-key-id")
-
 	armored, err := key.ArmorPublic()
 	require.NoError(t, err)
+
+	user := auth.NewUser("test-user-id")
+	user.TypedSpec().Value.Role = string(role.Admin)
+
+	require.NoError(t, st.Create(ctx, user))
+
+	publicKey := auth.NewPublicKey("test-public-key-id")
+	publicKey.Metadata().Labels().Set(auth.LabelPublicKeyUserID, user.Metadata().ID())
 
 	publicKey.TypedSpec().Value.PublicKey = []byte(armored)
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(8 * time.Hour))
 	publicKey.TypedSpec().Value.Confirmed = true
+	publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "test@example.com"}
 
 	require.NoError(t, st.Create(ctx, publicKey))
 
@@ -92,7 +100,7 @@ func TestAccessValidatorUnconfirmedKey(t *testing.T) {
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	accessValidator, err := workloadproxy.NewSignatureAccessValidator(st, &mockRoleProvider{role: role.Admin}, zaptest.NewLogger(t))
+	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), &mockRoleProvider{role: role.Admin}, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	key, err := pgp.GenerateKey("test", "", "owner@example.com", 8*time.Hour)
@@ -108,10 +116,11 @@ func TestAccessValidatorUnconfirmedKey(t *testing.T) {
 
 	publicKey := auth.NewPublicKey("unconfirmed-key-id")
 	publicKey.Metadata().Labels().Set(auth.LabelPublicKeyUserID, user.Metadata().ID())
+
 	publicKey.TypedSpec().Value.PublicKey = []byte(armored)
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(8 * time.Hour))
-	publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "owner@example.com"}
 	publicKey.TypedSpec().Value.Confirmed = false
+	publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "owner@example.com"}
 
 	require.NoError(t, st.Create(ctx, publicKey))
 

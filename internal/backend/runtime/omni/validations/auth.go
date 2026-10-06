@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 
-	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -75,23 +74,6 @@ func roleValidationOptions() []validated.StateOption {
 			return nil
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *authres.User, newRes *authres.User, _ ...state.UpdateOption) error {
-			return validateRoleChange(oldRes.TypedSpec().Value.GetRole(), newRes.TypedSpec().Value.GetRole())
-		})),
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.PublicKey, _ ...state.CreateOption) error {
-			if err := validateRole(res.TypedSpec().Value.GetRole()); err != nil {
-				return err
-			}
-
-			email := res.TypedSpec().Value.GetIdentity().GetEmail()
-
-			sa, isSa := access.ParseServiceAccountFromFullID(email)
-			if (res.TypedSpec().Value.GetRole() == string(role.InfraProvider)) != (isSa && sa.IsInfraProvider) {
-				return fmt.Errorf("role %q is not valid for identity %q: the infra provider role belongs to infra provider service accounts only", res.TypedSpec().Value.GetRole(), email)
-			}
-
-			return nil
-		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *authres.PublicKey, newRes *authres.PublicKey, _ ...state.UpdateOption) error {
 			return validateRoleChange(oldRes.TypedSpec().Value.GetRole(), newRes.TypedSpec().Value.GetRole())
 		})),
 	}

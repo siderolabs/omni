@@ -87,8 +87,9 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
 	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.Expiration)
-	publicKeyResource.TypedSpec().Value.Role = string(saRole)
 
+	// unused, will be removed in a later release
+	publicKeyResource.TypedSpec().Value.Role = string(saRole) //nolint:staticcheck
 	// register the public key of the service account as "confirmed" because we are already authenticated
 	publicKeyResource.TypedSpec().Value.Confirmed = true
 
@@ -116,9 +117,9 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 		return "", err
 	}
 
-	// create the user resource representing the service account with the same scopes as the public key
+	// create the user resource representing the service account
 	user := authres.NewUser(newUserID)
-	user.TypedSpec().Value.Role = publicKeyResource.TypedSpec().Value.GetRole()
+	user.TypedSpec().Value.Role = string(saRole)
 
 	if sa.IsInfraProvider {
 		user.Metadata().Labels().Set(authres.LabelInfraProvider, "")

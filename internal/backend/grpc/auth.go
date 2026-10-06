@@ -8,7 +8,6 @@ package grpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/grpc/cookies"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -115,15 +113,6 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		return nil, err
 	}
 
-	// the role carried by the request is parsed before any lookup happens
-	var requestedRole role.Role
-
-	if request.GetSkipUserRole() {
-		if requestedRole, err = role.Parse(request.GetRole()); err != nil {
-			return nil, fmt.Errorf("failed to parse role for public key: %w", err)
-		}
-	}
-
 	result := &authpb.RegisterPublicKeyResponse{
 		PublicKeyId: pubKey.id,
 		LoginUrl:    s.buildLoginURL(pubKey.id),
@@ -147,32 +136,21 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 	userID := identity.TypedSpec().Value.GetUserId()
 
-	pubKeyRole := requestedRole
+	user, err := safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(userID).Metadata())
+	if state.IsNotFoundError(err) {
+		s.logger.Error(
+			"public key not registered, user not found",
+			zap.String("email", email),
+			zap.String("user_id", userID),
+			zap.String("fingerprint", pubKey.id),
+		)
 
-	// if skipUserRole is false, we use the role of the user
-	if !request.GetSkipUserRole() {
-		var user *authres.User
+		// we do not fail explicitly to prevent user enumeration
+		return result, nil
+	}
 
-		user, err = safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(userID).Metadata())
-		if state.IsNotFoundError(err) {
-			s.logger.Error(
-				"public key not registered, user not found",
-				zap.String("email", email),
-				zap.String("user_id", userID),
-				zap.String("fingerprint", pubKey.id),
-			)
-
-			// we do not fail explicitly to prevent user enumeration
-			return result, nil
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if pubKeyRole, err = role.Parse(user.TypedSpec().Value.Role); err != nil {
-			return nil, fmt.Errorf("failed to parse role for public key: %w", err)
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	setPubKeyAttributes := func(k *authres.PublicKey) {
@@ -182,7 +160,10 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		k.TypedSpec().Value.PublicKey = pubKey.data
 		k.TypedSpec().Value.Type = pubKey.keyType
 		k.TypedSpec().Value.Expiration = timestamppb.New(pubKey.expiration)
-		k.TypedSpec().Value.Role = string(pubKeyRole)
+
+		// unused, will be removed in a later release
+		k.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
+
 		k.TypedSpec().Value.Identity = &specs.Identity{
 			Email: email,
 		}
@@ -204,7 +185,6 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 			zap.String("email", email),
 			zap.String("fingerprint", pubKey.id),
 			zap.Time("expiration", pubKey.expiration),
-			zap.String("role", newPubKey.TypedSpec().Value.GetRole()),
 		)
 
 		return result, nil
@@ -372,7 +352,6 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		zap.String("email", email),
 		zap.String("fingerprint", pubKey.Metadata().ID()),
 		zap.Time("expiration", pubKey.TypedSpec().Value.GetExpiration().AsTime()),
-		zap.String("role", pubKey.TypedSpec().Value.GetRole()),
 	)
 
 	if err = auth.SetHasInitialUser(ctx, s.state); err != nil {

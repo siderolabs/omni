@@ -9,19 +9,14 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
-	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -54,14 +49,14 @@ func (a *AccessPolicyRoleProvider) RoleForCluster(ctx context.Context, clusterID
 // SignatureAccessValidator validates a signature using PGP keys and roles/ACLs.
 type SignatureAccessValidator struct {
 	logger       *zap.Logger
-	state        state.State
+	authenticate auth.AuthenticatorFunc
 	roleProvider RoleProvider
 }
 
 // NewSignatureAccessValidator creates a new PGP signature validator.
-func NewSignatureAccessValidator(state state.State, roleProvider RoleProvider, logger *zap.Logger) (*SignatureAccessValidator, error) {
-	if state == nil {
-		return nil, errors.New("state is nil")
+func NewSignatureAccessValidator(authenticate auth.AuthenticatorFunc, roleProvider RoleProvider, logger *zap.Logger) (*SignatureAccessValidator, error) {
+	if authenticate == nil {
+		return nil, errors.New("authenticator is nil")
 	}
 
 	if roleProvider == nil {
@@ -74,7 +69,7 @@ func NewSignatureAccessValidator(state state.State, roleProvider RoleProvider, l
 
 	return &SignatureAccessValidator{
 		logger:       logger,
-		state:        state,
+		authenticate: authenticate,
 		roleProvider: roleProvider,
 	}, nil
 }
@@ -87,41 +82,17 @@ func (p *SignatureAccessValidator) ValidateAccess(ctx context.Context, publicKey
 		return err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	publicKey, err := safe.StateGet[*authres.PublicKey](ctx, p.state, authres.NewPublicKey(publicKeyID).Metadata())
+	authenticator, err := p.authenticate(ctx, publicKeyID)
 	if err != nil {
 		return err
 	}
 
-	if publicKey.TypedSpec().Value.Expiration.AsTime().Before(time.Now()) {
-		return fmt.Errorf("key is expired")
-	}
-
-	if !publicKey.TypedSpec().Value.Confirmed {
-		return fmt.Errorf("key is not confirmed")
-	}
-
-	verifier, err := authres.GetSignatureVerifier(publicKey)
-	if err != nil {
+	if err = authenticator.Verifier.Verify([]byte(publicKeyID), singatureBytes); err != nil {
 		return err
 	}
 
-	if err = verifier.Verify([]byte(publicKeyID), singatureBytes); err != nil {
-		return err
-	}
-
-	publicKeyRoleStr := publicKey.TypedSpec().Value.GetRole()
-	if publicKeyRoleStr != "" {
-		publicKeyRole, parseErr := role.Parse(publicKeyRoleStr)
-		if parseErr != nil {
-			return parseErr
-		}
-
-		ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: publicKeyRole})
-	}
-
-	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: publicKey.TypedSpec().Value.GetIdentity().GetEmail()})
+	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: authenticator.Role})
+	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: authenticator.Identity})
 
 	accessRole, err := p.roleProvider.RoleForCluster(ctx, clusterID)
 	if err != nil {

@@ -1918,47 +1918,6 @@ func TestRoleValidation(t *testing.T) {
 	require.NoError(t, st.Create(ctx, infraProviderUser))
 	assert.ErrorContains(t, setUserRole(infraProviderUser.Metadata().ID(), role.Admin), "infra provider")
 	require.NoError(t, setUserRole(infraProviderUser.Metadata().ID(), role.InfraProvider))
-
-	// the public key role must match the kind of identity it belongs to
-	for _, tt := range []struct {
-		email string
-		role  role.Role
-		ok    bool
-	}{
-		{email: "user@example.com", role: role.Admin, ok: true},
-		{email: "user@example.com", role: role.InfraProvider, ok: false},
-		{email: "sa@serviceaccount.omni.sidero.dev", role: role.InfraProvider, ok: false},
-		{email: "aws@infra-provider.serviceaccount.omni.sidero.dev", role: role.InfraProvider, ok: true},
-		{email: "aws@infra-provider.serviceaccount.omni.sidero.dev", role: role.Admin, ok: false},
-	} {
-		pubKey := auth.NewPublicKey(tt.email + "-" + string(tt.role))
-		pubKey.TypedSpec().Value.Role = string(tt.role)
-		pubKey.TypedSpec().Value.Identity = &specs.Identity{Email: tt.email}
-
-		err := st.Create(ctx, pubKey)
-		if tt.ok {
-			assert.NoError(t, err, "%s %s", tt.email, tt.role)
-		} else {
-			assert.ErrorContains(t, err, "infra provider", "%s %s", tt.email, tt.role)
-		}
-	}
-
-	pubKey := auth.NewPublicKey("aws@infra-provider.serviceaccount.omni.sidero.dev-InfraProvider")
-
-	// confirming the key leaves the role untouched, so it must pass
-	_, err := safe.StateUpdateWithConflicts(ctx, st, pubKey.Metadata(), func(pk *auth.PublicKey) error {
-		pk.TypedSpec().Value.Confirmed = true
-
-		return nil
-	})
-	require.NoError(t, err)
-
-	_, err = safe.StateUpdateWithConflicts(ctx, st, pubKey.Metadata(), func(pk *auth.PublicKey) error {
-		pk.TypedSpec().Value.Role = string(role.Admin)
-
-		return nil
-	})
-	assert.ErrorContains(t, err, "infra provider")
 }
 
 func TestMachineSetClassesValidation(t *testing.T) {

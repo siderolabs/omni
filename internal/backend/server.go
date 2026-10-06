@@ -51,10 +51,8 @@ import (
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/debug"
@@ -82,6 +80,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
+	"github.com/siderolabs/omni/internal/pkg/auth/authenticator"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
@@ -402,7 +401,7 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 		s.dnsService,
 		authres.Enabled(s.authConfig),
 		s.state.Auditor(),
-		interceptor.NewSignature(s.authenticatorFunc(), s.logger).Unary(),
+		interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger).Unary(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -524,7 +523,7 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 	}
 
 	// auth is enabled, add signature and jwt interceptors
-	result = append(result, interceptor.NewSignature(s.authenticatorFunc(), s.logger))
+	result = append(result, interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger))
 
 	switch {
 	case s.authConfig.TypedSpec().Value.Auth0.Enabled:
@@ -551,58 +550,6 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 	}
 
 	return result, nil
-}
-
-func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
-	return func(ctx context.Context, fingerprint string) (*auth.Authenticator, error) {
-		ctx = actor.MarkContextAsInternalActor(ctx)
-
-		ptr := authres.NewPublicKey(fingerprint).Metadata()
-
-		pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state.Default(), ptr)
-		if err != nil {
-			return nil, err
-		}
-
-		if pubKey.TypedSpec().Value.Expiration.AsTime().Before(time.Now()) {
-			return nil, errors.New("public key expired")
-		}
-
-		if !pubKey.TypedSpec().Value.Confirmed {
-			return nil, errors.New("public key not confirmed")
-		}
-
-		userID, labelExists := pubKey.Metadata().Labels().Get(authres.LabelPublicKeyUserID)
-		if !labelExists {
-			return nil, errors.New("public key has no user ID label")
-		}
-
-		verifier, err := authres.GetSignatureVerifier(pubKey)
-		if err != nil {
-			return nil, err
-		}
-
-		user, err := safe.StateGet[*authres.User](ctx, s.state.Default(), resource.NewMetadata(resources.DefaultNamespace, authres.UserType, userID, resource.VersionUndefined))
-		if err != nil {
-			return nil, err
-		}
-
-		finalRole, err := role.Min(role.Role(user.TypedSpec().Value.GetRole()), role.Role(pubKey.TypedSpec().Value.GetRole()))
-		if err != nil {
-			return nil, err
-		}
-
-		if s.cfg.Auth.GetSuspended() {
-			finalRole = role.Reader
-		}
-
-		return &auth.Authenticator{
-			UserID:   userID,
-			Identity: pubKey.TypedSpec().Value.GetIdentity().GetEmail(),
-			Role:     finalRole,
-			Verifier: verifier,
-		}, nil
-	}
 }
 
 func (s *Server) runMachineAPI(ctx context.Context) error {
@@ -704,7 +651,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to create access policy role provider: %w", err)
 	}
 
-	pgpSignatureValidator, err := workloadproxy.NewSignatureAccessValidator(s.state.Default(), roleProvider,
+	pgpSignatureValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), roleProvider,
 		s.logger.With(logging.Component("pgp_access_validator")))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)

@@ -71,7 +71,6 @@ func TestPublicKeyCreatePreservesActorSession(t *testing.T) {
 	saPublicKey := authres.NewPublicKey("sa-key-fingerprint")
 	saPublicKey.Metadata().Labels().Set(authres.LabelPublicKeyUserID, "sa-user-id")
 	saPublicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "my-sa@serviceaccount.omni.sidero.dev"}
-	saPublicKey.TypedSpec().Value.Role = "Operator"
 	saPublicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1700000000, 0))
 
 	t.Run("admin managing service account preserves admin session", func(t *testing.T) {
@@ -113,7 +112,6 @@ func TestPublicKeyCreatePreservesActorSession(t *testing.T) {
 
 		assert.Equal(t, "my-sa@serviceaccount.omni.sidero.dev", ad.Session.Email, "Session.Email should be set from the public key")
 		assert.Equal(t, "sa-user-id", ad.Session.UserID, "Session.UserID should be set from the public key")
-		assert.Equal(t, "Operator", string(ad.Session.Role), "Session.Role should be set from the public key")
 		assert.Equal(t, "sa-key-fingerprint", ad.Session.Fingerprint, "Session.Fingerprint should be set to the public key ID")
 	})
 }
