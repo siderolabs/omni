@@ -2,120 +2,208 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { defineAsyncComponent } from 'vue'
+import IconActionHorizontal from '@/components/icons/IconActionHorizontal.vue'
+import IconActionHorizontalAnimated from '@/components/icons/IconActionHorizontalAnimated.vue'
+import IconArrowDownTray from '@/components/icons/IconArrowDownTray.vue'
+import IconArrowPath from '@/components/icons/IconArrowPath.vue'
+import IconArrowPathCircle from '@/components/icons/IconArrowPathCircle.vue'
+import IconArrowRightSquare from '@/components/icons/IconArrowRightSquare.vue'
+import IconArrowsRightLeft from '@/components/icons/IconArrowsRightLeft.vue'
+import IconArrowUpOnSquareStack from '@/components/icons/IconArrowUpOnSquareStack.vue'
+import IconBox from '@/components/icons/IconBox.vue'
+import IconCalendar from '@/components/icons/IconCalendar.vue'
+import IconChartBar from '@/components/icons/IconChartBar.vue'
+import IconCheck from '@/components/icons/IconCheck.vue'
+import IconCheckCircle from '@/components/icons/IconCheckCircle.vue'
+import IconCheckCircleSolid from '@/components/icons/IconCheckCircleSolid.vue'
+import IconChevronDoubleLeft from '@/components/icons/IconChevronDoubleLeft.vue'
+import IconChevronDoubleRight from '@/components/icons/IconChevronDoubleRight.vue'
+import IconChevronDown from '@/components/icons/IconChevronDown.vue'
+import IconChevronLeft from '@/components/icons/IconChevronLeft.vue'
+import IconChevronRight from '@/components/icons/IconChevronRight.vue'
+import IconChevronUp from '@/components/icons/IconChevronUp.vue'
+import IconCircleStack from '@/components/icons/IconCircleStack.vue'
+import IconClose from '@/components/icons/IconClose.vue'
+import IconCloudConnection from '@/components/icons/IconCloudConnection.vue'
+import IconClusters from '@/components/icons/IconClusters.vue'
+import IconCodeBracket from '@/components/icons/IconCodeBracket.vue'
+import IconComputerDesktop from '@/components/icons/IconComputerDesktop.vue'
+import IconCopy from '@/components/icons/IconCopy.vue'
+import IconCpuChip from '@/components/icons/IconCpuChip.vue'
+import IconDashboard from '@/components/icons/IconDashboard.vue'
+import IconDelete from '@/components/icons/IconDelete.vue'
+import IconDocument from '@/components/icons/IconDocument.vue'
+import IconDocumentation from '@/components/icons/IconDocumentation.vue'
+import IconDocumentText from '@/components/icons/IconDocumentText.vue'
+import IconDot from '@/components/icons/IconDot.vue'
+import IconDropdown from '@/components/icons/IconDropdown.vue'
+import IconDropUp from '@/components/icons/IconDropUp.vue'
+import IconEdit from '@/components/icons/IconEdit.vue'
+import IconExclamationCircle from '@/components/icons/IconExclamationCircle.vue'
+import IconExclamationClear from '@/components/icons/IconExclamationClear.vue'
+import IconExclamationTriangle from '@/components/icons/IconExclamationTriangle.vue'
+import IconExclamationTriangleSolid from '@/components/icons/IconExclamationTriangleSolid.vue'
+import IconExtensions from '@/components/icons/IconExtensions.vue'
+import IconExtensionsToggle from '@/components/icons/IconExtensionsToggle.vue'
+import IconExternalLink from '@/components/icons/IconExternalLink.vue'
+import IconEye from '@/components/icons/IconEye.vue'
+import IconFullscreen from '@/components/icons/IconFullscreen.vue'
+import IconHamburger from '@/components/icons/IconHamburger.vue'
+import IconHome from '@/components/icons/IconHome.vue'
+import IconInfo from '@/components/icons/IconInfo.vue'
+import IconKey from '@/components/icons/IconKey.vue'
+import IconKubeConfig from '@/components/icons/IconKubeConfig.vue'
+import IconKubernetes from '@/components/icons/IconKubernetes.vue'
+import IconLifebuoy from '@/components/icons/IconLifebuoy.vue'
+import IconListBullet from '@/components/icons/IconListBullet.vue'
+import IconLoading from '@/components/icons/IconLoading.vue'
+import IconLockClosedToggle from '@/components/icons/IconLockClosedToggle.vue'
+import IconLocked from '@/components/icons/IconLocked.vue'
+import IconLog from '@/components/icons/IconLog.vue'
+import IconLogo from '@/components/icons/IconLogo.vue'
+import IconLongArrowDown from '@/components/icons/IconLongArrowDown.vue'
+import IconLongArrowTop from '@/components/icons/IconLongArrowTop.vue'
+import IconMachinesAutoprovisioned from '@/components/icons/IconMachinesAutoprovisioned.vue'
+import IconMachinesManual from '@/components/icons/IconMachinesManual.vue'
+import IconMinus from '@/components/icons/IconMinus.vue'
+import IconMinusCircleSolid from '@/components/icons/IconMinusCircleSolid.vue'
+import IconMoon from '@/components/icons/IconMoon.vue'
+import IconMoonSolid from '@/components/icons/IconMoonSolid.vue'
+import IconNoConnection from '@/components/icons/IconNoConnection.vue'
+import IconNodes from '@/components/icons/IconNodes.vue'
+import IconNoSymbol from '@/components/icons/IconNoSymbol.vue'
+import IconOverview from '@/components/icons/IconOverview.vue'
+import IconPauseCircle from '@/components/icons/IconPauseCircle.vue'
+import IconPlayCircle from '@/components/icons/IconPlayCircle.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
+import IconPods from '@/components/icons/IconPods.vue'
+import IconPower from '@/components/icons/IconPower.vue'
+import IconQuestionMarkCircle from '@/components/icons/IconQuestionMarkCircle.vue'
+import IconQuestionMarkCircleSolid from '@/components/icons/IconQuestionMarkCircleSolid.vue'
+import IconReset from '@/components/icons/IconReset.vue'
+import IconRollback from '@/components/icons/IconRollback.vue'
+import IconSearch from '@/components/icons/IconSearch.vue'
+import IconServer from '@/components/icons/IconServer.vue'
+import IconServerNetwork from '@/components/icons/IconServerNetwork.vue'
+import IconServerStack from '@/components/icons/IconServerStack.vue'
+import IconSettings from '@/components/icons/IconSettings.vue'
+import IconSettingsToggle from '@/components/icons/IconSettingsToggle.vue'
+import IconSideroMonochrome from '@/components/icons/IconSideroMonochrome.vue'
+import IconStop from '@/components/icons/IconStop.vue'
+import IconSun from '@/components/icons/IconSun.vue'
+import IconTag from '@/components/icons/IconTag.vue'
+import IconTalos from '@/components/icons/IconTalos.vue'
+import IconTalosConfig from '@/components/icons/IconTalosConfig.vue'
+import IconTime from '@/components/icons/IconTime.vue'
+import IconUnlocked from '@/components/icons/IconUnlocked.vue'
+import IconUpgrade from '@/components/icons/IconUpgrade.vue'
+import IconUpgradeAvailable from '@/components/icons/IconUpgradeAvailable.vue'
+import IconUserPlus from '@/components/icons/IconUserPlus.vue'
+import IconUsers from '@/components/icons/IconUsers.vue'
+import IconWindow from '@/components/icons/IconWindow.vue'
+import IconXCircle from '@/components/icons/IconXCircle.vue'
+import IconXCircleSolid from '@/components/icons/IconXCircleSolid.vue'
 
 export const icons = {
-  'arrow-down-tray': defineAsyncComponent(() => import('../icons/IconArrowDownTray.vue')),
-  'action-horizontal': defineAsyncComponent(() => import('../icons/IconActionHorizontal.vue')),
-  'action-horizontal-animated': defineAsyncComponent(
-    () => import('../icons/IconActionHorizontalAnimated.vue'),
-  ),
-  'arrow-path': defineAsyncComponent(() => import('../icons/IconArrowPath.vue')),
-  'arrow-path-circle': defineAsyncComponent(() => import('../icons/IconArrowPathCircle.vue')),
-  'arrow-right-square': defineAsyncComponent(() => import('../icons/IconArrowRightSquare.vue')),
-  'arrow-up-on-square-stack': defineAsyncComponent(
-    () => import('../icons/IconArrowUpOnSquareStack.vue'),
-  ),
-  'arrows-right-left': defineAsyncComponent(() => import('../icons/IconArrowsRightLeft.vue')),
-  'document-text': defineAsyncComponent(() => import('../icons/IconDocumentText.vue')),
-  box: defineAsyncComponent(() => import('../icons/IconBox.vue')),
-  calendar: defineAsyncComponent(() => import('../icons/IconCalendar.vue')),
-  'chart-bar': defineAsyncComponent(() => import('../icons/IconChartBar.vue')),
-  check: defineAsyncComponent(() => import('../icons/IconCheck.vue')),
-  'check-circle': defineAsyncComponent(() => import('../icons/IconCheckCircle.vue')),
-  'check-circle-solid': defineAsyncComponent(() => import('../icons/IconCheckCircleSolid.vue')),
-  'chevron-double-left': defineAsyncComponent(() => import('../icons/IconChevronDoubleLeft.vue')),
-  'chevron-double-right': defineAsyncComponent(() => import('../icons/IconChevronDoubleRight.vue')),
-  'chevron-down': defineAsyncComponent(() => import('../icons/IconChevronDown.vue')),
-  'chevron-left': defineAsyncComponent(() => import('../icons/IconChevronLeft.vue')),
-  'chevron-right': defineAsyncComponent(() => import('../icons/IconChevronRight.vue')),
-  'chevron-up': defineAsyncComponent(() => import('../icons/IconChevronUp.vue')),
-  'circle-stack': defineAsyncComponent(() => import('../icons/IconCircleStack.vue')),
-  close: defineAsyncComponent(() => import('../icons/IconClose.vue')),
-  'cloud-connection': defineAsyncComponent(() => import('../icons/IconCloudConnection.vue')),
-  clusters: defineAsyncComponent(() => import('../icons/IconClusters.vue')),
-  'code-bracket': defineAsyncComponent(() => import('../icons/IconCodeBracket.vue')),
-  'computer-desktop': defineAsyncComponent(() => import('../icons/IconComputerDesktop.vue')),
-  copy: defineAsyncComponent(() => import('../icons/IconCopy.vue')),
-  'cpu-chip': defineAsyncComponent(() => import('../icons/IconCpuChip.vue')),
-  dashboard: defineAsyncComponent(() => import('../icons/IconDashboard.vue')),
-  delete: defineAsyncComponent(() => import('../icons/IconDelete.vue')),
-  document: defineAsyncComponent(() => import('../icons/IconDocument.vue')),
-  documentation: defineAsyncComponent(() => import('../icons/IconDocumentation.vue')),
-  dot: defineAsyncComponent(() => import('../icons/IconDot.vue')),
-  'drop-up': defineAsyncComponent(() => import('../icons/IconDropUp.vue')),
-  dropdown: defineAsyncComponent(() => import('../icons/IconDropdown.vue')),
-  edit: defineAsyncComponent(() => import('../icons/IconEdit.vue')),
-  eye: defineAsyncComponent(() => import('../icons/IconEye.vue')),
-  exclamation: defineAsyncComponent(() => import('../icons/IconExclamationClear.vue')),
-  'exclamation-circle': defineAsyncComponent(() => import('../icons/IconExclamationCircle.vue')),
-  'exclamation-triangle': defineAsyncComponent(
-    () => import('../icons/IconExclamationTriangle.vue'),
-  ),
-  'exclamation-triangle-solid': defineAsyncComponent(
-    () => import('../icons/IconExclamationTriangleSolid.vue'),
-  ),
-  window: defineAsyncComponent(() => import('../icons/IconWindow.vue')),
-  'extensions-toggle': defineAsyncComponent(() => import('../icons/IconExtensionsToggle.vue')),
-  extensions: defineAsyncComponent(() => import('../icons/IconExtensions.vue')),
-  'external-link': defineAsyncComponent(() => import('../icons/IconExternalLink.vue')),
-  fullscreen: defineAsyncComponent(() => import('../icons/IconFullscreen.vue')),
-  hamburger: defineAsyncComponent(() => import('../icons/IconHamburger.vue')),
-  home: defineAsyncComponent(() => import('../icons/IconHome.vue')),
-  info: defineAsyncComponent(() => import('../icons/IconInfo.vue')),
-  key: defineAsyncComponent(() => import('../icons/IconKey.vue')),
-  'kube-config': defineAsyncComponent(() => import('../icons/IconKubeConfig.vue')),
-  kubernetes: defineAsyncComponent(() => import('../icons/IconKubernetes.vue')),
-  lifebuoy: defineAsyncComponent(() => import('../icons/IconLifebuoy.vue')),
-  'list-bullet': defineAsyncComponent(() => import('../icons/IconListBullet.vue')),
-  loading: defineAsyncComponent(() => import('../icons/IconLoading.vue')),
-  'locked-toggle': defineAsyncComponent(() => import('../icons/IconLockClosedToggle.vue')),
-  locked: defineAsyncComponent(() => import('../icons/IconLocked.vue')),
-  log: defineAsyncComponent(() => import('../icons/IconLog.vue')),
-  logo: defineAsyncComponent(() => import('../icons/IconLogo.vue')),
-  'long-arrow-down': defineAsyncComponent(() => import('../icons/IconLongArrowDown.vue')),
-  'long-arrow-top': defineAsyncComponent(() => import('../icons/IconLongArrowTop.vue')),
-  'machines-autoprovisioned': defineAsyncComponent(
-    () => import('../icons/IconMachinesAutoprovisioned.vue'),
-  ),
-  'machines-manual': defineAsyncComponent(() => import('../icons/IconMachinesManual.vue')),
-  minus: defineAsyncComponent(() => import('../icons/IconMinus.vue')),
-  'minus-circle-solid': defineAsyncComponent(() => import('../icons/IconMinusCircleSolid.vue')),
-  moon: defineAsyncComponent(() => import('../icons/IconMoon.vue')),
-  'moon-solid': defineAsyncComponent(() => import('../icons/IconMoonSolid.vue')),
-  'no-connection': defineAsyncComponent(() => import('../icons/IconNoConnection.vue')),
-  'no-symbol': defineAsyncComponent(() => import('../icons/IconNoSymbol.vue')),
-  nodes: defineAsyncComponent(() => import('../icons/IconNodes.vue')),
-  overview: defineAsyncComponent(() => import('../icons/IconOverview.vue')),
-  'pause-circle': defineAsyncComponent(() => import('../icons/IconPauseCircle.vue')),
-  'play-circle': defineAsyncComponent(() => import('../icons/IconPlayCircle.vue')),
-  plus: defineAsyncComponent(() => import('../icons/IconPlus.vue')),
-  pods: defineAsyncComponent(() => import('../icons/IconPods.vue')),
-  power: defineAsyncComponent(() => import('../icons/IconPower.vue')),
-  'question-mark-circle': defineAsyncComponent(() => import('../icons/IconQuestionMarkCircle.vue')),
-  'question-mark-circle-solid': defineAsyncComponent(
-    () => import('../icons/IconQuestionMarkCircleSolid.vue'),
-  ),
-  reset: defineAsyncComponent(() => import('../icons/IconReset.vue')),
-  rollback: defineAsyncComponent(() => import('../icons/IconRollback.vue')),
-  search: defineAsyncComponent(() => import('../icons/IconSearch.vue')),
-  'server-network': defineAsyncComponent(() => import('../icons/IconServerNetwork.vue')),
-  'server-stack': defineAsyncComponent(() => import('../icons/IconServerStack.vue')),
-  server: defineAsyncComponent(() => import('../icons/IconServer.vue')),
-  'settings-toggle': defineAsyncComponent(() => import('../icons/IconSettingsToggle.vue')),
-  settings: defineAsyncComponent(() => import('../icons/IconSettings.vue')),
-  'sidero-monochrome': defineAsyncComponent(() => import('../icons/IconSideroMonochrome.vue')),
-  stop: defineAsyncComponent(() => import('../icons/IconStop.vue')),
-  sun: defineAsyncComponent(() => import('../icons/IconSun.vue')),
-  tag: defineAsyncComponent(() => import('../icons/IconTag.vue')),
-  talos: defineAsyncComponent(() => import('../icons/IconTalos.vue')),
-  'talos-config': defineAsyncComponent(() => import('../icons/IconTalosConfig.vue')),
-  time: defineAsyncComponent(() => import('../icons/IconTime.vue')),
-  unlocked: defineAsyncComponent(() => import('../icons/IconUnlocked.vue')),
-  'upgrade-available': defineAsyncComponent(() => import('../icons/IconUpgradeAvailable.vue')),
-  upgrade: defineAsyncComponent(() => import('../icons/IconUpgrade.vue')),
-  'user-plus': defineAsyncComponent(() => import('../icons/IconUserPlus.vue')),
-  users: defineAsyncComponent(() => import('../icons/IconUsers.vue')),
-  'x-circle': defineAsyncComponent(() => import('../icons/IconXCircle.vue')),
-  'x-circle-solid': defineAsyncComponent(() => import('../icons/IconXCircleSolid.vue')),
+  'action-horizontal-animated': IconActionHorizontalAnimated,
+  'action-horizontal': IconActionHorizontal,
+  'arrow-down-tray': IconArrowDownTray,
+  'arrow-path-circle': IconArrowPathCircle,
+  'arrow-path': IconArrowPath,
+  'arrow-right-square': IconArrowRightSquare,
+  'arrow-up-on-square-stack': IconArrowUpOnSquareStack,
+  'arrows-right-left': IconArrowsRightLeft,
+  box: IconBox,
+  calendar: IconCalendar,
+  'chart-bar': IconChartBar,
+  'check-circle-solid': IconCheckCircleSolid,
+  'check-circle': IconCheckCircle,
+  check: IconCheck,
+  'chevron-double-left': IconChevronDoubleLeft,
+  'chevron-double-right': IconChevronDoubleRight,
+  'chevron-down': IconChevronDown,
+  'chevron-left': IconChevronLeft,
+  'chevron-right': IconChevronRight,
+  'chevron-up': IconChevronUp,
+  'circle-stack': IconCircleStack,
+  close: IconClose,
+  'cloud-connection': IconCloudConnection,
+  clusters: IconClusters,
+  'code-bracket': IconCodeBracket,
+  'computer-desktop': IconComputerDesktop,
+  copy: IconCopy,
+  'cpu-chip': IconCpuChip,
+  dashboard: IconDashboard,
+  delete: IconDelete,
+  'document-text': IconDocumentText,
+  document: IconDocument,
+  documentation: IconDocumentation,
+  dot: IconDot,
+  'drop-up': IconDropUp,
+  dropdown: IconDropdown,
+  edit: IconEdit,
+  'exclamation-circle': IconExclamationCircle,
+  'exclamation-triangle-solid': IconExclamationTriangleSolid,
+  'exclamation-triangle': IconExclamationTriangle,
+  exclamation: IconExclamationClear,
+  'extensions-toggle': IconExtensionsToggle,
+  extensions: IconExtensions,
+  'external-link': IconExternalLink,
+  eye: IconEye,
+  fullscreen: IconFullscreen,
+  hamburger: IconHamburger,
+  home: IconHome,
+  info: IconInfo,
+  key: IconKey,
+  'kube-config': IconKubeConfig,
+  kubernetes: IconKubernetes,
+  lifebuoy: IconLifebuoy,
+  'list-bullet': IconListBullet,
+  loading: IconLoading,
+  'locked-toggle': IconLockClosedToggle,
+  locked: IconLocked,
+  log: IconLog,
+  logo: IconLogo,
+  'long-arrow-down': IconLongArrowDown,
+  'long-arrow-top': IconLongArrowTop,
+  'machines-autoprovisioned': IconMachinesAutoprovisioned,
+  'machines-manual': IconMachinesManual,
+  'minus-circle-solid': IconMinusCircleSolid,
+  minus: IconMinus,
+  'moon-solid': IconMoonSolid,
+  moon: IconMoon,
+  'no-connection': IconNoConnection,
+  'no-symbol': IconNoSymbol,
+  nodes: IconNodes,
+  overview: IconOverview,
+  'pause-circle': IconPauseCircle,
+  'play-circle': IconPlayCircle,
+  plus: IconPlus,
+  pods: IconPods,
+  power: IconPower,
+  'question-mark-circle-solid': IconQuestionMarkCircleSolid,
+  'question-mark-circle': IconQuestionMarkCircle,
+  reset: IconReset,
+  rollback: IconRollback,
+  search: IconSearch,
+  'server-network': IconServerNetwork,
+  'server-stack': IconServerStack,
+  server: IconServer,
+  'settings-toggle': IconSettingsToggle,
+  settings: IconSettings,
+  'sidero-monochrome': IconSideroMonochrome,
+  stop: IconStop,
+  sun: IconSun,
+  tag: IconTag,
+  'talos-config': IconTalosConfig,
+  talos: IconTalos,
+  time: IconTime,
+  unlocked: IconUnlocked,
+  'upgrade-available': IconUpgradeAvailable,
+  upgrade: IconUpgrade,
+  'user-plus': IconUserPlus,
+  users: IconUsers,
+  window: IconWindow,
+  'x-circle-solid': IconXCircleSolid,
+  'x-circle': IconXCircle,
 }

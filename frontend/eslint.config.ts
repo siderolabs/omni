@@ -108,6 +108,24 @@ export default withVueTs(
   },
 
   {
+    files: ['**/*.{ts,vue}'],
+    ignores: ['src/components/Icon/icons.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/components/icons/*', '**/icons/*'],
+              message: 'Use <TIcon icon="..." /> instead; icons are registered in icons.ts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
     // Multi-colour artwork keeps its literal colours
     files: ['src/components/icons/**/*'],
     rules: {
