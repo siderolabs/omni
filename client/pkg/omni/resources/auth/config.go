@@ -55,10 +55,3 @@ func (ConfigExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		PrintColumns:     []meta.PrintColumn{},
 	}
 }
-
-// Enabled check is config settings has any auth enabled.
-func Enabled(res *Config) bool {
-	spec := res.TypedSpec().Value
-
-	return spec.Auth0.Enabled || spec.Webauthn.Enabled || spec.Saml.Enabled || spec.Oidc.Enabled
-}

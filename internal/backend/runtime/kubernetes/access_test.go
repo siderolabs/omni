@@ -34,7 +34,6 @@ func TestCallerAccess(t *testing.T) {
 	r := kubernetes.New(st, zaptest.NewLogger(t), "", "omni", "")
 
 	callerContext := func(ctx context.Context, r role.Role) context.Context {
-		ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
 		ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: "user@example.org"})
 
 		return ctxstore.WithValue(ctx, auth.RoleContextKey{Role: r})
@@ -47,7 +46,7 @@ func TestCallerAccess(t *testing.T) {
 		wantCode codes.Code
 	}{
 		{name: "caller without a role", ctx: callerContext(t.Context(), role.None), cluster: "alpha", wantCode: codes.PermissionDenied},
-		{name: "unsigned caller", ctx: ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true}), cluster: "alpha", wantCode: codes.Unauthenticated},
+		{name: "unsigned caller", ctx: t.Context(), cluster: "alpha", wantCode: codes.Unauthenticated},
 		{name: "no cluster", ctx: callerContext(t.Context(), role.Admin), wantCode: codes.InvalidArgument},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

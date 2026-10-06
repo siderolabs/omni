@@ -142,7 +142,6 @@ func (f *fakeTalos) requests() int {
 
 // callerContext returns the context of a request signed by a caller with the given Omni role.
 func callerContext(ctx context.Context, r role.Role) context.Context {
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: "user@example.org"})
 
 	return ctxstore.WithValue(ctx, auth.RoleContextKey{Role: r})

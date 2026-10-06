@@ -105,8 +105,7 @@ func TestCheckForKindAccessClusterTerms(t *testing.T) {
 	require.NoError(t, st.Create(t.Context(), accessPolicy))
 	require.NoError(t, st.Create(t.Context(), authres.NewIdentity(identity)))
 
-	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
-	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.None})
+	ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.None})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: identity})
 
 	clusterTerm := func(clusterID string, opts ...resource.TermOption) resource.LabelTerm {
@@ -188,8 +187,7 @@ func TestKernelArgsIsNotClusterScoped(t *testing.T) {
 
 	st := state.WrapCore(validated.NewState(innerSt, omni.AuthorizationValidationOptions(innerSt)...))
 
-	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
-	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.None})
+	ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.None})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: identity})
 
 	// a cluster resource of the covered cluster is still writable through the policy

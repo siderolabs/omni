@@ -20,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/suite"
@@ -37,6 +38,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -48,9 +50,11 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 type GrpcSuite struct {
@@ -109,15 +113,27 @@ func (suite *GrpcSuite) SetupTest() {
 
 	suite.startRuntime()
 
-	authConfigInterceptor := interceptor.NewAuthConfig(false, logger.With(logging.Component("interceptor")))
+	authConfigInterceptor := interceptor.NewAuthConfig(logger.With(logging.Component("interceptor")))
 
 	err = suite.newServer(
 		imageFactoryClient,
 		logger,
-		grpc.ChainUnaryInterceptor(authConfigInterceptor.Unary()),
-		grpc.ChainStreamInterceptor(authConfigInterceptor.Stream()),
+		grpc.ChainUnaryInterceptor(authConfigInterceptor.Unary(), adminUnaryInterceptor),
+		grpc.ChainStreamInterceptor(authConfigInterceptor.Stream(), adminStreamInterceptor),
 	)
 	suite.Require().NoError(err)
+}
+
+// adminUnaryInterceptor stands in for the signature interceptor and grants every call the admin role.
+func adminUnaryInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	return handler(ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.Admin}), req)
+}
+
+func adminStreamInterceptor(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return handler(srv, &grpc_middleware.WrappedServerStream{
+		ServerStream:   ss,
+		WrappedContext: ctxstore.WithValue(ss.Context(), auth.RoleContextKey{Role: role.Admin}),
+	})
 }
 
 func (suite *GrpcSuite) startRuntime() {

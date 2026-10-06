@@ -222,8 +222,6 @@ func runServer(t *testing.T, st state.State, enableBreakGlassConfigs bool, kuber
 				md = metadata.New(nil)
 			}
 
-			ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
-
 			msg := message.NewGRPC(md, info.FullMethod)
 
 			ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: msg})

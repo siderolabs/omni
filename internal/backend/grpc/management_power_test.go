@@ -100,7 +100,6 @@ func newManagementPowerTestState(t *testing.T, clusterID, identityID, machineID 
 }
 
 func managementPowerTestContext(ctx context.Context, identityID string, r role.Role) context.Context {
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: identityID})
 	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: r})
 

@@ -94,7 +94,7 @@ func setup(ctx context.Context, t *testing.T, key message.SignatureVerifier) res
 
 	logger := zaptest.NewLogger(t)
 
-	authConfigInterceptor := interceptor.NewAuthConfig(true, logger)
+	authConfigInterceptor := interceptor.NewAuthConfig(logger)
 
 	signatureInterceptor := interceptor.NewSignature(authenticatorFunc, logger)
 

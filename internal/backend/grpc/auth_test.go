@@ -161,8 +161,7 @@ func TestRevokePublicKeyDenials(t *testing.T) {
 	}, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
-	ctx := ctxstore.WithValue(t.Context(), omniauth.EnabledAuthContextKey{Enabled: true})
-	ctx = ctxstore.WithValue(ctx, omniauth.RoleContextKey{Role: role.Admin})
+	ctx := ctxstore.WithValue(t.Context(), omniauth.RoleContextKey{Role: role.Admin})
 	ctx = ctxstore.WithValue(ctx, omniauth.IdentityContextKey{Identity: "caller@a.com"})
 
 	someoneElses := authres.NewPublicKey("aa9e26dbdc5b4e5d9fa5ed21d0f3a2e1")
@@ -190,8 +189,7 @@ func TestConfirmPublicKeyDenials(t *testing.T) {
 	}, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
-	ctx := ctxstore.WithValue(t.Context(), omniauth.EnabledAuthContextKey{Enabled: true})
-	ctx = ctxstore.WithValue(ctx, omniauth.VerifiedEmailContextKey{Email: "caller@a.com"})
+	ctx := ctxstore.WithValue(t.Context(), omniauth.VerifiedEmailContextKey{Email: "caller@a.com"})
 
 	identity := authres.NewIdentity("caller@a.com")
 	identity.TypedSpec().Value.UserId = "3f1b7f26-97f6-4d0a-9b4e-2a6b1c0f9d55"

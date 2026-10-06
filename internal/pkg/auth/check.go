@@ -54,7 +54,6 @@ type CheckResult struct {
 	Labels            map[string]string
 	Role              role.Role
 	HasValidSignature bool
-	AuthEnabled       bool
 }
 
 // CheckOption is a functional option for Check.
@@ -110,20 +109,7 @@ func WithVerifiedEmail() CheckOption {
 //
 // The returned error can be checked against ErrUnauthenticated and ErrUnauthorized.
 func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
-	authVal, ok := ctxstore.Value[EnabledAuthContextKey](ctx)
-	if !ok {
-		return CheckResult{}, fmt.Errorf("%w: auth configuration not found in context", ErrUnauthenticated)
-	}
-
-	if !authVal.Enabled {
-		return CheckResult{
-			AuthEnabled: false,
-		}, nil
-	}
-
-	result := CheckResult{
-		AuthEnabled: authVal.Enabled,
-	}
+	var result CheckResult
 
 	opts := DefaultCheckOptions()
 

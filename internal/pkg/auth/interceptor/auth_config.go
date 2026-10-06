@@ -25,15 +25,13 @@ import (
 
 // AuthConfig represents the configuration for the auth config interceptor.
 type AuthConfig struct {
-	logger  *zap.Logger
-	enabled bool
+	logger *zap.Logger
 }
 
 // NewAuthConfig returns a new auth config interceptor.
-func NewAuthConfig(enabled bool, logger *zap.Logger) *AuthConfig {
+func NewAuthConfig(logger *zap.Logger) *AuthConfig {
 	return &AuthConfig{
-		enabled: enabled,
-		logger:  logger,
+		logger: logger,
 	}
 }
 
@@ -79,12 +77,6 @@ func (c *AuthConfig) Stream() grpc.StreamServerInterceptor {
 }
 
 func (c *AuthConfig) intercept(ctx context.Context, isPublicResourceRequest bool, method string) context.Context {
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: c.enabled})
-
-	if !c.enabled {
-		return ctx
-	}
-
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		md = metadata.New(nil)

@@ -399,7 +399,6 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 		transport,
 		s.state.Default(),
 		s.dnsService,
-		authres.Enabled(s.authConfig),
 		s.state.Auditor(),
 		interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger).Unary(),
 	)
@@ -416,8 +415,7 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 		router.Interceptors(s.logger), //nolint:contextcheck
 		grpc.ChainStreamInterceptor(
 			grpcutil.StreamSetAuditData(),
-			// enabled is always true here because we are interested in audit data rather than auth process
-			interceptor.NewAuthConfig(true, s.logger).Stream(),
+			interceptor.NewAuthConfig(s.logger).Stream(),
 		),
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 	)
@@ -511,19 +509,11 @@ type interceptorCreator interface {
 }
 
 func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator, error) {
-	authEnabled := authres.Enabled(s.authConfig)
-
 	result := []interceptorCreator{
-		interceptor.NewAuthConfig(authEnabled, s.logger),
+		interceptor.NewAuthConfig(s.logger),
 		interceptor.NewEULACheck(s.state.Default(), s.logger, s.cfg.Services.Api.URL()),
+		interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger),
 	}
-
-	if !authEnabled {
-		return result, nil
-	}
-
-	// auth is enabled, add signature and jwt interceptors
-	result = append(result, interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger))
 
 	switch {
 	case s.authConfig.TypedSpec().Value.Auth0.Enabled:

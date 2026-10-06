@@ -80,7 +80,6 @@ type TalosBackend struct {
 	talosAuditor TalosAuditor
 	name         string
 	clusterID    string
-	authEnabled  bool
 }
 
 // NewTalosBackend builds new Talos API backend.
@@ -88,7 +87,6 @@ func NewTalosBackend(
 	name, clusterID string,
 	nodeResolver NodeResolver,
 	conn *grpc.ClientConn,
-	authEnabled bool,
 	verifier grpc.UnaryServerInterceptor,
 	st state.State,
 	talosAuditor TalosAuditor,
@@ -98,7 +96,6 @@ func NewTalosBackend(
 		clusterID:    clusterID,
 		nodeResolver: nodeResolver,
 		conn:         conn,
-		authEnabled:  authEnabled,
 		verifier:     verifier,
 		omniState:    st,
 		talosAuditor: talosAuditor,
@@ -122,7 +119,7 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		grpcutil.AddLogPair(ctx, "cluster", backend.clusterID)
 	}
 
-	ctx, err := authenticate(ctx, backend.verifier, backend.authEnabled, md, fullMethodName)
+	ctx, err := authenticate(ctx, backend.verifier, md, fullMethodName)
 	if err != nil {
 		return ctx, nil, err
 	}

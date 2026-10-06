@@ -68,7 +68,7 @@ func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFacto
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	clients := imagefactory.NewClients(st, client)
 
-	ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: false})
+	ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.Reader})
 
 	return grpcomni.NewImageFactoryServer(st, clients, zaptest.NewLogger(t)), st, ctx
 }
@@ -362,7 +362,7 @@ func TestReaderRoleIsRequired(t *testing.T) {
 			factory := &upstreamFactory{}
 			server, _, _ := factoryServer(t, factory)
 
-			ctx := ctxstore.WithValue(t.Context(), auth.EnabledAuthContextKey{Enabled: true})
+			ctx := t.Context()
 			if test.hasRole {
 				ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: test.ctxRole})
 			}

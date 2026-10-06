@@ -25,81 +25,40 @@ func TestCheck(t *testing.T) {
 		errorIs error
 	}{
 		{
-			name:    "empty context",
-			ctx:     t.Context(),
-			errorIs: auth.ErrUnauthenticated,
-		},
-		{
-			name: "auth disabled",
-			ctx: ctxstore.WithValue(
-				t.Context(),
-				auth.EnabledAuthContextKey{
-					Enabled: false,
-				},
-			),
-		},
-		{
 			name: "not authenticated, no requirements",
-			ctx: ctxstore.WithValue(
-				t.Context(),
-				auth.EnabledAuthContextKey{
-					Enabled: true,
-				},
-			),
+			ctx:  t.Context(),
 			want: auth.CheckResult{
-				AuthEnabled: true,
-				Role:        role.None,
+				Role: role.None,
 			},
 		},
 		{
-			name: "not authenticated, verified email",
-			ctx: ctxstore.WithValue(
-				t.Context(),
-				auth.EnabledAuthContextKey{
-					Enabled: true,
-				},
-			),
+			name:    "not authenticated, verified email",
+			ctx:     t.Context(),
 			opts:    []auth.CheckOption{auth.WithVerifiedEmail()},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
-			name: "not authenticated, none role",
-			ctx: ctxstore.WithValue(
-				t.Context(),
-				auth.EnabledAuthContextKey{
-					Enabled: true,
-				},
-			),
+			name:    "not authenticated, none role",
+			ctx:     t.Context(),
 			opts:    []auth.CheckOption{auth.WithValidSignature(true)},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
-			name: "not authenticated, operator role",
-			ctx: ctxstore.WithValue(
-				t.Context(),
-				auth.EnabledAuthContextKey{
-					Enabled: true,
-				},
-			),
+			name:    "not authenticated, operator role",
+			ctx:     t.Context(),
 			opts:    []auth.CheckOption{auth.WithRole(role.Operator)},
 			errorIs: auth.ErrUnauthenticated,
 		},
 		{
 			name: "verified email",
 			ctx: ctxstore.WithValue(
-				ctxstore.WithValue(
-					t.Context(),
-					auth.EnabledAuthContextKey{
-						Enabled: true,
-					},
-				),
+				t.Context(),
 				auth.VerifiedEmailContextKey{
 					Email: "user@example.com",
 				},
 			),
 			opts: []auth.CheckOption{auth.WithVerifiedEmail()},
 			want: auth.CheckResult{
-				AuthEnabled:   true,
 				VerifiedEmail: "user@example.com",
 				Role:          role.None,
 			},
@@ -107,19 +66,13 @@ func TestCheck(t *testing.T) {
 		{
 			name: "role okay",
 			ctx: ctxstore.WithValue(
-				ctxstore.WithValue(
-					t.Context(),
-					auth.EnabledAuthContextKey{
-						Enabled: true,
-					},
-				),
+				t.Context(),
 				auth.RoleContextKey{
 					Role: role.Operator,
 				},
 			),
 			opts: []auth.CheckOption{auth.WithRole(role.Operator)},
 			want: auth.CheckResult{
-				AuthEnabled:       true,
 				HasValidSignature: true,
 				Role:              role.Operator,
 			},
@@ -127,12 +80,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "role mismatch",
 			ctx: ctxstore.WithValue(
-				ctxstore.WithValue(
-					t.Context(),
-					auth.EnabledAuthContextKey{
-						Enabled: true,
-					},
-				),
+				t.Context(),
 				auth.RoleContextKey{
 					Role: role.Operator,
 				},
@@ -145,12 +93,7 @@ func TestCheck(t *testing.T) {
 			ctx: ctxstore.WithValue(
 				ctxstore.WithValue(
 					ctxstore.WithValue(
-						ctxstore.WithValue(
-							t.Context(),
-							auth.EnabledAuthContextKey{
-								Enabled: true,
-							},
-						),
+						t.Context(),
 						auth.RoleContextKey{
 							Role: role.Operator,
 						},
@@ -165,7 +108,6 @@ func TestCheck(t *testing.T) {
 			),
 			opts: []auth.CheckOption{auth.WithRole(role.Operator), auth.WithVerifiedEmail()},
 			want: auth.CheckResult{
-				AuthEnabled:       true,
 				HasValidSignature: true,
 				Role:              role.Operator,
 				Identity:          "user2@example.com",
@@ -175,19 +117,13 @@ func TestCheck(t *testing.T) {
 		{
 			name: "valid signature",
 			ctx: ctxstore.WithValue(
-				ctxstore.WithValue(
-					t.Context(),
-					auth.EnabledAuthContextKey{
-						Enabled: true,
-					},
-				),
+				t.Context(),
 				auth.RoleContextKey{
 					Role: role.None,
 				},
 			),
 			opts: []auth.CheckOption{},
 			want: auth.CheckResult{
-				AuthEnabled:       true,
 				HasValidSignature: true,
 				Role:              role.None,
 			},
@@ -195,12 +131,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "missing signature",
 			ctx: ctxstore.WithValue(
-				ctxstore.WithValue(
-					t.Context(),
-					auth.EnabledAuthContextKey{
-						Enabled: true,
-					},
-				),
+				t.Context(),
 				auth.VerifiedEmailContextKey{
 					Email: "me@example.com",
 				},

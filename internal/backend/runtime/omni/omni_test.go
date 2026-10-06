@@ -33,10 +33,8 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
-	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // using whitelisted for external API access type.
@@ -77,8 +75,7 @@ type OmniRuntimeSuite struct {
 func (suite *OmniRuntimeSuite) SetupTest() {
 	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
-	// disable auth in the context
-	suite.ctx = ctxstore.WithValue(suite.ctx, auth.EnabledAuthContextKey{Enabled: false})
+	suite.ctx = actor.MarkContextAsInternalActor(suite.ctx)
 
 	var err error
 

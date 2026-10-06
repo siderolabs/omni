@@ -20,7 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
-	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/discovery"
@@ -37,7 +36,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/eula"
 	"github.com/siderolabs/omni/internal/pkg/features"
@@ -193,8 +191,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	}); err != nil {
 		return fmt.Errorf("failed to update features config resources: %w", err)
 	}
-
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: authres.Enabled(authConfig)})
 
 	server, err := backend.NewServer(
 		cfg,

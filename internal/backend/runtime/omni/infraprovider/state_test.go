@@ -557,7 +557,6 @@ func prepareRole(ctx context.Context, r role.Role) context.Context {
 		id = infraProviderID + "@infra-provider.serviceaccount.omni.sidero.dev"
 	}
 
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: true})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: id})
 	ctx = ctxstore.WithValue(ctx, auth.VerifiedEmailContextKey{Email: id})
 	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: r})

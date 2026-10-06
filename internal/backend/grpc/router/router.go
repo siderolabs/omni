@@ -78,7 +78,6 @@ type Router struct {
 	verifier     grpc.UnaryServerInterceptor
 	cosiState    state.State
 	talosAuditor TalosAuditor
-	authEnabled  bool
 }
 
 // NewRouter builds new Router.
@@ -86,7 +85,6 @@ func NewRouter(
 	transport *memconn.Transport,
 	cosiState state.State,
 	nodeResolver NodeResolver,
-	authEnabled bool,
 	talosAuditor TalosAuditor,
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
@@ -137,7 +135,6 @@ func NewRouter(
 		verifier:     verifier,
 		cosiState:    cosiState,
 		talosAuditor: talosAuditor,
-		authEnabled:  authEnabled,
 	}
 
 	r.talosBackends = expirable.NewLRU[string, proxy.Backend](talosBackendLRUSize, func(key string, _ proxy.Backend) {
@@ -205,7 +202,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	if runtime := md.Get(message.RuntimeHeaderKey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
 		backend, err := r.getTalosBackend(ctx, md)
 		if err != nil {
-			return proxy.One2One, nil, reportResolveError(ctx, r.verifier, r.authEnabled, signedMethodName, err)
+			return proxy.One2One, nil, reportResolveError(ctx, r.verifier, signedMethodName, err)
 		}
 
 		return proxy.One2One, []proxy.Backend{backend}, nil
@@ -276,7 +273,7 @@ func (r *Router) getForCluster(ctx context.Context, clusterID string) (proxy.Bac
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()
@@ -327,7 +324,7 @@ func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.I
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()

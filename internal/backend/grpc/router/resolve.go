@@ -78,8 +78,7 @@ func resolveNodes(nodeResolver NodeResolver, md metadata.MD) ([]dns.Info, error)
 }
 
 // authenticate verifies the signature of a proxied request, as the regular gRPC interceptors do not run for it.
-func authenticate(ctx context.Context, verifier grpc.UnaryServerInterceptor, authEnabled bool, md metadata.MD, fullMethodName string) (context.Context, error) {
-	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: authEnabled})
+func authenticate(ctx context.Context, verifier grpc.UnaryServerInterceptor, md metadata.MD, fullMethodName string) (context.Context, error) {
 	ctx = ctxstore.WithValue(ctx, auth.GRPCMessageContextKey{Message: message.NewGRPC(md, fullMethodName)})
 
 	_, err := verifier(ctx, nil, nil, func(innerCtx context.Context, _ any) (any, error) {
@@ -93,10 +92,10 @@ func authenticate(ctx context.Context, verifier grpc.UnaryServerInterceptor, aut
 
 // reportResolveError verifies the caller of a request whose nodes or cluster could not be resolved, and returns the
 // error that caller receives.
-func reportResolveError(ctx context.Context, verifier grpc.UnaryServerInterceptor, authEnabled bool, fullMethodName string, resolveErr error) error {
+func reportResolveError(ctx context.Context, verifier grpc.UnaryServerInterceptor, fullMethodName string, resolveErr error) error {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	ctx, err := authenticate(ctx, verifier, authEnabled, md, fullMethodName)
+	ctx, err := authenticate(ctx, verifier, md, fullMethodName)
 	if err != nil {
 		return err
 	}

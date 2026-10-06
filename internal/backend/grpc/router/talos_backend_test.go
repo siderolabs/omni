@@ -27,10 +27,13 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	accessrole "github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
+	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 type testNodeResolver struct{}
@@ -91,10 +94,7 @@ func TestTalosBackendHeaderDeletion(t *testing.T) {
 			"test-cluster",
 			&testNodeResolver{},
 			conn,
-			false,
-			func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-				return handler(ctx, req)
-			},
+			operatorVerifier,
 			st.Default(),
 			nil,
 		)
@@ -163,8 +163,9 @@ func TestTalosBackendAuditsAfterVerifier(t *testing.T) {
 		"test-cluster",
 		&testNodeResolver{},
 		conn,
-		false,
 		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+			ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: accessrole.Operator})
+
 			return handler(context.WithValue(ctx, auditVerifierKey{}, "verified"), req)
 		},
 		st.Default(),
@@ -196,12 +197,12 @@ func TestTalosBackendAuditsRefusedAccess(t *testing.T) {
 
 	auditor := &capturingTalosAuditor{}
 
+	// the verifier grants no role, so the backend refuses the caller
 	backend := router.NewTalosBackend(
 		"test-backend",
 		"test-cluster",
 		&testNodeResolver{},
 		conn,
-		true, // the caller carries no role, so the backend refuses it
 		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 			return handler(context.WithValue(ctx, auditVerifierKey{}, "verified"), req)
 		},
@@ -286,15 +287,17 @@ func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Ba
 		"test-backend",
 		&testNodeResolver{},
 		conn,
-		false,
-		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-			return handler(ctx, req)
-		},
+		operatorVerifier,
 		t.omniState,
 		nil,
 	)
 
 	return proxy.One2One, []proxy.Backend{backend}, nil
+}
+
+// operatorVerifier stands in for the signature verifier and grants the caller the operator role.
+func operatorVerifier(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	return handler(ctxstore.WithValue(ctx, auth.RoleContextKey{Role: accessrole.Operator}), req)
 }
 
 func dial(serverEndpoint string) (*grpc.ClientConn, error) {

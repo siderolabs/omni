@@ -25,8 +25,7 @@ import (
 
 func TestCreateJoinTokenValidation(t *testing.T) {
 	server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil)
-	ctx := ctxstore.WithValue(context.Background(), auth.EnabledAuthContextKey{Enabled: true})
-	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: role.Admin})
+	ctx := ctxstore.WithValue(context.Background(), auth.RoleContextKey{Role: role.Admin})
 
 	for _, tt := range []struct {
 		request *management.CreateJoinTokenRequest
@@ -83,8 +82,7 @@ func TestCreateSchematicFromRawAuthorization(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := ctxstore.WithValue(context.Background(), auth.EnabledAuthContextKey{Enabled: true})
-			ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: tt.role})
+			ctx := ctxstore.WithValue(context.Background(), auth.RoleContextKey{Role: tt.role})
 
 			_, err := server.CreateSchematicFromRaw(ctx, request)
 			require.Error(t, err)

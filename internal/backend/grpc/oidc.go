@@ -47,12 +47,7 @@ func (s *oidcServer) Authenticate(ctx context.Context, req *oidc.AuthenticateReq
 		return nil, err
 	}
 
-	identity := authResult.Identity
-	if !authResult.AuthEnabled {
-		identity = "anonymous@omni"
-	}
-
-	if err = s.provider.AuthenticateRequest(req.AuthRequestId, identity); err != nil {
+	if err = s.provider.AuthenticateRequest(req.AuthRequestId, authResult.Identity); err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "failed to authenticate request: %s", err)
 	}
 

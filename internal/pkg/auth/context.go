@@ -14,10 +14,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
-// EnabledAuthContextKey is the context key for enabled authentication.
-type EnabledAuthContextKey struct{ Enabled bool }
-
-// GRPCMessageContextKey is the context key for the GRPC message. It is only set if authentication is enabled.
+// GRPCMessageContextKey is the context key for the GRPC message.
 type GRPCMessageContextKey struct{ Message *message.GRPC }
 
 // VerifiedEmailContextKey is the context key for the verified email address.

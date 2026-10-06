@@ -91,12 +91,7 @@ func (d *guardedDirector) Director(context.Context, string) (proxy.Mode, []proxy
 		return 0, nil, err
 	}
 
-	backend := router.NewTalosBackend("maintenance", "", &testNodeResolver{}, conn, false,
-		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-			return handler(ctx, req)
-		},
-		d.omniState, nil,
-	)
+	backend := router.NewTalosBackend("maintenance", "", &testNodeResolver{}, conn, operatorVerifier, d.omniState, nil)
 
 	return proxy.One2One, []proxy.Backend{backend}, nil
 }
