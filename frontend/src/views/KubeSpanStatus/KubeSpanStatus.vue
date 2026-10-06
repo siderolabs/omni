@@ -126,8 +126,8 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
       <h1 class="shrink-0 text-xl font-medium text-content-emphasis">KubeSpan status</h1>
       <div class="flex flex-wrap gap-6">
         <StatsItem title="Total Nodes" :value="peers.length" icon="server-stack" />
-        <StatsItem title="Online" :value="onlineCount" icon="check-in-circle-classic" />
-        <StatsItem title="Offline" :value="offlineCount" icon="error" />
+        <StatsItem title="Online" :value="onlineCount" icon="check-circle" />
+        <StatsItem title="Offline" :value="offlineCount" icon="x-circle" />
       </div>
     </div>
 

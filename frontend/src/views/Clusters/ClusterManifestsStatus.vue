@@ -61,12 +61,12 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
     <PageHeader :title="`Manifests Status — ${cluster}`">
       <template v-if="manifestsStatus && hasManifests">
         <StatsItem title="Total" :value="manifestsStatus.spec.total ?? 0" icon="document-text" />
-        <StatsItem title="In Sync" :value="inSyncCount" icon="check-in-circle" />
+        <StatsItem title="In Sync" :value="inSyncCount" icon="check-circle" />
         <StatsItem
           v-if="manifestsStatus.spec.out_of_sync"
           title="Out of Sync"
           :value="manifestsStatus.spec.out_of_sync"
-          icon="warning"
+          icon="exclamation-triangle"
         />
       </template>
     </PageHeader>
@@ -126,7 +126,7 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
         <div
           class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
         >
-          <TIcon icon="check-in-circle" class="size-5 text-content-default" />
+          <TIcon icon="check-circle" class="size-5 text-content-default" />
           <h3 class="text-sm font-medium text-content-emphasis">Sync tracking</h3>
           <p class="text-xs text-content-secondary">
             Each object is compared against the cluster's live state to detect drift from what Omni

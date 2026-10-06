@@ -98,7 +98,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
       </div>
     </div>
     <div v-else class="flex items-center gap-1 p-4 text-xs text-accent-hover">
-      <TIcon class="h-3 w-3" icon="warning" />
+      <TIcon class="h-3 w-3" icon="exclamation-triangle" />
       No extensions available for this Talos version
     </div>
   </div>

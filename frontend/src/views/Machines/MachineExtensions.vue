@@ -200,7 +200,7 @@ const extensionsLevel = computed(() => {
                     <template
                       v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed"
                     >
-                      <TIcon icon="check-in-circle" class="h-4 w-4 text-status-success-default" />
+                      <TIcon icon="check-circle" class="h-4 w-4 text-status-success-default" />
                       <span>Installed</span>
                     </template>
                   </div>

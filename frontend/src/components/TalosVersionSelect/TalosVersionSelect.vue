@@ -188,7 +188,7 @@ function isItemEnterprise(item?: string) {
           </span>
         </SelectValue>
         <SelectIcon>
-          <TIcon class="size-4 fill-current transition-all duration-300" icon="chevron-down" />
+          <TIcon class="size-4 transition-all duration-300" icon="dropdown" />
         </SelectIcon>
       </SelectTrigger>
 

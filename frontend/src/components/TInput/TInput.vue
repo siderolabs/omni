@@ -140,7 +140,7 @@ onMounted(() => focus && inputRef.value?.focus())
         v-else-if="modelValue !== '' || clearable"
         role="button"
         aria-label="clear"
-        class="size-4 fill-current text-content-muted transition-colors peer-focus:text-content-emphasis"
+        class="size-4 text-content-muted transition-colors peer-focus:text-content-emphasis"
         icon="close"
         @click="clearInput"
       />

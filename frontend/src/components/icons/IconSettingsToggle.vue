@@ -5,13 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
     <mask id="toggle">
       <rect id="cover" x="-5%" y="-5%" width="110%" height="110%" fill="white" />
       <circle cx="13" cy="3" r="4" fill="black" />

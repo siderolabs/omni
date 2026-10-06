@@ -29,7 +29,7 @@ const checked = defineModel<boolean>({ default: false })
     >
       <CheckboxIndicator class="transition-opacity data-[state=unchecked]:opacity-0" force-mount>
         <TIcon
-          class="size-full fill-current text-content-on-accent in-data-disabled:text-content-disabled"
+          class="size-full text-content-on-accent in-data-disabled:text-content-disabled"
           :icon="indeterminate ? 'minus' : 'check'"
         />
       </CheckboxIndicator>

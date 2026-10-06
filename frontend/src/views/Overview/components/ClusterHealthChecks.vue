@@ -36,8 +36,8 @@ const State = KubernetesHealthCheckStatusSpecState
 
 const ICON_STATES: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType; class: string }> =
   {
-    [State.PASSED]: { icon: 'check-in-circle', class: 'text-status-success-default' },
-    [State.FAILED]: { icon: 'error', class: 'text-status-danger-default' },
+    [State.PASSED]: { icon: 'check-circle', class: 'text-status-success-default' },
+    [State.FAILED]: { icon: 'x-circle', class: 'text-status-danger-default' },
     [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-warning-default' },
     [State.UNKNOWN]: { icon: 'time', class: 'text-content-muted' },
   }

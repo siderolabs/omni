@@ -48,9 +48,9 @@ const currentNotification = computed(() => notifications.value.at(currentOffset.
 function getIcon(type: NotificationSpecType): IconType {
   switch (type) {
     case NotificationSpecType.ERROR:
-      return 'error'
+      return 'x-circle'
     case NotificationSpecType.WARNING:
-      return 'warning'
+      return 'exclamation-triangle'
     case NotificationSpecType.INFO:
     default:
       return 'info'
@@ -101,7 +101,7 @@ function dismissNotification(id: string) {
       <div class="flex min-h-12 items-center gap-2 px-6">
         <TButton
           variant="subtle"
-          icon="check-in-circle"
+          icon="check-circle"
           icon-position="left"
           class="text-content-secondary"
           @click="helpModalOpen = true"

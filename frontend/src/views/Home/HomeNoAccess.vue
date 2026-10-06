@@ -25,7 +25,7 @@ const downloadOmnictlModalOpen = ref(false)
       <div
         class="absolute top-0 left-0 flex h-full w-full items-center justify-center rounded-lg bg-surface-raised"
       >
-        <TIcon icon="warning" class="h-6 w-6 text-content-secondary" />
+        <TIcon icon="exclamation-triangle" class="h-6 w-6 text-content-secondary" />
       </div>
     </div>
 

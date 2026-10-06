@@ -422,7 +422,7 @@ watch(
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
           <template #description>
             <div class="flex items-center gap-2 rounded bg-surface-raised p-2 text-xs">
-              <TIcon icon="warning" class="h-5 w-5 fill-current text-status-warning-default" />
+              <TIcon icon="exclamation-triangle" class="h-5 w-5 text-status-warning-default" />
               Weight should be in range of {{ MIN_WEIGHT }}-{{ MAX_WEIGHT }}.
             </div>
           </template>

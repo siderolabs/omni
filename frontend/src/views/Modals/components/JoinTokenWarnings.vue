@@ -43,7 +43,7 @@ watchEffect(() => {
     <TSpinner v-if="loading" class="h-4 w-4" />
     <template v-else-if="joinTokenStatus?.spec.warnings">
       <div class="flex items-center gap-1 text-status-warning-text">
-        <TIcon icon="warning" class="h-5 w-5" />
+        <TIcon icon="exclamation-triangle" class="h-5 w-5" />
         Warning
       </div>
       <div class="flex items-center gap-1 text-xs text-status-warning-text">
@@ -66,7 +66,7 @@ watchEffect(() => {
       </div>
     </template>
     <div v-else class="flex items-center gap-1 text-xs text-status-success-text">
-      <TIcon icon="check-in-circle" />
+      <TIcon icon="check-circle" class="size-4" />
       The token can be safely revoked/deleted.
     </div>
   </div>

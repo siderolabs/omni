@@ -146,13 +146,13 @@ const download = async () => {
 
           if (progress.error) {
             current.color = 'var(--color-status-danger-default)'
-            current.icon = 'warning'
+            current.icon = 'exclamation-triangle'
           } else if (
             current.progress === 100 &&
             current.color !== 'var(--color-status-danger-default)'
           ) {
             current.color = 'var(--color-status-success-default)'
-            current.icon = 'check-in-circle-classic'
+            current.icon = 'check-circle'
           }
         }
 
@@ -278,7 +278,7 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
                   'text-status-success-text': state.error === undefined,
                   'text-status-danger-text': state.error,
                 }"
-                :icon="state.error ? 'warning' : 'check'"
+                :icon="state.error ? 'exclamation-triangle' : 'check'"
               />
               <div>{{ state.text }}</div>
             </div>

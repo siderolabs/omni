@@ -89,7 +89,7 @@ const labelIcons: Record<string, IconType> = {
   [LabelInfraProviderID]: 'server-network',
 
   // Other
-  [MachineStatusLabelInvalidState]: 'warning',
+  [MachineStatusLabelInvalidState]: 'exclamation-triangle',
 }
 
 export function useLabelRouteQuery() {

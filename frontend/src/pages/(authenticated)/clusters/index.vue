@@ -115,7 +115,7 @@ useTitle('Clusters')
               v-if="data?.spec.not_ready_count"
               title="Not Ready"
               :value="data.spec.not_ready_count"
-              icon="warning"
+              icon="exclamation-triangle"
             />
           </PageHeader>
           <TButton

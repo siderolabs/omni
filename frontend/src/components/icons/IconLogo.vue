@@ -4,10 +4,8 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts"></script>
-
 <template>
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M12.0513 0C11.6665 0 11.2866 0.0194641 10.9099 0.0519044L10.9099 25.9003C11.2866 25.9327 11.6665 25.9522 12.0513 25.9522C12.4361 25.9522 12.8161 25.9327 13.1928 25.9003L13.1928 0.0519044C12.8161 0.0194641 12.4361 0 12.0513 0Z"
       fill="url(#paint0_linear_590_7157)"

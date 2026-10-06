@@ -195,7 +195,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
       <TInput v-model="searchInput" class="grow" icon="search" title="Search" />
       <TButton
         v-if="isVirtual"
-        icon="refresh"
+        icon="arrow-path"
         icon-position="left"
         :disabled="loading"
         @click="refresh"

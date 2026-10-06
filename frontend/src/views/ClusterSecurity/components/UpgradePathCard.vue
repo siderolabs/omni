@@ -102,7 +102,7 @@ const canExpand = computed(
     >
       <section v-if="diff.resolved.length" class="flex flex-col gap-2">
         <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-success-text">
-          <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
+          <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
           Fixed by this upgrade ({{ diff.resolved.length }})
         </h4>
         <VulnerabilityList :matches="diff.resolved" />
@@ -110,7 +110,7 @@ const canExpand = computed(
 
       <section v-if="diff.introduced.length" class="flex flex-col gap-2">
         <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-danger-text">
-          <TIcon icon="warning" class="size-4 shrink-0" aria-hidden="true" />
+          <TIcon icon="exclamation-triangle" class="size-4 shrink-0" aria-hidden="true" />
           Introduced by this upgrade ({{ diff.introduced.length }})
         </h4>
         <VulnerabilityList :matches="diff.introduced" />

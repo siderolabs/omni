@@ -9,7 +9,6 @@ import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka
 import { ref } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
-import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
 import { useOngoingTasks } from '@/methods/ongoingTasks'
 import { formatISO } from '@/methods/time'
 
@@ -23,15 +22,18 @@ const dropdownOpen = ref(false)
     <PopoverTrigger
       class="flex items-center gap-1 text-content-secondary transition-colors hover:text-content-emphasis"
     >
-      <IconHeaderDropdownLoading :active="data.length > 0" />
+      <TIcon
+        :icon="data.length > 0 ? 'action-horizontal-animated' : 'action-horizontal'"
+        class="size-4"
+      />
       <span class="text-xs font-normal whitespace-nowrap select-none">
         <span class="contents sm:hidden">Tasks</span>
         <span class="hidden sm:contents">Ongoing Tasks</span>
       </span>
       <TIcon
-        class="flex h-4 w-4 items-center justify-center fill-current transition-transform duration-300"
+        class="flex h-4 w-4 items-center justify-center transition-transform duration-300"
         :class="{ '-rotate-180': dropdownOpen }"
-        icon="chevron-down"
+        icon="dropdown"
       />
     </PopoverTrigger>
 

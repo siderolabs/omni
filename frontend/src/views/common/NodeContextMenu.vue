@@ -58,7 +58,11 @@ const copyMachineID = () => {
     <TActionsBoxItem v-if="canRebootMachines" icon="power" @select="nodeShutdownModalOpen = true">
       Shutdown
     </TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @select="nodeRebootModalOpen = true">
+    <TActionsBoxItem
+      v-if="canRebootMachines"
+      icon="arrow-path-circle"
+      @select="nodeRebootModalOpen = true"
+    >
       Reboot
     </TActionsBoxItem>
     <TActionsBoxItem

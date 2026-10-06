@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
-import { DocumentIcon } from '@heroicons/vue/24/solid'
 import { useRouteQuery } from '@vueuse/router'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
@@ -346,7 +345,7 @@ const toggleDisabled = async (item: RouteItem) => {
                 @click="() => $router.push(item.route)"
               >
                 <div class="flex min-w-0 items-center gap-4">
-                  <DocumentIcon class="size-4 shrink-0" />
+                  <TIcon icon="document" class="size-4 shrink-0" />
 
                   <WordHighlighter
                     :text-to-highlight="item.name"
@@ -370,7 +369,7 @@ const toggleDisabled = async (item: RouteItem) => {
 
                 <TActionsBox aria-label="patch actions">
                   <TActionsBoxItem
-                    :icon="item.disabled ? 'check-in-circle-classic' : 'no-symbol'"
+                    :icon="item.disabled ? 'check-circle' : 'no-symbol'"
                     @select="toggleDisabled(item)"
                   >
                     {{ item.disabled ? 'Enable' : 'Disable' }}

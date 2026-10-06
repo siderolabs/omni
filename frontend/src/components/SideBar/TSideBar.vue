@@ -241,7 +241,7 @@ const rootItems = computed(() => {
       item.subItems.push({
         name: 'Pending',
         route: getRoute('MachinesPending', '/machines/pending'),
-        icon: 'question',
+        icon: 'question-mark-circle',
         label: machineMetrics.value.spec.pending_machines_count,
       })
     }

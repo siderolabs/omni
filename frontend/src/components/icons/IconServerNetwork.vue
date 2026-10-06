@@ -5,12 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <template>
-  <svg
-    viewBox="0.403 0.767 23.49 18.6225"
-    width="21.49"
-    height="16.6225"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg viewBox="0.403 0.767 23.49 18.6225" xmlns="http://www.w3.org/2000/svg">
     <path
       fill-rule="evenodd"
       clip-rule="evenodd"

@@ -66,7 +66,7 @@ function toggleRow() {
         <div class="size-5 rounded-md bg-surface-inert p-0.5 text-content-muted">
           <TIcon
             icon="dropdown"
-            class="transition-transform group-data-[state=open]/trigger:rotate-180"
+            class="size-4 transition-transform group-data-[state=open]/trigger:rotate-180"
           />
         </div>
       </div>

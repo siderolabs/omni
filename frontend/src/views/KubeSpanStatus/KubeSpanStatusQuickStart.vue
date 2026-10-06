@@ -293,7 +293,7 @@ async function enableKubeSpan() {
         </TAlert>
 
         <p v-else class="flex max-w-md items-start gap-1.5 text-xs text-status-warning-text">
-          <TIcon icon="warning" class="mt-px size-3.5 shrink-0" />
+          <TIcon icon="exclamation-triangle" class="mt-px size-3.5 shrink-0" />
           <span>
             Wireguard encryption adds overhead to each packet that can reduce network throughput.
             Review the docs to decide if it fits your cluster.

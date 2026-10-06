@@ -99,7 +99,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       </TButton>
       <TButton
         class="header-button"
-        icon="reboot"
+        icon="arrow-path-circle"
         icon-position="left"
         variant="secondary"
         :disabled="!canRebootMachines"

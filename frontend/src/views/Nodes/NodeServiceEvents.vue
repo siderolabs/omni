@@ -16,7 +16,7 @@ defineProps<{
 
 const eventStyle = (state: string) => {
   let color = 'bg-status-info-fill text-status-info-on-fill'
-  let icon: IconType = 'question'
+  let icon: IconType = 'question-mark-circle'
 
   switch (state) {
     case 'Running':
@@ -41,7 +41,7 @@ const eventStyle = (state: string) => {
       break
     case 'Failed':
     case 'Corrupted':
-      icon = 'error'
+      icon = 'x-circle'
       color = 'bg-status-danger-fill text-status-danger-on-fill'
 
       break

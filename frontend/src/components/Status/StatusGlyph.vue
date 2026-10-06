@@ -13,16 +13,9 @@ export type StatusGlyphType = 'success' | 'danger' | 'warning' | 'progress' | 'n
 </script>
 
 <script setup lang="ts">
-import {
-  ArrowPathIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  MinusCircleIcon,
-  QuestionMarkCircleIcon,
-  XCircleIcon,
-} from '@heroicons/vue/16/solid'
-import type { ClassValue, Component } from 'vue'
+import type { ClassValue } from 'vue'
 
+import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import { cn } from '@/methods/utils'
 
 const { glyph } = defineProps<{
@@ -30,16 +23,16 @@ const { glyph } = defineProps<{
   class?: ClassValue
 }>()
 
-const statusGlyphIcon: Record<StatusGlyphType, Component> = {
-  success: CheckCircleIcon,
-  danger: XCircleIcon,
-  warning: ExclamationTriangleIcon,
-  progress: ArrowPathIcon,
-  neutral: MinusCircleIcon,
-  unknown: QuestionMarkCircleIcon,
+const statusGlyphIcon: Record<StatusGlyphType, IconType> = {
+  success: 'check-circle-solid',
+  danger: 'x-circle-solid',
+  warning: 'exclamation-triangle-solid',
+  progress: 'arrow-path',
+  neutral: 'minus-circle-solid',
+  unknown: 'question-mark-circle-solid',
 }
 </script>
 
 <template>
-  <component :is="statusGlyphIcon[glyph]" :class="cn('size-3', $props.class)" />
+  <TIcon :icon="statusGlyphIcon[glyph]" :class="cn('size-3', $props.class)" />
 </template>

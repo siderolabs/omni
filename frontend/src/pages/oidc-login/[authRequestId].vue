@@ -96,7 +96,7 @@ useTitle('OIDC Login')
               class="cursor-pointer rounded-r-md bg-surface-inert px-2 py-1 text-content-emphasis transition-colors hover:bg-surface-hover"
               @click="copyCode"
             >
-              <TIcon icon="copy" class="h-5" />
+              <TIcon icon="copy" class="size-5" />
             </div>
           </div>
           <div v-else class="my-0.5 flex w-full flex-col gap-3">

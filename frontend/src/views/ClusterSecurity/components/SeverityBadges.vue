@@ -35,7 +35,7 @@ const statusDotClass: Record<StatusTone, string> = {
 
 <template>
   <p v-if="!matches.length" class="flex items-center gap-1.5 text-xs text-status-success-text">
-    <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
+    <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
     No vulnerabilities
   </p>
   <ul v-else class="flex flex-wrap items-center gap-1.5">

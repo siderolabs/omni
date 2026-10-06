@@ -207,7 +207,7 @@ useTitle(['Machines', 'Join Tokens'])
                 </TActionsBoxItem>
 
                 <TActionsBoxItem
-                  icon="error"
+                  icon="x-circle"
                   danger
                   :disabled="!canManageJoinTokens"
                   @select="() => openRevokeToken(item.metadata.id!)"

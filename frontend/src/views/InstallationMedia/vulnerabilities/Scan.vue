@@ -48,13 +48,13 @@ const matches = computed(() => data.value?.matches)
         v-if="matches.length === 0"
         class="flex items-center gap-1.5 text-xs text-status-success-text"
       >
-        <TIcon icon="check-in-circle" class="size-4 shrink-0" aria-hidden="true" />
+        <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
         No vulnerabilities detected
       </p>
 
       <div v-else class="flex flex-col items-start gap-2">
         <p class="flex items-center gap-1.5 text-xs text-status-warning-text">
-          <TIcon icon="warning" class="size-4 shrink-0" aria-hidden="true" />
+          <TIcon icon="exclamation-triangle" class="size-4 shrink-0" aria-hidden="true" />
           <span>
             <span class="font-medium">{{ matches.length }}</span>
             {{ pluralize('vulnerability', matches.length) }} after VEX suppression

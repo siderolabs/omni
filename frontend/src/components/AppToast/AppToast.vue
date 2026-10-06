@@ -41,15 +41,15 @@ const { theme } = useTheme()
     }"
   >
     <template #success-icon>
-      <TIcon icon="check-in-circle-classic" class="text-status-success-default" />
+      <TIcon icon="check-circle" class="size-4 text-status-success-default" />
     </template>
 
     <template #error-icon>
-      <TIcon icon="error" class="text-status-danger-default" />
+      <TIcon icon="x-circle" class="size-4 text-status-danger-default" />
     </template>
 
     <template #warning-icon>
-      <TIcon icon="warning" class="text-status-warning-default" />
+      <TIcon icon="exclamation-triangle" class="size-4 text-status-warning-default" />
     </template>
   </Toaster>
 </template>

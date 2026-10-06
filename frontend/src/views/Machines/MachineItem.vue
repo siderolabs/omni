@@ -213,7 +213,7 @@ const canUseLifecycleUpgrade = computed(() => {
             class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:bg-surface-hover hover:text-content-emphasis"
           >
             <span class="max-md:hidden">{{ clusterName }}</span>
-            <TIcon icon="clusters" aria-hidden="true" />
+            <TIcon icon="clusters" class="size-4" aria-hidden="true" />
           </RouterLink>
 
           <RouterLink
@@ -222,7 +222,7 @@ const canUseLifecycleUpgrade = computed(() => {
             class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-content-secondary hover:bg-surface-hover hover:text-content-emphasis"
           >
             <span class="max-md:hidden">Logs</span>
-            <TIcon icon="log" aria-hidden="true" />
+            <TIcon icon="log" class="size-4" aria-hidden="true" />
           </RouterLink>
 
           <Tooltip v-if="canAccessMaintenanceNodes" :description="maintenanceUpdateDescription">
@@ -236,7 +236,7 @@ const canUseLifecycleUpgrade = computed(() => {
               "
             >
               <span class="max-md:hidden">Update Talos</span>
-              <TIcon icon="upgrade" aria-hidden="true" />
+              <TIcon icon="upgrade" class="size-4" aria-hidden="true" />
             </button>
           </Tooltip>
 

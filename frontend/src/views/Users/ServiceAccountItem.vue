@@ -66,7 +66,7 @@ const serviceAccountRenewModal = ref<{
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
             <TActionsBoxItem
-              icon="refresh"
+              icon="arrow-path"
               @select="serviceAccountRenewModal = { open: true, identity: item.metadata.id }"
             >
               Renew Key

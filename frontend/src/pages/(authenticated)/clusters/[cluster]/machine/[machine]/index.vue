@@ -295,7 +295,7 @@ useTitle('Overview')
             :conditions="talosMachineStatus.spec.status.unmetConditions"
           />
           <div v-else class="flex items-center gap-1 text-xs text-status-success-text">
-            <TIcon icon="check-in-circle-classic" class="h-4" />
+            <TIcon icon="check-circle" class="size-4" />
             None
           </div>
         </div>

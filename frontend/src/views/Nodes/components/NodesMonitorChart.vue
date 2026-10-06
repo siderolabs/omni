@@ -25,7 +25,6 @@ export interface ChartSample<T> {
 </script>
 
 <script setup lang="ts" generic="T = unknown">
-import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { useElementSize, useMouseInElement } from '@vueuse/core'
 import { format as formatDate, parseISO } from 'date-fns'
 import { computed, ref, shallowRef, useId, useTemplateRef, watch } from 'vue'
@@ -33,6 +32,7 @@ import { computed, ref, shallowRef, useId, useTemplateRef, watch } from 'vue'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { EventType } from '@/api/omni/resources/resources.pb'
+import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { useResourceWatch, type WatchOptions } from '@/methods/useResourceWatch'
 import * as chart from '@/views/Nodes/lib/nodesMonitorChartMath'
@@ -231,7 +231,7 @@ const tipLeft = computed(() =>
     <div class="relative h-45">
       <div v-if="err || loading" class="flex h-full items-center justify-center">
         <span v-if="err" class="flex items-center justify-center gap-4 text-sm text-content-muted">
-          <ExclamationCircleIcon class="size-6" />
+          <TIcon icon="exclamation-circle" class="size-6" />
           {{ errCode === Code.UNAVAILABLE ? 'Talos API is not ready yet' : err }}
         </span>
 

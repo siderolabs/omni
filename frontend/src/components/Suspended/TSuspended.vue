@@ -9,34 +9,19 @@ import TIcon from '@/components/Icon/TIcon.vue'
 </script>
 
 <template>
-  <div class="suspended">
-    <div class="suspended__wrapper">
-      <TIcon class="suspended__icon" icon="attention" />
-      <div class="suspended__content-box">
+  <div
+    class="flex min-h-16.25 w-full items-center justify-between rounded border border-l-4 border-status-danger-subtle-border bg-surface-page px-6 py-4 text-status-danger-text"
+  >
+    <div class="flex items-center gap-5">
+      <TIcon class="size-5 shrink-0" icon="exclamation" />
+      <p>
         This account is currently
         <b>suspended</b>
         and in read-only mode. You can still access your resources but will not be able to make any
         changes.
         <br />
         Please contact support to resolve this issue.
-      </div>
+      </p>
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.suspended {
-  @apply flex w-full items-center justify-between rounded border border-l-4 border-status-danger-subtle-border bg-surface-page px-6 py-4 text-status-danger-text;
-  min-height: 65px;
-}
-.suspended__wrapper {
-  @apply flex items-center;
-}
-.suspended__icon {
-  @apply mr-5 fill-current;
-  width: 20px;
-  height: 20px;
-}
-</style>

@@ -23,10 +23,10 @@ type Props = {
 defineProps<Props>()
 
 const icons: Record<AlertType, IconType> = {
-  error: 'error',
+  error: 'x-circle',
   info: 'info',
-  success: 'check-in-circle',
-  warn: 'warning',
+  success: 'check-circle',
+  warn: 'exclamation-triangle',
 }
 </script>
 

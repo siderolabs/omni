@@ -125,14 +125,17 @@ const updateLock = async () => {
         v-if="machine.spec.last_config_error"
         :description="machine.spec.last_config_error.trim()"
       >
-        <TIcon icon="error" class="mx-1.5 size-4 shrink-0 text-status-danger-default" />
+        <TIcon icon="x-circle" class="mx-1.5 size-4 shrink-0 text-status-danger-default" />
       </Tooltip>
 
       <Tooltip
         v-if="hasDiagnosticInfo"
         description="This node has diagnostic warnings. Click to see the details."
       >
-        <TIcon icon="warning" class="mx-1.5 size-4 shrink-0 text-status-warning-default" />
+        <TIcon
+          icon="exclamation-triangle"
+          class="mx-1.5 size-4 shrink-0 text-status-warning-default"
+        />
       </Tooltip>
 
       <Tooltip

@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ArrowDownIcon } from '@heroicons/vue/24/solid'
 import prettyBytes from 'pretty-bytes'
 import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
@@ -22,6 +21,7 @@ import {
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
+import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useTitle } from '@/methods/title'
 import NodesMonitorChart, {
@@ -336,8 +336,9 @@ useTitle('Monitor')
           @click="() => sortBy(h.id)"
         >
           <span>{{ h.header || h.id }}</span>
-          <ArrowDownIcon
+          <TIcon
             v-if="sort === h.id"
+            icon="long-arrow-down"
             class="h-3 w-3"
             :class="{ transform: sortReverse, 'rotate-180': sortReverse }"
           />

@@ -17,7 +17,6 @@ import { InfraProviderNamespace, MachineRequestType } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
-import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
@@ -93,9 +92,9 @@ const forceDestroy = async () => {
     class="col-span-full grid grid-cols-subgrid items-center py-3 pr-4 pl-2 text-xs text-content-emphasis"
   >
     <div class="col-span-2 ml-6 flex items-center gap-2">
-      <IconHeaderDropdownLoading
+      <TIcon
         v-if="stage !== TCommonStatuses.PROVISIONED"
-        active
+        icon="action-horizontal-animated"
         class="size-4 shrink-0"
       />
       <TIcon v-else icon="cloud-connection" class="size-4 shrink-0" />

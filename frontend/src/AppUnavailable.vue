@@ -24,7 +24,7 @@ import THeader from '@/components/THeader/THeader.vue'
       <div
         class="flex gap-4 rounded-lg border border-border-default bg-surface-card px-6 py-4 drop-shadow-md"
       >
-        <TIcon icon="warning" class="h-12 w-12 fill-current text-content-emphasis" />
+        <TIcon icon="exclamation-triangle" class="h-12 w-12 text-content-emphasis" />
         <div class="flex flex-col text-content-default">
           <div>It appears we are experiencing some issues.</div>
           <div class="flex">

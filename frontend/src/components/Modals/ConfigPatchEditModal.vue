@@ -89,7 +89,7 @@ const saveAndClose = async () => {
           :href="getDocsLink('talos', '/reference/configuration/overview', { talosVersion })"
           rel="noopener noreferrer"
           target="_blank"
-          icon="question"
+          icon="question-mark-circle"
           variant="subtle"
           size="xs"
           icon-position="left"
