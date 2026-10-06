@@ -5,8 +5,18 @@
 
 package k8sproxy
 
+import "net/http/httputil"
+
 // ClusterContextKey is exposed for testing.
 type ClusterContextKey = clusterContextKey
 
 // Claims is exposed for testing.
 type Claims = claims
+
+// ForwardHeaders is exposed for testing.
+var ForwardHeaders = forwardHeaders
+
+// Rewrite is exposed for testing.
+func Rewrite(req *httputil.ProxyRequest) {
+	(&proxyHandler{}).rewrite(req)
+}

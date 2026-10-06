@@ -43,8 +43,11 @@ func newProxyHandler(m *multiplexer, logger *zap.Logger) *proxyHandler {
 	return p
 }
 
-// rewrite sets the target URL for the reverse proxy.
+// rewrite sets the target URL and the headers for the reverse proxy.
 func (p *proxyHandler) rewrite(req *httputil.ProxyRequest) {
+	// read from the inbound request: a header the client lists in Connection is gone from the outbound one
+	req.Out.Header = forwardHeaders(req.Out.Header, req.In.Header)
+
 	req.SetXForwarded()
 
 	clusterNameVal, ok := ctxstore.Value[clusterContextKey](req.In.Context())
