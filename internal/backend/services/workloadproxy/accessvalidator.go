@@ -98,6 +98,10 @@ func (p *SignatureAccessValidator) ValidateAccess(ctx context.Context, publicKey
 		return fmt.Errorf("key is expired")
 	}
 
+	if !publicKey.TypedSpec().Value.Confirmed {
+		return fmt.Errorf("key is not confirmed")
+	}
+
 	verifier, err := authres.GetSignatureVerifier(publicKey)
 	if err != nil {
 		return err
