@@ -41,8 +41,6 @@ config:
   storage:
     default:
       kind: etcd
-      boltdb:
-        path: /data/omni-boltdb.db
       etcd:
         embedded: true
         embeddedDBPath: /data/etcd/
@@ -121,11 +119,6 @@ comments:
         Tip: Use additionalConfigSources to load this from an existing Secret.
   storage:
     default:
-      boltdb:
-        path: |-
-          Path to the primary BoltDB database.
-          Is **NOT USED by default**: only used if the storage.default.kind is set to "boltdb".
-          This path is mounted from the persistent volume by default.
       etcd:
         embeddedDBPath: |-
           EmbeddedDBPath is the path where the embedded etcd database files are stored.

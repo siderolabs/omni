@@ -421,14 +421,18 @@ config:
   storage:
     # Default contains the default storage backend configuration.
     default:
-      # -- Kind is the kind of the default storage backend.
+      # -- Kind is the kind of the default storage backend. The boltdb kind is deprecated and will be removed in a
+      # future release, use etcd.
       kind: etcd
+      # @ignored
       # Boltdb contains BoltDB storage backend configuration.
+      #
+      # Deprecated: the BoltDB storage backend will be removed in a future release, use etcd.
       boltdb:
-        # -- Path to the primary BoltDB database.
-        # Is **NOT USED by default**: only used if the storage.default.kind is set to "boltdb".
-        # This path is mounted from the persistent volume by default.
-        path: /data/omni-boltdb.db
+        # Path is the path where the BoltDB database file is stored.
+        #
+        # Deprecated: the BoltDB storage backend will be removed in a future release, use etcd.
+        #path: _out/omni.db
       # Etcd contains etcd storage backend configuration.
       etcd:
         # Endpoints is the list of etcd endpoints. Only used when external etcd is used (i.e., embedded is false).

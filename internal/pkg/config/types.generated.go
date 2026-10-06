@@ -97,6 +97,9 @@ type AuthLimits struct {
 
 type BoltDB struct {
 	// Path is the path where the BoltDB database file is stored.
+	//
+	// Deprecated: the BoltDB storage backend will be removed in a future release, use
+	// etcd.
 	Path *string `json:"path,omitempty,omitzero" yaml:"path,omitempty"`
 }
 
@@ -922,12 +925,16 @@ type Storage struct {
 
 type StorageDefault struct {
 	// Boltdb contains BoltDB storage backend configuration.
+	//
+	// Deprecated: the BoltDB storage backend will be removed in a future release, use
+	// etcd.
 	Boltdb BoltDB `json:"boltdb" yaml:"boltdb"`
 
 	// Etcd contains etcd storage backend configuration.
 	Etcd EtcdParams `json:"etcd" yaml:"etcd"`
 
-	// Kind is the kind of the default storage backend.
+	// Kind is the kind of the default storage backend. The boltdb kind is deprecated
+	// and will be removed in a future release, use etcd.
 	Kind *StorageDefaultKind `json:"kind,omitempty,omitzero" yaml:"kind,omitempty"`
 }
 

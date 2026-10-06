@@ -1586,7 +1586,7 @@
       ],
       "properties": {
         "kind": {
-          "description": "Kind is the kind of the default storage backend.",
+          "description": "Kind is the kind of the default storage backend. The boltdb kind is deprecated and will be removed in a future release, use etcd.",
           "x-cli-flag": "storage-kind",
           "type": "string",
           "default": "etcd",
@@ -1599,7 +1599,7 @@
           }
         },
         "boltdb": {
-          "description": "Boltdb contains BoltDB storage backend configuration.",
+          "description": "Boltdb contains BoltDB storage backend configuration.\n\nDeprecated: the BoltDB storage backend will be removed in a future release, use etcd.",
           "$ref": "#/definitions/BoltDB"
         },
         "etcd": {
@@ -1612,7 +1612,8 @@
       "type": "object",
       "properties": {
         "path": {
-          "description": "Path is the path where the BoltDB database file is stored.",
+          "description": "Path is the path where the BoltDB database file is stored.\n\nDeprecated: the BoltDB storage backend will be removed in a future release, use etcd.",
+          "deprecated": true,
           "type": "string",
           "default": "_out/omni.db",
           "goJSONSchema": {

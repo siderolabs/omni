@@ -162,7 +162,9 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 
 	switch params.Storage.Default.GetKind() {
 	case config.StorageDefaultKindBoltdb:
-		defaultPersistentState, err = newBoltPersistentState(params.Storage.Default.Boltdb.GetPath(), nil, false, logger)
+		logger.Warn("the boltdb storage backend is deprecated and will be removed in a future release, migrate to etcd")
+
+		defaultPersistentState, err = newBoltPersistentState(params.Storage.Default.Boltdb.GetPath(), nil, false, logger) //nolint:staticcheck
 	case config.StorageDefaultKindEtcd:
 		etcdMetrics := newEtcdMetrics()
 		metricsRegistry.MustRegister(etcdMetrics)

@@ -8,6 +8,15 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.11.0"
 
+[notes.aaa-boltdb-deprecation]
+title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+description = """\
+The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind boltdb`) is deprecated and will be removed in a \
+future release. It keeps working in this release and Omni logs a warning at startup when it runs on it. There is no automated \
+migration between the two backends, so if your Omni runs on BoltDB, plan the move to etcd, which is the default, before \
+the removal lands.
+"""
+
 [notes.image-factory-api-token]
 title = "Image Factory API Token Authentication"
 description = """\
