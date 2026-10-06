@@ -9,6 +9,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -918,7 +919,7 @@ registries:
 
 // TestFactoryCredentialEnvOverrides verifies that the per-factory environment variables reach the
 // resolved factories, and that they win over credentials set explicitly in the config.
-func TestFactoryCredentialEnvOverrides(t *testing.T) {
+func TestCredentialEnvOverrides(t *testing.T) {
 	// Cannot be parallel: t.Setenv mutates process state.
 	initConfig := func(t *testing.T, overrides string) *config.Params {
 		t.Helper()
@@ -1024,4 +1025,36 @@ registries:
 		assert.Equal(t, "legacy-env-user", primary.GetUsername())
 		assert.Equal(t, config.Secret("legacy-env-pass"), primary.GetPassword())
 	})
+
+	t.Run("the OIDC client secret env var wins over the config file", func(t *testing.T) {
+		t.Setenv(config.EnvAuthOIDCClientSecret, "env-client-secret")
+
+		cfg := initConfig(t, `auth:
+  oidc:
+    clientSecret: from-the-config-file
+`)
+
+		assert.Equal(t, config.Secret("env-client-secret"), cfg.Auth.Oidc.GetClientSecret())
+	})
+
+	t.Run("the config file holds the OIDC client secret when the env var is unset", func(t *testing.T) {
+		unset(t, config.EnvAuthOIDCClientSecret)
+
+		cfg := initConfig(t, `auth:
+  oidc:
+    clientSecret: from-the-config-file
+`)
+
+		assert.Equal(t, config.Secret("from-the-config-file"), cfg.Auth.Oidc.GetClientSecret())
+	})
+}
+
+// unset removes an environment variable for the test. The config reads with LookupEnv, so setting it
+// to an empty value is not the same thing. t.Setenv is what puts the original back afterwards.
+func unset(t *testing.T, key string) {
+	t.Helper()
+
+	t.Setenv(key, "")
+
+	require.NoError(t, os.Unsetenv(key))
 }

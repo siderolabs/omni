@@ -244,6 +244,8 @@ const (
 	EnvPrimaryFactoryPassword   = "OMNI_PRIMARY_FACTORY_PASSWORD"
 	EnvSecondaryFactoryUsername = "OMNI_SECONDARY_FACTORY_USERNAME"
 	EnvSecondaryFactoryPassword = "OMNI_SECONDARY_FACTORY_PASSWORD"
+
+	EnvAuthOIDCClientSecret = "OMNI_AUTH_OIDC_CLIENT_SECRET"
 )
 
 // applyEnvOverrides overrides config values from environment variables, when set.
@@ -283,6 +285,10 @@ func (p *Params) applyEnvOverrides() {
 		if v, ok := os.LookupEnv(factory.passwordEnv); ok {
 			factory.target.SetPassword(Secret(v))
 		}
+	}
+
+	if v, ok := os.LookupEnv(EnvAuthOIDCClientSecret); ok {
+		p.Auth.Oidc.SetClientSecret(Secret(v))
 	}
 }
 
