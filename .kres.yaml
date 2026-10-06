@@ -909,7 +909,7 @@ spec:
       destination: frontend/src/schemas/config_1_12.schema.json
     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.13.10/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_13.schema.json
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.14.1/pkg/machinery/config/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.14.2/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_14.schema.json
   destinationRoot: src/api
   specs:
