@@ -298,7 +298,7 @@ type Factory struct {
 
 	// Password is the password used to authenticate against the Image Factory
 	// Enterprise service with basic auth.
-	Password *string `json:"password,omitempty,omitzero" yaml:"password,omitempty"`
+	Password *Secret `json:"password,omitempty,omitzero" yaml:"password,omitempty"`
 
 	// PxeURL is the base URL of the Image Factory PXE endpoint used to build custom
 	// PXE boot images.
@@ -550,7 +550,7 @@ type OIDC struct {
 	ClientID *string `json:"clientID,omitempty,omitzero" yaml:"clientID,omitempty"`
 
 	// ClientSecret is the OIDC client secret.
-	ClientSecret *string `json:"clientSecret,omitempty,omitzero" yaml:"clientSecret,omitempty"`
+	ClientSecret *Secret `json:"clientSecret,omitempty,omitzero" yaml:"clientSecret,omitempty"`
 
 	// Enabled controls whether the OIDC authentication provider is enabled.
 	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
@@ -667,7 +667,7 @@ type Registries struct {
 	// Factory Enterprise service.
 	//
 	// Deprecated: use factories.primary.password instead.
-	ImageFactoryPassword *string `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
+	ImageFactoryPassword *Secret `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
 
 	// ImageFactoryUsername is the username used to authenticate against the Image
 	// Factory Enterprise service.
@@ -940,7 +940,7 @@ type Vault struct {
 	// Token is the authentication token for the Vault server. It is read from
 	// VAULT_TOKEN env var when not set. It is recommended to be passed as env var
 	// instead of being stored in the config file.
-	Token *string `json:"token,omitempty,omitzero" yaml:"token,omitempty"`
+	Token *Secret `json:"token,omitempty,omitzero" yaml:"token,omitempty"`
 
 	// Url is the URL of the Vault server.
 	Url *string `json:"url,omitempty,omitzero" yaml:"url,omitempty"`

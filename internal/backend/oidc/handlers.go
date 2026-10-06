@@ -235,7 +235,7 @@ func NewOIDCHandler(endpoint string, config config.OIDC, provider *oidc.Provider
 
 	oauth2Config := oauth2.Config{
 		ClientID:     config.GetClientID(),
-		ClientSecret: config.GetClientSecret(),
+		ClientSecret: string(config.GetClientSecret()),
 		RedirectURL:  fullRedirectURL,
 
 		// Discovery returns the OAuth2 endpoints.

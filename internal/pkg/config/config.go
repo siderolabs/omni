@@ -265,7 +265,7 @@ func (p *Params) applyEnvOverrides() {
 
 	//nolint:staticcheck
 	if v, ok := os.LookupEnv(EnvImageFactoryPassword); ok {
-		p.Registries.SetImageFactoryPassword(v)
+		p.Registries.SetImageFactoryPassword(Secret(v))
 	}
 
 	for _, factory := range []struct {
@@ -281,7 +281,7 @@ func (p *Params) applyEnvOverrides() {
 		}
 
 		if v, ok := os.LookupEnv(factory.passwordEnv); ok {
-			factory.target.SetPassword(v)
+			factory.target.SetPassword(Secret(v))
 		}
 	}
 }

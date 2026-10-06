@@ -338,6 +338,6 @@ func factoryAuth(factory config.Factory, logger *zap.Logger) (imagefactory.Auth,
 
 	return imagefactory.Auth{
 		Username: factory.GetUsername(),
-		Password: factory.GetPassword(),
+		Password: string(factory.GetPassword()),
 	}, nil, nil
 }

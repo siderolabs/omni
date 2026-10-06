@@ -705,7 +705,7 @@ registries:
 		assert.Equal(t, "https://old.example.com", primary.GetUrl())
 		assert.Equal(t, "https://pxe.old.example.com", primary.GetPxeURL())
 		assert.Equal(t, "old-user", primary.GetUsername())
-		assert.Equal(t, "old-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("old-pass"), primary.GetPassword())
 
 		_, hasSecondary := p.Registries.GetSecondaryFactory()
 		assert.False(t, hasSecondary)
@@ -745,7 +745,7 @@ registries:
 		primary := p.Registries.GetPrimaryFactory()
 		assert.Equal(t, "https://new.example.com", primary.GetUrl())
 		assert.Equal(t, "new-user", primary.GetUsername())
-		assert.Equal(t, "new-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("new-pass"), primary.GetPassword())
 	})
 
 	t.Run("a primary factory URL ignores the deprecated credentials", func(t *testing.T) {
@@ -788,7 +788,7 @@ registries:
 		primary := p.Registries.GetPrimaryFactory()
 		assert.Equal(t, "https://old.example.com", primary.GetUrl())
 		assert.Equal(t, "new-user", primary.GetUsername())
-		assert.Equal(t, "new-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("new-pass"), primary.GetPassword())
 	})
 
 	t.Run("secondary factory", func(t *testing.T) {
@@ -808,7 +808,7 @@ registries:
 		require.True(t, ok)
 		assert.Equal(t, "https://secondary.example.com", secondary.GetUrl())
 		assert.Equal(t, "secondary-user", secondary.GetUsername())
-		assert.Equal(t, "secondary-pass", secondary.GetPassword())
+		assert.Equal(t, config.Secret("secondary-pass"), secondary.GetPassword())
 	})
 
 	t.Run("pxe base url derivation", func(t *testing.T) {
@@ -900,12 +900,12 @@ registries:
 
 		primary := cfg.Registries.GetPrimaryFactory()
 		assert.Equal(t, "env-primary-user", primary.GetUsername())
-		assert.Equal(t, "env-primary-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("env-primary-pass"), primary.GetPassword())
 
 		secondary, ok := cfg.Registries.GetSecondaryFactory()
 		require.True(t, ok)
 		assert.Equal(t, "env-secondary-user", secondary.GetUsername())
-		assert.Equal(t, "env-secondary-pass", secondary.GetPassword())
+		assert.Equal(t, config.Secret("env-secondary-pass"), secondary.GetPassword())
 	})
 
 	t.Run("a token file replaces the deprecated credentials instead of joining them", func(t *testing.T) {
@@ -943,7 +943,7 @@ registries:
 
 		primary := cfg.Registries.GetPrimaryFactory()
 		assert.Equal(t, "env-primary-user", primary.GetUsername())
-		assert.Equal(t, "env-primary-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("env-primary-pass"), primary.GetPassword())
 	})
 
 	t.Run("configured primary credentials win over the deprecated env vars", func(t *testing.T) {
@@ -961,13 +961,13 @@ registries:
 
 		primary := cfg.Registries.GetPrimaryFactory()
 		assert.Equal(t, "config-user", primary.GetUsername())
-		assert.Equal(t, "config-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("config-pass"), primary.GetPassword())
 
 		// The deprecated env vars still drive the primary factory when nothing more specific is set.
 		cfg = initConfig(t, "registries: {}\n")
 
 		primary = cfg.Registries.GetPrimaryFactory()
 		assert.Equal(t, "legacy-env-user", primary.GetUsername())
-		assert.Equal(t, "legacy-env-pass", primary.GetPassword())
+		assert.Equal(t, config.Secret("legacy-env-pass"), primary.GetPassword())
 	})
 }

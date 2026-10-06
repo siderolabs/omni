@@ -95,7 +95,7 @@ func (f Factory) RequiresAuth() bool {
 	return f.GetTokenFile() != "" || f.GetPassword() != ""
 }
 
-func firstNonEmpty(values ...string) string {
+func firstNonEmpty[T ~string](values ...T) T {
 	for _, v := range values {
 		if v != "" {
 			return v

@@ -266,7 +266,7 @@ func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 	b.BoolVar("auth.oidc.enabled", &flagConfig.Auth.Oidc.Enabled)
 	b.StringVar("auth.oidc.providerURL", &flagConfig.Auth.Oidc.ProviderURL)
 	b.StringVar("auth.oidc.clientID", &flagConfig.Auth.Oidc.ClientID)
-	b.StringVar("auth.oidc.clientSecret", &flagConfig.Auth.Oidc.ClientSecret)
+	EnumVar(b, "auth.oidc.clientSecret", &flagConfig.Auth.Oidc.ClientSecret)
 	b.StringSliceVar("auth.oidc.scopes", &flagConfig.Auth.Oidc.Scopes, flagConfig.Auth.Oidc.Scopes)
 	b.StringVar("auth.oidc.logoutURL", &flagConfig.Auth.Oidc.LogoutURL)
 	b.BoolVar("auth.oidc.allowUnverifiedEmail", &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
@@ -357,13 +357,15 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	//nolint:staticcheck
 	b.deprecatedStringAlias("image-factory-username", "use --primary-factory-username", &flagConfig.Registries.ImageFactoryUsername)
 	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-password", "use --primary-factory-password", &flagConfig.Registries.ImageFactoryPassword)
+	EnumVar(b, "registries.imageFactoryPassword", &flagConfig.Registries.ImageFactoryPassword)
+	//nolint:errcheck
+	b.cmd.Flags().MarkDeprecated(b.mustFlagName("registries.imageFactoryPassword"), "use --primary-factory-password")
 
 	primary := &flagConfig.Registries.Factories.Primary
 	b.StringVar("registries.factories.primary.url", &primary.Url)
 	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)
 	b.StringVar("registries.factories.primary.username", &primary.Username)
-	b.StringVar("registries.factories.primary.password", &primary.Password)
+	EnumVar(b, "registries.factories.primary.password", &primary.Password)
 	b.StringVar("registries.factories.primary.tokenFile", &primary.TokenFile)
 	b.DurationVar("registries.factories.primary.machineTokenTTL", &primary.MachineTokenTTL)
 
@@ -371,7 +373,7 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.factories.secondary.url", &secondary.Url)
 	b.StringVar("registries.factories.secondary.pxeURL", &secondary.PxeURL)
 	b.StringVar("registries.factories.secondary.username", &secondary.Username)
-	b.StringVar("registries.factories.secondary.password", &secondary.Password)
+	EnumVar(b, "registries.factories.secondary.password", &secondary.Password)
 	b.StringVar("registries.factories.secondary.tokenFile", &secondary.TokenFile)
 	b.DurationVar("registries.factories.secondary.machineTokenTTL", &secondary.MachineTokenTTL)
 

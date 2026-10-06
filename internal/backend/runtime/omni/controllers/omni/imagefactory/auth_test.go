@@ -50,7 +50,7 @@ func testRegistries(username, password string) *config.Registries {
 
 	if username != "" {
 		primary.SetUsername(username)
-		primary.SetPassword(password)
+		primary.SetPassword(config.Secret(password))
 	}
 
 	return &config.Registries{Factories: config.Factories{Primary: primary}}

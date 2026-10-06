@@ -103,7 +103,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultConfig config.V
 
 	token, ok := os.LookupEnv("VAULT_TOKEN")
 	if !ok {
-		token = vaultConfig.GetToken()
+		token = string(vaultConfig.GetToken())
 
 		if token == "" {
 			return nil, errors.New("VAULT_TOKEN is not set")

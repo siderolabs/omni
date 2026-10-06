@@ -501,14 +501,14 @@ func (s *Factory) SetMachineTokenTTL(v time.Duration) {
 	s.MachineTokenTTL = &v
 }
 
-func (s *Factory) GetPassword() string {
+func (s *Factory) GetPassword() Secret {
 	if s == nil || s.Password == nil {
-		return *new(string)
+		return *new(Secret)
 	}
 	return *s.Password
 }
 
-func (s *Factory) SetPassword(v string) {
+func (s *Factory) SetPassword(v Secret) {
 	s.Password = &v
 }
 
@@ -1051,14 +1051,14 @@ func (s *OIDC) SetClientID(v string) {
 	s.ClientID = &v
 }
 
-func (s *OIDC) GetClientSecret() string {
+func (s *OIDC) GetClientSecret() Secret {
 	if s == nil || s.ClientSecret == nil {
-		return *new(string)
+		return *new(Secret)
 	}
 	return *s.ClientSecret
 }
 
-func (s *OIDC) SetClientSecret(v string) {
+func (s *OIDC) SetClientSecret(v Secret) {
 	s.ClientSecret = &v
 }
 
@@ -1227,14 +1227,14 @@ func (s *Registries) SetImageFactoryPXEBaseURL(v string) {
 	s.ImageFactoryPXEBaseURL = &v
 }
 
-func (s *Registries) GetImageFactoryPassword() string {
+func (s *Registries) GetImageFactoryPassword() Secret {
 	if s == nil || s.ImageFactoryPassword == nil {
-		return *new(string)
+		return *new(Secret)
 	}
 	return *s.ImageFactoryPassword
 }
 
-func (s *Registries) SetImageFactoryPassword(v string) {
+func (s *Registries) SetImageFactoryPassword(v Secret) {
 	s.ImageFactoryPassword = &v
 }
 
@@ -1579,14 +1579,14 @@ func (s *Vault) SetK8SAuthMountPath(v string) {
 	s.K8SAuthMountPath = &v
 }
 
-func (s *Vault) GetToken() string {
+func (s *Vault) GetToken() Secret {
 	if s == nil || s.Token == nil {
-		return *new(string)
+		return *new(Secret)
 	}
 	return *s.Token
 }
 
-func (s *Vault) SetToken(v string) {
+func (s *Vault) SetToken(v Secret) {
 	s.Token = &v
 }
 

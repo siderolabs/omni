@@ -59,7 +59,9 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 
 		res.TypedSpec().Value.Oidc.Enabled = authParams.Oidc.GetEnabled()
 		res.TypedSpec().Value.Oidc.ClientId = authParams.Oidc.GetClientID()
-		res.TypedSpec().Value.Oidc.ClientSecret = authParams.Oidc.GetClientSecret()
+		// cleared on every start, so an upgrade drops one an older version stored
+		//nolint:staticcheck
+		res.TypedSpec().Value.Oidc.ClientSecret = ""
 		res.TypedSpec().Value.Oidc.ProviderUrl = authParams.Oidc.GetProviderURL()
 		res.TypedSpec().Value.Oidc.Scopes = authParams.Oidc.Scopes
 

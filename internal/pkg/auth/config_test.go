@@ -239,3 +239,39 @@ func TestMarkUsersLoggedIn(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, authConfig.TypedSpec().Value.GetHasInitialUser())
 }
+
+// TestEnsureAuthConfigResourceClearsStoredClientSecret checks that a secret an earlier version stored
+// in the resource is gone after a start, since the resource is readable without authentication.
+func TestEnsureAuthConfigResourceClearsStoredClientSecret(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	stored := authres.NewAuthConfig()
+	stored.TypedSpec().Value.Oidc = &specs.AuthConfigSpec_OIDC{
+		Enabled:  true,
+		ClientId: "oidc-client-id",
+		//nolint:staticcheck
+		ClientSecret: "stored-by-an-earlier-version",
+		ProviderUrl:  "https://idp.example.com",
+	}
+
+	require.NoError(t, st.Create(ctx, stored))
+
+	var c config.Auth
+
+	c.Oidc.SetEnabled(true)
+	c.Oidc.SetClientID("oidc-client-id")
+	c.Oidc.SetClientSecret("oidc-client-secret")
+	c.Oidc.SetProviderURL("https://idp.example.com")
+
+	_, err := auth.EnsureAuthConfigResource(ctx, st, zaptest.NewLogger(t).With(logging.Component("auth")), c)
+	require.NoError(t, err)
+
+	authConfig, err := safe.StateGetByID[*authres.Config](ctx, st, authres.NewAuthConfig().Metadata().ID())
+	require.NoError(t, err)
+
+	//nolint:staticcheck
+	assert.Empty(t, authConfig.TypedSpec().Value.GetOidc().GetClientSecret())
+}
