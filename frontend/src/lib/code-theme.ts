@@ -168,6 +168,7 @@ export function createOmniMonacoTheme(theme: Theme): monaco.editor.IStandaloneTh
       'editorHoverWidget.background': chrome.popover,
       'editorHoverWidget.border': chrome.border,
 
+      // eslint-disable-next-line design-system/no-raw-color -- Monaco only accepts literal colours, and this one is transparent.
       'editorOverviewRuler.border': '#00000000',
 
       'editorWidget.background': chrome.popover,

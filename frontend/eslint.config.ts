@@ -6,6 +6,7 @@
 import { fileURLToPath } from 'node:url'
 
 import { includeIgnoreFile } from '@eslint/config-helpers'
+import { designSystem } from '@siderolabs/talos-design-system/eslint'
 import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 import { vueTsConfigs, withVueTs } from '@vue/eslint-config-typescript'
@@ -51,9 +52,15 @@ export default withVueTs(
     name: 'Custom lint rules',
     files: ['**/*.{ts,vue}'],
     plugins: {
+      'design-system': designSystem,
       'simple-import-sort': simpleImportSort,
     },
     rules: {
+      'design-system/no-raw-color': 'error',
+      'design-system/no-raw-font-size': 'error',
+      // Off until spacing adopts the design system spacing in #3500 / #3501
+      'design-system/no-off-menu-spacing': 'off',
+      'design-system/no-primitive-token': 'error',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       'vue/block-lang': ['error', { script: { lang: 'ts' } }],
@@ -97,6 +104,14 @@ export default withVueTs(
       'vue/prefer-use-template-ref': 'error',
       'vue/require-default-prop': 'off',
       'vue/require-macro-variable-name': 'error',
+    },
+  },
+
+  {
+    // Multi-colour artwork keeps its literal colours
+    files: ['src/components/icons/**/*'],
+    rules: {
+      'design-system/no-raw-color': 'off',
     },
   },
 )

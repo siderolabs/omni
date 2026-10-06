@@ -194,34 +194,38 @@ const schemaVersion = computed(() => {
 const wordWrap = ref<'on' | 'off'>('off')
 
 const editorOptions = computed<monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions>(
-  () => ({
-    theme: OMNI_CODE_THEME,
-    wordWrap: wordWrap.value,
-    fontSize: 14,
-    fontFamily: styles.getPropertyValue('--font-mono'),
-    automaticLayout: true,
-    tabSize: 2,
-    insertSpaces: true,
-    detectIndentation: false,
-    trimAutoWhitespace: true,
-    renderWhitespace: 'boundary',
-    fixedOverflowWidgets: true,
-    lineNumbersMinChars: 3,
-    lineDecorationsWidth: 5,
-    stickyScroll: {
-      enabled: true,
-    },
-    minimap: {
-      enabled: false,
-    },
-    inlineSuggest: {
-      enabled: true,
-    },
-    quickSuggestions: {
-      strings: true,
-    },
-    ...options,
-  }),
+  () => {
+    const rootFontSize = parseFloat(styles.fontSize)
+
+    return {
+      theme: OMNI_CODE_THEME,
+      wordWrap: wordWrap.value,
+      fontSize: parseFloat(styles.getPropertyValue('--text-sm')) * rootFontSize,
+      fontFamily: styles.getPropertyValue('--font-mono'),
+      automaticLayout: true,
+      tabSize: 2,
+      insertSpaces: true,
+      detectIndentation: false,
+      trimAutoWhitespace: true,
+      renderWhitespace: 'boundary',
+      fixedOverflowWidgets: true,
+      lineNumbersMinChars: 3,
+      lineDecorationsWidth: 5,
+      stickyScroll: {
+        enabled: true,
+      },
+      minimap: {
+        enabled: false,
+      },
+      inlineSuggest: {
+        enabled: true,
+      },
+      quickSuggestions: {
+        strings: true,
+      },
+      ...options,
+    }
+  },
 )
 
 watch(editor, (editor) => {

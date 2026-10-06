@@ -19,14 +19,64 @@
       "count": 4
     }
   },
+  "src/components/SelectList/components/SelectGroupLabel.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
   "src/components/TInput/TInput.vue": {
     "vue/no-shadow-native-events": {
       "count": 2
     }
   },
+  "src/components/TalosVersionSelect/TalosVersionSelect.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 2
+    }
+  },
+  "src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/index.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
+  "src/pages/[...catchAll].vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
+  "src/pages/badrequest.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
+  "src/pages/forbidden.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
   "src/views/Clusters/DiscoveryServiceSwitcher.vue": {
     "vue/no-shadow-native-events": {
       "count": 4
+    }
+  },
+  "src/views/Clusters/components/ClusterManifestsManifestNode.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 3
+    }
+  },
+  "src/views/KubeSpanStatus/KubeSpanStatus.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
+    }
+  },
+  "src/views/KubeSpanStatus/components/KubeSpanPeerNode.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 2
+    }
+  },
+  "src/views/Nodes/components/NodesMonitorChart.vue": {
+    "design-system/no-raw-font-size": {
+      "count": 1
     }
   }
 }
