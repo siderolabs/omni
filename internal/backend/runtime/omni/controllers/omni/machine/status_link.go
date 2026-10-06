@@ -65,6 +65,11 @@ func (ctrl *StatusLinkController) Settings() controller.QSettings {
 				Kind:      controller.InputQMapped,
 			},
 			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MaintenanceConfigStatusType,
+				Kind:      controller.InputQMapped,
+			},
+			{
 				Namespace: resources.MetricsNamespace,
 				Type:      omni.MachineStatusLinkType,
 				Kind:      controller.InputQMappedDestroyReady,
@@ -102,7 +107,7 @@ func (ctrl *StatusLinkController) Settings() controller.QSettings {
 // MapInput implements controller.QController interface.
 func (ctrl *StatusLinkController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch ptr.Type() {
-	case omni.MachineStatusType, omni.MachineStatusSnapshotType, omni.MachineStatusLinkType:
+	case omni.MachineStatusType, omni.MachineStatusSnapshotType, omni.MaintenanceConfigStatusType, omni.MachineStatusLinkType:
 		return []resource.Pointer{
 			siderolink.NewLink(ptr.ID(), nil).Metadata(),
 		}, nil
@@ -215,6 +220,22 @@ func (ctrl *StatusLinkController) reconcileRunning(ctx context.Context, r contro
 		}
 	} else {
 		machineStatusLink.TypedSpec().Value.Snapshot = snapshot.TypedSpec().Value
+	}
+
+	machineStatusLink.TypedSpec().Value.MaintenanceConfigError = ""
+
+	// the maintenance config stops being applied once the machine leaves maintenance, so its error stops being shown
+	if machineStatus.TypedSpec().Value.Maintenance {
+		var maintenanceConfigStatus *omni.MaintenanceConfigStatus
+
+		maintenanceConfigStatus, err = safe.ReaderGetByID[*omni.MaintenanceConfigStatus](ctx, r, link.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if maintenanceConfigStatus != nil {
+			machineStatusLink.TypedSpec().Value.MaintenanceConfigError = maintenanceConfigStatus.TypedSpec().Value.LastConfigError
+		}
 	}
 
 	return nil

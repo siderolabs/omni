@@ -430,6 +430,8 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
 })
 
 test('kubespan', async ({ page }) => {
+  test.setTimeout(milliseconds({ minutes: 2 }))
+
   await test.step('Visit kubespan page', async () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Clusters' }).click()
@@ -457,7 +459,10 @@ test('kubespan', async ({ page }) => {
   await expect
     .soft(page.getByRole('heading', { name: 'KubeSpan status', exact: true }))
     .toBeVisible()
-  await expect.soft(page.getByText('Total Nodes: 2')).toBeVisible()
+  // the patch reaches the machines one by one, each held for the try mode confirm
+  await expect
+    .soft(page.getByText('Total Nodes: 2'))
+    .toBeVisible({ timeout: milliseconds({ minutes: 1 }) })
   await expect.soft(page.getByText('Incoming / Outgoing traffic')).toBeVisible()
 })
 

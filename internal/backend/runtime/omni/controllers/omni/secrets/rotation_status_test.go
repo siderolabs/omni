@@ -36,6 +36,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	secretsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -44,6 +45,16 @@ import (
 	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
+
+// fastTryTimings keeps the machine config rollouts of these tests short, as every config change goes through try mode.
+var fastTryTimings = configtry.Timings{
+	Timeout:         4 * time.Second,
+	ConfirmAfter:    300 * time.Millisecond,
+	ConfirmDeadline: 3 * time.Second,
+	RollbackGrace:   500 * time.Millisecond,
+	ConfirmRetry:    200 * time.Millisecond,
+	MaxAttempts:     2,
+}
 
 // testTimeout bounds each subtest. It is generous on purpose, so that the tests survive CPU starvation on overloaded CI runners, especially when the race detector multiplies the cost.
 const testTimeout = 30 * time.Second
@@ -69,7 +80,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -130,7 +141,7 @@ func Test_TalosCARotation(t *testing.T) {
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil, false)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -228,7 +239,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -294,7 +305,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -364,7 +375,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -438,7 +449,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -512,7 +523,7 @@ func Test_TalosCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -644,7 +655,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -705,7 +716,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil, false)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -812,7 +823,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -887,7 +898,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -966,7 +977,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -1049,7 +1060,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -1132,7 +1143,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil, false)))
 			},
@@ -1197,7 +1208,7 @@ func Test_ConcurrentRotationRejection(t *testing.T) {
 			))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
@@ -1246,7 +1257,7 @@ func Test_ComponentIsolationDuringRotation(t *testing.T) {
 			))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {

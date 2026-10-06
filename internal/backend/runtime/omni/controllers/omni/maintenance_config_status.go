@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -38,12 +39,15 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
+	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
@@ -56,6 +60,7 @@ type MaintenanceClientFactory = func(ctx context.Context, machineID string) (Mai
 // It must be closed by the caller.
 type MaintenanceClient interface {
 	GetMachineConfig(ctx context.Context) (*configres.MachineConfig, error)
+	GetBootID(ctx context.Context) (string, error)
 	ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error)
 	Close() error
 }
@@ -87,6 +92,10 @@ func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.Mac
 	return machineConfig, nil
 }
 
+func (c maintenanceClient) GetBootID(ctx context.Context) (string, error) {
+	return talosutils.GetBootID(ctx, c.client.COSI)
+}
+
 func (c maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
 	return c.client.ApplyConfiguration(ctx, req)
 }
@@ -100,12 +109,27 @@ func (c maintenanceClient) Close() error {
 // MaintenanceConfigStatusController generates cluster UUID for every cluster.
 type MaintenanceConfigStatusController = qtransform.QController[*siderolinkres.Link, *omni.MaintenanceConfigStatus]
 
+// MaintenanceConfigStatusOption configures MaintenanceConfigStatusController.
+type MaintenanceConfigStatusOption func(*maintenanceConfigStatusControllerHelper)
+
+// WithMaintenanceTryTimings overrides the try mode timings. Tests use it to keep the wait short.
+func WithMaintenanceTryTimings(timings configtry.Timings) MaintenanceConfigStatusOption {
+	return func(helper *maintenanceConfigStatusControllerHelper) {
+		helper.tryTimings = timings
+	}
+}
+
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
 func NewMaintenanceConfigStatusController(
 	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
 	state state.State, registryMirrors []string,
+	opts ...MaintenanceConfigStatusOption,
 ) *MaintenanceConfigStatusController {
 	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, state, registryMirrors)
+
+	for _, opt := range opts {
+		opt(helper)
+	}
 
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
@@ -160,6 +184,7 @@ type maintenanceBasePatch struct {
 type maintenanceConfigStatusControllerHelper struct {
 	getMaintenanceConfigPatch func(ctx context.Context, talosVersion string) (maintenanceBasePatch, error)
 	maintenanceClientFactory  MaintenanceClientFactory
+	tryTimings                configtry.Timings
 }
 
 func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
@@ -246,6 +271,7 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 
 	return &maintenanceConfigStatusControllerHelper{
 		maintenanceClientFactory: maintenanceClientFactory,
+		tryTimings:               configtry.Default,
 		getMaintenanceConfigPatch: func(ctx context.Context, talosVersion string) (maintenanceBasePatch, error) {
 			vc, err := config.ParseContractFromVersion(talosVersion)
 			if err != nil {
@@ -296,7 +322,7 @@ func registryMirrorDocs(registryMirrors []string) ([]talosconfig.Document, error
 	return docs, nil
 }
 
-//nolint:gocyclo,cyclop
+//nolint:gocyclo,cyclop,gocognit
 func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, link *siderolinkres.Link, status *omni.MaintenanceConfigStatus) error {
 	if !link.TypedSpec().Value.Connected {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not connected")
@@ -312,7 +338,13 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 	}
 
 	if !machineStatus.TypedSpec().Value.Maintenance {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not in maintenance mode")
+		if status.TypedSpec().Value.LastConfigError == "" {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not in maintenance mode")
+		}
+
+		status.TypedSpec().Value.LastConfigError = ""
+
+		return nil
 	}
 
 	if machineStatus.TypedSpec().Value.PowerState == specs.MachineStatusSpec_POWER_STATE_OFF {
@@ -354,12 +386,51 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error building machine config: %w", err)
 	}
 
+	publicKey := link.TypedSpec().Value.NodePublicKey
+
+	// A reboot drops the maintenance config along with everything else that was only in memory, so a
+	// new public key means any try that was in flight is already gone. The attempts spent on its config still count.
+	if try := status.TypedSpec().Value.ConfigTry; try != nil && publicKey != status.TypedSpec().Value.PublicKeyAtLastApply {
+		status.TypedSpec().Value.ConfigTry = &specs.ConfigTryStatus{
+			Sha256:   try.GetSha256(),
+			Attempts: try.GetAttempts(),
+		}
+	}
+
 	// re-apply when the machine rebooted/reconnected (the public key changes, and maintenance config is not persisted across reboots)
 	// or when the desired config (the machine config patches or the Omni-managed base config) changed
 	desiredHash := desiredConfigHash(machinePatches, baseConfig.data)
-	if link.TypedSpec().Value.NodePublicKey == status.TypedSpec().Value.PublicKeyAtLastApply &&
-		desiredHash == status.TypedSpec().Value.LastAppliedConfigHash {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("public key and desired maintenance config unchanged, skip")
+	now := time.Now()
+
+	// the desired config is already applied and no try is left on the machine
+	if publicKey == status.TypedSpec().Value.PublicKeyAtLastApply &&
+		desiredHash == status.TypedSpec().Value.LastAppliedConfigHash &&
+		!helper.tryTimings.InFlight(status.TypedSpec().Value.ConfigTry, now) {
+		if status.TypedSpec().Value.ConfigTry == nil && status.TypedSpec().Value.LastConfigError == "" {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("public key and desired maintenance config unchanged, skip")
+		}
+
+		status.TypedSpec().Value.ConfigTry = nil
+		status.TypedSpec().Value.LastConfigError = ""
+
+		return nil
+	}
+
+	action, delay := helper.tryTimings.Decide(status.TypedSpec().Value.ConfigTry, desiredHash, now)
+
+	switch action {
+	case configtry.Wait:
+		return controller.NewRequeueInterval(delay)
+	case configtry.Stop:
+		status.TypedSpec().Value.LastConfigError = fmt.Sprintf(
+			"the maintenance config was rolled back %d times, change the machine config patches to try again",
+			status.TypedSpec().Value.ConfigTry.GetAttempts(),
+		)
+
+		return nil
+	case configtry.Confirm, configtry.Try:
+	default:
+		return fmt.Errorf("unexpected try mode action %d", action)
 	}
 
 	maintenanceTalosClient, err := helper.maintenanceClientFactory(ctx, machineStatus.Metadata().ID())
@@ -372,6 +443,62 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	if action == configtry.Confirm {
+		// a confirm that arrives after the rollback would persist the tried config without any check
+		confirmCtx, confirmCancel := context.WithDeadline(ctx, status.TypedSpec().Value.ConfigTry.GetStartedAt().AsTime().Add(helper.tryTimings.Timeout))
+		defer confirmCancel()
+
+		if err = helper.pushMaintenanceConfig(
+			confirmCtx, logger, maintenanceTalosClient, status, publicKey, desiredHash, machinePatches, baseConfig,
+			machine.ApplyConfigurationRequest_NO_REBOOT, status.TypedSpec().Value.ConfigTry.GetBootId(),
+		); err != nil {
+			if xerrors.TagIs[qtransform.SkipReconcileTag](err) {
+				return err
+			}
+
+			logger.Warn("try mode maintenance config apply could not be confirmed yet", zap.Error(err))
+
+			return controller.NewRequeueInterval(helper.tryTimings.ConfirmRetry)
+		}
+
+		return nil
+	}
+
+	version, err := semver.ParseTolerant(talosVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse talos version %q: %w", talosVersion, err)
+	}
+
+	mode := machine.ApplyConfigurationRequest_AUTO
+
+	// The first apply of a boot is not tried: on an auto-provisioned machine it is followed within
+	// seconds by an install, which does not cancel an armed rollback, and the rollback would remove
+	// the registry mirrors and credentials while the installer image is being pulled.
+	// A config that was tried before and never confirmed is still only tried.
+	firstApplyOfBoot := publicKey != status.TypedSpec().Value.PublicKeyAtLastApply
+	triedBefore := status.TypedSpec().Value.ConfigTry.GetSha256() == desiredHash
+
+	if version.GTE(configtry.MinTalosVersion) && (!firstApplyOfBoot || triedBefore) {
+		mode = machine.ApplyConfigurationRequest_TRY
+	}
+
+	return helper.pushMaintenanceConfig(ctx, logger, maintenanceTalosClient, status, publicKey, desiredHash, machinePatches, baseConfig, mode, "")
+}
+
+// pushMaintenanceConfig builds the desired maintenance config and sends it to the machine in the given mode.
+//
+// expectBootID, when set, aborts the apply unless the machine still reports this boot ID: a machine that rebooted has already dropped the try config.
+func (helper *maintenanceConfigStatusControllerHelper) pushMaintenanceConfig(
+	ctx context.Context,
+	logger *zap.Logger,
+	maintenanceTalosClient MaintenanceClient,
+	status *omni.MaintenanceConfigStatus,
+	publicKey, desiredHash string,
+	machinePatches []string,
+	baseConfig maintenanceBasePatch,
+	mode machine.ApplyConfigurationRequest_Mode,
+	expectBootID string,
+) error {
 	maintenanceConfig, err := maintenanceTalosClient.GetMachineConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting maintenance config: %w", err)
@@ -414,21 +541,53 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error encoding patched config: %w", err)
 	}
 
-	if _, err = maintenanceTalosClient.ApplyConfiguration(ctx, &machine.ApplyConfigurationRequest{
-		Data: patchedBytes,
-		Mode: machine.ApplyConfigurationRequest_AUTO,
-	}); err != nil {
-		if grpcstatus.Code(err) == codes.Unimplemented {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine does not support applying configuration: %w", err)
+	bootID, err := talosutils.CheckBeforeApply(ctx, maintenanceTalosClient.GetBootID, func(context.Context) (bool, error) {
+		if maintenanceConfig == nil {
+			return false, nil
 		}
 
+		return talosutils.SameConfig(maintenanceConfig.Provider(), patchedBytes)
+	}, mode, expectBootID)
+	if err != nil {
+		return err
+	}
+
+	request := &machine.ApplyConfigurationRequest{
+		Data: patchedBytes,
+		Mode: mode,
+	}
+
+	if mode == machine.ApplyConfigurationRequest_TRY {
+		request.TryModeTimeout = durationpb.New(helper.tryTimings.Timeout)
+	}
+
+	startedAt := time.Now() // before the RPC, so the recorded window never runs ahead of the machine's rollback timer
+
+	_, err = maintenanceTalosClient.ApplyConfiguration(ctx, request)
+
+	switch {
+	case err == nil:
+		logger.Info("applied maintenance config", zap.Stringer("mode", request.GetMode()))
+	case grpcstatus.Code(err) == codes.Unimplemented:
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine does not support applying configuration: %w", err)
+	case mode == machine.ApplyConfigurationRequest_TRY && talosutils.ApplyMayHaveLanded(err):
+		// the try has to be recorded, so that the rollback is waited out instead of the same try being sent again
+		logger.Warn("no answer to the try mode apply, assuming the config reached the machine", zap.Error(err))
+	default:
 		return fmt.Errorf("error applying maintenance config: %w", err)
 	}
 
-	logger.Info("applied maintenance config")
+	if mode == machine.ApplyConfigurationRequest_TRY {
+		status.TypedSpec().Value.ConfigTry = configtry.Begin(status.TypedSpec().Value.ConfigTry, desiredHash, bootID, startedAt)
+		status.TypedSpec().Value.LastConfigError = ""
 
-	status.TypedSpec().Value.PublicKeyAtLastApply = link.TypedSpec().Value.NodePublicKey
+		return controller.NewRequeueInterval(helper.tryTimings.ConfirmAfter)
+	}
+
+	status.TypedSpec().Value.ConfigTry = nil
+	status.TypedSpec().Value.PublicKeyAtLastApply = publicKey
 	status.TypedSpec().Value.LastAppliedConfigHash = desiredHash
+	status.TypedSpec().Value.LastConfigError = ""
 
 	return nil
 }

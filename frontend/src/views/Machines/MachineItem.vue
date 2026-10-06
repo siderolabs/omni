@@ -181,6 +181,13 @@ const canUseLifecycleUpgrade = computed(() => {
 
         <MachineStage :machine />
 
+        <Tooltip
+          v-if="machine.spec.maintenance_config_error"
+          :description="machine.spec.maintenance_config_error.trim()"
+        >
+          <TIcon icon="x-circle" class="size-4 shrink-0 text-status-danger-default" />
+        </Tooltip>
+
         <button
           v-if="connectionLabel"
           type="button"

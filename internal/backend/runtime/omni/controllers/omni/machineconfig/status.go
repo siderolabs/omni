@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/diff"
@@ -41,6 +42,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
@@ -72,11 +74,22 @@ type StatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
 	ongoingResets    *ongoingResets
 	lifecycleManager LifecycleManager
+	tryTimings       configtry.Timings
 	acquireLockMu    sync.Mutex
 }
 
+// Option configures StatusController.
+type Option func(*StatusController)
+
+// WithTryTimings overrides the try mode timings. Tests use it to keep the wait short.
+func WithTryTimings(timings configtry.Timings) Option {
+	return func(ctrl *StatusController) {
+		ctrl.tryTimings = timings
+	}
+}
+
 // NewStatusController initializes StatusController.
-func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
+func NewStatusController(lifecycleManager LifecycleManager, opts ...Option) *StatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
@@ -84,6 +97,11 @@ func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
 	ctrl := &StatusController{
 		ongoingResets:    ongoingResets,
 		lifecycleManager: lifecycleManager,
+		tryTimings:       configtry.Default,
+	}
+
+	for _, opt := range opts {
+		opt(ctrl)
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -185,7 +203,9 @@ func (ctrl *StatusController) reconcileRunning(
 	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) error {
-	rc, err := BuildReconciliationContext(ctx, r, machineConfig, machineConfigStatus)
+	now := time.Now()
+
+	rc, err := BuildReconciliationContext(ctx, r, machineConfig, machineConfigStatus, ctrl.tryTimings, now)
 	if err != nil {
 		if xerrors.TagIs[qtransform.SkipReconcileTag](err) {
 			logger.Warn("status update skipped", zap.Error(err))
@@ -200,12 +220,22 @@ func (ctrl *StatusController) reconcileRunning(
 	}
 
 	if rc.locked {
+		// the machine rolls the try back on its own, so it does not count as an attempt
+		if rc.tryInFlight {
+			machineConfigStatus.TypedSpec().Value.ConfigTry = nil
+		}
+
 		logger.Info("operations locked for machine")
 
 		return nil
 	}
 
 	if rc.lastConfigError != "" {
+		// the machine rolls the try back on its own, so it does not count as an attempt
+		if rc.tryInFlight {
+			machineConfigStatus.TypedSpec().Value.ConfigTry = nil
+		}
+
 		machineConfigStatus.TypedSpec().Value.LastConfigError = rc.lastConfigError
 
 		logger.Info("config generation error", zap.String("error", rc.lastConfigError))
@@ -219,20 +249,22 @@ func (ctrl *StatusController) reconcileRunning(
 		machineConfigStatus.TypedSpec().Value.SchematicId = ""
 	}
 
-	if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
-		// LifecycleManager reported that underlying Talos API call failed with a permanent error,
-		// so we don't retry the operation and just record the error in status.
-		if lifecycle.IsPermanentInstallerFailure(err) {
-			return nil
+	if !rc.tryInFlight {
+		if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
+			// LifecycleManager reported that underlying Talos API call failed with a permanent error,
+			// so we don't retry the operation and just record the error in status.
+			if lifecycle.IsPermanentInstallerFailure(err) {
+				return nil
+			}
+
+			return err
 		}
 
-		return err
-	}
-
-	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
-	if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
-		if err = ctrl.deleteUpgradeMetaKey(ctx, logger, r, rc); err != nil {
-			return err
+		stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
+		if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
+			if err = ctrl.deleteUpgradeMetaKey(ctx, logger, r, rc); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -246,8 +278,6 @@ func (ctrl *StatusController) reconcileRunning(
 	shaSum := sha256.Sum256(buffer.Data())
 	shaSumString := hex.EncodeToString(shaSum[:])
 
-	mode := machineapi.ApplyConfigurationRequest_NO_REBOOT
-
 	// Re-apply when the confirmed config differs from the desired one (sha mismatch), or when the
 	// config we last pushed to the machine differs from the desired one. The second case covers a
 	// reboot-requiring change reverted before the machine confirms it: such a push is committed to
@@ -255,35 +285,46 @@ func (ctrl *StatusController) reconcileRunning(
 	// window leaves the recorded sha matching the desired config. Comparing the last pushed config
 	// lets us notice the machine still runs the reverted change and re-apply, instead of treating it
 	// as in sync.
-	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString || configChanged {
-		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
-		if err != nil {
-			grpcSt := client.Status(err)
-			if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
-				machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
+	needsApply := machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString || configChanged
 
-				return nil
-			}
-
-			if errors.Is(err, errAcquireConfigLock) {
-				logger.Info("failed to acquire config apply lock, another operation is ongoing", zap.Error(err))
-
-				return nil
-			}
-
-			return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
-		}
-	}
+	result, err := ctrl.reconcileConfigApply(ctx, logger, r, rc, shaSumString, needsApply, now)
 
 	// ClusterMachineConfig might receive an update that causes its version to change while not affecting the final MachineConfig therefore calculated hashsum.
 	// Update ClusterMachineConfigVersion to reflect the actual version of the ClusterMachineConfig regardless of hash comparison.
 	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 
-	if err = machineConfigStatus.TypedSpec().Value.SetUncompressedData(rc.redactedMachineConfig); err != nil {
-		return err
+	if err != nil {
+		// a requeue carries try state that has to be written
+		if requeue, ok := errors.AsType[*controller.RequeueError](err); ok {
+			return requeue
+		}
+
+		grpcSt := client.Status(err)
+		if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
+			machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
+
+			return nil
+		}
+
+		if errors.Is(err, errAcquireConfigLock) {
+			logger.Info("failed to acquire config apply lock, another operation is ongoing", zap.Error(err))
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 	}
 
-	if mode != machineapi.ApplyConfigurationRequest_NO_REBOOT {
+	// A config the machine only holds tentatively must not be recorded: computePendingUpdates would
+	// then see no diff and drop MachinePendingUpdates, so the UI would call the machine in sync
+	// before it actually is.
+	if result.recordConfig {
+		if err = machineConfigStatus.TypedSpec().Value.SetUncompressedData(rc.redactedMachineConfig); err != nil {
+			return err
+		}
+	}
+
+	if !result.committed {
 		return nil
 	}
 
@@ -294,7 +335,7 @@ func (ctrl *StatusController) reconcileRunning(
 	// The machine now carries the desired config (either just applied, or already in sync), so its
 	// high-priority documents are up to date. Recording the hash clears highPriorityPending; it also
 	// backfills already-configured machines on the first reconcile after this feature is deployed,
-	// without a re-apply (the whole-config sha still matches, so applyConfig above is skipped).
+	// without a re-apply (the whole-config sha still matches, so no apply was needed).
 	machineConfigStatus.TypedSpec().Value.AppliedHighPriorityConfigHash = rc.highPriorityHash
 
 	machineConfigStatus.TypedSpec().Value.LastConfigError = ""
@@ -982,11 +1023,143 @@ func (ctrl *StatusController) stageUpgrade(actualTalosVersion string) (bool, err
 
 var errAcquireConfigLock = errors.New("failed to acquire config update lock")
 
+// configApplyResult reports how far reconcileConfigApply got with the desired config.
+type configApplyResult struct {
+	// recordConfig is set when the config Omni pushed is what the machine will be running, so the
+	// status may record it as the last pushed config.
+	recordConfig bool
+
+	// committed is set when the machine is confirmed running the config and has it on disk.
+	committed bool
+}
+
+// reconcileConfigApply gets the desired config onto the machine, in try mode where the machine supports it.
+//
+// It returns a *controller.RequeueError whenever a try is in flight, so that the recorded try state is written.
+func (ctrl *StatusController) reconcileConfigApply(
+	ctx context.Context,
+	logger *zap.Logger,
+	r controller.ReaderWriter,
+	rc *ReconciliationContext,
+	shaSum string,
+	needsApply bool,
+	now time.Time,
+) (configApplyResult, error) {
+	status := rc.machineConfigStatus.TypedSpec().Value
+
+	if !ctrl.tryModeEligible(rc) {
+		status.ConfigTry = nil
+
+		if !needsApply {
+			return configApplyResult{recordConfig: true, committed: true}, nil
+		}
+
+		result, err := ctrl.applyConfig(ctx, logger, r, rc, applyOptions{mode: machineapi.ApplyConfigurationRequest_AUTO})
+		if err != nil {
+			return configApplyResult{}, err
+		}
+
+		return configApplyResult{recordConfig: true, committed: result.mode == machineapi.ApplyConfigurationRequest_NO_REBOOT}, nil
+	}
+
+	action, delay := ctrl.tryTimings.Decide(status.ConfigTry, shaSum, now)
+
+	// the desired config is already committed and no try is left on the machine
+	if !needsApply && action == configtry.Try && !ctrl.tryTimings.InFlight(status.ConfigTry, now) {
+		status.ConfigTry = nil
+
+		return configApplyResult{recordConfig: true, committed: true}, nil
+	}
+
+	switch action {
+	case configtry.Wait:
+		return configApplyResult{}, controller.NewRequeueInterval(delay)
+
+	case configtry.Stop:
+		status.LastConfigError = fmt.Sprintf("the config was rolled back %d times, change it to try again", status.ConfigTry.GetAttempts())
+
+		return configApplyResult{}, nil
+
+	case configtry.Confirm:
+		_, err := ctrl.applyConfig(ctx, logger, r, rc, applyOptions{
+			mode:         machineapi.ApplyConfigurationRequest_NO_REBOOT,
+			expectBootID: status.ConfigTry.GetBootId(),
+			deadline:     status.ConfigTry.GetStartedAt().AsTime().Add(ctrl.tryTimings.Timeout),
+		})
+		if err != nil {
+			logger.Warn("try mode config apply could not be confirmed yet", zap.String("machine", rc.ID()), zap.Error(err))
+
+			return configApplyResult{}, controller.NewRequeueInterval(ctrl.tryTimings.ConfirmRetry)
+		}
+
+		status.ConfigTry = nil
+
+		logger.Info("confirmed try mode config apply", zap.String("machine", rc.ID()))
+
+		return configApplyResult{recordConfig: true, committed: true}, nil
+
+	case configtry.Try:
+		result, err := ctrl.applyConfig(ctx, logger, r, rc, applyOptions{
+			mode: machineapi.ApplyConfigurationRequest_TRY,
+		})
+		if err != nil {
+			return configApplyResult{}, err
+		}
+
+		status.ConfigTry = configtry.Begin(status.ConfigTry, shaSum, result.bootID, result.startedAt)
+		status.LastConfigError = ""
+
+		logger.Info("applied config in try mode", zap.String("machine", rc.ID()), zap.Uint32("attempt", status.ConfigTry.GetAttempts()))
+
+		return configApplyResult{}, controller.NewRequeueInterval(ctrl.tryTimings.ConfirmAfter)
+
+	default:
+		return configApplyResult{}, fmt.Errorf("unexpected try mode action %d for machine '%s'", action, rc.ID())
+	}
+}
+
+// tryModeEligible reports whether the desired config can be pushed to this machine in try mode.
+func (ctrl *StatusController) tryModeEligible(rc *ReconciliationContext) bool {
+	// the first config takes the machine out of maintenance, and a rollback cannot bring it back
+	if rc.machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 == "" {
+		return false
+	}
+
+	version, err := semver.ParseTolerant(rc.machineStatus.TypedSpec().Value.TalosVersion)
+	if err != nil {
+		return false
+	}
+
+	return version.GTE(configtry.MinTalosVersion)
+}
+
+// applyOptions describes one call into the machine's ApplyConfiguration RPC.
+type applyOptions struct {
+	// deadline, when set, is the latest point at which the apply may reach the machine: a confirm that arrives after the rollback would persist the tried config without any check.
+	deadline time.Time
+
+	// expectBootID, when set, aborts the apply unless the machine still reports this boot ID. It is
+	// how a try mode apply is confirmed: a machine that rebooted has already dropped the try config.
+	expectBootID string
+
+	mode machineapi.ApplyConfigurationRequest_Mode
+}
+
+// applyResult is what the machine reported back, plus the boot ID observed on the way in.
+type applyResult struct {
+	// startedAt is taken right before the apply RPC, so a try window recorded from it never runs ahead of the machine's rollback timer.
+	startedAt time.Time
+	bootID    string
+	mode      machineapi.ApplyConfigurationRequest_Mode
+}
+
+//nolint:gocyclo,cyclop
 func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
 	rc *ReconciliationContext,
-) (machineapi.ApplyConfigurationRequest_Mode, error) {
+	opts applyOptions,
+) (applyResult, error) {
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
 	defer cancel()
 
@@ -1006,67 +1179,126 @@ func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 		machineapi.MachineStatusEvent_UNKNOWN,
 		machineapi.MachineStatusEvent_UPGRADING:
 		// no way to apply config at this stage
-		return 0, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' is in %s stage", rc.ID(), rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()))
+		return applyResult{}, xerrors.NewTagged[qtransform.SkipReconcileTag](
+			fmt.Errorf("machine '%s' is in %s stage", rc.ID(), rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()),
+		)
 	}
 
 	if rc.machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != "" && applyMaintenance {
-		return 0, fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
+		return applyResult{}, fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
 	}
 
 	c, err := ctrl.getClient(ctx, r, applyMaintenance, rc.machineStatus, rc.machineConfig)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get client: %w", err)
+		return applyResult{}, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	defer logClose(c, logger, fmt.Sprintf("machine '%s'", rc.ID()))
 
 	_, err = c.Version(ctx)
 	if err != nil {
-		return 0, err
+		return applyResult{}, err
 	}
 
-	ctx, applyCancel := context.WithTimeout(inputCtx, time.Minute)
-	defer applyCancel()
+	// the stage above is Omni's view, which lags a machine that has just rebooted into maintenance
+	if opts.mode == machineapi.ApplyConfigurationRequest_TRY {
+		inMaintenance, maintenanceErr := talosutils.InMaintenance(ctx, c.COSI)
+		if maintenanceErr != nil {
+			return applyResult{}, fmt.Errorf("failed to read the stage of machine '%s': %w", rc.ID(), maintenanceErr)
+		}
+
+		if inMaintenance {
+			return applyResult{}, fmt.Errorf("machine '%s' is in maintenance, where a try of the config cannot be rolled back", rc.ID())
+		}
+	}
 
 	data, err := rc.machineConfig.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return 0, err
+		return applyResult{}, err
 	}
 
 	defer data.Free()
 
-	if err = ctrl.acquireConfigUpdateLock(ctx, r, rc); err != nil {
-		return 0, err
+	result := applyResult{}
+
+	result.bootID, err = talosutils.CheckBeforeApply(
+		ctx,
+		func(ctx context.Context) (string, error) { return talosutils.GetBootID(ctx, c.COSI) },
+		func(ctx context.Context) (bool, error) { return talosutils.ConfigIsActive(ctx, c.COSI, data.Data()) },
+		opts.mode, opts.expectBootID,
+	)
+	if err != nil {
+		return applyResult{}, fmt.Errorf("machine '%s': %w", rc.ID(), err)
 	}
 
-	resp, err := c.ApplyConfiguration(ctx, &machineapi.ApplyConfigurationRequest{
+	applyTimeout := time.Minute
+	if opts.mode == machineapi.ApplyConfigurationRequest_TRY {
+		// a config that cuts the machine off from Omni might also lose the reply to the try apply,
+		// so the try is recorded only when this timeout expires, and that has to happen before the machine rolls it back
+		applyTimeout = 15 * time.Second
+	}
+
+	ctx, applyCancel := context.WithTimeout(inputCtx, applyTimeout)
+	defer applyCancel()
+
+	if !opts.deadline.IsZero() {
+		var deadlineCancel context.CancelFunc
+
+		ctx, deadlineCancel = context.WithDeadline(ctx, opts.deadline)
+		defer deadlineCancel()
+	}
+
+	if err = ctrl.acquireConfigUpdateLock(ctx, r, rc); err != nil {
+		return applyResult{}, err
+	}
+
+	request := &machineapi.ApplyConfigurationRequest{
 		Data: data.Data(),
-		Mode: machineapi.ApplyConfigurationRequest_AUTO,
-	})
+		Mode: opts.mode,
+	}
+
+	if opts.mode == machineapi.ApplyConfigurationRequest_TRY {
+		request.TryModeTimeout = durationpb.New(ctrl.tryTimings.Timeout)
+	}
+
+	result.startedAt = time.Now()
+
+	resp, err := c.ApplyConfiguration(ctx, request)
 	if err != nil {
+		if opts.mode == machineapi.ApplyConfigurationRequest_TRY && talosutils.ApplyMayHaveLanded(err) {
+			// the try has to be recorded, so that the rollback is waited out instead of the same try being sent again
+			logger.Warn("no answer to the try mode apply, assuming the config reached the machine", zap.String("machine", rc.ID()), zap.Error(err))
+
+			result.mode = opts.mode
+
+			return result, nil
+		}
+
 		logger.Error(
 			"apply config failed",
 			zap.String("machine", rc.ID()),
 			zap.Error(err),
 			zap.Stringer("config_version", rc.machineConfig.Metadata().Version()),
+			zap.Stringer("mode", opts.mode),
 		)
 
-		return 0, fmt.Errorf("failed to apply config to machine '%s': %w", rc.ID(), err)
+		return applyResult{}, fmt.Errorf("failed to apply config to machine '%s': %w", rc.ID(), err)
 	}
 
 	if len(resp.Messages) != 1 {
-		return 0, fmt.Errorf("unexpected number of responses: %d", len(resp.Messages))
+		return applyResult{}, fmt.Errorf("unexpected number of responses: %d", len(resp.Messages))
 	}
 
-	mode := resp.Messages[0].GetMode()
+	result.mode = resp.Messages[0].GetMode()
 	logger.Info(
 		"applied machine config",
 		zap.String("machine", rc.ID()),
 		zap.Stringer("config_version", rc.machineConfig.Metadata().Version()),
-		zap.Stringer("mode", mode),
+		zap.Stringer("mode", result.mode),
+		zap.Stringer("requested_mode", opts.mode),
 	)
 
-	return mode, nil
+	return result, nil
 }
 
 func logClose(c io.Closer, logger *zap.Logger, additional string) {

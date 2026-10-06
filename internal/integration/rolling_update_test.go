@@ -40,11 +40,13 @@ func AssertWorkerNodesConfigUpdateRolloutCompletes(testCtx context.Context, cli 
 		st := cli.Omni().State()
 		workersResourceID := omni.WorkersResourceID(clusterName)
 
-		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
-		t.Cleanup(cancel)
-
-		workerIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, workersResourceID)))
+		workerIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](testCtx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, workersResourceID)))
 		require.Greater(t, len(workerIDs), maxParallelism, "the rollout must be capped below the number of machines for a wedged rollout to be observable")
+
+		// Two minutes a machine: each config waits in try mode before Omni confirms it, a failed try costs
+		// a second attempt, and only maxParallelism machines are in flight at a time.
+		ctx, cancel := context.WithTimeout(testCtx, time.Duration(len(workerIDs))*2*time.Minute+time.Minute)
+		t.Cleanup(cancel)
 
 		// cap how many machines may be updated at once
 		_, err := safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(workersResourceID).Metadata(), func(ms *omni.MachineSet) error {

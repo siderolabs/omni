@@ -12,4 +12,5 @@ export type MachineStatusLinkSpec = {
   machine_created_at?: string
   tearing_down?: boolean
   snapshot?: SpecsOmni.MachineStatusSnapshotSpec
+  maintenance_config_error?: string
 }

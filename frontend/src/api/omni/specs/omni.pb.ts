@@ -548,6 +548,14 @@ export type ClusterMachineConfigStatusSpec = {
   pre_reboot_boot_id?: string
   applied_high_priority_config_hash?: string
   image_factory_host?: string
+  config_try?: ConfigTryStatus
+}
+
+export type ConfigTryStatus = {
+  sha256?: string
+  attempts?: number
+  started_at?: GoogleProtobufTimestamp.Timestamp
+  boot_id?: string
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {
@@ -1063,6 +1071,8 @@ export type InfraMachineBMCConfigSpec = {
 export type MaintenanceConfigStatusSpec = {
   public_key_at_last_apply?: string
   last_applied_config_hash?: string
+  config_try?: ConfigTryStatus
+  last_config_error?: string
 }
 
 export type NodeForceDestroyRequestSpec = {

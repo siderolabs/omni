@@ -8,13 +8,18 @@ included in the LICENSE file.
 import { computed } from 'vue'
 import { RouterLink, type RouterView, useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { MaintenanceConfigStatusSpec } from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, MaintenanceConfigStatusType } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
+import TAlert from '@/components/TAlert.vue'
 import { usePermissions } from '@/methods/auth'
 import { useMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({
   name: 'Machine',
@@ -59,6 +64,15 @@ const route = useRoute()
 
 const machineName = useMachineName(() => route.params.machine)
 
+const { data: maintenanceConfigStatus } = useResourceWatch<MaintenanceConfigStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MaintenanceConfigStatusType,
+    id: route.params.machine,
+  },
+}))
+
 /**
  * Some child routes do not match any tab, e.g. MachinePatchEdit
  */
@@ -72,6 +86,15 @@ useTitle(() => ['Machines', machineName.value])
 <template>
   <div class="flex h-full flex-col pt-base">
     <PageHeader :title="machineName" class="px-compact md:px-base" />
+
+    <TAlert
+      v-if="maintenanceConfigStatus?.spec.last_config_error"
+      title="Config Error"
+      type="error"
+      class="mx-compact mb-compact md:mx-base"
+    >
+      {{ maintenanceConfigStatus.spec.last_config_error.trim() }}
+    </TAlert>
 
     <Tabs
       :model-value="$route.name?.toString()"

@@ -511,16 +511,20 @@ func clusterUsesEmulatedMachines(ctx context.Context, t *testing.T, st state.Sta
 	require.NoError(t, err)
 
 	for machine := range machines.All() {
-		if providerID, _ := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); providerID == talemuInfraProviderID {
-			return true
-		}
-
-		if slices.Contains(strings.Fields(machine.TypedSpec().Value.KernelCmdline), talemuKernelArg) {
+		if machineIsEmulated(machine) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func machineIsEmulated(machine *omni.MachineStatus) bool {
+	if providerID, _ := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); providerID == talemuInfraProviderID {
+		return true
+	}
+
+	return slices.Contains(strings.Fields(machine.TypedSpec().Value.KernelCmdline), talemuKernelArg)
 }
 
 // applyUpgradeGate creates or updates the upgrade-gate workload ConfigMap, setting its "healthy" label.

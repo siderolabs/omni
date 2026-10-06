@@ -37,6 +37,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	ktesting "k8s.io/client-go/testing"
 
@@ -64,7 +65,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
 		require.NoError(t, testContext.Runtime.RegisterQController(
-			machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+			machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 		))
 	}
 
@@ -1123,7 +1124,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1176,7 +1177,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 					ctx, t, testutils.TestOptions{},
 					func(_ context.Context, tc testutils.TestContext) {
 						require.NoError(t, tc.Runtime.RegisterQController(
-							machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+							machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 						))
 					},
 					func(ctx context.Context, tc testutils.TestContext) {
@@ -1223,7 +1224,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1272,7 +1273,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1311,7 +1312,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1385,7 +1386,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1423,7 +1424,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1470,7 +1471,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				manager = testutils.NewLifecycleManager(t, tc.State, nil)
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewStatusController(manager)))
+				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewStatusController(manager, machineconfig.WithTryTimings(fastTryTimings))))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1548,7 +1549,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1601,7 +1602,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1647,7 +1648,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1685,7 +1686,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1760,7 +1761,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -2066,7 +2067,7 @@ func TestResetSystemPartitionsToWipe(t *testing.T) {
 				ctx, t, testutils.TestOptions{DisableCache: true},
 				func(_ context.Context, testContext testutils.TestContext) {
 					require.NoError(t, testContext.Runtime.RegisterQController(
-						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 					))
 				},
 				func(ctx context.Context, testContext testutils.TestContext) {
@@ -2150,7 +2151,7 @@ func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2228,7 +2229,7 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2307,7 +2308,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			controller := machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil))
+			controller := machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings))
 			require.NoError(t, tc.Runtime.RegisterQController(controller))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2315,7 +2316,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, st)
 
-			_, machines := createCluster(ctx, t, st, machineServices, "revert-wedge", 1, 0)
+			_, machines := createCluster(ctx, t, st, machineServices, "revert-wedge", 1, 0, withClusterMockOption(options.WithTalosVersion("1.13.0")))
 			id := machines[0].Metadata().ID()
 
 			const brokenMarker = "config-patch-test-file-broken"
@@ -2510,7 +2511,7 @@ func TestClusterLifecycleUpgrade(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2600,7 +2601,7 @@ func TestClusterLifecycleConvergesOnLiveVersion(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2688,7 +2689,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2848,7 +2849,7 @@ func TestClusterLifecycleForfeitsEtcdLeadership(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2891,7 +2892,7 @@ func TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2985,7 +2986,7 @@ func TestClusterUpgradeDeferredForHighPriorityConfig(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2995,7 +2996,7 @@ func TestClusterUpgradeDeferredForHighPriorityConfig(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, st)
 
-			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.13.0")))
 			id := machines[0].Metadata().ID()
 
 			// Wait for the initial config to be applied (records the empty high-priority hash baseline).
@@ -3062,7 +3063,7 @@ func TestClusterUpgradeProceedsAfterHighPriorityConfigApplied(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -3113,7 +3114,7 @@ func TestMaintenanceInstallGatedOnHighPriorityConfig(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -3182,6 +3183,26 @@ func TestMaintenanceInstallGatedOnHighPriorityConfig(t *testing.T) {
 			rmock.Mock[*omni.MaintenanceConfigStatus](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MaintenanceConfigStatus) error {
 				res.TypedSpec().Value.LastAppliedConfigHash = "maintenance-hash"
 				res.TypedSpec().Value.PublicKeyAtLastApply = "pk-current"
+				res.TypedSpec().Value.ConfigTry = &specs.ConfigTryStatus{Sha256: "maintenance-hash-next", Attempts: 1, BootId: "boot-maint-gate", StartedAt: timestamppb.Now()}
+
+				return nil
+			}))
+
+			// A change to it is still being tried, so it can still be rolled back. The install must stay gated.
+			require.Never(t, func() bool {
+				return len(machineServices.Get(id).GetLifecycleInstallRequests()) > 0
+			}, time.Second, 50*time.Millisecond)
+
+			// The change was rolled back twice and the maintenance controller stopped. The last applied config is
+			// still on the machine, so the install goes ahead with it.
+			rmock.Mock[*omni.MaintenanceConfigStatus](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MaintenanceConfigStatus) error {
+				res.TypedSpec().Value.ConfigTry = &specs.ConfigTryStatus{
+					Sha256:    "maintenance-hash-next",
+					Attempts:  2,
+					BootId:    "boot-maint-gate",
+					StartedAt: timestamppb.New(time.Now().Add(-time.Hour)),
+				}
+				res.TypedSpec().Value.LastConfigError = "the maintenance config was rolled back 2 times"
 
 				return nil
 			}))
@@ -3256,7 +3277,7 @@ func TestBuildReconciliationContextHeldWithoutDisk(t *testing.T) {
 	machineConfig, err := safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, id)
 	require.NoError(t, err)
 
-	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id))
+	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id), fastTryTimings, time.Now())
 	require.Error(t, err)
 	require.True(t, xerrors.TagIs[qtransform.SkipReconcileTag](err), "a config with no recorded install disk must skip the reconcile for an uninstalled machine")
 	require.ErrorContains(t, err, "carries no install disk")
@@ -3269,7 +3290,7 @@ func TestBuildReconciliationContextHeldWithoutDisk(t *testing.T) {
 	machineConfig, err = safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, id)
 	require.NoError(t, err)
 
-	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id))
+	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id), fastTryTimings, time.Now())
 	if err != nil {
 		require.NotContains(t, err.Error(), "carries no install disk")
 	}

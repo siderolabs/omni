@@ -699,6 +699,27 @@ message ClusterMachineConfigStatusSpec {
   // ImageFactoryHost is the host of the image factory that served the install image for the
   // last successful Talos install/upgrade.
   string image_factory_host = 13;
+
+  // ConfigTry tracks the in-flight try mode apply of the desired config, if any.
+  ConfigTryStatus config_try = 14;
+}
+
+// ConfigTryStatus tracks a config pushed to a machine in Talos "try" mode. Talos keeps such a config
+// active without persisting it and rolls it back after a timeout unless Omni confirms it with a
+// regular apply, so a config that costs us access to the machine undoes itself.
+message ConfigTryStatus {
+  // Sha256 identifies the config this state refers to.
+  string sha256 = 1;
+
+  // Attempts counts the try applies made for Sha256, including any in flight.
+  uint32 attempts = 2;
+
+  // StartedAt is when the in-flight try apply was pushed. Unset when no try is in flight.
+  google.protobuf.Timestamp started_at = 3;
+
+  // BootID is the kernel boot ID of the machine when the try was pushed. A different one at confirm
+  // time means the machine restarted and dropped the try config.
+  string boot_id = 4;
 }
 
 message MachinePendingUpdatesSpec {
@@ -1629,6 +1650,10 @@ message MaintenanceConfigStatusSpec {
   string public_key_at_last_apply = 1;
   // LastAppliedConfigHash is the hash of the desired maintenance config inputs at the time of the last apply.
   string last_applied_config_hash = 2;
+  // ConfigTry tracks the in-flight try mode apply of the desired maintenance config, if any.
+  ConfigTryStatus config_try = 3;
+  // LastConfigError describes why the maintenance config could not be applied, if it could not be.
+  string last_config_error = 4;
 }
 
 // NodeForceDestroyRequestSpec is used to force delete a node.

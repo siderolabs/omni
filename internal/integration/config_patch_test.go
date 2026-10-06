@@ -54,7 +54,9 @@ const (
 // The patch is removed on finalize.
 func AssertLargeImmediateConfigApplied(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
+		// Every machine in the cluster gets the patch, and each one holds its config in try mode
+		// before Omni confirms it, one after another with the default update parallelism of one.
+		ctx, cancel := context.WithTimeout(testCtx, 10*time.Minute)
 		defer cancel()
 
 		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
@@ -166,7 +168,8 @@ func AssertConfigPatchWritingFileIsApplied(testCtx context.Context, options *Tes
 
 		omniClient := options.omniClient
 
-		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
+		// a single machine with a reboot, plus the try mode wait before the config is confirmed
+		ctx, cancel := context.WithTimeout(testCtx, 6*time.Minute)
 		defer cancel()
 
 		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
@@ -297,7 +300,9 @@ provisioning:
 // The patch is removed at the end.
 func AssertConfigPatchMachineSet(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
+		// Only the generated patches are asserted on, not the apply, but a config change left in flight
+		// by an earlier assertion holds the update lock while it waits in try mode.
+		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
 		st := cli.Omni().State()
@@ -345,7 +350,9 @@ func AssertConfigPatchMachineSet(testCtx context.Context, cli *client.Client, cl
 // The patch is removed at the end.
 func AssertConfigPatchSingleClusterMachine(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
+		// Only the generated patches are asserted on, not the apply, but a config change left in flight
+		// by an earlier assertion holds the update lock while it waits in try mode.
+		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
 		st := cli.Omni().State()
