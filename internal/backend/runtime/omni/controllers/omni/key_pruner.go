@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"go.uber.org/zap"
@@ -22,34 +21,12 @@ import (
 
 // KeyPrunerController is a controller which periodically prunes expired public keys.
 type KeyPrunerController struct {
-	clock clock.Clock
-
 	interval time.Duration
 }
 
-// Option is a functional option for KeyPrunerController.
-type Option func(*KeyPrunerController)
-
-// WithClock sets the clock to use for the controller.
-func WithClock(clock clock.Clock) Option {
-	return func(k *KeyPrunerController) {
-		k.clock = clock
-	}
-}
-
 // NewKeyPrunerController initializes a new KeyPrunerController.
-func NewKeyPrunerController(interval time.Duration, opts ...Option) *KeyPrunerController {
-	result := &KeyPrunerController{interval: interval}
-
-	for _, opt := range opts {
-		opt(result)
-	}
-
-	if result.clock == nil {
-		result.clock = clock.New()
-	}
-
-	return result
+func NewKeyPrunerController(interval time.Duration) *KeyPrunerController {
+	return &KeyPrunerController{interval: interval}
 }
 
 // Name implements controller.Controller interface.
@@ -75,7 +52,7 @@ func (k *KeyPrunerController) Outputs() []controller.Output {
 
 // Run implements controller.Controller interface.
 func (k *KeyPrunerController) Run(ctx context.Context, runtime controller.Runtime, logger *zap.Logger) error {
-	ticker := k.clock.Ticker(k.interval)
+	ticker := time.NewTicker(k.interval)
 	defer ticker.Stop()
 
 	for {
@@ -110,7 +87,7 @@ func (k *KeyPrunerController) run(ctx context.Context, runtime controller.Runtim
 		md := v.Metadata()
 		publicKeySpec := v.TypedSpec().Value
 
-		if k.clock.Now().Before(publicKeySpec.Expiration.AsTime()) {
+		if time.Now().Before(publicKeySpec.Expiration.AsTime()) {
 			continue
 		}
 

@@ -32,7 +32,6 @@ func TestClassify(t *testing.T) {
 		name         string
 		ctx          context.Context //nolint:containedctx // fixture
 		wantType     actor.Type
-		wantIdentity string
 		wantBasename string
 	}{
 		{
@@ -44,44 +43,38 @@ func TestClassify(t *testing.T) {
 			// Most user-initiated writes pass through management handlers that call
 			// MarkContextAsInternalActor on the user's context. Identity must take precedence
 			// so we attribute the call to the originating user, not to Internal.
-			name:         "internal mark with user identity attributes to user",
-			ctx:          actor.MarkContextAsInternalActor(withIdentity("alice@example.com")),
-			wantType:     actor.TypeUser,
-			wantIdentity: "alice@example.com",
+			name:     "internal mark with user identity attributes to user",
+			ctx:      actor.MarkContextAsInternalActor(withIdentity("alice@example.com")),
+			wantType: actor.TypeUser,
 		},
 		{
 			// Same flow for JWT/SAML-authenticated UI users — identity comes from VerifiedEmail.
-			name:         "internal mark with verified email attributes to user",
-			ctx:          actor.MarkContextAsInternalActor(withVerifiedEmail("alice@example.com")),
-			wantType:     actor.TypeUser,
-			wantIdentity: "alice@example.com",
+			name:     "internal mark with verified email attributes to user",
+			ctx:      actor.MarkContextAsInternalActor(withVerifiedEmail("alice@example.com")),
+			wantType: actor.TypeUser,
 		},
 		{
 			name:         "infra provider service account",
 			ctx:          withIdentity("aws-1" + access.InfraProviderServiceAccountNameSuffix),
 			wantType:     actor.TypeInfraProvider,
-			wantIdentity: "aws-1" + access.InfraProviderServiceAccountNameSuffix,
 			wantBasename: "aws-1",
 		},
 		{
 			name:         "regular service account",
 			ctx:          withIdentity("ci-bot" + access.ServiceAccountNameSuffix),
 			wantType:     actor.TypeServiceAccount,
-			wantIdentity: "ci-bot" + access.ServiceAccountNameSuffix,
 			wantBasename: "ci-bot",
 		},
 		{
-			name:         "user identity",
-			ctx:          withIdentity("alice@example.com"),
-			wantType:     actor.TypeUser,
-			wantIdentity: "alice@example.com",
+			name:     "user identity",
+			ctx:      withIdentity("alice@example.com"),
+			wantType: actor.TypeUser,
 		},
 		{
 			// JWT (Auth0/OIDC) and SAML interceptors only set VerifiedEmailContextKey, not Identity.
-			name:         "user via verified email",
-			ctx:          withVerifiedEmail("alice@example.com"),
-			wantType:     actor.TypeUser,
-			wantIdentity: "alice@example.com",
+			name:     "user via verified email",
+			ctx:      withVerifiedEmail("alice@example.com"),
+			wantType: actor.TypeUser,
 		},
 		{
 			// IdentityContextKey takes precedence when both are set.
@@ -91,7 +84,6 @@ func TestClassify(t *testing.T) {
 				auth.IdentityContextKey{Identity: "ci-bot" + access.ServiceAccountNameSuffix},
 			),
 			wantType:     actor.TypeServiceAccount,
-			wantIdentity: "ci-bot" + access.ServiceAccountNameSuffix,
 			wantBasename: "ci-bot",
 		},
 		{
@@ -105,7 +97,6 @@ func TestClassify(t *testing.T) {
 
 			got := actor.Classify(tc.ctx)
 			assert.Equal(t, tc.wantType, got.Type)
-			assert.Equal(t, tc.wantIdentity, got.Identity())
 			assert.Equal(t, tc.wantBasename, got.BaseName())
 		})
 	}

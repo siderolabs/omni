@@ -28,12 +28,8 @@ const (
 type Classification struct {
 	Type Type
 
-	identity string // raw caller identity (email or service-account full ID)
 	baseName string // base name for service-accounts
 }
-
-// Identity returns the caller's full identity (email or service-account full ID) when authenticated, "" otherwise.
-func (c Classification) Identity() string { return c.identity }
 
 // BaseName returns the base name for service-accounts.
 func (c Classification) BaseName() string { return c.baseName }
@@ -59,10 +55,10 @@ func Classify(ctx context.Context) Classification {
 	sa, isSA := access.ParseServiceAccountFromFullID(identity)
 	switch {
 	case isSA && sa.IsInfraProvider:
-		return Classification{Type: TypeInfraProvider, identity: identity, baseName: sa.BaseName}
+		return Classification{Type: TypeInfraProvider, baseName: sa.BaseName}
 	case isSA:
-		return Classification{Type: TypeServiceAccount, identity: identity, baseName: sa.BaseName}
+		return Classification{Type: TypeServiceAccount, baseName: sa.BaseName}
 	default:
-		return Classification{Type: TypeUser, identity: identity}
+		return Classification{Type: TypeUser}
 	}
 }

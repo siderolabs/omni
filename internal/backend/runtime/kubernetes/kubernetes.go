@@ -9,7 +9,6 @@ package kubernetes
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	stderrors "errors"
 	"fmt"
 	"net"
@@ -43,7 +42,6 @@ import (
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/access/role"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
@@ -635,35 +633,6 @@ func wrapError(err error, opts *runtime.QueryOptions) error {
 	}
 
 	return err
-}
-
-// UnstructuredFromResource creates Unstructured resource from k8s.KubernetesResource.
-func UnstructuredFromResource(resource cosiresource.Resource) (*unstructured.Unstructured, error) {
-	if resource.Metadata().Type() != k8s.KubernetesResourceType {
-		return nil, fmt.Errorf("kubernetes runtime accepts only %s type as an input, got %s", k8s.KubernetesResourceType, resource.Metadata().Type())
-	}
-
-	var (
-		res *k8s.KubernetesResource
-		ok  bool
-	)
-
-	if res, ok = resource.(*k8s.KubernetesResource); !ok {
-		return nil, stderrors.New("failed to convert spec to KubernetesResourceSpec")
-	}
-
-	data := res.TypedSpec()
-
-	if data == nil {
-		return nil, stderrors.New("no resource spec is defined in the resource")
-	}
-
-	obj := &unstructured.Unstructured{}
-	if err := json.Unmarshal([]byte(*data), &obj.Object); err != nil {
-		return nil, err
-	}
-
-	return obj, nil
 }
 
 func respFromK8sObject(resp *resources.WatchResponse, obj any) runtime.WatchResponse {

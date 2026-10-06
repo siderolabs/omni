@@ -686,23 +686,19 @@ func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *ap
 	}
 
 	return &apiServer{
-		srv:     srv,
-		handler: handler,
-		logger:  s.logger.With(zap.String("server", s.apiService.GetEndpoint()), zap.String("server_type", "api")),
+		srv:    srv,
+		logger: s.logger.With(zap.String("server", s.apiService.GetEndpoint()), zap.String("server_type", "api")),
 	}
 }
 
 type apiServer struct {
-	srv     *services.Server
-	handler http.Handler
-	logger  *zap.Logger
+	srv    *services.Server
+	logger *zap.Logger
 }
 
 func (s *apiServer) Run(ctx context.Context) error {
 	return s.srv.Run(ctx, s.logger)
 }
-
-func (s *apiServer) Handler() http.Handler { return s.handler }
 
 func recoveryHandler(logger *zap.Logger) grpc_recovery.RecoveryHandlerFunc {
 	return func(p any) error {

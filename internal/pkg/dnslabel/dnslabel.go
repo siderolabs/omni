@@ -18,13 +18,8 @@ const MaxLength = 63
 
 // dnsLabelRegexp matches the charset shape of an RFC 1123 DNS label: lowercase
 // alphanumeric and hyphens, starting and ending with an alphanumeric. The length cap is
-// enforced separately by IsValid and Validate.
+// enforced separately by Validate.
 var dnsLabelRegexp = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-
-// IsValid reports whether s is a valid RFC 1123 DNS label.
-func IsValid(s string) bool {
-	return len(s) <= MaxLength && dnsLabelRegexp.MatchString(s)
-}
 
 // Validate returns nil if s is a valid RFC 1123 DNS label, and a descriptive error
 // otherwise. The error for an over-length input intentionally omits the value to avoid

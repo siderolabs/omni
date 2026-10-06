@@ -50,12 +50,11 @@ func trackResource(r controller.ReaderWriter, ns resource.Namespace, resourceTyp
 }
 
 type resourceTracker struct {
-	owner                 string
-	r                     controller.ReaderWriter
-	beforeDestroyCallback func(resource.Resource) error
-	touched               map[resource.ID]struct{}
-	listOptions           []state.ListOption
-	listMD                resource.Metadata
+	owner       string
+	r           controller.ReaderWriter
+	touched     map[resource.ID]struct{}
+	listOptions []state.ListOption
+	listMD      resource.Metadata
 }
 
 func (rt *resourceTracker) keep(res resource.Resource) {
@@ -113,12 +112,6 @@ func (rt *resourceTracker) cleanup(ctx context.Context, cleanupOpts ...cleanupOp
 			continue
 		}
 
-		if rt.beforeDestroyCallback != nil {
-			if err = rt.beforeDestroyCallback(res); err != nil {
-				return fmt.Errorf("error running before destroy callback for resource '%s': %w", res.Metadata().ID(), err)
-			}
-		}
-
 		if err = rt.r.Destroy(ctx, res.Metadata()); err != nil {
 			if state.IsNotFoundError(err) {
 				continue
@@ -133,11 +126,6 @@ func (rt *resourceTracker) cleanup(ctx context.Context, cleanupOpts ...cleanupOp
 	}
 
 	return nil
-}
-
-// BeforeDestroy register the callback which is called before destroying the resource.
-func (rt *resourceTracker) BeforeDestroy(f func(res resource.Resource) error) {
-	rt.beforeDestroyCallback = f
 }
 
 // withFinalizerCheck wraps a [cleanup.Handler] with a check that needs to pass before the handler is called.

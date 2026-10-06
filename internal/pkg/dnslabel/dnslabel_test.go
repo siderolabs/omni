@@ -23,7 +23,6 @@ func TestValidate(t *testing.T) {
 			t.Parallel()
 
 			require.NoError(t, dnslabel.Validate(name))
-			assert.True(t, dnslabel.IsValid(name))
 		})
 	}
 
@@ -51,7 +50,6 @@ func TestValidate(t *testing.T) {
 			err := dnslabel.Validate(tc.input)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.message)
-			assert.False(t, dnslabel.IsValid(tc.input))
 		})
 	}
 

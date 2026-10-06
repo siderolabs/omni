@@ -2196,37 +2196,6 @@ func TestS3ConfigValidation(t *testing.T) {
 	require.NoError(t, st.Update(ctx, res))
 }
 
-func TestSchematicConfigurationValidation(t *testing.T) {
-	t.Parallel()
-
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
-	t.Cleanup(cancel)
-
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-
-	st := validated.NewState(innerSt, validations.SchematicConfigurationValidationOptions()...)
-
-	res := omnires.NewSchematicConfiguration("test")
-
-	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
-
-	res.Metadata().Labels().Set(omnires.LabelClusterMachine, "test")
-
-	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
-
-	res.TypedSpec().Value.SchematicId = "abab"
-
-	require.NoError(t, st.Create(ctx, res))
-
-	res.Metadata().Labels().Delete(omnires.LabelClusterMachine)
-
-	require.True(t, validated.IsValidationError(st.Update(ctx, res)), "expected validation error")
-
-	res.Metadata().Labels().Set(omnires.LabelMachineSet, "test")
-
-	require.NoError(t, st.Update(ctx, res))
-}
-
 func TestMachineRequestSetValidation(t *testing.T) {
 	t.Parallel()
 

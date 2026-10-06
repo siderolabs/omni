@@ -33,11 +33,6 @@ type Computed struct {
 // ProducerIDTransformer maps the incoming resource id into some other id.
 type ProducerIDTransformer func(context.Context, resource.Pointer) (resource.Pointer, error)
 
-// NoTransform passes the resource pointer without any change.
-func NoTransform(_ context.Context, ptr resource.Pointer) (resource.Pointer, error) {
-	return ptr, nil
-}
-
 // NewComputed creates new computed state.
 func NewComputed(resourceType string, factory ProducerFactory, resolveID ProducerIDTransformer, cleanupInterval time.Duration, logger *zap.Logger, registerMetrics bool) *Computed {
 	state := state.WrapCore(namespaced.NewState(inmem.Build))

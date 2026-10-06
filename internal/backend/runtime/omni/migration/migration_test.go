@@ -72,7 +72,9 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	_, taintBreakGlass := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
 	suite.Require().False(taintBreakGlass)
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("moveClusterTaintFromResourceToLabel")))
+	suite.manager.SetFilter(filterWith("moveClusterTaintFromResourceToLabel"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	clusterStatusMigrated, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, suite.state, clusterID)
@@ -104,7 +106,9 @@ func (suite *MigrationSuite) TestDropExtraInputFinalizers() {
 	cms.Metadata().Finalizers().Add("SomeOtherFinalizer")
 	suite.Require().NoError(suite.state.Create(ctx, cms))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropExtraInputFinalizers")))
+	suite.manager.SetFilter(filterWith("dropExtraInputFinalizers"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	cmdMigrated, err := safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, suite.state, resourceID)
@@ -138,7 +142,9 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 
 	link3VersionBefore := link3.Metadata().Version()
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("moveInfraProviderAnnotationsToLabels")))
+	suite.manager.SetFilter(filterWith("moveInfraProviderAnnotationsToLabels"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	link1Migrated, err := suite.state.Get(ctx, link1.Metadata())
@@ -193,7 +199,9 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 
 	cm3VersionBefore := cm3.Metadata().Version()
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropSchematicConfigFinalizerFromClusterMachines")))
+	suite.manager.SetFilter(filterWith("dropSchematicConfigFinalizerFromClusterMachines"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	cm1Migrated, err := suite.state.Get(ctx, cm1.Metadata())
@@ -231,7 +239,9 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 
 	sc3VersionBefore := sc3.Metadata().Version()
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropTalosUpgradeStatusFinalizersFromSchematicConfigs")))
+	suite.manager.SetFilter(filterWith("dropTalosUpgradeStatusFinalizersFromSchematicConfigs"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	sc1Migrated, err := suite.state.Get(ctx, sc1.Metadata())
@@ -277,7 +287,9 @@ func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
 			state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
 	)
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("makeMachineSetNodesOwnerEmpty")))
+	suite.manager.SetFilter(filterWith("makeMachineSetNodesOwnerEmpty"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	msnRunning, err = safe.ReaderGetByID[*omni.MachineSetNode](ctx, suite.state, msnRunning.Metadata().ID())
@@ -333,7 +345,9 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 			state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
 	)
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("changeClusterMachineConfigPatchesOwner")))
+	suite.manager.SetFilter(filterWith("changeClusterMachineConfigPatchesOwner"))
+
+	_, err := suite.manager.Run(ctx)
 
 	suite.Require().NoError(err)
 
@@ -376,7 +390,9 @@ func (suite *MigrationSuite) TestChangeImageFactoryAuthOwner() {
 	suite.Require().NoError(alreadyOwned.Metadata().SetOwner(imagefactory.AuthControllerName))
 	suite.Require().NoError(suite.state.Create(ctx, alreadyOwned, state.WithCreateOwner(imagefactory.AuthControllerName)))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("changeImageFactoryAuthOwner")))
+	suite.manager.SetFilter(filterWith("changeImageFactoryAuthOwner"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	adopted, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, suite.state, unowned.Metadata().ID())
@@ -404,7 +420,9 @@ func (suite *MigrationSuite) TestDropSchematicResource() {
 	withFinalizer.Metadata().Finalizers().Add("StaleController")
 	suite.Require().NoError(suite.state.Create(ctx, withFinalizer))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropSchematicResource")))
+	suite.manager.SetFilter(filterWith("dropSchematicResource"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	for _, ns := range []resource.Namespace{resources.DefaultNamespace, resources.EphemeralNamespace} {
@@ -429,7 +447,9 @@ func (suite *MigrationSuite) TestCreateIdentityLastActiveForExistingIdentities()
 	sa.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
 	suite.Require().NoError(suite.state.Create(ctx, sa))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("createIdentityLastActiveForExistingIdentities")))
+	suite.manager.SetFilter(filterWith("createIdentityLastActiveForExistingIdentities"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	userLastActive, err := safe.ReaderGetByID[*authres.IdentityLastActive](ctx, suite.state, "user@example.com")
@@ -454,7 +474,9 @@ func (suite *MigrationSuite) TestSetInitialUserFlagFromExistingKey() {
 
 	suite.Require().NoError(suite.state.Create(ctx, authres.NewAuthConfig()))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.manager.SetFilter(filterWith("setInitialUserFlagForExistingInstances"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	authConfig, err := safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
@@ -469,7 +491,9 @@ func (suite *MigrationSuite) TestSetInitialUserFlagNoKeys() {
 	// An instance with a config but no public keys keeps the flag false.
 	suite.Require().NoError(suite.state.Create(ctx, authres.NewAuthConfig()))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.manager.SetFilter(filterWith("setInitialUserFlagForExistingInstances"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	authConfig, err := safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
@@ -482,7 +506,9 @@ func (suite *MigrationSuite) TestSetInitialUserFlagNoConfig() {
 	defer cancel()
 
 	// A fresh instance has no auth config yet: the migration is a no-op and must not fail.
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.manager.SetFilter(filterWith("setInitialUserFlagForExistingInstances"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	_, err = safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
@@ -508,7 +534,9 @@ func (suite *MigrationSuite) TestDropRedactedMachineConfigFinalizersFromClusterM
 
 	cm3VersionBefore := cm3.Metadata().Version()
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropRedactedClusterMachineConfigFinalizers")))
+	suite.manager.SetFilter(filterWith("dropRedactedClusterMachineConfigFinalizers"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	cm1Migrated, err := suite.state.Get(ctx, cm1.Metadata())
@@ -552,7 +580,9 @@ func (suite *MigrationSuite) TestRemoveStaleIdentityLastActiveResources() {
 	ila4.Metadata().Finalizers().Add("SomeFinalizer")
 	suite.Require().NoError(suite.state.Create(ctx, ila4))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("removeStaleIdentityLastActiveResources")))
+	suite.manager.SetFilter(filterWith("removeStaleIdentityLastActiveResources"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	// The one with a matching Identity should still exist.
@@ -650,7 +680,9 @@ func (suite *MigrationSuite) TestMachineInstallDiskConfigsFromPatches() {
 	templated.Metadata().Labels().Set(omni.LabelCluster, "templated-cluster")
 	suite.Require().NoError(suite.state.Create(ctx, templated))
 
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("machineInstallDiskConfigsFromPatches")))
+	suite.manager.SetFilter(filterWith("machineInstallDiskConfigsFromPatches"))
+
+	_, err := suite.manager.Run(ctx)
 	suite.Require().NoError(err)
 
 	// the well-known patch is translated and deleted

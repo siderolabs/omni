@@ -6,7 +6,6 @@
 package migration
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -40,6 +39,7 @@ type migration struct {
 type Manager struct {
 	state      state.State
 	logger     *zap.Logger
+	filter     func(string) bool
 	migrations []*migration
 }
 
@@ -321,29 +321,6 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 	}
 }
 
-// Options represents Manager options.
-type Options struct {
-	filter     func(string) bool
-	maxVersion int
-}
-
-// Option represents Manager option.
-type Option func(*Options)
-
-// WithFilter allows to filter migrations to run.
-func WithFilter(filter func(string) bool) Option {
-	return func(o *Options) {
-		o.filter = filter
-	}
-}
-
-// WithMaxVersion allows limiting the maximum migration version.
-func WithMaxVersion(version int) Option {
-	return func(o *Options) {
-		o.maxVersion = version
-	}
-}
-
 // ErrDropped is returned when a migration is too old and has been dropped.
 //
 // In this case, the user should upgrade to a version that supports the required max version first.
@@ -357,13 +334,7 @@ type Result struct {
 }
 
 // Run runs COSI state migrations.
-func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
-	opts := Options{}
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
+func (m *Manager) Run(ctx context.Context) (Result, error) {
 	version, err := safe.StateGet[*system.DBVersion](
 		ctx,
 		m.state,
@@ -373,7 +344,7 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 		return Result{}, err
 	}
 
-	logger := m.logger.With(zap.Bool("filter_enabled", opts.filter != nil), zap.Bool("fresh_omni", version == nil))
+	logger := m.logger.With(zap.Bool("filter_enabled", m.filter != nil), zap.Bool("fresh_omni", version == nil))
 
 	isFreshInstall := version == nil
 	if isFreshInstall {
@@ -393,15 +364,14 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 	}
 
 	currentVersion := version.TypedSpec().Value.Version
-	opts.maxVersion = cmp.Or(opts.maxVersion, len(m.migrations))
 
-	logger = logger.With(zap.Uint64("start_version", currentVersion), zap.Int("target_version", opts.maxVersion))
+	logger = logger.With(zap.Uint64("start_version", currentVersion), zap.Int("target_version", len(m.migrations)))
 
 	if len(m.migrations) < int(currentVersion) {
 		return Result{}, fmt.Errorf("the current version of Omni is too old to run with the current DB version: %d", currentVersion)
 	}
 
-	migrations := m.migrations[currentVersion:opts.maxVersion]
+	migrations := m.migrations[currentVersion:]
 	if len(migrations) > 0 {
 		logger.Info("must do those migrations", zap.Int("total", len(migrations)))
 
@@ -417,7 +387,7 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 	var updatedDBVersion *system.DBVersion
 
 	for i, mig := range migrations {
-		if opts.filter != nil && !opts.filter(mig.name) {
+		if m.filter != nil && !m.filter(mig.name) {
 			logger.Info("skipping migration", zap.String("migration_name", mig.name), zap.Int("version", i))
 
 			continue

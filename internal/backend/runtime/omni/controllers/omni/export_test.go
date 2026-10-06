@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
@@ -38,4 +39,9 @@ func FetchTalosVersions(
 	ctx context.Context, imageFactoryClients *imagefactory.Clients, logger *zap.Logger,
 ) (versionToFactory map[string]talosVersionSource, failedFactoryURLs map[string]struct{}) {
 	return fetchTalosVersions(ctx, imageFactoryClients, logger)
+}
+
+// SetDebounceDuration overrides the debounce duration of the controller.
+func (ctrl *StripeMetricsReporterController) SetDebounceDuration(duration time.Duration) {
+	ctrl.debounceDuration = duration
 }

@@ -75,11 +75,6 @@ func (s *State) SecondaryStorageDB() *sqlitexx.Pool {
 	return s.secondaryStorageDB
 }
 
-// SecondaryPersistentState returns the secondary persistent state.
-func (s *State) SecondaryPersistentState() *PersistentState {
-	return s.secondaryPersistentState
-}
-
 // SQLiteMetrics returns the SQLite metrics collector.
 func (s *State) SQLiteMetrics() *sqlite.Metrics {
 	return s.sqliteMetrics
@@ -110,11 +105,6 @@ func (s *State) RunSQLiteMetrics(ctx context.Context) error {
 	s.sqliteMetrics.Run(ctx)
 
 	return nil
-}
-
-// DefaultCore returns the default core state.
-func (s *State) DefaultCore() state.CoreState {
-	return s.defaultPersistentState.State
 }
 
 // Close closes the state.

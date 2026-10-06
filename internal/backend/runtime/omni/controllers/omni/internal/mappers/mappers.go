@@ -41,31 +41,12 @@ func MapByMachineSetLabelOnlyControlplane[O generic.ResourceWithRD]() qtransform
 	return qtransform.MapExtractLabelValue[O](omni.LabelMachineSet, resource.LabelTerm{Key: omni.LabelControlPlaneRole, Op: resource.LabelOpExists})
 }
 
-// MapByMachineClassNameLabel returns a mapper that extracts a LabelMachineClassName value.
-func MapByMachineClassNameLabel[O generic.ResourceWithRD]() qtransform.MapperFunc {
-	return qtransform.MapExtractLabelValue[O](omni.LabelMachineClassName)
-}
-
 // MapClusterResourceToLabeledResources returns a mapper that maps a cluster resource to all resources with the same cluster label.
 func MapClusterResourceToLabeledResources[O generic.ResourceWithRD]() qtransform.MapperFunc {
 	return func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, in controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 		clusterName := in.ID()
 
 		items, err := safe.ReaderListAll[O](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
-		if err != nil {
-			return nil, err
-		}
-
-		return slices.Collect(items.Pointers()), nil
-	}
-}
-
-// MapMachineSetToLabeledResources returns a mapper that maps a machine set resource to all resources with the same machine set label.
-func MapMachineSetToLabeledResources[O generic.ResourceWithRD]() qtransform.MapperFunc {
-	return func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, in controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-		machineSetName := in.ID()
-
-		items, err := safe.ReaderListAll[O](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSetName)))
 		if err != nil {
 			return nil, err
 		}

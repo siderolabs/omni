@@ -272,20 +272,6 @@ type MachineStorage interface {
 	GetMachine(machineIP string) (MachineID, error)
 }
 
-// MapStorage is a concrete implementation of MachineStorage that uses the map.
-type MapStorage struct {
-	IPToMachine map[string]MachineID
-}
-
-// GetMachine returns the machine with the given IP.
-func (s *MapStorage) GetMachine(ip string) (MachineID, error) {
-	if machine, ok := s.IPToMachine[ip]; ok {
-		return machine, nil
-	}
-
-	panic("no machine found")
-}
-
 // NewStateStorage returns a new StateStorage.
 func NewStateStorage(state state.State) *StateStorage {
 	return &StateStorage{state: state}

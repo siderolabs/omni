@@ -104,11 +104,10 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	stripeClient := stripe.NewClient("test_api_key", stripe.WithBackends(mockBackends))
 
 	// Register controller with a min commit of 4 machines
-	suite.Require().NoError(
-		suite.runtime.RegisterController(
-			omnictrl.NewStripeMetricsReporterController(stripeClient, "sub_item_id", 4, omnictrl.WithDebounceDuration(2*time.Second)),
-		),
-	)
+	ctrl := omnictrl.NewStripeMetricsReporterController(stripeClient, "sub_item_id", 4)
+	ctrl.SetDebounceDuration(2 * time.Second)
+
+	suite.Require().NoError(suite.runtime.RegisterController(ctrl))
 
 	// Register 1 machine and wait for the debounce so we can ensure that the min commit is what's actually reported
 	metrics := omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID)

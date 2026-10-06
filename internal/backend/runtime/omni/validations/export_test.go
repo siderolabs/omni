@@ -57,10 +57,6 @@ func S3ConfigValidationOptions() []validated.StateOption {
 	return s3ConfigValidationOptions()
 }
 
-func SchematicConfigurationValidationOptions() []validated.StateOption {
-	return schematicConfigurationValidationOptions()
-}
-
 func MachineRequestSetValidationOptions(st state.State) []validated.StateOption {
 	return machineRequestSetValidationOptions(st)
 }

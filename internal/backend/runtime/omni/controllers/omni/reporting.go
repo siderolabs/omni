@@ -39,40 +39,14 @@ type StripeMetricsReporterController struct {
 	debounceDuration         time.Duration
 }
 
-// StripeMetricsReporterControllerOptions defines the options for StripeMetricsReporterController.
-type StripeMetricsReporterControllerOptions struct {
-	DebounceDuration time.Duration
-}
-
-// StripeMetricsReporterControllerOption defines the option type for StripeMetricsReporterController.
-type StripeMetricsReporterControllerOption func(*StripeMetricsReporterControllerOptions)
-
-// WithDebounceDuration sets the debounce duration for StripeMetricsReporterController.
-func WithDebounceDuration(duration time.Duration) StripeMetricsReporterControllerOption {
-	return func(opts *StripeMetricsReporterControllerOptions) {
-		opts.DebounceDuration = duration
-	}
-}
-
 // NewStripeMetricsReporterController initializes StripeMetricsReporterController.
-func NewStripeMetricsReporterController(
-	stripeClient *stripe.Client, stripeSubscriptionItemID string, stripeMinCommit uint32,
-	opts ...StripeMetricsReporterControllerOption,
-) *StripeMetricsReporterController {
-	options := &StripeMetricsReporterControllerOptions{
-		DebounceDuration: DefaultDebounceDuration,
-	}
-
-	for _, opt := range opts {
-		opt(options)
-	}
-
+func NewStripeMetricsReporterController(stripeClient *stripe.Client, stripeSubscriptionItemID string, stripeMinCommit uint32) *StripeMetricsReporterController {
 	return &StripeMetricsReporterController{
 		ControllerName:           StripeMetricsReporterControllerName,
 		stripeClient:             stripeClient,
 		stripeSubscriptionItemID: stripeSubscriptionItemID,
 		stripeMinCommit:          stripeMinCommit,
-		debounceDuration:         options.DebounceDuration,
+		debounceDuration:         DefaultDebounceDuration,
 	}
 }
 

@@ -113,7 +113,7 @@ func TestComputed(t *testing.T) {
 		return &mp, nil
 	}
 
-	st := virtual.NewComputed(virtualres.CurrentUserType, newProducer, virtual.NoTransform, time.Second, zaptest.NewLogger(t), false)
+	st := virtual.NewComputed(virtualres.CurrentUserType, newProducer, noTransform, time.Second, zaptest.NewLogger(t), false)
 
 	var eg errgroup.Group
 
@@ -386,4 +386,8 @@ func TestDeduper(t *testing.T) {
 	cancel()
 
 	require.NoError(eg.Wait())
+}
+
+func noTransform(_ context.Context, ptr resource.Pointer) (resource.Pointer, error) {
+	return ptr, nil
 }

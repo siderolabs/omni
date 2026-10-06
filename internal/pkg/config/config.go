@@ -7,7 +7,6 @@
 package config
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"errors"
@@ -63,11 +62,6 @@ func WithIgnoreUnknownFields() ParseOption {
 	return func(po *ParseOptions) {
 		po.ignoreUnknownFields = true
 	}
-}
-
-// FromBytes loads the config from bytes.
-func FromBytes(data []byte) (*Params, error) {
-	return parseConfig(bytes.NewBuffer(data))
 }
 
 // LoadFromFile loads the config from the file.

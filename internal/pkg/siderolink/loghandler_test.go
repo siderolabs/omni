@@ -31,7 +31,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 	storageConfig := config.LogsMachine{}
 
 	t.Run("empty log message", func(t *testing.T) {
-		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{})
+		machineMap := siderolink.NewMachineMap(&mapStorage{})
 		st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
@@ -44,8 +44,8 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 	})
 
 	t.Run("non-empty log message", func(t *testing.T) {
-		cache := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
+		cache := siderolink.NewMachineMap(&mapStorage{
+			ipToMachine: map[string]siderolink.MachineID{
 				"1.2.3.4": "machine1",
 			},
 		})
@@ -81,8 +81,8 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 	})
 
 	t.Run("non-empty log messages with tail 2", func(t *testing.T) {
-		cache := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
+		cache := siderolink.NewMachineMap(&mapStorage{
+			ipToMachine: map[string]siderolink.MachineID{
 				"1.2.3.4": "machine1",
 			},
 		})
@@ -121,8 +121,8 @@ func TestLogHandler_IngestedBytesMetric(t *testing.T) {
 	storageConfig := config.LogsMachine{}
 
 	t.Run("counts bytes ingested when no limiter is configured", func(t *testing.T) {
-		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
+		machineMap := siderolink.NewMachineMap(&mapStorage{
+			ipToMachine: map[string]siderolink.MachineID{
 				"1.2.3.4": "machine1",
 			},
 		})
@@ -142,8 +142,8 @@ func TestLogHandler_IngestedBytesMetric(t *testing.T) {
 	})
 
 	t.Run("does not count bytes rejected by the rate limiter", func(t *testing.T) {
-		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
-			IPToMachine: map[string]siderolink.MachineID{
+		machineMap := siderolink.NewMachineMap(&mapStorage{
+			ipToMachine: map[string]siderolink.MachineID{
 				"1.2.3.4": "machine1",
 			},
 		})
@@ -186,4 +186,16 @@ func testDB(t *testing.T) *sqlitexx.Pool {
 	})
 
 	return db
+}
+
+type mapStorage struct {
+	ipToMachine map[string]siderolink.MachineID
+}
+
+func (s *mapStorage) GetMachine(ip string) (siderolink.MachineID, error) {
+	if machine, ok := s.ipToMachine[ip]; ok {
+		return machine, nil
+	}
+
+	panic("no machine found")
 }
