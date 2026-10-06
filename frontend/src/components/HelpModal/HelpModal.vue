@@ -14,6 +14,7 @@ import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
+import { eulaAccepted } from '@/methods/eula'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 const { data: support } = useResourceGet<SupportSpec>(() => ({
@@ -23,6 +24,8 @@ const { data: support } = useResourceGet<SupportSpec>(() => ({
     type: SupportType,
     id: SupportID,
   },
+  // nothing is readable until the EULA is accepted
+  skip: !eulaAccepted.value,
 }))
 
 const open = defineModel<boolean>('open', { default: false })

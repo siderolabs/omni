@@ -16,15 +16,17 @@ import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { eulaAccepted } from '@/methods'
+import { eulaAccepted } from '@/methods/eula'
 import { useTitle } from '@/methods/title'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { showError } from '@/notification'
 
-import { withRuntime, withSkipRequestSignature } from '../api/options'
+import { withRuntime } from '../api/options'
 
 definePage({
   name: 'Eula',
+  // the EULA is accepted by a signed in user
+  meta: { guard: 'keys' },
 })
 
 const router = useRouter()
@@ -43,7 +45,6 @@ const { data, loading } = useResourceGet<EulaAcceptanceSpec>({
     type: EulaAcceptanceType,
     id: EulaAcceptanceID,
   },
-  skipSignature: true,
 })
 
 watchEffect(() => {
@@ -69,7 +70,6 @@ const accept = async () => {
         },
       },
       withRuntime(Runtime.Omni),
-      withSkipRequestSignature(),
     )
 
     eulaAccepted.value = true
@@ -139,15 +139,18 @@ useTitle('License Agreement')
         label="I have read and agree to the End User License Agreement."
       />
 
-      <TButton
-        id="accept-eula"
-        class="self-end"
-        variant="highlighted"
-        type="submit"
-        :disabled="accepting || invalidForm"
-      >
-        Accept
-      </TButton>
+      <div class="flex items-center justify-between">
+        <RouterLink to="/logout" class="link-primary text-xs">Log out</RouterLink>
+
+        <TButton
+          id="accept-eula"
+          variant="highlighted"
+          type="submit"
+          :disabled="accepting || invalidForm"
+        >
+          Accept
+        </TButton>
+      </div>
     </form>
   </PageContainer>
 </template>
