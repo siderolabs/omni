@@ -4,11 +4,6 @@
       "count": 1
     }
   },
-  "src/components/Button/SplitButton.vue": {
-    "vue/no-shadow-native-events": {
-      "count": 3
-    }
-  },
   "src/components/Form/IntegerRenderer.vue": {
     "vue/no-ref-object-reactivity-loss": {
       "count": 4
