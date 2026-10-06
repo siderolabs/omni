@@ -19,7 +19,9 @@ message AuthConfigSpec {
     bool enabled = 1;
     string provider_url = 2;
     string client_id = 3;
-    string client_secret = 4;
+    // ClientSecret is always empty. Omni reads the secret from its config and clears this field on
+    // every start. The field number is reserved once every supported version has cleared it.
+    string client_secret = 4 [deprecated = true];
     repeated string scopes = 5;
   }
 

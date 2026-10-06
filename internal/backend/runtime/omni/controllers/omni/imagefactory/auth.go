@@ -249,7 +249,7 @@ func (ctrl *AuthController) reconcileFactory(
 	// of the previous mode behind.
 	if err := safe.WriterModify(ctx, r, omni.NewImageFactoryAuth(factoryURL), func(res *omni.ImageFactoryAuth) error {
 		res.TypedSpec().Value.Username = factory.GetUsername()
-		res.TypedSpec().Value.Password = factory.GetPassword()
+		res.TypedSpec().Value.Password = string(factory.GetPassword())
 		res.TypedSpec().Value.ApiToken = apiToken
 		res.TypedSpec().Value.MachineToken = machineToken
 

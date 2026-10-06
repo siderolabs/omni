@@ -99,8 +99,8 @@ func (f *FlagBinder) Float64Var(fieldPath string, ptr **float64) {
 	f.callbacks = append(f.callbacks, makeApplier(f.cmd, name, ptr, &val))
 }
 
-// EnumVar binds a string flag for an enum field, derived from the schema field path.
-// Enum constraints are enforced later by JSON schema validation, not at flag parse time.
+// EnumVar binds a string flag for an enum or other named string field, derived from the schema field
+// path. Enum constraints are enforced later by JSON schema validation, not at flag parse time.
 func EnumVar[T ~string](binder *FlagBinder, fieldPath string, target **T) {
 	name, usage := binder.mustFlagInfo(fieldPath)
 

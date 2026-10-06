@@ -1174,12 +1174,16 @@ func (x *AuthConfigSpec_Auth0) GetUseFormData() bool {
 }
 
 type AuthConfigSpec_OIDC struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	ProviderUrl   string                 `protobuf:"bytes,2,opt,name=provider_url,json=providerUrl,proto3" json:"provider_url,omitempty"`
-	ClientId      string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	ClientSecret  string                 `protobuf:"bytes,4,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
-	Scopes        []string               `protobuf:"bytes,5,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Enabled     bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	ProviderUrl string                 `protobuf:"bytes,2,opt,name=provider_url,json=providerUrl,proto3" json:"provider_url,omitempty"`
+	ClientId    string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	// ClientSecret is always empty. Omni reads the secret from its config and clears this field on
+	// every start. The field number is reserved once every supported version has cleared it.
+	//
+	// Deprecated: Marked as deprecated in omni/specs/auth.proto.
+	ClientSecret  string   `protobuf:"bytes,4,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
+	Scopes        []string `protobuf:"bytes,5,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1235,6 +1239,7 @@ func (x *AuthConfigSpec_OIDC) GetClientId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in omni/specs/auth.proto.
 func (x *AuthConfigSpec_OIDC) GetClientSecret() string {
 	if x != nil {
 		return x.ClientSecret
@@ -1905,7 +1910,7 @@ var File_omni_specs_auth_proto protoreflect.FileDescriptor
 
 const file_omni_specs_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\b\n" +
+	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\b\n" +
 	"\x0eAuthConfigSpec\x121\n" +
 	"\x05auth0\x18\x01 \x01(\v2\x1b.specs.AuthConfigSpec.Auth0R\x05auth0\x12:\n" +
 	"\bwebauthn\x18\x02 \x01(\v2\x1e.specs.AuthConfigSpec.WebauthnR\bwebauthn\x12\x1c\n" +
@@ -1917,12 +1922,12 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1b\n" +
 	"\tclient_id\x18\x03 \x01(\tR\bclientId\x12 \n" +
-	"\vuseFormData\x18\x04 \x01(\bR\vuseFormData\x1a\x9d\x01\n" +
+	"\vuseFormData\x18\x04 \x01(\bR\vuseFormData\x1a\xa1\x01\n" +
 	"\x04OIDC\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
 	"\fprovider_url\x18\x02 \x01(\tR\vproviderUrl\x12\x1b\n" +
-	"\tclient_id\x18\x03 \x01(\tR\bclientId\x12#\n" +
-	"\rclient_secret\x18\x04 \x01(\tR\fclientSecret\x12\x16\n" +
+	"\tclient_id\x18\x03 \x01(\tR\bclientId\x12'\n" +
+	"\rclient_secret\x18\x04 \x01(\tB\x02\x18\x01R\fclientSecret\x12\x16\n" +
 	"\x06scopes\x18\x05 \x03(\tR\x06scopes\x1a@\n" +
 	"\bWebauthn\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1a\n" +
