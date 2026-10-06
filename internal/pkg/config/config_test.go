@@ -510,11 +510,13 @@ func TestServiceURL(t *testing.T) {
 	t.Run("siderolink api - insecure as grpc", func(t *testing.T) {
 		t.Parallel()
 
-		conf := &config.MachineAPI{
-			Endpoint: new("1.1.1.1:1111"),
+		conf := &config.Services{
+			MachineAPI: config.Service{
+				Endpoint: new("1.1.1.1:1111"),
+			},
 		}
 
-		url := conf.URL()
+		url := conf.MachineAPIURL()
 		assert.Equal(t, "grpc://1.1.1.1:1111", url, "siderolink api should use grpc schema when no tls")
 	})
 

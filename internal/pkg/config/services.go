@@ -110,16 +110,11 @@ func (s *KubernetesProxyService) URL() string {
 	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(map[string]string{schemeHTTP: "https"})
 }
 
-// MachineAPI is the public API of Omni that helps to establish WireGuard connections.
-// This API used to exchange WireGuard keys, assign IP addresses.
-// If gRPC tunnel mode is used, WireGuard traffic goes over this endpoint too.
-type MachineAPI Service
-
-// URL composes URL for Talos to connect.
+// MachineAPIURL composes the machine API URL for Talos to connect to.
 //
 // If the URL schema is "http", it is replaced with "grpc" to meet the SideroLink API library's protocol requirement.
-func (m MachineAPI) URL() string {
-	url := wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).url(map[string]string{schemeHTTP: "grpc"})
+func (s *Services) MachineAPIURL() string {
+	m := s.MachineAPI
 
-	return url
+	return wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).url(map[string]string{schemeHTTP: "grpc"})
 }
