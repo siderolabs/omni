@@ -90,7 +90,7 @@ func TestClusterLifecycleRecoversUnhealthyMachine(t *testing.T) {
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
 					require.NoError(t, tc.Runtime.RegisterQController(
-						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 					))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
@@ -185,7 +185,7 @@ func TestUpgradeQuotaStillBlocksHealthyMachine(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -305,7 +305,7 @@ func TestUnhealthyMachinesRecoverOneByOne(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -434,7 +434,7 @@ func TestLegacyRecoveryStagesUpgradeAndReboots(t *testing.T) {
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
 					require.NoError(t, tc.Runtime.RegisterQController(
-						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
 					))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {

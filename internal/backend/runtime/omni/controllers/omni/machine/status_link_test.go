@@ -107,6 +107,70 @@ func TestBasicMachineOnAndOff(t *testing.T) {
 	)
 }
 
+// TestMaintenanceConfigError checks that the error of the maintenance config apply is on the link while the machine is in maintenance.
+func TestMaintenanceConfigError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	deltaCh := make(chan siderolinkmanager.LinkCounterDeltas)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
+		func(ctx context.Context, testContext testutils.TestContext) {
+			rmock.Mock[*siderolink.Link](ctx, t, testContext.State, options.WithID(testID))
+			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State, options.WithID(testID), options.Modify(func(st *omni.MachineStatus) error {
+				st.TypedSpec().Value.Maintenance = true
+
+				return nil
+			}))
+			rmock.Mock[*omni.MaintenanceConfigStatus](
+				ctx, t, testContext.State,
+				options.WithID(testID),
+				options.Modify(func(st *omni.MaintenanceConfigStatus) error {
+					st.TypedSpec().Value.LastConfigError = "the maintenance config was rolled back 2 times"
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, testID, func(r *omni.MachineStatusLink, assert *assert.Assertions) {
+				assert.Equal("the maintenance config was rolled back 2 times", r.TypedSpec().Value.MaintenanceConfigError)
+			})
+
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
+				options.WithID(testID),
+				options.Modify(func(st *omni.MachineStatus) error {
+					st.TypedSpec().Value.Cluster = "cluster1"
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, testID, func(r *omni.MachineStatusLink, assert *assert.Assertions) {
+				assert.Equal("cluster1", r.TypedSpec().Value.GetMessageStatus().GetCluster())
+				assert.Equal("the maintenance config was rolled back 2 times", r.TypedSpec().Value.MaintenanceConfigError, "an allocated machine still in maintenance keeps showing why")
+			})
+
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
+				options.WithID(testID),
+				options.Modify(func(st *omni.MachineStatus) error {
+					st.TypedSpec().Value.Maintenance = false
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, testID, func(r *omni.MachineStatusLink, assert *assert.Assertions) {
+				assert.Empty(r.TypedSpec().Value.MaintenanceConfigError, "the error should go away once the machine leaves maintenance")
+			})
+		},
+	)
+}
+
 func TestTwoMachines(t *testing.T) {
 	t.Parallel()
 

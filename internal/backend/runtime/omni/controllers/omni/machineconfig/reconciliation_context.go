@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -33,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
@@ -58,11 +60,14 @@ type ReconciliationContext struct {
 
 	configUpdatesAllowed bool
 	locked               bool
+	// tryInFlight is set while the desired config is tried on the machine and may still roll back.
+	tryInFlight bool
 	// highPriorityPending is true when the desired high-priority config documents differ from the ones
 	// last applied to the machine, so they must be applied before any upgrade/install.
 	highPriorityPending bool
 	// maintenanceConfigApplied is true when the maintenance config controller has applied the config it
-	// generated (which carries the high-priority documents) for the machine's current connection.
+	// generated (which carries the high-priority documents) for the machine's current connection, and no
+	// change to it is still in flight in try mode.
 	maintenanceConfigApplied bool
 }
 
@@ -159,6 +164,7 @@ func (rc *ReconciliationContext) ID() string {
 //nolint:gocognit,gocyclo,cyclop,maintidx
 func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
+	tryTimings configtry.Timings, now time.Time,
 ) (*ReconciliationContext, error) {
 	desiredConfig, err := machineConfig.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
@@ -186,6 +192,10 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	rc.locked = locked && machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != ""
 
 	rc.lastConfigError = machineConfig.TypedSpec().Value.GenerationError
+
+	configTry := machineConfigStatus.TypedSpec().Value.ConfigTry
+	desiredSha := sha256.Sum256(desiredConfig.Data())
+	rc.tryInFlight = tryTimings.InFlight(configTry, now) && configTry.GetSha256() == hex.EncodeToString(desiredSha[:])
 
 	if rc.lastConfigError != "" {
 		return rc, nil
@@ -305,7 +315,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 
 	rc.bootID = rc.machineStatusSnapshot.TypedSpec().Value.BootId
 
-	maintenanceConfigStatus, err := safe.ReaderGetByID[*omni.MaintenanceConfigStatus](ctx, r, machineConfig.Metadata().ID())
+	// uncached, so that a maintenance try armed moments ago holds the install back
+	maintenanceConfigStatus, err := safe.ReaderGetByID[*omni.MaintenanceConfigStatus](ctx, uncached.Reader(r), machineConfig.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
@@ -320,7 +331,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		link.TypedSpec().Value.NodePublicKey != "" &&
 		maintenanceConfigStatus.TypedSpec().Value.LastAppliedConfigHash != "" &&
 		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply != "" &&
-		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply == link.TypedSpec().Value.NodePublicKey
+		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply == link.TypedSpec().Value.NodePublicKey &&
+		!tryTimings.InFlight(maintenanceConfigStatus.TypedSpec().Value.ConfigTry, now)
 
 	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
 

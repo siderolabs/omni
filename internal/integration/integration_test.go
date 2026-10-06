@@ -259,6 +259,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("KernelArgsBreakAndRevert", func(t *testing.T) { testKernelArgsBreakAndRevert(t, testOptions) })
 		t.Run("RotateCA", func(t *testing.T) { testRotateCA(t, testOptions) })
 		t.Run("DrainTerminationGracePeriod", func(t *testing.T) { testDrainTerminationGracePeriod(t, testOptions) })
+		t.Run("MaintenanceConfigTryMode", func(t *testing.T) { testMaintenanceConfigTryMode(t, testOptions) })
 	})
 
 	postRunHooks(t, testOptions)
