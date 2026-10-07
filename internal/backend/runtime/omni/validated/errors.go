@@ -73,7 +73,7 @@ func ValidationError(err error) error {
 // refusal returns the error of a validation that refused the request, which answers it on its own.
 func refusal(errs []error) error {
 	for _, err := range errs {
-		if status.Code(err) == codes.PermissionDenied {
+		if code := status.Code(err); code == codes.Unauthenticated || code == codes.PermissionDenied {
 			return err
 		}
 	}
