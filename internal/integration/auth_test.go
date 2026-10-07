@@ -1016,9 +1016,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
-				resource:              authres.NewEulaAcceptance(),
-				allowedVerbSet:        xslices.ToSet([]state.Verb{state.Get, state.List, state.Create}),
-				isSignatureSufficient: true,
+				resource:       authres.NewEulaAcceptance(),
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Create}),
+				isAdminOnly:    true,
 			},
 			{
 				resource:       omni.NewClusterBootstrapStatus(uuid.New().String()),

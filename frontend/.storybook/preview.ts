@@ -14,6 +14,7 @@ import { createMemoryHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
 import AppToast from '../src/components/AppToast/AppToast.vue'
+import { eulaAccepted } from '../src/methods/eula'
 import { applyTheme, isTheme, useTheme } from '../src/methods/theme'
 
 // Relative faker dates count back from the current hour rather than the current moment, so
@@ -42,6 +43,9 @@ const preview: Preview = {
   },
   beforeEach() {
     faker.seed(0)
+
+    // stories render the app as a signed in user, who has an accepted EULA
+    eulaAccepted.value = true
   },
   loaders: [
     mswLoader(async () => {

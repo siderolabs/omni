@@ -17,6 +17,7 @@ import HelpModal from '@/components/HelpModal/HelpModal.vue'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import OngoingTasks from '@/components/OngoingTasks/OngoingTasks.vue'
 import ThemeMenu from '@/components/THeader/ThemeMenu.vue'
+import { eulaAccepted } from '@/methods/eula'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 interface Props {
@@ -26,13 +27,15 @@ interface Props {
 defineProps<Props>()
 defineEmits<{ toggleSidebar: [] }>()
 
-const { data } = useResourceWatch<NotificationSpec>({
+const { data } = useResourceWatch<NotificationSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: EphemeralNamespace,
     type: NotificationType,
   },
-})
+  // nothing is readable until the EULA is accepted
+  skip: !eulaAccepted.value,
+}))
 
 const helpModalOpen = ref(false)
 const dismissedNotifications = useLocalStorage<string[]>('_dismissed_header_notifications', [])

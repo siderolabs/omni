@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
-	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -51,11 +50,6 @@ func (c *AuthConfig) Unary() grpc.UnaryServerInterceptor {
 			case resapi.ResourceService_List_FullMethodName:
 				if listReq, ok := req.(*resapi.ListRequest); ok {
 					_, isPublicResourceRequest = omni.PublicResourceTypes[listReq.Type]
-				}
-			case resapi.ResourceService_Create_FullMethodName:
-				if createReq, ok := req.(*resapi.CreateRequest); ok && createReq.Resource != nil &&
-					createReq.Resource.GetMetadata().GetType() == authres.EulaAcceptanceType {
-					isPublicResourceRequest = true
 				}
 			}
 		}

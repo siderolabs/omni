@@ -7,9 +7,11 @@ package interceptor
 
 import (
 	"context"
+	"strings"
 	"sync/atomic"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	authpb "github.com/siderolabs/go-api-signature/api/auth"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,12 +19,13 @@ import (
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/eula"
 )
 
-// EULACheck is a gRPC interceptor that blocks all requests until the EULA has been accepted.
+// EULACheck is a gRPC interceptor that blocks the requests of a signed in user until the EULA is accepted.
 type EULACheck struct {
 	st       eula.StateGetter
 	logger   *zap.Logger
@@ -35,7 +38,7 @@ func NewEULACheck(st eula.StateGetter, logger *zap.Logger, omniURL string) *EULA
 	return &EULACheck{
 		st:      st,
 		logger:  logger,
-		omniURL: omniURL,
+		omniURL: strings.TrimSuffix(omniURL, "/"),
 	}
 }
 
@@ -55,11 +58,6 @@ func (e *EULACheck) Stream() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		ctx := ss.Context()
 
-		// Allow watch on EulaAcceptance so the frontend can react when EULA is accepted
-		if info != nil && info.FullMethod == resapi.ResourceService_Watch_FullMethodName {
-			return handler(srv, ss)
-		}
-
 		if err := e.check(ctx, nil, nil); err != nil {
 			return err
 		}
@@ -71,34 +69,42 @@ func (e *EULACheck) Stream() grpc.StreamServerInterceptor {
 	}
 }
 
+// allowedWhileUnaccepted reports whether the request reads or writes the EULA acceptance itself, or
+// signs the user out. Those have to work before the EULA is accepted.
+func allowedWhileUnaccepted(req any, info *grpc.UnaryServerInfo) bool {
+	if info == nil {
+		return false
+	}
+
+	switch info.FullMethod {
+	case authpb.AuthService_RevokePublicKey_FullMethodName:
+		return true
+	case resapi.ResourceService_Get_FullMethodName:
+		getReq, ok := req.(*resapi.GetRequest)
+
+		return ok && getReq.GetType() == authres.EulaAcceptanceType
+	case resapi.ResourceService_Create_FullMethodName:
+		createReq, ok := req.(*resapi.CreateRequest)
+
+		return ok && createReq.GetResource().GetMetadata().GetType() == authres.EulaAcceptanceType
+	default:
+		return false
+	}
+}
+
 func (e *EULACheck) check(ctx context.Context, req any, info *grpc.UnaryServerInfo) error {
 	// Internal actors (e.g., controllers, startup code) bypass the EULA check.
 	if actor.ContextIsInternalActor(ctx) {
 		return nil
 	}
 
-	// Allow read access to public resource types (no auth required by design),
-	// plus Create on EulaAcceptance so unauthenticated users can accept.
-	if req != nil && info != nil {
-		switch info.FullMethod {
-		case resapi.ResourceService_Get_FullMethodName:
-			if getReq, ok := req.(*resapi.GetRequest); ok {
-				if _, public := omni.PublicResourceTypes[getReq.Type]; public {
-					return nil
-				}
-			}
-		case resapi.ResourceService_List_FullMethodName:
-			if listReq, ok := req.(*resapi.ListRequest); ok {
-				if _, public := omni.PublicResourceTypes[listReq.Type]; public {
-					return nil
-				}
-			}
-		case resapi.ResourceService_Create_FullMethodName:
-			if createReq, ok := req.(*resapi.CreateRequest); ok && createReq.Resource != nil &&
-				createReq.Resource.GetMetadata().GetType() == authres.EulaAcceptanceType {
-				return nil
-			}
-		}
+	// a request without an identity is on its way to signing in
+	if _, ok := ctxstore.Value[auth.IdentityContextKey](ctx); !ok {
+		return nil
+	}
+
+	if allowedWhileUnaccepted(req, info) {
+		return nil
 	}
 
 	// Fast path: once accepted it stays accepted.
@@ -112,7 +118,6 @@ func (e *EULACheck) check(ctx context.Context, req any, info *grpc.UnaryServerIn
 	if err != nil {
 		e.logger.Warn("failed to check EULA acceptance", zap.Error(err))
 
-		// Fail open only on read-only requests; for writes, fail closed.
 		return status.Error(codes.Internal, "failed to check EULA acceptance status")
 	}
 

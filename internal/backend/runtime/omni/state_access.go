@@ -38,7 +38,6 @@ import (
 // These are intentionally public and must remain readable before auth or EULA acceptance.
 var PublicResourceTypes = xslices.ToSet([]resource.Type{
 	authres.AuthConfigType,
-	authres.EulaAcceptanceType,
 })
 
 var (
@@ -521,6 +520,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
+		authres.EulaAcceptanceType,
 		omni.EtcdBackupS3ConfType,
 		infra.ProviderType,
 		omni.InfraMachineBMCConfigType,

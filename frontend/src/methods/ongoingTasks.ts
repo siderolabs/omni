@@ -13,6 +13,7 @@ import {
   SecretRotationSpecComponent,
 } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
+import { eulaAccepted } from '@/methods/eula'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 type OngoingTaskKind = 'kubernetes' | 'talos' | 'machine' | 'secrets' | 'destroy' | 'unknown'
@@ -43,6 +44,8 @@ export const useOngoingTasks = createSharedComposable(() => {
       type: OngoingTaskType,
     },
     runtime: Runtime.Omni,
+    // nothing is readable until the EULA is accepted
+    skip: !eulaAccepted.value,
   }))
 
   return {

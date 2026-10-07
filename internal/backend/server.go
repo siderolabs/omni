@@ -515,7 +515,6 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 
 	result := []interceptorCreator{
 		interceptor.NewAuthConfig(authEnabled, s.logger),
-		interceptor.NewEULACheck(s.state.Default(), s.logger, s.cfg.Services.Api.URL()),
 	}
 
 	if !authEnabled {
@@ -548,6 +547,9 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 	case s.authConfig.TypedSpec().Value.Saml.Enabled:
 		result = append(result, interceptor.NewSAML(s.state.Default(), s.logger))
 	}
+
+	// last, so it sees the identity the interceptors above set
+	result = append(result, interceptor.NewEULACheck(s.state.Default(), s.logger, s.cfg.Services.Api.URL()))
 
 	return result, nil
 }
