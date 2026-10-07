@@ -1,3 +1,59 @@
+## [Omni 1.12.4](https://github.com/siderolabs/omni/releases/tag/v1.12.4) (2026-10-07)
+
+Welcome to the v1.12.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Local Resource Service Removal
+
+The local resource service, which served Omni resources on a local listener, is removed. Consumers should reach Omni through its regular API with a service account instead. Its `services.localResourceService` settings and flags have no effect.
+
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+* Oguz Kilcan
+* Andy Longwill
+* immanuwell
+
+### Changes
+<details><summary>21 commits</summary>
+<p>
+
+* [`a1265ba7a`](https://github.com/siderolabs/omni/commit/a1265ba7adc91df0b7594fb9295884212531c4c7) fix: return only the unauthenticated error for an unsigned request
+* [`69c79f273`](https://github.com/siderolabs/omni/commit/69c79f27384b059da2864ccadcee83f0cbcf1d46) fix: redact config secrets and clear the stored OIDC client secret
+* [`3b0446c85`](https://github.com/siderolabs/omni/commit/3b0446c85a50ae9cdf1e0cde8a5e621863c50944) fix: forward only known headers to the Kubernetes apiserver
+* [`4dfee714f`](https://github.com/siderolabs/omni/commit/4dfee714f137ba6edbd835176b399fe49e91b63a) fix: remove conflicting join token renew alias
+* [`6eddd8c08`](https://github.com/siderolabs/omni/commit/6eddd8c08b4db028cba1aa926497968b8a8a5efd) fix: require a confirmed key for workload proxy access
+* [`18ac5ee9d`](https://github.com/siderolabs/omni/commit/18ac5ee9d1225f40b0efcd8de8795ab7a74ed882) fix: make a resource's cluster label agree with its target
+* [`3b2a95383`](https://github.com/siderolabs/omni/commit/3b2a953832c77ff9e2b2d223a92821688d53fcd3) fix: extract the cluster ID from label query terms correctly
+* [`42a6dd708`](https://github.com/siderolabs/omni/commit/42a6dd7086df8e85f4e650b9a5f6d2fe089abbbe) feat: allow upgrading one deprecated Talos to another one in maintenance
+* [`999446893`](https://github.com/siderolabs/omni/commit/9994468932a49399508f7946c96b366303e4e431) fix: do not allocate machines with outdated schematics into a cluster
+* [`3526d6614`](https://github.com/siderolabs/omni/commit/3526d6614e605bf77ed232060aef70da8813bd08) fix: reject unknown Talos versions on the talosctl downloads endpoint
+* [`7d5c9bf5c`](https://github.com/siderolabs/omni/commit/7d5c9bf5c34c1fc7e6ce2a567b6b3846bb0e740e) feat: remove the local resource service
+* [`33d8d5b7e`](https://github.com/siderolabs/omni/commit/33d8d5b7ed5c638a7409794336d29ee3477f0a1c) fix: resolve node headers only for the runtime that uses them
+* [`d9e69d606`](https://github.com/siderolabs/omni/commit/d9e69d606029811ade5640a133564368304397ff) fix: read local resource server stream metadata from its own context
+* [`dcfa43a27`](https://github.com/siderolabs/omni/commit/dcfa43a27ce4528f0c003c2b0d718e0c12333ffc) fix: verify the caller before reporting a resolution failure
+* [`29958ee1a`](https://github.com/siderolabs/omni/commit/29958ee1adb37635abdb924cee5edfcfda92f0e8) fix: check access before rejecting a request that names several nodes
+* [`e38d71c06`](https://github.com/siderolabs/omni/commit/e38d71c06e8beca75d3e4cd5981e4a61e33a0c3e) fix: record the outcome of Talos access in the audit log
+* [`6f7d8c83e`](https://github.com/siderolabs/omni/commit/6f7d8c83ec77758f21d3572db9823eba4edbb77f) fix: parse the role of a public key request before any lookup
+* [`2982aa994`](https://github.com/siderolabs/omni/commit/2982aa994db304492bb6ea5b0eaac9d495ebba0d) fix: return only the access error for a denied request
+* [`fcf4c8568`](https://github.com/siderolabs/omni/commit/fcf4c85686ab6b7bf4758b1fa53534e7c37ff36c) fix: return the same error for a missing and an inaccessible target
+* [`668469919`](https://github.com/siderolabs/omni/commit/6684699195b07d1f66ef960b52ac07f9eb25e742) chore: bump otel libraries to close a vuln
+* [`47322b255`](https://github.com/siderolabs/omni/commit/47322b25594251da79e37bd7210ff1867652391c) fix(frontend): add v prefix to installer image tag
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.12.3](https://github.com/siderolabs/omni/releases/tag/v1.12.3)
+
 ## [Omni 1.12.3](https://github.com/siderolabs/omni/releases/tag/v1.12.3) (2026-09-29)
 
 Welcome to the v1.12.3 release of Omni!
