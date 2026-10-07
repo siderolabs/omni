@@ -113,6 +113,12 @@ func (ctrl *MachineTeardownController) resetMachine(
 	machineStatus *omni.MachineStatus,
 	logger *zap.Logger,
 ) error {
+	if !machineStatus.TypedSpec().Value.Connected {
+		logger.Info("skipping machine wipe as the machine is not connected")
+
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
@@ -123,7 +129,7 @@ func (ctrl *MachineTeardownController) resetMachine(
 
 	defer func() {
 		if e := c.Close(); e != nil {
-			logger.Warn("failed to close reset-machine client", zap.Error(err))
+			logger.Warn("failed to close reset-machine client", zap.Error(e))
 		}
 	}()
 
