@@ -20,17 +20,21 @@ import (
 // TestValidationErrorKeepsOnlyTheRefusal checks that a refused request is answered by that refusal, and that what the
 // other validations reported does not travel back with it.
 func TestValidationErrorKeepsOnlyTheRefusal(t *testing.T) {
-	refusal := status.Error(codes.PermissionDenied, `insufficient role: "None"`)
+	permissionDenied := status.Error(codes.PermissionDenied, `insufficient role: "None"`)
+	unauthenticated := status.Error(codes.Unauthenticated, "unauthenticated: missing valid signature")
 
 	for _, test := range []struct {
-		name string
-		errs []error
+		refusal error
+		name    string
+		errs    []error
 	}{
-		{name: "refusal first", errs: []error{refusal, errors.New(`the cluster "ghost" does not exist`)}},
-		{name: "refusal last", errs: []error{errors.New(`the cluster "ghost" does not exist`), refusal}},
-		{name: "several others", errs: []error{
+		{name: "permission denied first", refusal: permissionDenied, errs: []error{permissionDenied, errors.New(`the cluster "ghost" does not exist`)}},
+		{name: "permission denied last", refusal: permissionDenied, errs: []error{errors.New(`the cluster "ghost" does not exist`), permissionDenied}},
+		{name: "unauthenticated first", refusal: unauthenticated, errs: []error{unauthenticated, errors.New(`the cluster "ghost" does not exist`)}},
+		{name: "unauthenticated last", refusal: unauthenticated, errs: []error{errors.New(`the cluster "ghost" does not exist`), unauthenticated}},
+		{name: "several others", refusal: permissionDenied, errs: []error{
 			errors.New(`the cluster "ghost" does not exist`),
-			refusal,
+			permissionDenied,
 			status.Error(codes.NotFound, "machine set not found"),
 		}},
 	} {
@@ -41,8 +45,8 @@ func TestValidationErrorKeepsOnlyTheRefusal(t *testing.T) {
 
 			err := validated.ValidationError(joined)
 
-			require.Equal(t, codes.PermissionDenied, status.Code(err))
-			require.ErrorContains(t, err, "insufficient role")
+			require.Equal(t, status.Code(test.refusal), status.Code(err))
+			require.ErrorContains(t, err, status.Convert(test.refusal).Message())
 			require.NotContains(t, err.Error(), "ghost")
 			require.NotContains(t, err.Error(), "machine set not found")
 		})
