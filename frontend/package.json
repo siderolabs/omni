@@ -26,8 +26,6 @@
   },
   "dependencies": {
     "@auth0/auth0-vue": "^2.11.0",
-    "@fontsource/roboto": "^5.3.0",
-    "@fontsource/roboto-mono": "^5.3.0",
     "@headlessui/vue": "^1.7.23",
     "@internationalized/date": "^3.12.4",
     "@jsonforms/vue": "^3.8.0",
@@ -73,7 +71,7 @@
     "@chromatic-com/storybook": "^5.4.0",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.63.0",
-    "@siderolabs/talos-design-system": "github:siderolabs/talos-design-system#semver:^0.8.0",
+    "@siderolabs/talos-design-system": "github:siderolabs/talos-design-system#semver:^0.9.0",
     "@storybook/addon-a11y": "^10.6.1",
     "@storybook/vue3-vite": "^10.6.1",
     "@tailwindcss/vite": "^4.3.3",
