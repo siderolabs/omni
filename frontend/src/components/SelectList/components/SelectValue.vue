@@ -20,7 +20,7 @@ const forwarded = useForwardProps(delegatedProps)
 <template>
   <SelectValue
     v-bind="forwarded"
-    :class="cn('flex items-center gap-1 truncate select-none', props.class)"
+    :class="cn('flex items-center gap-micro truncate select-none', props.class)"
   >
     <slot></slot>
   </SelectValue>

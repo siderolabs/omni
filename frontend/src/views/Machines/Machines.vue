@@ -228,9 +228,9 @@ watch(currentPage, () => (sidePanelOpen.value = false))
 </script>
 
 <template>
-  <PageContainer class="flex h-full gap-2">
-    <div class="flex max-w-full grow flex-col gap-2">
-      <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
+  <PageContainer class="flex h-full gap-tight">
+    <div class="flex max-w-full grow flex-col gap-tight">
+      <div v-if="!filter" class="flex flex-wrap items-center gap-x-base gap-y-tight">
         <h1 class="text-xl font-medium text-content-emphasis max-md:basis-full">Machines</h1>
 
         <StatsItem title="Total" :value="total" icon="nodes" />
@@ -261,7 +261,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
         :title="`Machines Managed by the Infrastructure Provider ${provider}`"
       />
 
-      <div class="flex grow flex-col gap-4 overflow-hidden">
+      <div class="flex grow flex-col gap-compact overflow-hidden">
         <LabelsInput
           v-model:filter-labels="filterLabels"
           v-model:filter-value="filterValue"
@@ -270,9 +270,9 @@ watch(currentPage, () => (sidePanelOpen.value = false))
           class="w-full"
         />
 
-        <div class="flex justify-between gap-2">
+        <div class="flex justify-between gap-tight">
           <div class="grow">
-            <div class="flex w-full flex-wrap items-center justify-between gap-2">
+            <div class="flex w-full flex-wrap items-center justify-between gap-tight">
               <TButton
                 variant="primary"
                 icon="delete"
@@ -282,7 +282,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
                 <span class="contents max-md:hidden">Delete selected</span>
               </TButton>
 
-              <span class="flex items-center gap-1 text-xs">
+              <span class="flex items-center gap-micro text-xs">
                 Display
                 <TButtonGroup
                   v-model="showUUID"
@@ -295,7 +295,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-tight">
             <TSelectList
               v-model="sortSelectedValue"
               title="Sort by"
@@ -324,7 +324,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
               type="info"
               title="No Infrastructure Providers Connected"
             >
-              <div class="flex gap-1">
+              <div class="flex gap-micro">
                 Check the
                 <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
                 on how to configure and use infrastructure providers.
@@ -336,7 +336,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
               type="info"
               title="No Machines Found"
             >
-              <div class="flex gap-1">
+              <div class="flex gap-micro">
                 Download and boot the
                 <TButton
                   is="router-link"
@@ -351,12 +351,12 @@ watch(currentPage, () => (sidePanelOpen.value = false))
             </TAlert>
 
             <TAlert v-else type="info" title="No Machines Found">
-              <div class="flex gap-1">
+              <div class="flex gap-micro">
                 No entries of the requested resource type are found on the server.
               </div>
             </TAlert>
 
-            <AddingMachinesTutorial class="mt-4" />
+            <AddingMachinesTutorial class="mt-compact" />
           </template>
 
           <div v-show="!loading && !err && items.length > 0" class="size-full">

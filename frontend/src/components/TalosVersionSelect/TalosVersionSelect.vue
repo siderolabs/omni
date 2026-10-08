@@ -168,7 +168,7 @@ function isItemEnterprise(item?: string) {
 
 <template>
   <component :is="title && overheadTitle ? 'label' : 'div'" class="inline-block">
-    <FormLabel v-if="title && overheadTitle" as="span" class="mb-4">
+    <FormLabel v-if="title && overheadTitle" as="span" class="mb-compact">
       {{ title }}
     </FormLabel>
 
@@ -179,7 +179,7 @@ function isItemEnterprise(item?: string) {
             {{ title }}
           </SelectLabel>
 
-          <span class="inline-flex items-center gap-2">
+          <span class="inline-flex items-center gap-tight">
             {{ labelForItem(selectedItem) }}
 
             <span v-if="isItemEnterprise(selectedItem)" class="resource-label text-[0.625rem]">
@@ -202,7 +202,7 @@ function isItemEnterprise(item?: string) {
             <SelectGroup
               v-for="(group, index) in selectGroups"
               :key="group.label ?? index"
-              class="not-first:mt-2"
+              class="not-first:mt-tight"
             >
               <SelectGroupLabel v-if="group.label">
                 {{ group.label }}
@@ -222,7 +222,7 @@ function isItemEnterprise(item?: string) {
                     </SelectItemIndicator>
                   </span>
 
-                  <SelectItemText class="flex grow items-center justify-between gap-2">
+                  <SelectItemText class="flex grow items-center justify-between gap-tight">
                     {{ item.label }}
 
                     <span

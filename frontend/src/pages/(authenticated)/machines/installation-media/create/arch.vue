@@ -73,7 +73,7 @@ useTitle('Architecture')
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-compact">
     <RadioGroup v-model="formState.machineArch" label="Machine Architecture">
       <RadioGroupOption
         v-if="supportedArchitectures.includes(PlatformConfigSpecArch.AMD64)"

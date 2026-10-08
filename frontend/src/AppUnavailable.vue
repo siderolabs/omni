@@ -20,9 +20,9 @@ import THeader from '@/components/THeader/THeader.vue'
   <div class="flex min-h-dvh flex-col">
     <THeader />
 
-    <div class="flex flex-1 flex-col items-center justify-center gap-4">
+    <div class="flex flex-1 flex-col items-center justify-center gap-compact">
       <div
-        class="flex gap-4 rounded-lg border border-border-default bg-surface-card px-6 py-4 drop-shadow-md"
+        class="flex gap-compact rounded-lg border border-border-default bg-surface-card px-base py-compact drop-shadow-md"
       >
         <TIcon icon="exclamation-triangle" class="h-12 w-12 text-content-emphasis" />
         <div class="flex flex-col text-content-default">

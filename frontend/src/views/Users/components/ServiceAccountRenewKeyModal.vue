@@ -63,7 +63,7 @@ const handleRenew = async () => {
   >
     <template #description>{{ identity }}</template>
 
-    <p class="mb-4 text-sm">
+    <p class="mb-compact text-sm">
       This adds a new key to the service account. Existing keys stay valid until they expire or are
       revoked.
     </p>

@@ -44,7 +44,7 @@ const statusDotClass: Record<StatusTone, string> = {
       :key="sev"
       :class="
         cn(
-          'flex items-center gap-1.5 rounded-sm border border-border-strong px-2 py-1 text-xs text-content-secondary',
+          'flex items-center gap-1.5 rounded-sm border border-border-strong px-tight py-micro text-xs text-content-secondary',
           {
             'cursor-pointer transition-colors hover:bg-surface-hover': clickable,
             'bg-surface-hover text-content-default': activeFilter === sev,

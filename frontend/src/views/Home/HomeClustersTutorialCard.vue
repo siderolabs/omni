@@ -16,13 +16,13 @@ const isDismissed = useLocalStorage('_home_clusters_tutorial_dismissed', false)
 <template>
   <section
     v-if="!isDismissed"
-    class="space-y-4 rounded-lg border border-border-accent bg-surface-card p-6"
+    class="space-y-compact rounded-lg border border-border-accent bg-surface-card p-base"
   >
     <header>
       <h2 class="text-sm font-medium text-content-emphasis">Getting Started: Clusters</h2>
     </header>
 
-    <div class="space-y-4 text-xs font-medium">
+    <div class="space-y-compact text-xs font-medium">
       <p>
         Read
         <a
@@ -50,7 +50,7 @@ const isDismissed = useLocalStorage('_home_clusters_tutorial_dismissed', false)
       </p>
     </div>
 
-    <div class="flex items-center justify-end gap-2">
+    <div class="flex items-center justify-end gap-tight">
       <TButton icon="close" icon-position="left" variant="secondary" @click="isDismissed = true">
         Dismiss
       </TButton>

@@ -157,10 +157,10 @@ const orphanedError = 'The factory used to create this preset is no longer confi
   <Modal v-model:open="open" title="Download" cancel-label="Close">
     <template #description>Files for {{ id }}</template>
 
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-compact">
       <div
         v-if="orphaned"
-        class="rounded border border-l-3 border-status-danger-border border-l-status-danger-fill bg-status-danger-surface p-3 text-xs text-content-default"
+        class="rounded border border-l-3 border-status-danger-border border-l-status-danger-fill bg-status-danger-surface p-snug text-xs text-content-default"
         role="alert"
       >
         The image factory this preset uses is no longer configured in Omni, so its images can no
@@ -168,7 +168,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
         preset.
       </div>
 
-      <div class="flex flex-wrap gap-4">
+      <div class="flex flex-wrap gap-compact">
         <TalosVersionSelect v-model="selectedVersion" title="Talos Version" overhead-title />
 
         <TSelectList
@@ -199,7 +199,7 @@ const orphanedError = 'The factory used to create this preset is no longer confi
             <TableCell>{{ label }}</TableCell>
 
             <TableCell class="w-0">
-              <div class="flex gap-1">
+              <div class="flex gap-micro">
                 <Tooltip :description="orphaned ? orphanedError : 'Download'">
                   <IconButton
                     is="a"

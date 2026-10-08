@@ -108,7 +108,7 @@ useTitle('Clusters')
       </template>
 
       <template #header="{ itemsCount }">
-        <div class="flex items-start gap-1">
+        <div class="flex items-start gap-micro">
           <PageHeader title="Clusters" class="flex-1">
             <StatsItem title="Clusters" :value="itemsCount" icon="clusters" />
             <StatsItem
@@ -138,18 +138,18 @@ useTitle('Clusters')
         />
       </template>
       <template #default="{ items, searchQuery }">
-        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-3">
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-snug">
           <div
-            class="col-span-full grid grid-cols-subgrid bg-surface-card px-3 py-2.5 text-xs max-lg:hidden"
+            class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-2.5 text-xs max-lg:hidden"
           >
-            <div class="pl-6">Name</div>
+            <div class="pl-base">Name</div>
             <div>Machines Healthy</div>
             <div>Phase</div>
             <div>Versions</div>
             <div>Actions</div>
           </div>
 
-          <ul class="col-span-full grid grid-cols-subgrid gap-3">
+          <ul class="col-span-full grid grid-cols-subgrid gap-snug">
             <ClusterItem
               v-for="(item, index) in items"
               :key="item.metadata.id"

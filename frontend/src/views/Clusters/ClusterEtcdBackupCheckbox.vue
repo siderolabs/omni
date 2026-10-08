@@ -84,7 +84,7 @@ const updateBackupInterval = () => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-micro">
     <TCheckbox
       :model-value="enabled"
       label="Control Plane Backups"
@@ -94,7 +94,7 @@ const updateBackupInterval = () => {
     />
     <div
       v-if="!backupStatus.enabled && backupStatus.configurable"
-      class="flex items-center gap-1 text-xs"
+      class="flex items-center gap-micro text-xs"
     >
       <TButton
         v-if="canManageBackupStore"
@@ -109,7 +109,7 @@ const updateBackupInterval = () => {
       </TButton>
       <div v-else class="flex-1 truncate">Backup Storage Disabled</div>
     </div>
-    <div v-else-if="enabled" class="flex h-6 items-center gap-2 text-xs">
+    <div v-else-if="enabled" class="flex h-6 items-center gap-tight text-xs">
       <span>Interval:</span>
       <template v-if="!editingBackupConfig">
         <span class="text-content-default">{{ formatDuration({ hours }) }}</span>

@@ -99,7 +99,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
           class="whitespace-nowrap"
         >
           <TableCell>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-tight">
               <TIcon
                 :icon="getFilesystemIcon(getEffectiveFilesystem(volume, volumeStatus))"
                 class="size-4 shrink-0 text-content-emphasis"
@@ -126,7 +126,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
 
           <TableCell>
             <span
-              class="inline-flex items-center gap-1 rounded px-1.5 py-0.75"
+              class="inline-flex items-center gap-micro rounded px-1.5 py-0.75"
               :class="getEncryptionClass(volumeStatus)"
             >
               <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />

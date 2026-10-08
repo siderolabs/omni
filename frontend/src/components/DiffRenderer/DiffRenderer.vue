@@ -290,8 +290,8 @@ function prevMatch() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4">
-    <div class="flex items-center gap-2">
+  <div class="flex h-full flex-col gap-compact">
+    <div class="flex items-center gap-tight">
       <slot
         name="extra-controls"
         :search
@@ -304,7 +304,7 @@ function prevMatch() {
       <template v-if="withSearch">
         <TInput v-model.trim="search" title="Search" class="grow" @keydown.enter="nextMatch" />
 
-        <div class="flex gap-1">
+        <div class="flex gap-micro">
           <IconButton
             :disabled="!matchedLines.length"
             icon="chevron-up"

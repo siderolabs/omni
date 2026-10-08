@@ -27,7 +27,7 @@ useTitle('Logout')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col items-center gap-4">
+    <div class="flex flex-col items-center gap-compact">
       <TSpinner class="size-8" />
       <div class="text-xl text-content-default">Logging out...</div>
     </div>

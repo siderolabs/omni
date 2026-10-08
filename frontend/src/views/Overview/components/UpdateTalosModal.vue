@@ -133,7 +133,7 @@ const upgradeClick = async () => {
     :action-label="action"
     :action-disabled="!status || selectedVersion === currentVersion"
     :loading="statusLoading || updating"
-    content-class="flex max-w-xl flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-tight"
     @confirm="upgradeClick"
   >
     <div class="shrink-0">
@@ -143,16 +143,16 @@ const upgradeClick = async () => {
     <RadioGroup
       v-if="status"
       v-model="selectedVersion"
-      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
+      class="flex max-h-64 min-h-16 flex-1 flex-col gap-tight overflow-y-auto text-content-default"
     >
       <template v-for="(group, label) in groupedVersions" :key="label">
         <RadioGroupLabel
           as="div"
-          class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
+          class="sticky top-0 w-full bg-surface-hover p-micro pl-7 text-sm font-bold"
         >
           {{ label }}{{ group.unsupported ? ' - Not supported by this Omni release' : '' }}
         </RadioGroupLabel>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-micro">
           <RadioGroupOption
             v-for="version in group.versions"
             :key="version"
@@ -160,7 +160,7 @@ const upgradeClick = async () => {
             :value="version"
           >
             <div
-              class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-surface-hover"
+              class="tranform transition-color flex cursor-pointer items-center gap-tight px-tight py-micro text-sm hover:bg-surface-hover"
               :class="{ 'bg-surface-hover': checked }"
             >
               <TCheckbox

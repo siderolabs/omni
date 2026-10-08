@@ -166,7 +166,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
 
 <template>
   <PageContainer class="flex h-full flex-col">
-    <div class="mb-2 flex items-start justify-between gap-1">
+    <div class="mb-tight flex items-start justify-between gap-micro">
       <div role="heading" aria-level="1" :aria-label="type">
         <ResourceBreadcrumbs
           :runtime="target.runtime"
@@ -174,7 +174,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
           :type
         />
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-tight">
         <TButton :disabled="!items.length" @click="exportResources('yaml')">Export YAML</TButton>
         <TButton :disabled="!items.length" @click="exportResources('json')">Export JSON</TButton>
       </div>
@@ -182,7 +182,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
 
     <p
       v-if="definition"
-      class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-content-default"
+      class="mb-compact flex flex-wrap items-center gap-x-tight gap-y-micro text-xs text-content-default"
     >
       Type
       <span class="resource-label font-mono">{{ definition.spec.type }}</span>
@@ -191,7 +191,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
       <span class="resource-label font-mono">{{ namespace }}</span>
     </p>
 
-    <div class="mb-4 flex flex-wrap gap-2">
+    <div class="mb-compact flex flex-wrap gap-tight">
       <TInput v-model="searchInput" class="grow" icon="search" title="Search" />
       <TButton
         v-if="isVirtual"
@@ -205,7 +205,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
     </div>
 
     <!-- The side panel only shares space with the table, the header above stays full width -->
-    <div class="relative flex min-h-0 grow gap-2">
+    <div class="relative flex min-h-0 grow gap-tight">
       <div class="flex min-w-0 grow flex-col">
         <TAlert v-if="!definitionLoading && !definition" type="error" title="Unknown resource type">
           No resource definition exists for {{ type }}.
@@ -232,13 +232,13 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
         >
           <div
             role="rowgroup"
-            class="grid shrink-0 grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 bg-surface-card text-left"
+            class="grid shrink-0 grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-tight bg-surface-card text-left"
           >
             <div
               v-for="header in tableHeaders"
               :key="header"
               role="columnheader"
-              class="py-2 uppercase first:pl-2 last:pr-2"
+              class="py-tight uppercase first:pl-tight last:pr-tight"
             >
               {{ header }}
             </div>
@@ -255,7 +255,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
                   :key="vRow.key.toString()"
                   :ref="measureElement"
                   :data-index="vRow.index"
-                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-2 border-t border-border-subtle"
+                  class="grid grid-cols-[minmax(0,2fr)_100px_80px_minmax(0,1fr)_140px] gap-x-tight border-t border-border-subtle"
                 >
                   <ResourceEntryItem
                     :item="items[vRow.index]"
@@ -270,7 +270,7 @@ const tableHeaders = ['ID', 'Phase', 'Version', 'Owner', 'Updated']
           </div>
         </div>
 
-        <p v-if="items.length" class="mt-2 text-xs text-content-muted">
+        <p v-if="items.length" class="mt-tight text-xs text-content-muted">
           {{ items.length }} of {{ data.length }} resources
         </p>
       </div>

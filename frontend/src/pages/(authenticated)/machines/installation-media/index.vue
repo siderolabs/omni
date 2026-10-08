@@ -122,10 +122,10 @@ useTitle(['Machines', 'Installation Media'])
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-6">
+  <PageContainer class="flex h-full flex-col gap-base">
     <TSpinner v-if="loading" class="size-8 self-center" />
 
-    <div class="flex items-start justify-between gap-1">
+    <div class="flex items-start justify-between gap-micro">
       <PageHeader title="Installation Media" />
       <TButton
         is="router-link"
@@ -165,13 +165,13 @@ useTitle(['Machines', 'Installation Media'])
             </RouterLink>
           </TableCell>
           <TableCell>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-tight">
               {{ preset.spec.talos_version || DefaultTalosVersion }}
               <span v-if="!preset.spec.talos_version" class="resource-label">Automatic</span>
             </div>
           </TableCell>
           <TableCell>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-tight">
               <template v-if="token">
                 {{ token.spec.name }}
               </template>
@@ -203,7 +203,7 @@ useTitle(['Machines', 'Installation Media'])
           </TableCell>
 
           <TableCell class="w-0">
-            <div class="flex gap-1">
+            <div class="flex gap-micro">
               <Tooltip description="Review">
                 <IconButton
                   is="router-link"
@@ -237,7 +237,7 @@ useTitle(['Machines', 'Installation Media'])
                   aria-label="delete"
                   aria-haspopup="dialog"
                   icon="delete"
-                  class="ml-4 text-status-danger-text"
+                  class="ml-compact text-status-danger-text"
                   @click="() => openConfirmDeleteModal(preset.metadata.id!)"
                 />
               </Tooltip>

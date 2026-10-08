@@ -170,8 +170,8 @@ useTitle('Backup Storage')
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
+  <PageContainer class="flex h-full flex-col gap-compact">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Settings" subtitle="Backup Storage" class="flex-1" />
     </div>
 
@@ -248,7 +248,7 @@ useTitle('Backup Storage')
             :model-value="s3Spec.session_token || ''"
             @update:model-value="(value) => (s3Spec.session_token = value)"
           />
-          <div class="flex gap-2 place-self-end">
+          <div class="flex gap-tight place-self-end">
             <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
             <TButton :disabled="!canManageBackupStore" variant="highlighted" @click="updateConfig">
               Save

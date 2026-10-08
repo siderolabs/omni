@@ -25,12 +25,12 @@ const checked = defineModel<boolean>({ default: false })
 <template>
   <Tooltip placement="bottom">
     <template #description>
-      <div class="flex flex-col gap-1 p-2">
+      <div class="flex flex-col gap-micro p-tight">
         <p>Enable HTTP proxying to the Services in the cluster through Omni.</p>
         <p>Available only if the feature is enabled in Omni.</p>
         <p>When enabled, the Services annotated with the following annotations</p>
         <p>will be listed and accessible from the Omni Web interface:</p>
-        <div class="rounded bg-surface-inert px-2 py-1">
+        <div class="rounded bg-surface-inert px-tight py-micro">
           <p class="font-mono">{{ ExposedServicePortAnnotationKey }} (required)</p>
           <p class="font-mono">{{ ExposedServiceLabelAnnotationKey }} (optional)</p>
           <p class="font-mono">{{ ExposedServiceIconAnnotationKey }} (optional)</p>

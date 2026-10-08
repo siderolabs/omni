@@ -85,7 +85,7 @@ const roles = computed(() =>
     <p>
       <TStatus :title="status" />
     </p>
-    <div class="nodes-list-item-menu -ml-6">
+    <div class="nodes-list-item-menu -ml-base">
       <NodeContextMenu :cluster-machine-status="item" :cluster-name="clusterId" />
     </div>
   </div>
@@ -95,7 +95,7 @@ const roles = computed(() =>
 @reference "../../../index.css";
 
 .nodes-list-item {
-  @apply flex items-center border-b border-border-default px-4 py-4;
+  @apply flex items-center border-b border-border-default px-compact py-compact;
 }
 
 .nodes-list-item > p {

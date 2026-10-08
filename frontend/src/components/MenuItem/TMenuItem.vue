@@ -97,7 +97,7 @@ const componentAttributes = computed(() => {
       <div class="flex w-full flex-col">
         <div
           class="group/item my-0.5 flex w-full items-center justify-start border-transparent py-1.5 transition-all duration-200 group-aria-[current]/tree:border-border-accent hover:bg-surface-hover"
-          :class="{ 'gap-2 pr-6': level > 0, 'gap-4 border-l-2 px-6': level === 0 }"
+          :class="{ 'gap-tight pr-base': level > 0, 'gap-compact border-l-2 px-base': level === 0 }"
           :style="{ 'padding-left': `${1.5 * (level + 1)}rem` }"
           @click="() => toggleSubmenu()"
         >
@@ -115,7 +115,7 @@ const componentAttributes = computed(() => {
           </span>
           <div
             v-if="label"
-            class="-my-2 flex min-w-5 items-center justify-center rounded-md bg-surface-hover px-1.5 py-0.5 text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-surface-card"
+            class="-my-tight flex min-w-5 items-center justify-center rounded-md bg-surface-hover px-1.5 py-0.5 text-center text-xs font-bold transition-colors duration-200 group-hover/item:bg-surface-card"
             :class="labelDanger ? 'text-status-danger-text' : 'text-content-default'"
           >
             <span>{{ label }}</span>
@@ -123,7 +123,7 @@ const componentAttributes = computed(() => {
 
           <div
             v-if="subItems?.length"
-            class="-my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 group-hover/item:border-border-strong group-hover/item:bg-surface-card"
+            class="-my-micro flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 group-hover/item:border-border-strong group-hover/item:bg-surface-card"
             role="button"
             @click.stop.prevent="() => toggleSubmenu(true)"
           >
@@ -143,7 +143,7 @@ const componentAttributes = computed(() => {
           <div
             v-for="(item, index) in subItems ?? []"
             :key="item.name"
-            class="relative flex gap-2 transition-all duration-200"
+            class="relative flex gap-tight transition-all duration-200"
           >
             <div
               class="absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 transition-colors duration-200"

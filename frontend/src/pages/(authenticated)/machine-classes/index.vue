@@ -35,7 +35,7 @@ useTitle('Machine Classes')
 
 <template>
   <PageContainer class="flex h-full flex-col">
-    <div class="flex items-start gap-1">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Machine Classes" class="flex-1" />
       <TButton
         is="router-link"
@@ -56,7 +56,7 @@ useTitle('Machine Classes')
         },
         runtime: Runtime.Omni,
       }"
-      class="mb-6"
+      class="mb-base"
       search
       pagination
     >
@@ -78,7 +78,7 @@ useTitle('Machine Classes')
           </div>
         </div>
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 pl-7 text-content-default">
+          <div class="relative pr-snug pl-7 text-content-default">
             <IconButton
               icon="delete"
               aria-label="delete"
@@ -127,10 +127,10 @@ useTitle('Machine Classes')
 @reference "../../../index.css";
 
 .header {
-  @apply mb-1 bg-surface-card px-6 py-2 pl-10 text-xs;
+  @apply mb-micro bg-surface-card px-base py-tight pl-10 text-xs;
 }
 
 .list-grid {
-  @apply grid grid-cols-3 items-center justify-center gap-1 pr-12;
+  @apply grid grid-cols-3 items-center justify-center gap-micro pr-12;
 }
 </style>

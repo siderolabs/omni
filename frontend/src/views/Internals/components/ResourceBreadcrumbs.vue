@@ -92,13 +92,13 @@ function selectType(value?: string) {
   <nav aria-label="Breadcrumb" class="flex flex-wrap items-center">
     <RouterLink
       v-if="type"
-      class="p-2 leading-none font-medium text-content-emphasis transition hover:text-content-secondary"
+      class="p-tight leading-none font-medium text-content-emphasis transition hover:text-content-secondary"
       :to="listRoute"
     >
       Resources
     </RouterLink>
 
-    <span v-else class="p-2 leading-none font-medium text-content-emphasis">Resources</span>
+    <span v-else class="p-tight leading-none font-medium text-content-emphasis">Resources</span>
 
     <template v-if="runtime === 'talos'">
       <svg

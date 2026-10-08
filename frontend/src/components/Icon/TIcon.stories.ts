@@ -33,7 +33,7 @@ export const Default: Story = {
 }
 
 export const AllIcons: Story = {
-  decorators: [() => ({ template: '<div class="grid grid-cols-8 gap-2"><story/></div>' })],
+  decorators: [() => ({ template: '<div class="grid grid-cols-8 gap-tight"><story/></div>' })],
   render: () => ({
     components: { TIcon, Tooltip },
     template: iconKeys

@@ -88,7 +88,7 @@ async function save() {
     :action-disabled="!name || existingPresetLoading || !!existingPreset"
     @confirm="save"
   >
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-micro">
       <TInput v-model.trim="name" title="Name" :focus="open" />
       <p v-if="name && existingPreset" class="ml-2.5 text-xs text-status-danger-text">
         Name already in use

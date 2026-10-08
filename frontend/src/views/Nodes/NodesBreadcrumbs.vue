@@ -44,10 +44,10 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-tight">
     <div class="flex items-center">
       <RouterLink
-        class="py-2 pr-2 leading-none font-medium transition-colors hover:text-content-secondary"
+        class="py-tight pr-tight leading-none font-medium transition-colors hover:text-content-secondary"
         :to="{ name: 'ClusterOverview', params: { cluster: clusterId } }"
       >
         {{ clusterId }}
@@ -72,7 +72,7 @@ watchEffect(() => {
       />
     </div>
 
-    <div class="flex gap-1">
+    <div class="flex gap-micro">
       <span class="text-xs font-medium text-content-default">Machine UUID:</span>
       <span class="text-xs">{{ machineId }}</span>
       <CopyButton :text="machineId" />

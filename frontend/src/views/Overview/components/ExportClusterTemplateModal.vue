@@ -40,7 +40,7 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   >
     <template #description>Cluster {{ clusterId }}</template>
 
-    <div class="flex flex-col gap-2 text-sm">
+    <div class="flex flex-col gap-tight text-sm">
       <ManagedByTemplatesWarning
         :resource="cluster"
         warning-text-templates="This cluster is already managed using cluster templates. Make sure any external changes to templates have already been applied before exporting this template again, or your changes will be lost."

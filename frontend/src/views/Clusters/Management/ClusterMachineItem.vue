@@ -318,7 +318,7 @@ const onSavePatchConfig = (config: string) => {
   <TListItem>
     <template #default>
       <div class="flex items-center text-content-default">
-        <span class="grow truncate pr-2 font-bold">
+        <span class="grow truncate pr-tight font-bold">
           <WordHighlighter
             :query="searchQuery ?? ''"
             :text-to-highlight="machineName"
@@ -331,7 +331,7 @@ const onSavePatchConfig = (config: string) => {
           <Tooltip :description="installDiskStatus?.spec.message" placement="bottom">
             <div
               v-if="systemDiskPath"
-              class="cursor-not-allowed rounded border border-border-strong py-1.5 pr-8 pl-3 text-content-secondary"
+              class="cursor-not-allowed rounded border border-border-strong py-1.5 pr-section pl-snug text-content-secondary"
             >
               Install Disk: {{ systemDiskPath }}
             </div>
@@ -348,7 +348,7 @@ const onSavePatchConfig = (config: string) => {
 
         <MachineSetPicker v-model="machineSetIndex" :options="options" />
 
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-micro">
           <IconButton
             :id="
               machineSetIndex !== undefined
@@ -405,12 +405,12 @@ const onSavePatchConfig = (config: string) => {
     </template>
 
     <template #details>
-      <div class="grid grid-cols-5 pl-6">
-        <div class="mt-4 mb-2">Processors</div>
-        <div class="mt-4 mb-2">Memory</div>
-        <div class="mt-4 mb-2">Block Devices</div>
-        <div class="mt-4 mb-2">Addresses</div>
-        <div class="mt-4 mb-2">Network Interfaces</div>
+      <div class="grid grid-cols-5 pl-base">
+        <div class="mt-compact mb-tight">Processors</div>
+        <div class="mt-compact mb-tight">Memory</div>
+        <div class="mt-compact mb-tight">Block Devices</div>
+        <div class="mt-compact mb-tight">Addresses</div>
+        <div class="mt-compact mb-tight">Network Interfaces</div>
         <div>
           <div v-for="(processor, index) in item?.spec?.hardware?.processors" :key="index">
             <template v-if="processor.frequency">{{ processor.frequency / 1000 }} GHz,</template>

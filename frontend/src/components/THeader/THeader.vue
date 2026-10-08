@@ -66,9 +66,9 @@ function dismissNotification(id: string) {
 <template>
   <div class="flex flex-col">
     <header
-      class="flex h-12 items-center justify-between border-b border-border-default bg-surface-chrome px-3 md:h-13 md:px-6"
+      class="flex h-12 items-center justify-between border-b border-border-default bg-surface-chrome px-snug md:h-13 md:px-base"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-compact">
         <TButton
           class="relative size-6 p-0! md:hidden"
           aria-controls="sidebar"
@@ -91,14 +91,17 @@ function dismissNotification(id: string) {
           />
         </TButton>
 
-        <RouterLink to="/" class="flex items-center gap-1 text-lg text-content-default uppercase">
+        <RouterLink
+          to="/"
+          class="flex items-center gap-micro text-lg text-content-default uppercase"
+        >
           <TIcon class="t-header-icon size-6" icon="logo" />
           <span class="font-bold">Sidero</span>
           <span>Omni</span>
         </RouterLink>
       </div>
 
-      <div class="flex min-h-12 items-center gap-2 px-6">
+      <div class="flex min-h-12 items-center gap-tight px-base">
         <TButton
           variant="subtle"
           icon="check-circle"
@@ -117,14 +120,14 @@ function dismissNotification(id: string) {
 
     <div
       v-if="currentNotification"
-      class="flex items-center justify-end gap-6 px-6 py-2 transition-colors"
+      class="flex items-center justify-end gap-base px-base py-tight transition-colors"
       :class="{
         'bg-status-danger-subtle': currentNotification.spec.type === NotificationSpecType.ERROR,
         'bg-status-warning-subtle': currentNotification.spec.type === NotificationSpecType.WARNING,
         'bg-status-info-subtle': currentNotification.spec.type === NotificationSpecType.INFO,
       }"
     >
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-tight">
         <TIcon
           class="size-4 shrink-0 transition-colors"
           :icon="getIcon(currentNotification.spec.type!)"
@@ -141,7 +144,7 @@ function dismissNotification(id: string) {
         </span>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-tight">
         <TButton
           icon="chevron-left"
           icon-position="left"

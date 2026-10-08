@@ -188,7 +188,7 @@ async function enableKubeSpan() {
 <template>
   <PageContainer class="@container flex h-full flex-col overflow-y-auto">
     <div class="mx-auto flex flex-col items-center">
-      <div class="flex flex-col items-center gap-3 text-center">
+      <div class="flex flex-col items-center gap-snug text-center">
         <div class="flex size-14 items-center justify-center rounded-full bg-surface-raised">
           <TIcon icon="cloud-connection" class="size-7 text-accent-text" />
         </div>
@@ -205,7 +205,7 @@ async function enableKubeSpan() {
           :href="getDocsLink('talos', '/learn-more/kubespan', { talosVersion })"
           target="_blank"
           rel="noopener noreferrer"
-          class="link-primary inline-flex items-center gap-1 text-sm"
+          class="link-primary inline-flex items-center gap-micro text-sm"
         >
           Learn more about KubeSpan
           <TIcon icon="external-link" class="size-3.5" />
@@ -213,15 +213,15 @@ async function enableKubeSpan() {
       </div>
 
       <div
-        class="flex max-w-3xl flex-col gap-6 py-6 @4xl:max-w-5xl @4xl:flex-row @4xl:items-start @4xl:gap-8"
+        class="flex max-w-3xl flex-col gap-base py-base @4xl:max-w-5xl @4xl:flex-row @4xl:items-start @4xl:gap-section"
       >
-        <div class="grid gap-3 @2xl:grid-cols-3 @4xl:flex-1 @4xl:grid-cols-1">
+        <div class="grid gap-snug @2xl:grid-cols-3 @4xl:flex-1 @4xl:grid-cols-1">
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="flex flex-col gap-2 rounded-lg border border-border-default bg-surface-card p-4 @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
+            class="flex flex-col gap-tight rounded-lg border border-border-default bg-surface-card p-compact @2xl:items-center @2xl:text-center @4xl:items-start @4xl:text-left"
           >
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-tight">
               <TIcon :icon="feature.icon" class="size-5 text-content-default" />
               <h3 class="text-sm font-medium text-content-emphasis">{{ feature.title }}</h3>
             </div>
@@ -230,9 +230,9 @@ async function enableKubeSpan() {
         </div>
 
         <div
-          class="flex flex-col gap-4 rounded-lg border border-border-default bg-surface-card p-6 @4xl:flex-1"
+          class="flex flex-col gap-compact rounded-lg border border-border-default bg-surface-card p-base @4xl:flex-1"
         >
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-micro">
             <h2 class="text-base font-medium text-content-emphasis">Enable KubeSpan</h2>
             <p class="text-sm text-content-secondary">
               This applies the following cluster-wide config patch to every node. Patches are
@@ -242,7 +242,7 @@ async function enableKubeSpan() {
 
           <CodeBlock v-if="kubeSpanPatch" lang="yaml" :code="kubeSpanPatch" />
 
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="flex flex-wrap items-center gap-snug">
             <TButton
               variant="highlighted"
               icon="cloud-connection"
@@ -284,7 +284,7 @@ async function enableKubeSpan() {
         Please confirm the action.
       </p>
 
-      <div class="mt-3">
+      <div class="mt-snug">
         <TAlert v-if="isLargeCluster" type="warn" title="Large cluster">
           This cluster has {{ nodeCount }} nodes. Enabling KubeSpan on clusters with
           {{ LARGE_CLUSTER_THRESHOLD }} or more nodes is generally not recommended — the WireGuard

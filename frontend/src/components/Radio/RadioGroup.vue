@@ -16,11 +16,11 @@ const model = defineModel<T>()
 
 <template>
   <RadioGroup v-model="model">
-    <RadioGroupLabel class="mb-3 block text-sm font-medium text-content-emphasis">
+    <RadioGroupLabel class="mb-snug block text-sm font-medium text-content-emphasis">
       {{ label }}
     </RadioGroupLabel>
 
-    <div class="flex flex-col items-start gap-4">
+    <div class="flex flex-col items-start gap-compact">
       <slot></slot>
     </div>
   </RadioGroup>

@@ -14,6 +14,6 @@ export type { DiffEntry } from './DiffRenderer.vue'
  */
 export default defineAsyncComponent({
   loader: () => import('./DiffRenderer.vue'),
-  loadingComponent: () => h(TSpinner, { class: 'mx-auto my-8 size-6' }),
+  loadingComponent: () => h(TSpinner, { class: 'mx-auto my-section size-6' }),
   delay: 200,
 })

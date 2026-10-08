@@ -30,10 +30,10 @@ const machineName = useMachineName(() => machine)
   <TListItem>
     <template #default>
       <div class="flex items-center text-xs text-content-default">
-        <div class="flex flex-1 items-center gap-2">
+        <div class="flex flex-1 items-center gap-tight">
           <RouterLink
             :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }"
-            class="list-item-link pr-2"
+            class="list-item-link pr-tight"
           >
             <WordHighlighter
               :query="searchQuery ?? ''"

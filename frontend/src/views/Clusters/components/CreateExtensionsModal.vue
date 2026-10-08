@@ -66,7 +66,7 @@ const updateExtensions = () => {
     :loading="!machineStatus?.spec.talos_version"
     action-label="Save"
     class="w-screen max-w-3xl"
-    content-class="flex flex-col gap-2 overflow-hidden"
+    content-class="flex flex-col gap-tight overflow-hidden"
     @confirm="updateExtensions"
   >
     <template #description>

@@ -28,7 +28,7 @@ const meta: Meta<typeof DiffRenderer> = {
   parameters: {
     layout: 'fullscreen',
   },
-  decorators: [() => ({ template: '<div class="h-screen p-6"><story/></div>' })],
+  decorators: [() => ({ template: '<div class="h-screen p-base"><story/></div>' })],
 }
 
 export default meta

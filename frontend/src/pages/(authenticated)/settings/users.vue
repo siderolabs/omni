@@ -44,12 +44,12 @@ useTitle('Users')
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
+  <PageContainer class="flex h-full flex-col gap-compact">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Settings" subtitle="Users" class="flex-1" />
     </div>
 
-    <div class="flex grow flex-col gap-2">
+    <div class="flex grow flex-col gap-tight">
       <div class="flex justify-end">
         <TButton
           icon="user-plus"
@@ -76,8 +76,8 @@ useTitle('Users')
         search
       >
         <template #default="{ items }">
-          <div class="mb-1 bg-surface-card px-4 py-2.5 text-xs">
-            <div class="grid grid-cols-6 pr-2">
+          <div class="mb-micro bg-surface-card px-compact py-2.5 text-xs">
+            <div class="grid grid-cols-6 pr-tight">
               <div>Email</div>
               <div>Role</div>
               <div>Last Active</div>

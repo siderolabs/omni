@@ -65,7 +65,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
 </script>
 
 <template>
-  <div class="flex flex-wrap items-start justify-between gap-2">
+  <div class="flex flex-wrap items-start justify-between gap-tight">
     <NodesBreadcrumbs :cluster-id :machine-id />
 
     <div class="flex">

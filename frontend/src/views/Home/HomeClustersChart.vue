@@ -58,7 +58,7 @@ const items = computed(() => {
 </script>
 
 <template>
-  <Card class="p-4">
+  <Card class="p-compact">
     <HomeStatusSegmentedBar
       title="Clusters"
       :total="items.reduce((sum, item) => sum + item.value, 0)"

@@ -135,14 +135,14 @@ const destroying = ref(false)
     <p v-if="destroying" class="text-xs">{{ phase }}...</p>
     <p v-else-if="loading" class="text-xs">Checking the cluster status...</p>
     <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
-      <p class="py-2 text-status-warning-text">
+      <p class="py-tight text-status-warning-text">
         Cluster
         <code>{{ clusterId }}</code>
         has {{ disconnectedMachines.length }} disconnected
         {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
         will also destroy disconnected machines.
       </p>
-      <p class="py-2 font-bold text-status-warning-text">
+      <p class="py-tight font-bold text-status-warning-text">
         These machines will need to be wiped and reinstalled to be used with Omni again. If the
         machines can be recovered, you may wish to recover them before destroying the cluster, to
         allow a graceful reset of the machines.

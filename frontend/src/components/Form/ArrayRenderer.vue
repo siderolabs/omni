@@ -87,15 +87,15 @@ const moveDownClicked = (index: string | number) => {
 </script>
 
 <template>
-  <div v-if="control.visible" class="p-2">
-    <div class="relative flex-1 rounded border border-border-strong pt-3 pt-4">
-      <div class="absolute -top-2 left-1 bg-surface-card px-1 text-content-default">
+  <div v-if="control.visible" class="p-tight">
+    <div class="relative flex-1 rounded border border-border-strong pt-compact pt-snug">
+      <div class="absolute -top-2 left-1 bg-surface-card px-micro text-content-default">
         {{ control.label }}
       </div>
       <TButton
         variant="subtle"
         size="xxs"
-        class="mx-4 mb-3 text-xs"
+        class="mx-compact mb-snug text-xs"
         icon="plus"
         :disabled="!control.enabled || maxItemsReached"
         @click="addButtonClicked"
@@ -109,7 +109,7 @@ const moveDownClicked = (index: string | number) => {
         <div
           v-for="(_, index) in control.data"
           :key="`${control.path}-${index}`"
-          class="flex items-center px-3 py-1"
+          class="flex items-center px-snug py-micro"
         >
           <IconButton
             v-if="p.moveUp"

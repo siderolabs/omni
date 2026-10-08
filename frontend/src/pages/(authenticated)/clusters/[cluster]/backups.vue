@@ -59,15 +59,15 @@ useTitle('Backups')
 
 <template>
   <PageContainer class="flex flex-col">
-    <div class="flex items-start gap-1">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Control Plane Backups" class="flex-1" />
-      <div class="flex items-center gap-1 text-xs">
+      <div class="flex items-center gap-micro text-xs">
         Cluster UUID:
         <div>{{ clusterUUID }}</div>
         <IconButton icon="copy" @click="() => copy(clusterUUID)" />
         <TButton
           variant="highlighted"
-          class="ml-2"
+          class="ml-tight"
           :disabled="startingEtcdBackup || !backupStatus.enabled"
           @click="runEtcdBackup"
         >
@@ -75,6 +75,6 @@ useTitle('Backups')
         </TButton>
       </div>
     </div>
-    <BackupsList :cluster-id="$route.params.cluster" class="mb-6" />
+    <BackupsList :cluster-id="$route.params.cluster" class="mb-base" />
   </PageContainer>
 </template>

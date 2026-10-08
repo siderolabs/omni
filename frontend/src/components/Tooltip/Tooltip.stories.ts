@@ -49,7 +49,7 @@ export const Default: Story = {
     components: { Tooltip },
     template: `
       <Tooltip description="${faker.hacker.phrase()}">
-        <button class="px-2 py-1 rounded bg-surface-card text-content-default">Hover over me</button>
+        <button class="px-tight py-micro rounded bg-surface-card text-content-default">Hover over me</button>
       </Tooltip>
     `,
   }),

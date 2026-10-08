@@ -77,6 +77,6 @@ useTitle('Config Diffs')
       </DiffRenderer>
     </template>
 
-    <TSpinner v-else class="mx-auto my-8 size-6" />
+    <TSpinner v-else class="mx-auto my-section size-6" />
   </PageContainer>
 </template>

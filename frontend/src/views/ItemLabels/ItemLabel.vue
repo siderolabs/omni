@@ -56,7 +56,7 @@ const description = computed(() => {
 <template>
   <Tooltip :description="description" :delay-duration="500" placement="bottom-start">
     <button
-      class="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs transition-colors"
+      class="inline-flex items-center gap-micro rounded-sm border px-tight py-micro text-xs transition-colors"
       :class="[chipClass, small ? 'max-w-50' : 'max-w-75']"
       v-bind="$attrs"
       @click.stop="$emit('selectLabel')"
@@ -77,7 +77,7 @@ const description = computed(() => {
       <TIcon
         v-if="label.removable"
         icon="close"
-        class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-surface-inert hover:text-content-emphasis"
+        class="-mr-micro size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-surface-inert hover:text-content-emphasis"
         @click.stop="$emit('removeLabel')"
       />
     </button>

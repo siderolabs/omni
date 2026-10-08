@@ -290,7 +290,7 @@ const exportClusterTemplateModalOpen = ref(false)
 
 <template>
   <div class="min-w-67 rounded border border-border-default bg-surface-card py-5">
-    <div class="flex flex-col gap-4 px-4 lg:px-6">
+    <div class="flex flex-col gap-compact px-compact lg:px-base">
       <h3 class="text-sm text-content-default">Cluster Details</h3>
       <ManagedByTemplatesWarning warning-style="short" />
       <OverviewRightPanelItem
@@ -307,7 +307,7 @@ const exportClusterTemplateModalOpen = ref(false)
         :value="`${clusterStatus.spec.machines.healthy ?? 0}/${clusterStatus.spec.machines.total}`"
       />
       <OverviewRightPanelItem v-if="numNodesWithDiagnostics > 0" name="Node Warnings">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-micro">
           {{ numTotalDiagnostics }} (in {{ numNodesWithDiagnostics }} nodes)
           <Tooltip
             description="Some machines have diagnostic warnings. See the machines section for details."
@@ -317,7 +317,7 @@ const exportClusterTemplateModalOpen = ref(false)
         </div>
       </OverviewRightPanelItem>
       <OverviewRightPanelItem v-if="talosUpgradeStatus" name="Talos Version">
-        <div class="inline-flex items-center gap-2">
+        <div class="inline-flex items-center gap-tight">
           {{ talosVersion }}
           <span
             v-if="clusterStatus?.metadata.labels?.[LabelEnterprise] !== undefined"
@@ -379,8 +379,8 @@ const exportClusterTemplateModalOpen = ref(false)
       </OverviewRightPanelItem>
     </div>
     <template v-if="clusterStatus?.spec">
-      <div class="my-3 h-px bg-surface-hover" />
-      <div class="flex flex-col gap-4 px-4 lg:px-6">
+      <div class="my-snug h-px bg-surface-hover" />
+      <div class="flex flex-col gap-compact px-compact lg:px-base">
         <h3 class="text-sm text-content-default">Control Plane</h3>
         <OverviewRightPanelItem name="Ready">
           <span :class="clusterStatus.spec.controlplaneReady ? '' : 'text-status-danger-text'">
@@ -388,7 +388,7 @@ const exportClusterTemplateModalOpen = ref(false)
           </span>
         </OverviewRightPanelItem>
         <OverviewRightPanelItem v-if="clusterStatus.metadata.created" name="Last Backup">
-          <div v-if="startingEtcdBackup" class="flex gap-1">
+          <div v-if="startingEtcdBackup" class="flex gap-micro">
             Starting...
             <TSpinner class="h-4 w-4" />
           </div>
@@ -415,8 +415,8 @@ const exportClusterTemplateModalOpen = ref(false)
           :condition="condition"
         />
       </div>
-      <div class="my-3 h-px bg-surface-hover" />
-      <div class="flex flex-col gap-4 px-4 lg:px-6">
+      <div class="my-snug h-px bg-surface-hover" />
+      <div class="flex flex-col gap-compact px-compact lg:px-base">
         <h3 class="text-sm text-content-default">Kubernetes</h3>
         <OverviewRightPanelItem
           name="API Available"
@@ -428,8 +428,8 @@ const exportClusterTemplateModalOpen = ref(false)
           :value="kubernetesStatus.spec.nodes.length ?? 0"
         />
       </div>
-      <div class="my-3 h-px bg-surface-hover" />
-      <div class="flex flex-col gap-4 px-4 lg:px-6">
+      <div class="my-snug h-px bg-surface-hover" />
+      <div class="flex flex-col gap-compact px-compact lg:px-base">
         <TButton
           :disabled="!canDownloadKubeconfig"
           variant="primary"
@@ -477,8 +477,8 @@ const exportClusterTemplateModalOpen = ref(false)
           Export Cluster Template
         </TButton>
       </div>
-      <div class="my-3 h-px bg-surface-hover" />
-      <div class="flex flex-col gap-4 px-4 lg:px-6">
+      <div class="my-snug h-px bg-surface-hover" />
+      <div class="flex flex-col gap-compact px-compact lg:px-base">
         <Tooltip
           class="grow"
           :disabled="!locked"
@@ -591,7 +591,7 @@ const exportClusterTemplateModalOpen = ref(false)
         />
       </div>
     </template>
-    <div v-else class="flex items-center justify-center p-4">
+    <div v-else class="flex items-center justify-center p-compact">
       <TSpinner class="h-6 w-6" />
     </div>
   </div>

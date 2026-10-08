@@ -54,7 +54,7 @@ export const WithDismiss: Story = {
 }
 
 export const AllAlerts: Story = {
-  decorators: [() => ({ template: '<div class="flex flex-col gap-2"><story/></div>' })],
+  decorators: [() => ({ template: '<div class="flex flex-col gap-tight"><story/></div>' })],
   render: (args) => ({
     components: { TAlert },
     setup: () => ({ args }),

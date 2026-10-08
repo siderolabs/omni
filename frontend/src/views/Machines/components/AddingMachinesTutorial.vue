@@ -53,16 +53,16 @@ const pxeBootCode =
       !data?.spec.registered_machines_count &&
       !data?.spec.pending_machines_count
     "
-    class="space-y-4 rounded-lg border border-border-accent bg-surface-card p-6"
+    class="space-y-compact rounded-lg border border-border-accent bg-surface-card p-base"
   >
     <header>
       <h2 class="text-sm font-medium text-content-emphasis">Getting Started: Machines</h2>
     </header>
 
-    <div class="space-y-4 text-xs font-medium">
+    <div class="space-y-compact text-xs font-medium">
       <p>To add your first machine create Installation Media and put it onto your machine.</p>
 
-      <div class="space-y-2">
+      <div class="space-y-tight">
         <!-- TODO: Update these commands for enterprise support -->
         <template v-if="!isEnterpriseFactory">
           <p>Local testing</p>
@@ -100,7 +100,7 @@ const pxeBootCode =
       </p>
     </div>
 
-    <div class="flex items-center justify-end gap-2">
+    <div class="flex items-center justify-end gap-tight">
       <TButton icon="close" icon-position="left" variant="secondary" @click="isDismissed = true">
         Dismiss
       </TButton>

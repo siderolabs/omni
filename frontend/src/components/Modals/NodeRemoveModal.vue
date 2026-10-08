@@ -217,7 +217,7 @@ async function onConfirm() {
     <div class="max-w-sm">
       <ManagedByTemplatesWarning warning-style="popup" />
 
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-tight">
         <p
           v-if="clusterMachineStatusErr || machineSetNodesErr"
           class="text-xs text-status-danger-text"
@@ -256,9 +256,9 @@ async function onConfirm() {
         </Tooltip>
       </div>
 
-      <div v-if="warning" class="mt-3 text-xs text-status-warning-text">{{ warning }}</div>
+      <div v-if="warning" class="mt-snug text-xs text-status-warning-text">{{ warning }}</div>
 
-      <p class="my-2 text-xs">Please confirm the action.</p>
+      <p class="my-tight text-xs">Please confirm the action.</p>
     </div>
   </ConfirmModal>
 </template>

@@ -68,15 +68,15 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
     v-if="healthChecks.length"
     class="mb-5 rounded border border-border-default bg-surface-card pt-5"
   >
-    <div class="flex items-center gap-1 px-6 pb-4">
+    <div class="flex items-center gap-micro px-base pb-compact">
       <span class="flex-1 text-sm text-content-default">Health Checks</span>
     </div>
 
-    <div class="flex flex-col gap-2 border-t-8 border-border-default p-4 text-xs">
+    <div class="flex flex-col gap-tight border-t-8 border-border-default p-compact text-xs">
       <div
         v-for="check in healthChecks"
         :key="check.metadata.id"
-        class="flex min-w-0 items-center gap-2"
+        class="flex min-w-0 items-center gap-tight"
       >
         <TIcon
           :icon="iconForStatus(check.spec).icon"
@@ -100,14 +100,14 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
       v-model:open="checkModal.open"
       :title="`Health Check: ${checkModal.id}`"
       cancel-label="Close"
-      content-class="flex max-w-3xl flex-col gap-4 overflow-hidden"
+      content-class="flex max-w-3xl flex-col gap-compact overflow-hidden"
     >
       <template #description>
         Output of the last failed run. Omni captures it before deleting the runner job, so it stays
         available after the job's pod is gone.
       </template>
 
-      <div v-if="openedCheck?.spec.state === State.RUNNING" class="flex flex-col gap-1">
+      <div v-if="openedCheck?.spec.state === State.RUNNING" class="flex flex-col gap-micro">
         <span class="text-xs text-content-muted">Follow a running check with:</span>
         <CodeBlock
           :button-attrs="{ 'aria-label': 'Copy kubectl logs command' }"

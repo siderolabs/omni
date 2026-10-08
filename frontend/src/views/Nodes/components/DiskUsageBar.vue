@@ -99,7 +99,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       </div>
     </div>
 
-    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-secondary">
+    <div class="mt-tight flex flex-wrap gap-x-compact gap-y-micro text-xs text-content-secondary">
       <div
         v-for="volume in volumes"
         :key="'legend-' + volume.metadata.id"

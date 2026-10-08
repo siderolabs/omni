@@ -32,8 +32,8 @@ function barTotal(bar: Bar) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex items-baseline justify-between gap-2">
+  <div class="flex flex-col gap-snug">
+    <div class="flex items-baseline justify-between gap-tight">
       <h2 :id="labelId" class="text-xl font-medium text-content-emphasis">{{ title }}</h2>
       <span v-if="total !== undefined" class="text-sm text-content-secondary">
         {{ total }} total
@@ -41,8 +41,8 @@ function barTotal(bar: Bar) {
     </div>
 
     <template v-for="(bar, barIndex) in bars" :key="bar.label ?? barIndex">
-      <div class="flex flex-col gap-3" :aria-labelledby="labelId">
-        <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-snug" :aria-labelledby="labelId">
+        <div class="flex flex-col gap-micro">
           <span v-if="bar.label" class="text-xs text-content-secondary">{{ bar.label }}</span>
 
           <div
@@ -65,11 +65,11 @@ function barTotal(bar: Bar) {
         </div>
       </div>
 
-      <dl class="flex flex-wrap gap-x-4 gap-y-1.5">
+      <dl class="flex flex-wrap gap-x-compact gap-y-1.5">
         <div
           v-for="(item, index) in bar.segments"
           :key="item.label"
-          class="flex items-center gap-2 text-xs whitespace-nowrap"
+          class="flex items-center gap-tight text-xs whitespace-nowrap"
         >
           <span
             aria-hidden="true"
