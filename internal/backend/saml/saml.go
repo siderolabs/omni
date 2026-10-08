@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
 // NameIDCookieName is the cookie used to store the SAML session data for SLO.
@@ -61,7 +62,7 @@ func NewHandler(
 	cfg *specs.AuthConfigSpec_SAML,
 	logger *zap.Logger,
 	apiURL, recoveryAdmin string,
-	allowIDPInitiated bool,
+	allowIDPInitiated, requireReauthForNewKeys bool,
 	signingCert *tls.Certificate,
 ) (*samlsp.Middleware, error) {
 	idpMetadata, err := readMetadata(cfg)
@@ -75,13 +76,9 @@ func NewHandler(
 	}
 
 	opts := samlsp.Options{
-		URL:            *rootURL,
-		IDPMetadata:    idpMetadata,
-		LogoutBindings: []string{saml.HTTPRedirectBinding, saml.HTTPPostBinding},
-		// The IdP session outlives an Omni logout whenever single logout is unavailable, so asking it to
-		// re-authenticate is what stops it answering with whoever it still has. Without this, logging out
-		// lands the same user straight back inside, and switching users is impossible.
-		ForceAuthn:        true,
+		URL:               *rootURL,
+		IDPMetadata:       idpMetadata,
+		LogoutBindings:    []string{saml.HTTPRedirectBinding, saml.HTTPPostBinding},
 		AllowIDPInitiated: allowIDPInitiated,
 	}
 
@@ -108,10 +105,9 @@ func NewHandler(
 
 	requestTracker := samlsp.DefaultRequestTracker(opts, &serviceProvider)
 	requestTracker.Codec = &Encoder{}
-	// The library defaults this to MaxIssueDelay, 90 seconds, which was ample while the trip to the IdP
-	// was a silent redirect. Now that ForceAuthn makes every login a password and an MFA challenge, the
-	// cookie has to outlast a person: lose it and CreateSession cannot match the response to its request,
-	// which ends at /forbidden.
+	// The library defaults this to MaxIssueDelay, 90 seconds, which is enough only for a silent redirect. With
+	// ForceAuthn, the login is a password and an MFA challenge, so the cookie has to outlast a person: lose it
+	// and CreateSession cannot match the response to its request, which ends at /forbidden.
 	requestTracker.MaxAge = trackedRequestTTL
 
 	m := &samlsp.Middleware{
@@ -125,6 +121,7 @@ func NewHandler(
 			cfg.AttributeRules,
 			recoveryAdmin,
 			cookieKey,
+			requireReauthForNewKeys,
 		),
 		RequestTracker:   requestTracker,
 		AssertionHandler: samlsp.DefaultAssertionHandler(samlsp.Options{}),
@@ -167,6 +164,22 @@ func sloCookieKey(sp *saml.ServiceProvider) ([]byte, error) {
 	}
 
 	return hkdf.Key(sha256.New, der, nil, sloCookieKeyInfo, sha256.Size)
+}
+
+// LoginHandler returns the handler that starts the SAML login.
+func LoginHandler(m *samlsp.Middleware, requireReauthForNewKeys bool) http.HandlerFunc {
+	forced := *m
+	forced.ServiceProvider.ForceAuthn = new(true)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if requireReauthForNewKeys || auth.HasReauthCookie(r) {
+			forced.HandleStartAuthFlow(w, r)
+
+			return
+		}
+
+		m.HandleStartAuthFlow(w, r)
+	}
 }
 
 // RegisterHandlers adds SAML handlers for ACS, metadata, and SLO.
@@ -237,6 +250,8 @@ func CreateLogoutHandler(m *samlsp.Middleware, advertisedURL string, logger *zap
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		auth.SetReauthCookie(w)
+
 		data, err := readNameIDCookie(r, cookieKey)
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {

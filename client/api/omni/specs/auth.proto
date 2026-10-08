@@ -49,6 +49,7 @@ message AuthConfigSpec {
   SAML saml = 4;
   OIDC oidc = 5;
   bool has_initial_user = 6;
+  bool require_reauth_for_new_keys = 7;
 }
 
 // SAMLAssertionSpec describes SAML assertion.

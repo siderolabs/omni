@@ -77,6 +77,7 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		}
 
 		res.TypedSpec().Value.Suspended = authParams.GetSuspended()
+		res.TypedSpec().Value.RequireReauthForNewKeys = authParams.GetRequireReauthForNewKeys()
 	}
 
 	_, err = safe.StateGet[*auth.Config](ctx, st, confPtr)

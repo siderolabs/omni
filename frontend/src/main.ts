@@ -24,7 +24,7 @@ import {
 } from '@/api/resources'
 import App from '@/App.vue'
 import AppUnavailable, { appUnavailableError } from '@/AppUnavailable.vue'
-import { AuthType, authType, eulaAccepted, suspended } from '@/methods'
+import { AuthType, authType, eulaAccepted, requireReauthForNewKeys, suspended } from '@/methods'
 import { registerPreloadListener } from '@/methods/registerPreloadListener'
 import router from '@/router'
 
@@ -73,6 +73,7 @@ async function setupApp() {
   }
 
   suspended.value = !!authConfig.spec.suspended
+  requireReauthForNewKeys.value = !!authConfig.spec.require_reauth_for_new_keys
 
   const app = createApp(App).use(router)
 
@@ -92,7 +93,9 @@ async function setupApp() {
         clientId: authConfig.spec.auth0.client_id!,
         authorizationParams: {
           redirect_uri: window.location.origin,
-          max_age: millisecondsToSeconds(milliseconds({ minutes: 2 })),
+          max_age: requireReauthForNewKeys.value
+            ? millisecondsToSeconds(milliseconds({ minutes: 2 }))
+            : undefined,
           screen_hint: requestSignup ? 'signup' : 'login',
         },
         useFormData: !!authConfig.spec.auth0.useFormData,

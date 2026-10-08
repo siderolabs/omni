@@ -5,19 +5,26 @@
 
 package oidc
 
-import "golang.org/x/oauth2"
+import (
+	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+)
 
-// NewTestHandler builds a Handler pointed at the given authorization endpoint, skipping the provider
+// NewTestHandler builds a Handler pointed at the given authorization and token endpoints, skipping the provider
 // discovery that NewOIDCHandler needs a live identity provider for.
-func NewTestHandler(authURL string) *Handler {
+func NewTestHandler(authURL, tokenURL, logoutURL string, requireReauthForNewKeys bool, logger *zap.Logger) *Handler {
 	return &Handler{
-		key:      "test-key",
-		endpoint: "https://omni.example.com",
+		logger:                  logger,
+		key:                     "test-key",
+		endpoint:                "https://omni.example.com",
+		logoutURL:               logoutURL,
+		requireReauthForNewKeys: requireReauthForNewKeys,
 		oauth2Config: oauth2.Config{
 			ClientID:    "omni",
 			RedirectURL: "https://omni.example.com" + RedirectURL,
 			Endpoint: oauth2.Endpoint{
-				AuthURL: authURL,
+				AuthURL:  authURL,
+				TokenURL: tokenURL,
 			},
 		},
 	}

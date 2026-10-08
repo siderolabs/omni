@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 )
@@ -57,26 +58,29 @@ func NewSessionProvider(
 	attributeRules map[string]string,
 	recoveryAdmin string,
 	sloCookieKey []byte,
+	requireReauthForNewKeys bool,
 ) *SessionProvider {
 	return &SessionProvider{
-		state:          state,
-		tracker:        tracker,
-		logger:         logger,
-		attributeRules: attributeRules,
-		recoveryAdmin:  strings.ToLower(recoveryAdmin),
-		sloCookieKey:   sloCookieKey,
+		state:                   state,
+		tracker:                 tracker,
+		logger:                  logger,
+		attributeRules:          attributeRules,
+		recoveryAdmin:           strings.ToLower(recoveryAdmin),
+		sloCookieKey:            sloCookieKey,
+		requireReauthForNewKeys: requireReauthForNewKeys,
 	}
 }
 
 // SessionProvider is an implementation of SessionProvider that stores
 // session tokens in the COSI state.
 type SessionProvider struct {
-	state          state.State
-	tracker        samlsp.RequestTracker
-	logger         *zap.Logger
-	attributeRules map[string]string
-	recoveryAdmin  string
-	sloCookieKey   []byte
+	state                   state.State
+	tracker                 samlsp.RequestTracker
+	logger                  *zap.Logger
+	attributeRules          map[string]string
+	recoveryAdmin           string
+	sloCookieKey            []byte
+	requireReauthForNewKeys bool
 }
 
 // CreateSession is called when we have received a valid SAML assertion and
@@ -137,7 +141,9 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 	// flow and redirect through. Otherwise a forged login could skip the confirmation step.
 	query := url.Values{}
 
-	if trackedRequestIndex := r.Form.Get("RelayState"); trackedRequestIndex != "" {
+	trackedRequestIndex := r.Form.Get("RelayState")
+
+	if trackedRequestIndex != "" {
 		trackedRequest, err := sp.tracker.GetTrackedRequest(r, trackedRequestIndex)
 		if err != nil {
 			return err
@@ -163,6 +169,11 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 
 	if user.Identity == "" {
 		return errors.New("couldn't find user identity in the SAML assertion")
+	}
+
+	// an IdP-initiated response does not answer a tracked request, and its login is never forced
+	if sp.requireReauthForNewKeys && sp.answersTrackedRequest(r, assertion) {
+		sp.logStaleLogin(assertion, user.Identity)
 	}
 
 	samlAssertion := auth.NewSAMLAssertion(session)
@@ -219,9 +230,43 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
+	if trackedRequestIndex != "" { // an IdP-initiated response is never forced, so it keeps the cookie
+		omniauth.DeleteReauthCookie(w)
+	}
+
 	http.Redirect(w, r, fmt.Sprintf("/authenticate?%s", query.Encode()), http.StatusSeeOther)
 
 	return nil
+}
+
+func (sp *SessionProvider) answersTrackedRequest(r *http.Request, assertion *saml.Assertion) bool {
+	for _, trackedRequest := range sp.tracker.GetTrackedRequests(r) {
+		for _, subjectConfirmation := range assertion.Subject.SubjectConfirmations {
+			if subjectConfirmation.SubjectConfirmationData.InResponseTo == trackedRequest.SAMLRequestID {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (sp *SessionProvider) logStaleLogin(assertion *saml.Assertion, user string) {
+	var authnInstant time.Time
+
+	for _, statement := range assertion.AuthnStatements {
+		if statement.AuthnInstant.After(authnInstant) {
+			authnInstant = statement.AuthnInstant
+		}
+	}
+
+	if authnInstant.IsZero() {
+		sp.logger.Warn("SAML assertion has no authentication instant, cannot check that the login is fresh", zap.String("user", user))
+
+		return
+	}
+
+	omniauth.LogStaleLogin(sp.logger, user, authnInstant)
 }
 
 // DeleteSession shouldn't be used by SAML provider configured for Omni.

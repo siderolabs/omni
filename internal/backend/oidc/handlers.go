@@ -6,6 +6,7 @@
 package oidc
 
 import (
+	"cmp"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -14,11 +15,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 
+	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -35,15 +41,22 @@ func randString(nByte int) (string, error) {
 }
 
 func setCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
-	c := &http.Cookie{
+	http.SetCookie(w, callbackCookie(r, name, value, int(time.Hour.Seconds())))
+}
+
+func deleteCallbackCookie(w http.ResponseWriter, r *http.Request, name string) {
+	http.SetCookie(w, callbackCookie(r, name, "", -1))
+}
+
+func callbackCookie(r *http.Request, name, value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
 		Name:     name,
 		Value:    value,
-		MaxAge:   int(time.Hour.Seconds()),
+		Path:     "/",
+		MaxAge:   maxAge,
 		Secure:   r.TLS != nil,
 		HttpOnly: true,
 	}
-
-	http.SetCookie(w, c)
 }
 
 type authState struct {
@@ -106,10 +119,13 @@ func parseAuthState(data string) (authState, error) {
 
 // Handler is the collection of HTTP routes required for the OIDC auth.
 type Handler struct {
-	oauth2Config oauth2.Config
-	key          string
-	logoutURL    string
-	endpoint     string
+	logger                  *zap.Logger
+	oauth2Config            oauth2.Config
+	key                     string
+	logoutURL               string
+	endpoint                string
+	missingAuthTimeOnce     sync.Once
+	requireReauthForNewKeys bool
 }
 
 // Login handles the login flow of OIDC auth.
@@ -130,17 +146,23 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	setCallbackCookie(w, r, "state", state)
 
-	// The provider session outlives an Omni logout whenever there is no end-session endpoint, so every
-	// login asks for credentials rather than accepting whoever the provider still has. Without this,
-	// logging out returns the same user immediately. Auth0 gets the same effect from a short max_age, and
-	// SAML from ForceAuthn.
-	forceReauth := oauth2.SetAuthURLParam("prompt", "login")
+	var opts []oauth2.AuthCodeOption
 
-	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state, forceReauth), http.StatusFound)
+	if h.requireReauthForNewKeys || auth.HasReauthCookie(r) {
+		opts = append(opts,
+			oauth2.SetAuthURLParam("prompt", "login"),
+			oauth2.SetAuthURLParam("max_age", strconv.Itoa(int(auth.LoginMaxAge.Seconds()))),
+		)
+	}
+
+	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state, opts...), http.StatusFound)
 }
 
 // Logout handles the logout flow of OIDC auth.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	auth.SetReauthCookie(w)
+	deleteCallbackCookie(w, r, "state") // a login started before the logout must not complete after it
+
 	if h.logoutURL == "" {
 		http.Redirect(w, r, h.endpoint, http.StatusFound)
 
@@ -173,6 +195,8 @@ func (h *Handler) OIDCConsume(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	deleteCallbackCookie(w, r, "state") // single use, so that a callback replayed from the browser history fails
 
 	if r.URL.Query().Get("state") != state.Value {
 		http.Redirect(w, r, "/forbidden", http.StatusSeeOther)
@@ -218,11 +242,50 @@ func (h *Handler) OIDCConsume(w http.ResponseWriter, r *http.Request) {
 
 	query.Set("token", rawIDToken)
 
+	if h.requireReauthForNewKeys {
+		h.logStaleLogin(rawIDToken)
+	}
+
+	auth.DeleteReauthCookie(w)
+
 	http.Redirect(w, r, "/authenticate?"+query.Encode(), http.StatusSeeOther)
 }
 
+// logStaleLogin reads the ID token without checking its signature, as it comes straight from the token endpoint.
+func (h *Handler) logStaleLogin(rawIDToken string) {
+	var claims struct {
+		Email    string  `json:"email"`
+		Subject  string  `json:"sub"`
+		AuthTime float64 `json:"auth_time"`
+	}
+
+	_, payload, _ := strings.Cut(rawIDToken, ".")
+	payload, _, _ = strings.Cut(payload, ".")
+
+	decoded, err := base64.RawURLEncoding.DecodeString(payload)
+	if err == nil {
+		err = json.Unmarshal(decoded, &claims)
+	}
+
+	if err != nil {
+		h.logger.Warn("failed to read the ID token to check that the login is fresh", zap.Error(err))
+
+		return
+	}
+
+	if claims.AuthTime == 0 {
+		h.missingAuthTimeOnce.Do(func() {
+			h.logger.Warn("the identity provider does not send auth_time, fresh logins cannot be checked")
+		})
+
+		return
+	}
+
+	auth.LogStaleLogin(h.logger, cmp.Or(claims.Email, claims.Subject), time.Unix(int64(claims.AuthTime), 0))
+}
+
 // NewOIDCHandler creates a new OIDC handler.
-func NewOIDCHandler(endpoint string, config config.OIDC, provider *oidc.Provider) (*Handler, error) {
+func NewOIDCHandler(endpoint string, config config.OIDC, provider *oidc.Provider, requireReauthForNewKeys bool, logger *zap.Logger) (*Handler, error) {
 	key, err := randString(16)
 	if err != nil {
 		return nil, err
@@ -245,9 +308,11 @@ func NewOIDCHandler(endpoint string, config config.OIDC, provider *oidc.Provider
 	}
 
 	return &Handler{
-		key:          key,
-		endpoint:     endpoint,
-		logoutURL:    config.GetLogoutURL(),
-		oauth2Config: oauth2Config,
+		logger:                  logger,
+		key:                     key,
+		endpoint:                endpoint,
+		logoutURL:               config.GetLogoutURL(),
+		oauth2Config:            oauth2Config,
+		requireReauthForNewKeys: requireReauthForNewKeys,
 	}, nil
 }

@@ -16,21 +16,20 @@ import (
 	"github.com/auth0/go-jwt-middleware/v3/jwks"
 	"github.com/auth0/go-jwt-middleware/v3/validator"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
+
+	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
-const (
-	tokenValidationCacheDuration    = 5 * time.Minute
-	tokenValidationAllowedClockSkew = 5 * time.Minute
-	tokenValidationMaxAge           = 2 * time.Minute
-)
+const tokenValidationCacheDuration = 5 * time.Minute
 
 // IDTokenVerifier is an Auth0 ID token verifier.
 type IDTokenVerifier struct {
-	validator *validator.Validator
+	validator               *validator.Validator
+	requireReauthForNewKeys bool
 }
 
 // NewIDTokenVerifier creates a new ID token verifier.
-func NewIDTokenVerifier(domain, clientID string) (*IDTokenVerifier, error) {
+func NewIDTokenVerifier(domain, clientID string, requireReauthForNewKeys bool) (*IDTokenVerifier, error) {
 	issuerURL, err := url.Parse("https://" + domain + "/")
 	if err != nil {
 		return nil, err
@@ -44,12 +43,16 @@ func NewIDTokenVerifier(domain, clientID string) (*IDTokenVerifier, error) {
 		return nil, err
 	}
 
+	return newIDTokenVerifier(issuerURL.String(), clientID, provider.KeyFunc, requireReauthForNewKeys)
+}
+
+func newIDTokenVerifier(issuer, clientID string, keyFunc func(context.Context) (any, error), requireReauthForNewKeys bool) (*IDTokenVerifier, error) {
 	idTokenValidator, err := validator.New(
-		validator.WithKeyFunc(provider.KeyFunc),
+		validator.WithKeyFunc(keyFunc),
 		validator.WithAlgorithm(validator.RS256),
-		validator.WithIssuer(issuerURL.String()),
+		validator.WithIssuer(issuer),
 		validator.WithAudience(clientID),
-		validator.WithAllowedClockSkew(tokenValidationAllowedClockSkew),
+		validator.WithAllowedClockSkew(auth.AllowedClockSkew),
 		validator.WithCustomClaims(func() *CustomIDClaims {
 			return &CustomIDClaims{}
 		}),
@@ -59,7 +62,8 @@ func NewIDTokenVerifier(domain, clientID string) (*IDTokenVerifier, error) {
 	}
 
 	return &IDTokenVerifier{
-		validator: idTokenValidator,
+		validator:               idTokenValidator,
+		requireReauthForNewKeys: requireReauthForNewKeys,
 	}, nil
 }
 
@@ -80,18 +84,18 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, token string) (*jwt.Claims
 		return nil, errors.New("unexpected custom claims type")
 	}
 
-	if customClaims.AuthTime == 0 {
-		return nil, errors.New("auth_time claim is missing")
+	if err = auth.CheckIDTokenAge(time.Unix(validatedClaims.RegisteredClaims.IssuedAt, 0)); err != nil {
+		return nil, err
 	}
 
-	authTime := time.Unix(customClaims.AuthTime, 0)
+	if v.requireReauthForNewKeys {
+		if customClaims.AuthTime == 0 {
+			return nil, errors.New("auth_time claim is missing")
+		}
 
-	if authTime.After(time.Now().Add(tokenValidationAllowedClockSkew)) {
-		return nil, errors.New("auth_time is in the future")
-	}
-
-	if time.Since(authTime) > tokenValidationMaxAge+tokenValidationAllowedClockSkew {
-		return nil, errors.New("re-authentication required")
+		if err = auth.CheckLoginAge(time.Unix(customClaims.AuthTime, 0)); err != nil {
+			return nil, err
+		}
 	}
 
 	return &jwt.Claims{
@@ -123,18 +127,8 @@ func (a *CustomIDClaims) Validate(_ context.Context) error {
 	}
 
 	if !a.EmailVerified {
-		return &EmailNotVerifiedError{Email: a.Email}
+		return &auth.EmailNotVerifiedError{Email: a.Email}
 	}
 
 	return nil
-}
-
-// EmailNotVerifiedError is an error that occurs when the email address is not verified.
-type EmailNotVerifiedError struct {
-	Email string
-}
-
-// Error implements the error interface.
-func (e EmailNotVerifiedError) Error() string {
-	return "email not verified: " + e.Email
 }

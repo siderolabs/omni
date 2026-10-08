@@ -13,6 +13,8 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
+
+	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
 // IDTokenVerifier is an Auth0 ID token verifier.
@@ -42,6 +44,10 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, token string) (*jwt.Claims
 		return nil, err
 	}
 
+	if err = auth.CheckIDTokenAge(oidcToken.IssuedAt); err != nil {
+		return nil, err
+	}
+
 	var claims struct {
 		Email         string `json:"email"`
 		EmailVerified bool   `json:"email_verified"`
@@ -57,20 +63,10 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, token string) (*jwt.Claims
 	}
 
 	if !claims.EmailVerified && !v.allowUnverifiedEmail {
-		return nil, &EmailNotVerifiedError{Email: claims.Email}
+		return nil, &auth.EmailNotVerifiedError{Email: claims.Email}
 	}
 
 	return &jwt.Claims{
 		VerifiedEmail: strings.ToLower(claims.Email),
 	}, nil
-}
-
-// EmailNotVerifiedError is an error that occurs when the email address is not verified.
-type EmailNotVerifiedError struct {
-	Email string
-}
-
-// Error implements the error interface.
-func (e EmailNotVerifiedError) Error() string {
-	return "email not verified: " + e.Email
 }

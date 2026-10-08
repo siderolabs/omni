@@ -689,6 +689,9 @@ func TestSchemaDefaults(t *testing.T) {
 	assert.Equal(t, "automation", p.Auth.InitialServiceAccount.GetName())
 	assert.Equal(t, time.Hour, p.Auth.InitialServiceAccount.GetLifetime())
 
+	// auth.requireReauthForNewKeys
+	assert.True(t, p.Auth.GetRequireReauthForNewKeys())
+
 	// logs.machine.storage
 	assert.Equal(t, 30*time.Second, p.Logs.Machine.Storage.GetSqliteTimeout())
 	assert.Equal(t, 30*time.Minute, p.Logs.Machine.Storage.GetCleanupInterval())

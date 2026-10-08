@@ -20,7 +20,6 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -81,7 +80,7 @@ func (i *JWT) intercept(ctx context.Context) (context.Context, error) {
 	if err != nil {
 		i.logger.Info("invalid jwt", zap.Error(err))
 
-		if errEmailNotVerified, isEmailNotVerified := errors.AsType[*auth0.EmailNotVerifiedError](err); isEmailNotVerified {
+		if errEmailNotVerified, isEmailNotVerified := errors.AsType[*auth.EmailNotVerifiedError](err); isEmailNotVerified {
 			return nil, status.Error(codes.Unauthenticated,
 				fmt.Sprintf(`Email address %q is not verified. Please check your email for a message to verify it, then click "Log In" again.`,
 					errEmailNotVerified.Email))

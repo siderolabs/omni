@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -22,12 +23,15 @@ import (
 	"github.com/crewjam/saml/samlsp"
 	dsig "github.com/russellhaering/goxmldsig"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/saml"
+	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 )
 
@@ -118,7 +122,7 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 
 	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t), map[string]string{
 		"identity": saml.IdentityAttribute,
-	}, "", nil)
+	}, "", nil, false)
 
 	authConfig := auth.NewAuthConfig()
 	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{
@@ -429,7 +433,7 @@ func TestEnsureUserRecoveryAdmin(t *testing.T) {
 			ctx := t.Context()
 			st := setupEnsureUser(ctx, t, tt.assignRole, tt.updateOnEachLogin)
 
-			sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, tt.recoveryAdmin, nil)
+			sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, tt.recoveryAdmin, nil, false)
 
 			require.NoError(t, sp.EnsureUser(ctx, lockedOutEmail, samlLabels))
 
@@ -451,7 +455,7 @@ func TestEnsureUserRecoveryAdminNotCreated(t *testing.T) {
 
 	const newcomer = "newcomer@example.com"
 
-	sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, newcomer, nil)
+	sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, newcomer, nil, false)
 
 	require.NoError(t, sp.EnsureUser(ctx, newcomer, map[string]string{developerLabel: ""}))
 
@@ -472,26 +476,35 @@ func TestCreateSessionQuerySource(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		expectedQuery url.Values
-		name          string
-		tracked       bool
+		expectedQuery      url.Values
+		name               string
+		identity           string
+		tracked            bool
+		clearsReauthCookie bool
 	}{
 		{
-			name: "unsolicited response ignores the ACS query",
+			name:     "unsolicited response ignores the ACS query",
+			identity: "user@example.com",
 			expectedQuery: url.Values{
 				"identity": {"user@example.com"},
 				"fullname": {""},
 			},
 		},
 		{
-			name:    "tracked request keeps the login query",
-			tracked: true,
+			name:               "tracked request keeps the login query",
+			identity:           "user@example.com",
+			tracked:            true,
+			clearsReauthCookie: true,
 			expectedQuery: url.Values{
 				"identity": {"user@example.com"},
 				"fullname": {""},
 				"flow":     {"frontend"},
 				"redirect": {"/tracked"},
 			},
+		},
+		{
+			name:    "failed login after a tracked request keeps the reauth cookie",
+			tracked: true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -507,11 +520,12 @@ func TestCreateSessionQuerySource(t *testing.T) {
 
 			require.NoError(t, st.Create(ctx, authConfig))
 
-			sp := saml.NewSessionProvider(st, tracker, zaptest.NewLogger(t), nil, "", nil)
+			sp := saml.NewSessionProvider(st, tracker, zaptest.NewLogger(t), nil, "", nil, false)
 
 			form := url.Values{}
 
 			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/saml/acs?flow=frontend&redirect=/injected", nil)
+			req.AddCookie(&http.Cookie{Name: omniauth.ReauthCookieName, Value: "1"})
 
 			if tt.tracked {
 				loginRec := httptest.NewRecorder()
@@ -520,7 +534,10 @@ func TestCreateSessionQuerySource(t *testing.T) {
 				index, trackErr := tracker.TrackRequest(loginRec, loginReq, "request-id")
 				require.NoError(t, trackErr)
 
-				for _, cookie := range loginRec.Result().Cookies() {
+				loginRes := loginRec.Result()
+				require.NoError(t, loginRes.Body.Close())
+
+				for _, cookie := range loginRes.Cookies() {
 					req.AddCookie(cookie)
 				}
 
@@ -534,7 +551,7 @@ func TestCreateSessionQuerySource(t *testing.T) {
 				AttributeStatements: []csaml.AttributeStatement{
 					{
 						Attributes: []csaml.Attribute{
-							{Name: "email", Values: []csaml.AttributeValue{{Value: "user@example.com"}}},
+							{Name: "email", Values: []csaml.AttributeValue{{Value: tt.identity}}},
 						},
 					},
 				},
@@ -542,7 +559,29 @@ func TestCreateSessionQuerySource(t *testing.T) {
 
 			rec := httptest.NewRecorder()
 
-			require.NoError(t, sp.CreateSession(rec, req, assertion))
+			if err := sp.CreateSession(rec, req, assertion); tt.identity == "" {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			res := rec.Result()
+			require.NoError(t, res.Body.Close())
+
+			reauthCookieIndex := slices.IndexFunc(res.Cookies(), func(cookie *http.Cookie) bool {
+				return cookie.Name == omniauth.ReauthCookieName
+			})
+
+			if !tt.clearsReauthCookie {
+				require.Equal(t, -1, reauthCookieIndex, "expected the reauth cookie to be kept")
+			} else {
+				require.NotEqual(t, -1, reauthCookieIndex, "expected the reauth cookie to be cleared")
+				require.Equal(t, -1, res.Cookies()[reauthCookieIndex].MaxAge)
+			}
+
+			if tt.identity == "" {
+				return
+			}
 
 			location, err := url.Parse(rec.Header().Get("Location"))
 			require.NoError(t, err)
@@ -554,6 +593,152 @@ func TestCreateSessionQuerySource(t *testing.T) {
 			query.Del("session")
 
 			require.Equal(t, tt.expectedQuery, query)
+		})
+	}
+}
+
+func TestCreateSessionLogsStaleLogin(t *testing.T) {
+	t.Parallel()
+
+	acsURL, err := url.Parse("https://omni.example.com/saml/acs")
+	require.NoError(t, err)
+
+	tracker := samlsp.CookieRequestTracker{
+		ServiceProvider: &csaml.ServiceProvider{AcsURL: *acsURL},
+		NamePrefix:      "saml_",
+		Codec:           &saml.Encoder{},
+		MaxAge:          time.Minute,
+	}
+
+	now := time.Now()
+
+	for _, tt := range []struct {
+		authnInstant            time.Time
+		name                    string
+		expectedWarning         string
+		inResponseTo            string
+		relayState              bool
+		requireReauthForNewKeys bool
+	}{
+		{
+			name:                    "required, fresh login",
+			authnInstant:            now.Add(-time.Minute),
+			inResponseTo:            "request-id",
+			requireReauthForNewKeys: true,
+		},
+		{
+			name:                    "required, old login",
+			authnInstant:            now.Add(-time.Hour),
+			inResponseTo:            "request-id",
+			requireReauthForNewKeys: true,
+			expectedWarning:         "could not confirm a fresh login at the identity provider",
+		},
+		{
+			name:                    "required, old login with RelayState",
+			authnInstant:            now.Add(-time.Hour),
+			inResponseTo:            "request-id",
+			relayState:              true,
+			requireReauthForNewKeys: true,
+			expectedWarning:         "could not confirm a fresh login at the identity provider",
+		},
+		{
+			name:                    "required, login in the future",
+			authnInstant:            now.Add(time.Hour),
+			inResponseTo:            "request-id",
+			requireReauthForNewKeys: true,
+			expectedWarning:         "could not confirm a fresh login at the identity provider",
+		},
+		{
+			name:                    "required, no authentication instant",
+			inResponseTo:            "request-id",
+			requireReauthForNewKeys: true,
+			expectedWarning:         "SAML assertion has no authentication instant, cannot check that the login is fresh",
+		},
+		{
+			name:                    "required, IdP-initiated response with an old login",
+			authnInstant:            now.Add(-time.Hour),
+			requireReauthForNewKeys: true,
+		},
+		{
+			name:                    "required, response to an untracked request with an old login",
+			authnInstant:            now.Add(-time.Hour),
+			inResponseTo:            "untracked-request-id",
+			requireReauthForNewKeys: true,
+		},
+		{
+			name:         "not required, old login",
+			authnInstant: now.Add(-time.Hour),
+			inResponseTo: "request-id",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			t.Cleanup(cancel)
+
+			st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+			authConfig := auth.NewAuthConfig()
+			authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{}
+
+			require.NoError(t, st.Create(ctx, authConfig))
+
+			core, logs := observer.New(zap.WarnLevel)
+
+			sp := saml.NewSessionProvider(st, tracker, zap.New(core), nil, "", nil, tt.requireReauthForNewKeys)
+
+			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/saml/acs", nil)
+			req.Form = url.Values{}
+
+			loginRec := httptest.NewRecorder()
+
+			index, err := tracker.TrackRequest(loginRec, httptest.NewRequestWithContext(ctx, http.MethodGet, "/login", nil), "request-id")
+			require.NoError(t, err)
+
+			if tt.relayState {
+				req.Form.Set("RelayState", index)
+			}
+
+			loginRes := loginRec.Result()
+			require.NoError(t, loginRes.Body.Close())
+
+			for _, cookie := range loginRes.Cookies() {
+				req.AddCookie(cookie)
+			}
+
+			subject := &csaml.Subject{NameID: &csaml.NameID{Value: "user@example.com"}}
+
+			if tt.inResponseTo != "" {
+				subject.SubjectConfirmations = []csaml.SubjectConfirmation{
+					{SubjectConfirmationData: &csaml.SubjectConfirmationData{InResponseTo: tt.inResponseTo}},
+				}
+			}
+
+			assertion := &csaml.Assertion{
+				Subject: subject,
+				AttributeStatements: []csaml.AttributeStatement{
+					{
+						Attributes: []csaml.Attribute{
+							{Name: "email", Values: []csaml.AttributeValue{{Value: "user@example.com"}}},
+						},
+					},
+				},
+			}
+
+			if !tt.authnInstant.IsZero() {
+				assertion.AuthnStatements = []csaml.AuthnStatement{{AuthnInstant: tt.authnInstant}}
+			}
+
+			require.NoError(t, sp.CreateSession(httptest.NewRecorder(), req, assertion))
+
+			if tt.expectedWarning == "" {
+				require.Zero(t, logs.Len())
+
+				return
+			}
+
+			require.Equal(t, 1, logs.FilterMessage(tt.expectedWarning).Len())
 		})
 	}
 }

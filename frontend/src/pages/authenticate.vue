@@ -34,7 +34,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
-import { AuthType, authType } from '@/methods'
+import { AuthType, authType, requireReauthForNewKeys } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { createKeys, signDetached, useKeys } from '@/methods/key'
@@ -48,6 +48,8 @@ definePage({
 
 const user = ref<User | undefined>(undefined)
 let idToken = ''
+
+const retriedQueryParam = 'retried'
 
 /** @description Redirect the user's top-most window to the given URL.
  *
@@ -228,9 +230,30 @@ const confirmPublicKey = async (publicKeyId: string, keyPair?: CryptoKeyPair) =>
 
     confirmed.value = true
   } catch (e) {
-    if (e instanceof RequestError && e.code === Code.UNAUTHENTICATED && auth0) {
-      // Force re-authentication
-      return await auth0.loginWithRedirect({ authorizationParams: { max_age: 0 } })
+    if (e instanceof RequestError && e.code === Code.UNAUTHENTICATED) {
+      // a retry that fails again shows the error, so a rejected token cannot cause a login loop
+      if (route.query[retriedQueryParam]) {
+        return showError('Failed to confirm public key, please start the login again', e.message)
+      }
+
+      const query = new URLSearchParams(window.location.search)
+
+      query.set(retriedQueryParam, 'true')
+
+      if (auth0) {
+        return await auth0.loginWithRedirect({
+          appState: { target: `${route.path}?${query}` },
+          authorizationParams: {
+            max_age: requireReauthForNewKeys.value ? 0 : undefined,
+          },
+        })
+      }
+
+      if (authType.value === AuthType.OIDC) {
+        query.delete('token')
+
+        return redirectToURL(`/login?${query}`)
+      }
     }
 
     showError('Failed to confirm public key', e.message)

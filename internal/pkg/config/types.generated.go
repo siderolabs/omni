@@ -52,6 +52,13 @@ type Auth struct {
 	// removes admin access from everyone.
 	RecoveryAdmin *string `json:"recoveryAdmin,omitempty,omitzero" yaml:"recoveryAdmin,omitempty"`
 
+	// RequireReauthForNewKeys makes every new public key (for the UI, the CLI or the
+	// workload proxy) require a fresh login at the identity provider. When it is off,
+	// the identity provider may reuse its existing session, so its own session policy
+	// applies. After an Omni logout, the next login from the same browser asks the
+	// identity provider for a fresh login, so that switching users keeps working.
+	RequireReauthForNewKeys *bool `json:"requireReauthForNewKeys,omitempty,omitzero" yaml:"requireReauthForNewKeys,omitempty"`
+
 	// Saml contains SAML authentication provider configuration.
 	Saml SAML `json:"saml" yaml:"saml"`
 

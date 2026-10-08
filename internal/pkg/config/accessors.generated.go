@@ -50,6 +50,17 @@ func (s *Auth) SetRecoveryAdmin(v string) {
 	s.RecoveryAdmin = &v
 }
 
+func (s *Auth) GetRequireReauthForNewKeys() bool {
+	if s == nil || s.RequireReauthForNewKeys == nil {
+		return *new(bool)
+	}
+	return *s.RequireReauthForNewKeys
+}
+
+func (s *Auth) SetRequireReauthForNewKeys(v bool) {
+	s.RequireReauthForNewKeys = &v
+}
+
 func (s *Auth) GetSuspended() bool {
 	if s == nil || s.Suspended == nil {
 		return *new(bool)

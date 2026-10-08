@@ -48,6 +48,7 @@ export type AuthConfigSpec = {
   saml?: AuthConfigSpecSAML
   oidc?: AuthConfigSpecOIDC
   has_initial_user?: boolean
+  require_reauth_for_new_keys?: boolean
 }
 
 export type SAMLAssertionSpec = {

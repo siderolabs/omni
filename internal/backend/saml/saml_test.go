@@ -48,6 +48,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnisaml "github.com/siderolabs/omni/internal/backend/saml"
+	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 )
 
 const (
@@ -140,6 +141,7 @@ func newHandler(t *testing.T, signingCert *tls.Certificate) *samlsp.Middleware {
 		testAdvertisedURL,
 		"",
 		true,
+		false,
 		signingCert,
 	)
 	require.NoError(t, err)
@@ -255,49 +257,90 @@ func postedLogoutRequest(t *testing.T, resp *http.Response) []byte {
 
 // startAuthFlow builds a handler the way the server does and runs one login through it, returning the
 // response so both the AuthnRequest and the cookies it set can be inspected.
-func startAuthFlow(t *testing.T, signingCert *tls.Certificate) *http.Response {
+func startAuthFlow(t *testing.T, signingCert *tls.Certificate, requireReauthForNewKeys bool, cookies ...*http.Cookie) *http.Response {
 	t.Helper()
 
 	m := newHandler(t, signingCert)
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/login?flow=frontend", nil)
+
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
+	}
+
 	rec := httptest.NewRecorder()
 
-	m.HandleStartAuthFlow(rec, req)
+	omnisaml.LoginHandler(m, requireReauthForNewKeys)(rec, req)
 
 	return rec.Result()
 }
 
-// TestLoginForcesReauthentication pins the behavior that makes logging out of Omni mean something. The
-// IdP session survives an Omni logout whenever single logout is unavailable, so without ForceAuthn the
-// next AuthnRequest is answered with the user who just logged out.
-func TestLoginForcesReauthentication(t *testing.T) {
-	resp := startAuthFlow(t, nil)
-	defer resp.Body.Close() //nolint:errcheck
+func TestLoginForceAuthn(t *testing.T) {
+	t.Parallel()
 
-	require.Equal(t, http.StatusFound, resp.StatusCode)
+	reauthCookie := &http.Cookie{Name: omniauth.ReauthCookieName, Value: "1"}
 
-	redirectURL, err := url.Parse(resp.Header.Get("Location"))
-	require.NoError(t, err)
+	for _, tt := range []struct {
+		cookie                  *http.Cookie
+		name                    string
+		requireReauthForNewKeys bool
+		forced                  bool
+	}{
+		{
+			name:                    "required for new keys",
+			requireReauthForNewKeys: true,
+			forced:                  true,
+		},
+		{
+			name: "IdP session reused",
+		},
+		{
+			name:   "first login after logout",
+			cookie: reauthCookie,
+			forced: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	deflated, err := base64.StdEncoding.DecodeString(redirectURL.Query().Get("SAMLRequest"))
-	require.NoError(t, err)
+			var cookies []*http.Cookie
 
-	r := flate.NewReader(bytes.NewReader(deflated))
-	defer r.Close() //nolint:errcheck
+			if tt.cookie != nil {
+				cookies = append(cookies, tt.cookie)
+			}
 
-	authnRequest, err := io.ReadAll(r)
-	require.NoError(t, err)
+			resp := startAuthFlow(t, nil, tt.requireReauthForNewKeys, cookies...)
+			defer resp.Body.Close() //nolint:errcheck
 
-	assert.Contains(t, string(authnRequest), `ForceAuthn="true"`)
+			require.Equal(t, http.StatusFound, resp.StatusCode)
+
+			redirectURL, err := url.Parse(resp.Header.Get("Location"))
+			require.NoError(t, err)
+
+			deflated, err := base64.StdEncoding.DecodeString(redirectURL.Query().Get("SAMLRequest"))
+			require.NoError(t, err)
+
+			r := flate.NewReader(bytes.NewReader(deflated))
+			defer r.Close() //nolint:errcheck
+
+			authnRequest, err := io.ReadAll(r)
+			require.NoError(t, err)
+
+			if tt.forced {
+				assert.Contains(t, string(authnRequest), `ForceAuthn="true"`)
+			} else {
+				assert.NotContains(t, string(authnRequest), "ForceAuthn")
+			}
+		})
+	}
 }
 
 // TestTrackedRequestOutlastsAPerson guards the cookie that correlates the AuthnRequest with the response.
-// The library defaults it to MaxIssueDelay, 90 seconds, which was ample while this was a silent redirect.
-// Now that every login means typing a password and clearing MFA, a short lifetime sends anyone who takes
-// their time to /forbidden instead of into Omni.
+// The library defaults it to MaxIssueDelay, 90 seconds, which is enough only for a silent redirect.
+// With ForceAuthn, a login means typing a password and clearing MFA, so a short lifetime sends anyone who
+// takes their time to /forbidden instead of into Omni.
 func TestTrackedRequestOutlastsAPerson(t *testing.T) {
-	resp := startAuthFlow(t, nil)
+	resp := startAuthFlow(t, nil, true)
 	defer resp.Body.Close() //nolint:errcheck
 
 	for _, cookie := range resp.Cookies() {
@@ -330,6 +373,7 @@ func TestCreateLogoutHandler_NoCookie(t *testing.T) {
 	assert.Equal(t, testAdvertisedURL, resp.Header.Get("Location"))
 
 	assertNameIDCookieCleared(t, resp)
+	assertReauthCookieSet(t, resp)
 }
 
 func TestCreateLogoutHandler_NoSLOEndpoint(t *testing.T) {
@@ -379,6 +423,7 @@ func TestCreateLogoutHandler_RedirectsToSLO(t *testing.T) {
 	// that never follows the redirect would leave the real navigation unable to
 	// build a LogoutRequest.
 	assertNameIDCookieKept(t, resp)
+	assertReauthCookieSet(t, resp)
 }
 
 func TestCreateLogoutHandler_RepeatedRequestStillRedirectsToSLO(t *testing.T) {
@@ -642,6 +687,21 @@ func assertNameIDCookieCleared(t *testing.T, resp *http.Response) {
 	t.Error("expected saml_name_id cookie to be set (cleared) in response")
 }
 
+func assertReauthCookieSet(t *testing.T, resp *http.Response) {
+	t.Helper()
+
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == omniauth.ReauthCookieName {
+			assert.Equal(t, "1", cookie.Value)
+			assert.Positive(t, cookie.MaxAge)
+
+			return
+		}
+	}
+
+	t.Errorf("expected %s cookie to be set in response", omniauth.ReauthCookieName)
+}
+
 func TestAllowIDPInitiated(t *testing.T) {
 	t.Parallel()
 
@@ -653,6 +713,7 @@ func TestAllowIDPInitiated(t *testing.T) {
 			testAdvertisedURL,
 			"",
 			allow,
+			false,
 			nil,
 		)
 		require.NoError(t, err)
@@ -664,7 +725,7 @@ func TestAllowIDPInitiated(t *testing.T) {
 func TestLoginSignsAuthnRequest(t *testing.T) {
 	cert := newRSASigningCert(t)
 
-	resp := startAuthFlow(t, cert)
+	resp := startAuthFlow(t, cert, true)
 	defer resp.Body.Close() //nolint:errcheck
 
 	require.Equal(t, http.StatusFound, resp.StatusCode)
@@ -751,6 +812,7 @@ func TestNewHandlerRejectsNonRSASigningKey(t *testing.T) {
 				testAdvertisedURL,
 				"",
 				true,
+				false,
 				newSigningCert(t, tt.key),
 			)
 			require.ErrorContains(t, err, "only RSA keys are supported")

@@ -33,3 +33,15 @@ The local resource service, which served Omni resources on a local listener, is 
 Omni through its regular API with a service account instead. Its `services.localResourceService` settings and \
 flags have no effect.
 """
+
+[notes.require-reauth-for-new-keys]
+title = "Identity Provider Session Reuse"
+description = """\
+Every new public key (for the UI, the CLI or the workload proxy) requires a fresh login at the identity provider. \
+Setting `auth.requireReauthForNewKeys: false` lets the identity provider reuse its existing session instead, while \
+the first login after an Omni logout still requires a fresh one. This lowers security, so only turn it off when the \
+identity provider limits how long its sessions last.
+
+With the setting on, Omni logs a warning when an OIDC or SAML identity provider ignores the request for a fresh \
+login. Additionally, with OIDC, Omni now only accepts an ID token issued in the last few minutes to confirm a new key.
+"""

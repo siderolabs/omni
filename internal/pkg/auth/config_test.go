@@ -65,6 +65,26 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 			},
 		},
 		{
+			name: "require reauth for new keys",
+			initialConfig: func() config.Auth {
+				c := auth0Config()
+				c.SetRequireReauthForNewKeys(true)
+
+				return c
+			}(),
+			expected: &specs.AuthConfigSpec{
+				Auth0: &specs.AuthConfigSpec_Auth0{
+					Enabled:  true,
+					ClientId: "client-id",
+					Domain:   "domain",
+				},
+				Webauthn:                &specs.AuthConfigSpec_Webauthn{},
+				Saml:                    &specs.AuthConfigSpec_SAML{},
+				Oidc:                    &specs.AuthConfigSpec_OIDC{},
+				RequireReauthForNewKeys: true,
+			},
+		},
+		{
 			name: "enable webauthn",
 			initialConfig: func() config.Auth {
 				var c config.Auth

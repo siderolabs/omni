@@ -124,6 +124,7 @@ export const downloadOmniconfig = async () => {
 }
 
 export const suspended = ref(false)
+export const requireReauthForNewKeys = ref(false)
 export const eulaAccepted = ref(false)
 
 export enum AuthType {

@@ -911,6 +911,15 @@
           "x-cli-flag": "recovery-admin",
           "type": "string"
         },
+        "requireReauthForNewKeys": {
+          "description": "RequireReauthForNewKeys makes every new public key (for the UI, the CLI or the workload proxy) require a fresh login at the identity provider. When it is off, the identity provider may reuse its existing session, so its own session policy applies. After an Omni logout, the next login from the same browser asks the identity provider for a fresh login, so that switching users keeps working.",
+          "x-cli-flag": "auth-require-reauth-for-new-keys",
+          "type": "boolean",
+          "default": true,
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
         "keyPruner": {
           "description": "KeyPruner contains configuration for the public keys pruner (cleanup of old/expired keys).",
           "$ref": "#/definitions/KeyPrunerConfig"

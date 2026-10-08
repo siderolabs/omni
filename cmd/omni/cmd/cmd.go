@@ -249,6 +249,7 @@ func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 
 	b.StringSliceVar("auth.initialUsers", &flagConfig.Auth.InitialUsers, flagConfig.Auth.InitialUsers)
 	b.StringVar("auth.recoveryAdmin", &flagConfig.Auth.RecoveryAdmin)
+	b.BoolVar("auth.requireReauthForNewKeys", &flagConfig.Auth.RequireReauthForNewKeys)
 
 	b.DurationVar("auth.keyPruner.interval", &flagConfig.Auth.KeyPruner.Interval)
 	b.BoolVar("auth.suspended", &flagConfig.Auth.Suspended)

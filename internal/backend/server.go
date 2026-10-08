@@ -339,6 +339,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			s.cfg.Services.Api.URL(),
 			s.cfg.Auth.GetRecoveryAdmin(),
 			s.cfg.Auth.Saml.GetAllowIdpInitiated(),
+			s.cfg.Auth.GetRequireReauthForNewKeys(),
 			signingCert,
 		)
 	}()
@@ -517,7 +518,7 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 
 	switch {
 	case s.authConfig.TypedSpec().Value.Auth0.Enabled:
-		verifier, err := auth0.NewIDTokenVerifier(s.authConfig.TypedSpec().Value.GetAuth0().Domain, s.cfg.Auth.Auth0.GetClientID())
+		verifier, err := auth0.NewIDTokenVerifier(s.authConfig.TypedSpec().Value.GetAuth0().Domain, s.cfg.Auth.Auth0.GetClientID(), s.cfg.Auth.GetRequireReauthForNewKeys())
 		if err != nil {
 			return nil, err
 		}
@@ -889,10 +890,11 @@ func registerAuthHandlers(
 			return err
 		}
 
-		loginHandler = samlHandler.HandleStartAuthFlow
+		loginHandler = saml.LoginHandler(samlHandler, cfg.Auth.GetRequireReauthForNewKeys())
 		logoutHandler = handler
 	case oidcProvider != nil:
-		handler, err := oidc.NewOIDCHandler(cfg.Services.Api.GetAdvertisedURL(), cfg.Auth.Oidc, oidcProvider)
+		handler, err := oidc.NewOIDCHandler(cfg.Services.Api.GetAdvertisedURL(), cfg.Auth.Oidc, oidcProvider, cfg.Auth.GetRequireReauthForNewKeys(),
+			logger.With(logging.Component("oidc")))
 		if err != nil {
 			return err
 		}
