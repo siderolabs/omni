@@ -194,6 +194,7 @@ type MachineServiceMock struct {
 	bootstrapHandler        func(context.Context, *machine.BootstrapRequest) (*machine.BootstrapResponse, error)
 	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
 	readHandler             func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error
+	disksHandler            func(context.Context, *emptypb.Empty) (*storage.DisksResponse, error)
 
 	lifecycleInstallHandler func(*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error
 	lifecycleUpgradeHandler func(*machine.LifecycleServiceUpgradeRequest, grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error
@@ -247,6 +248,13 @@ func (ms *MachineServiceMock) SetBootID(ctx context.Context, bootID string) erro
 	})
 
 	return err
+}
+
+func (ms *MachineServiceMock) SetDisksHandler(callback func(context.Context, *emptypb.Empty) (*storage.DisksResponse, error)) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.disksHandler = callback
 }
 
 func (ms *MachineServiceMock) GetUpgradeRequests() []*machine.UpgradeRequest {
@@ -606,7 +614,15 @@ func (ms *MachineServiceMock) Upgrade(ctx context.Context, request *machine.Upgr
 	return &machine.UpgradeResponse{}, nil
 }
 
-func (ms *MachineServiceMock) Disks(context.Context, *emptypb.Empty) (*storage.DisksResponse, error) {
+func (ms *MachineServiceMock) Disks(ctx context.Context, req *emptypb.Empty) (*storage.DisksResponse, error) {
+	ms.lock.Lock()
+	disksHandler := ms.disksHandler
+	ms.lock.Unlock()
+
+	if disksHandler != nil {
+		return disksHandler(ctx, req)
+	}
+
 	return &storage.DisksResponse{}, nil
 }
 

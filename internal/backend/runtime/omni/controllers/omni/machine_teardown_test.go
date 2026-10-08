@@ -12,54 +12,70 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-type MachineTeardownSuite struct {
-	OmniSuite
-}
-
-func (suite *MachineTeardownSuite) TestSkipDisconnected() {
-	var disksCalled atomic.Bool
-
-	suite.machineService.disksHook = func() {
-		disksCalled.Store(true)
-	}
-
-	suite.startRuntime()
-
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineTeardownController()))
-
-	machineStatus := omni.NewMachineStatus("disconnected")
-	machineStatus.TypedSpec().Value.Connected = false
-	machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
-
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, machineStatus.Metadata().ID(), func(res *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.True(res.Metadata().Finalizers().Has(omnictrl.MachineTeardownControllerName))
-	})
-
-	_, err := suite.state.Teardown(suite.ctx, machineStatus.Metadata())
-	suite.Require().NoError(err)
-
-	// Stay under the 10s wipe timeout so a dial that hangs fails this assertion.
-	ctx, cancel := context.WithTimeout(suite.ctx, 2*time.Second)
-	defer cancel()
-
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, machineStatus.Metadata().ID(), func(res *omni.MachineStatus, assertion *assert.Assertions) {
-		assertion.False(res.Metadata().Finalizers().Has(omnictrl.MachineTeardownControllerName))
-	})
-
-	suite.False(disksCalled.Load())
-}
-
-func TestMachineTeardownSuite(t *testing.T) {
+func TestMachineTeardownWipe(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(MachineTeardownSuite))
+	for _, tt := range []struct {
+		name           string
+		connected      bool
+		expectWipeDial bool
+	}{
+		{name: "connected", connected: true, expectWipeDial: true},
+		{name: "disconnected", connected: false, expectWipeDial: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			t.Cleanup(cancel)
+
+			testutils.WithRuntime(
+				ctx,
+				t,
+				testutils.TestOptions{},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineTeardownController()))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					var disksCalled atomic.Bool
+
+					machineService := testutils.NewMachineServices(t, testContext.State).Create(ctx, tt.name)
+					machineService.SetDisksHandler(func(context.Context, *emptypb.Empty) (*storage.DisksResponse, error) {
+						disksCalled.Store(true)
+
+						return &storage.DisksResponse{}, nil
+					})
+
+					machineStatus := omni.NewMachineStatus(tt.name)
+					machineStatus.TypedSpec().Value.Connected = tt.connected
+					machineStatus.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
+
+					require.NoError(t, testContext.State.Create(ctx, machineStatus))
+
+					rtestutils.AssertResource(ctx, t, testContext.State, machineStatus.Metadata().ID(), func(res *omni.MachineStatus, assertion *assert.Assertions) {
+						assertion.True(res.Metadata().Finalizers().Has(omnictrl.MachineTeardownControllerName))
+					})
+
+					_, err := testContext.State.Teardown(ctx, machineStatus.Metadata())
+					require.NoError(t, err)
+
+					rtestutils.AssertResource(ctx, t, testContext.State, machineStatus.Metadata().ID(), func(res *omni.MachineStatus, assertion *assert.Assertions) {
+						assertion.False(res.Metadata().Finalizers().Has(omnictrl.MachineTeardownControllerName))
+					})
+
+					assert.Equal(t, tt.expectWipeDial, disksCalled.Load())
+				},
+			)
+		})
+	}
 }
