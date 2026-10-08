@@ -110,3 +110,25 @@ func (s *ResourceServer) MachineOptions(ctx context.Context, md metadata.MD) ([]
 func BuildServiceAccountKubeconfig(cfg *config.Params, cluster, user, token string) ([]byte, error) {
 	return (&managementServer{cfg: cfg}).buildServiceAccountKubeconfig(cluster, user, token)
 }
+
+const (
+	RegistrationBurst    = registrationBurst
+	RegistrationInterval = registrationInterval
+)
+
+// RegistrationLimiter is exposed for testing.
+type RegistrationLimiter = registrationLimiter
+
+// Allow is exposed for testing.
+func (l *RegistrationLimiter) Allow(source string, now time.Time) bool { return l.allow(source, now) }
+
+// Len is the number of sources the limiter keeps.
+func (l *RegistrationLimiter) Len() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	return len(l.sources)
+}
+
+// SourceAddress is exposed for testing.
+var SourceAddress = sourceAddress

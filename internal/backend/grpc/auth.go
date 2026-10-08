@@ -64,6 +64,7 @@ type authServer struct {
 	state                     state.State
 	workloadProxyCookieDomain string
 	pending                   pendingKeys
+	registrations             registrationLimiter
 }
 
 func newAuthServer(state state.State, services config.Services, logger *zap.Logger) (*authServer, error) {
@@ -106,6 +107,10 @@ func (s *authServer) gateway(ctx context.Context, mux *gateway.ServeMux, address
 // RegisterPublicKey registers a public key for the given identity.
 // The registered key will be unconfirmed, and a login page URL will be returned.
 func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.RegisterPublicKeyRequest) (*authpb.RegisterPublicKeyResponse, error) {
+	if !s.registrations.allow(sourceAddress(ctx), time.Now()) {
+		return nil, status.Error(codes.ResourceExhausted, "too many public key registrations from this address, try again later")
+	}
+
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	email := strings.ToLower(request.GetIdentity().GetEmail())
