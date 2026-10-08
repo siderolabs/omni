@@ -165,6 +165,9 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 
 					message += fmt.Sprintf("A copy of your changes has been stored to %q\nEdit canceled, no valid changes were saved.\n", path)
 
+					// Keep the recovery file out of the deferred cleanup.
+					path = ""
+
 					return errors.New(message)
 				}
 			}
