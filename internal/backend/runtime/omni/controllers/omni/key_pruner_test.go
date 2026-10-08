@@ -29,7 +29,7 @@ const keyPrunerInterval = 10 * time.Minute
 // newExpiringKey builds a confirmed public key that expires after the given duration relative to the (virtual) now.
 func newExpiringKey(id string, expiresIn time.Duration) *authres.PublicKey {
 	publicKey := authres.NewPublicKey(id)
-	publicKey.TypedSpec().Value.Confirmed = true
+	publicKey.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(expiresIn))
 
 	return publicKey

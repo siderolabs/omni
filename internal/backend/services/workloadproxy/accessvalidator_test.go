@@ -68,7 +68,7 @@ func TestAccessValidator(t *testing.T) {
 
 	publicKey.TypedSpec().Value.PublicKey = []byte(armored)
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(8 * time.Hour))
-	publicKey.TypedSpec().Value.Confirmed = true
+	publicKey.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "test@example.com"}
 
 	require.NoError(t, st.Create(ctx, publicKey))
@@ -119,7 +119,7 @@ func TestAccessValidatorUnconfirmedKey(t *testing.T) {
 
 	publicKey.TypedSpec().Value.PublicKey = []byte(armored)
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(8 * time.Hour))
-	publicKey.TypedSpec().Value.Confirmed = false
+	publicKey.TypedSpec().Value.Confirmed = false //nolint:staticcheck
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: "owner@example.com"}
 
 	require.NoError(t, st.Create(ctx, publicKey))

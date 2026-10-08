@@ -36,7 +36,7 @@ func New(st state.State, suspended bool) auth.AuthenticatorFunc {
 			return nil, errors.New("public key expired")
 		}
 
-		if !pubKey.TypedSpec().Value.Confirmed {
+		if !pubKey.TypedSpec().Value.Confirmed { //nolint:staticcheck
 			return nil, errors.New("public key not confirmed")
 		}
 

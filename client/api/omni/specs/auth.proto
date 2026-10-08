@@ -98,7 +98,9 @@ message PublicKeySpec {
   // TODO: remove after all environments are migrated to use roles.
   repeated string scopes = 2;
   google.protobuf.Timestamp expiration = 3;
-  bool confirmed = 4;
+  // Confirmed is always true for keys written by this version.
+  // TODO: reserve the field number once no unconfirmed keys from earlier versions can exist.
+  bool confirmed = 4 [deprecated = true];
   Identity identity = 5;
   // Role is deprecated, the role of the user behind the key is used instead.
   //

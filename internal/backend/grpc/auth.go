@@ -63,6 +63,7 @@ type authServer struct {
 	loginURL                  *url.URL
 	state                     state.State
 	workloadProxyCookieDomain string
+	pending                   pendingKeys
 }
 
 func newAuthServer(state state.State, services config.Services, logger *zap.Logger) (*authServer, error) {
@@ -90,6 +91,7 @@ func newAuthServer(state state.State, services config.Services, logger *zap.Logg
 		logger:                    logger,
 		workloadProxyCookieDomain: workloadProxyCookieDomain,
 		loginURL:                  loginURL,
+		pending:                   pendingKeys{keys: map[string]*authres.PublicKey{}},
 	}, nil
 }
 
@@ -156,7 +158,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 	setPubKeyAttributes := func(k *authres.PublicKey) {
 		k.Metadata().Labels().Set(authres.LabelPublicKeyUserID, userID)
 
-		k.TypedSpec().Value.Confirmed = false
+		k.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 		k.TypedSpec().Value.PublicKey = pubKey.data
 		k.TypedSpec().Value.Type = pubKey.keyType
 		k.TypedSpec().Value.Expiration = timestamppb.New(pubKey.expiration)
@@ -174,11 +176,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
 	if state.IsNotFoundError(err) {
 		setPubKeyAttributes(newPubKey)
-
-		err = s.state.Create(ctx, newPubKey, state.WithCreateOwner(new(omni.KeyPrunerController{}).Name()))
-		if err != nil {
-			return nil, err
-		}
+		s.pending.add(newPubKey) // stored once it is confirmed
 
 		s.logger.Info(
 			"new public key registered",
@@ -216,13 +214,42 @@ func (s *authServer) AwaitPublicKeyConfirmation(ctx context.Context, request *au
 				return false, errors.New("resource is not a PublicKey")
 			}
 
-			return pubKeyResource.TypedSpec().Value.GetConfirmed(), nil
+			return pubKeyResource.TypedSpec().Value.GetConfirmed(), nil //nolint:staticcheck
 		}))
 	if err != nil {
 		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+// storePendingKey creates the resource of a pending key. A conflict is accepted when the stored key belongs to the same user.
+func (s *authServer) storePendingKey(ctx context.Context, pubKey *authres.PublicKey, email, userID string) error {
+	if err := s.state.Create(ctx, pubKey.DeepCopy(), state.WithCreateOwner(new(omni.KeyPrunerController{}).Name())); err != nil {
+		if !state.IsConflictError(err) {
+			return err
+		}
+
+		// stored in the meantime, by another confirmation of the same key or by something else
+		stored, err := safe.StateGetByID[*authres.PublicKey](ctx, s.state, pubKey.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		if storedUserID, _ := stored.Metadata().Labels().Get(authres.LabelPublicKeyUserID); storedUserID != userID {
+			s.logger.Info("public key not confirmed",
+				zap.String("email", email),
+				zap.String("fingerprint", pubKey.Metadata().ID()),
+				zap.String("reason", "the key belongs to another user"),
+			)
+
+			return errPublicKeyNotConfirmed
+		}
+	}
+
+	s.pending.remove(pubKey.Metadata().ID())
+
+	return nil
 }
 
 // RevokePublicKey deletes public key by ID.
@@ -310,19 +337,22 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, err
 	}
 
-	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(request.GetPublicKeyId()).Metadata())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			s.logger.Info("public key not confirmed",
-				zap.String("email", email),
-				zap.String("fingerprint", request.GetPublicKeyId()),
-				zap.String("reason", "the key is not there"),
-			)
+	pubKey, isPending := s.pending.get(request.GetPublicKeyId())
+	if !isPending {
+		pubKey, err = safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(request.GetPublicKeyId()).Metadata())
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				s.logger.Info("public key not confirmed",
+					zap.String("email", email),
+					zap.String("fingerprint", request.GetPublicKeyId()),
+					zap.String("reason", "the key is not there"),
+				)
 
-			return nil, errPublicKeyNotConfirmed
+				return nil, errPublicKeyNotConfirmed
+			}
+
+			return nil, err
 		}
-
-		return nil, err
 	}
 
 	userID := identity.TypedSpec().Value.UserId
@@ -338,13 +368,19 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, errPublicKeyNotConfirmed
 	}
 
-	_, err = safe.StateUpdateWithConflicts(ctx, s.state, pubKey.Metadata(), func(pk *authres.PublicKey) error {
-		pk.TypedSpec().Value.Confirmed = true
+	if isPending {
+		if err = s.storePendingKey(ctx, pubKey, email, userID); err != nil {
+			return nil, err
+		}
+	} else {
+		_, err = safe.StateUpdateWithConflicts(ctx, s.state, pubKey.Metadata(), func(pk *authres.PublicKey) error {
+			pk.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 
-		return nil
-	}, state.WithUpdateOwner(new(omni.KeyPrunerController{}).Name()))
-	if err != nil {
-		return nil, err
+			return nil
+		}, state.WithUpdateOwner(new(omni.KeyPrunerController{}).Name()))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	s.logger.Info(

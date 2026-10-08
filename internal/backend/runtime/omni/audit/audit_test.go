@@ -81,7 +81,7 @@ func TestAudit(t *testing.T) {
 		},
 		func(t *testing.T) {
 			newRes := res.DeepCopy().(*auth.PublicKey) //nolint:errcheck,forcetypeassert
-			newRes.TypedSpec().Value.Confirmed = true
+			newRes.TypedSpec().Value.Confirmed = true  //nolint:staticcheck
 			fn := l.LogUpdate(res)
 
 			require.NoError(t, fn(createCtx(), res, newRes))
@@ -90,7 +90,7 @@ func TestAudit(t *testing.T) {
 		},
 		func(t *testing.T) {
 			newRes := res.DeepCopy().(*auth.PublicKey) //nolint:errcheck,forcetypeassert
-			newRes.TypedSpec().Value.Confirmed = false
+			newRes.TypedSpec().Value.Confirmed = false //nolint:staticcheck
 			fn := l.LogUpdateWithConflicts(res.Metadata())
 
 			require.NoError(t, fn(createCtx(), res, newRes))

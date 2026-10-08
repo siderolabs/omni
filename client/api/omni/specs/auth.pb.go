@@ -378,8 +378,12 @@ type PublicKeySpec struct {
 	// TODO: remove after all environments are migrated to use roles.
 	Scopes     []string               `protobuf:"bytes,2,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	Expiration *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
-	Confirmed  bool                   `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
-	Identity   *Identity              `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
+	// Confirmed is always true for keys written by this version.
+	// TODO: reserve the field number once no unconfirmed keys from earlier versions can exist.
+	//
+	// Deprecated: Marked as deprecated in omni/specs/auth.proto.
+	Confirmed bool      `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	Identity  *Identity `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
 	// Role is deprecated, the role of the user behind the key is used instead.
 	//
 	// Deprecated: unused. Reserve the field number when it is removed.
@@ -440,6 +444,7 @@ func (x *PublicKeySpec) GetExpiration() *timestamppb.Timestamp {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in omni/specs/auth.proto.
 func (x *PublicKeySpec) GetConfirmed() bool {
 	if x != nil {
 		return x.Confirmed
@@ -1956,15 +1961,15 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\fIdentitySpec\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\" \n" +
 	"\bIdentity\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\xb9\x02\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\xbd\x02\n" +
 	"\rPublicKeySpec\x12\x1d\n" +
 	"\n" +
 	"public_key\x18\x01 \x01(\fR\tpublicKey\x12\x16\n" +
 	"\x06scopes\x18\x02 \x03(\tR\x06scopes\x12:\n" +
 	"\n" +
 	"expiration\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"expiration\x12\x1c\n" +
-	"\tconfirmed\x18\x04 \x01(\bR\tconfirmed\x12+\n" +
+	"expiration\x12 \n" +
+	"\tconfirmed\x18\x04 \x01(\bB\x02\x18\x01R\tconfirmed\x12+\n" +
 	"\bidentity\x18\x05 \x01(\v2\x0f.specs.IdentityR\bidentity\x12\x12\n" +
 	"\x04role\x18\x06 \x01(\tR\x04role\x12-\n" +
 	"\x04type\x18\a \x01(\x0e2\x19.specs.PublicKeySpec.TypeR\x04type\"'\n" +
