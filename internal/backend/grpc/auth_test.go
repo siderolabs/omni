@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -352,4 +353,43 @@ e3jZVPlrk+078y8/+99sKfmGskU+ynBsKNglG/uy2LO1yl8WGXhJtXJF+w==
 	_, err = authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: stored.Metadata().ID()})
 	require.NoError(t, err)
 	require.NoError(t, awaitWithin(stored.Metadata().ID(), time.Second))
+}
+
+// TestRegisterPublicKeyLimited checks that registrations from one address are limited, and other addresses are not affected.
+func TestRegisterPublicKeyLimited(t *testing.T) {
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	authServer, err := grpc.NewAuthServer(st, config.Services{
+		Api: config.Service{
+			AdvertisedURL: new("http://localhost:8099"),
+		},
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	register := func(ip string) error {
+		ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("x-forwarded-for", ip))
+
+		_, registerErr := authServer.RegisterPublicKey(ctx, &auth.RegisterPublicKeyRequest{
+			Identity: &auth.Identity{Email: "nobody@a.com"},
+			PublicKey: &auth.PublicKey{
+				PlainKey: &auth.PublicKey_Plain{
+					KeyPem: `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8N0YkTeVTfD8xgJsjSMgvAmZquzv
+LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
+-----END PUBLIC KEY-----`,
+					NotBefore: timestamppb.Now(),
+					NotAfter:  timestamppb.New(time.Now().Add(time.Hour)),
+				},
+			},
+		})
+
+		return registerErr
+	}
+
+	for range grpc.RegistrationBurst {
+		require.NoError(t, register("203.0.113.9"))
+	}
+
+	require.Equal(t, codes.ResourceExhausted, status.Code(register("203.0.113.9")))
+	require.NoError(t, register("203.0.113.10"))
 }
