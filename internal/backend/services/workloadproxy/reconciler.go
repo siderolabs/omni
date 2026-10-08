@@ -245,15 +245,36 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 		return nil, "", fmt.Errorf("failed to create proxy error logger: %w", err)
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-	proxy.ErrorLog = proxyErrorLogger
-	proxy.Transport = &http.Transport{
-		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-			return registry.dialProxy(ctx, network, address)
+	proxy := &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(targetURL)
+			r.Out.Host = r.In.Host
+			r.Out.URL.RawQuery = r.In.URL.RawQuery
+
+			// a proxy in front of Omni sets these, keep them
+			if values := r.In.Header.Values("X-Forwarded-For"); len(values) > 0 {
+				r.Out.Header["X-Forwarded-For"] = values
+			}
+
+			r.SetXForwarded() // appends the client address
+
+			for _, header := range []string{"Forwarded", "X-Forwarded-Host", "X-Forwarded-Proto"} {
+				if values := r.In.Header.Values(header); len(values) > 0 {
+					r.Out.Header[header] = values
+				}
+			}
+
+			dropProxyCookies(r.Out.Header)
 		},
-		IdleConnTimeout:       90 * time.Second,
-		ResponseHeaderTimeout: 10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		ErrorLog: proxyErrorLogger,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+				return registry.dialProxy(ctx, network, address)
+			},
+			IdleConnTimeout:       90 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
 	}
 
 	return proxy, clusterID, nil
