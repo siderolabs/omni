@@ -28,15 +28,15 @@ const highlighted = computedAsync(() => (code ? highlight(code, lang, search) : 
 <template>
   <div class="relative rounded border border-border-strong bg-surface-card text-content-emphasis">
     <div
-      class="absolute top-2 right-2 z-10 flex items-center justify-center rounded-md p-1 backdrop-blur"
+      class="absolute top-2 right-2 z-10 flex items-center justify-center rounded-md p-micro backdrop-blur"
     >
       <CopyButton v-bind="buttonAttrs" :text="code" />
     </div>
 
-    <div class="p-1">
+    <div class="p-micro">
       <!-- eslint-disable vue/no-v-html -- Shiki escapes the code it highlights. -->
       <pre
-        class="overflow-auto px-3 py-1 font-mono text-xs/relaxed whitespace-pre"
+        class="overflow-auto px-snug py-micro font-mono text-xs/relaxed whitespace-pre"
       ><span v-if="highlighted" v-html="highlighted"></span><template v-else>{{ code }}</template></pre>
     </div>
   </div>

@@ -76,7 +76,7 @@ async function onConfirm() {
     content-class="max-w-xl"
     @confirm="onConfirm"
   >
-    <div class="flex flex-col gap-4 text-xs">
+    <div class="flex flex-col gap-compact text-xs">
       <ul class="list-inside list-disc">
         <li v-for="machine in machines" :key="machine.id">
           <code>{{ machine.name ?? machine.id }}</code>

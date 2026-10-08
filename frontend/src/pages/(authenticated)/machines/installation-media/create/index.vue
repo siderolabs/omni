@@ -23,7 +23,7 @@ useTitle('Hardware Type')
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-compact">
     <RadioGroup v-model="formState.hardwareType" label="Hardware Type">
       <RadioGroupOption value="metal">
         Bare-metal Machine

@@ -15,7 +15,7 @@ const { data } = useOngoingTasks()
 
 <template>
   <Card v-if="data.length" class="text-xs">
-    <header class="flex items-center justify-between gap-1 px-4 py-3">
+    <header class="flex items-center justify-between gap-micro px-compact py-snug">
       <h2 class="text-sm font-medium text-content-emphasis">Ongoing Operations</h2>
       <span class="text-content-secondary">{{ data.length }}</span>
     </header>
@@ -23,7 +23,7 @@ const { data } = useOngoingTasks()
     <div
       v-for="{ item, summary } in data"
       :key="item.metadata.id"
-      class="flex items-center gap-3 border-t border-border-default px-4 py-3"
+      class="flex items-center gap-snug border-t border-border-default px-compact py-snug"
     >
       <TIcon
         icon="loading"

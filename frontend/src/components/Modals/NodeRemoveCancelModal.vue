@@ -86,7 +86,7 @@ async function onConfirm() {
   >
     <template #description>Node {{ nodeName }}</template>
 
-    <div class="flex flex-col gap-2 text-xs">
+    <div class="flex flex-col gap-tight text-xs">
       <p v-if="clusterMachineErr" class="text-xs text-status-danger-text">
         {{ clusterMachineErr }}
       </p>

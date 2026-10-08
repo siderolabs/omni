@@ -115,17 +115,17 @@ async function updateKernelArgs() {
   >
     <ManagedByTemplatesWarning :resource="kernelArgs" />
 
-    <div class="flex flex-col gap-6">
-      <div v-if="unmetConditions?.length" class="flex flex-col gap-2">
+    <div class="flex flex-col gap-base">
+      <div v-if="unmetConditions?.length" class="flex flex-col gap-tight">
         <div class="font-bold text-status-warning-text">
           Kernel args won't be updated immediately, there are unmet conditions
         </div>
 
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-micro">
           <span
             v-for="(condition, index) in unmetConditions"
             :key="index"
-            class="my-0.5 rounded border-l-3 border-l-status-warning-fill bg-surface-inert py-1 pl-3 text-xs text-content-default"
+            class="my-0.5 rounded border-l-3 border-l-status-warning-fill bg-surface-inert py-micro pl-snug text-xs text-content-default"
           >
             {{ condition }}
           </span>

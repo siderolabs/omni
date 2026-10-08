@@ -180,7 +180,7 @@ const uiSchema = computed(() => {
 }
 
 .group {
-  @apply m-2 rounded border border-border-strong;
+  @apply m-tight rounded border border-border-strong;
 }
 
 .group > .group-item:not(:first-of-type) {
@@ -188,6 +188,6 @@ const uiSchema = computed(() => {
 }
 
 .group-label {
-  @apply mt-3 -mb-1.5 ml-1 px-1 text-content-default;
+  @apply mt-snug -mb-1.5 ml-micro px-micro text-content-default;
 }
 </style>

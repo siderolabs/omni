@@ -79,7 +79,7 @@ const handleCreate = async () => {
   >
     <ServiceAccountKey v-if="key" :secret-key="key" />
 
-    <div v-else class="flex flex-col gap-2">
+    <div v-else class="flex flex-col gap-tight">
       <TInput v-if="!propName" v-model="name" title="ID" placeholder="..." />
       <TInput v-model="expiration" title="Expiration Days" type="number" :min="1" />
       <TSelectList v-if="!propRole" v-model="role" title="Role" :values="roles" />

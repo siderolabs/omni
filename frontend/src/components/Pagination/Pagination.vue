@@ -37,7 +37,7 @@ const currentPage = defineModel<number>('current-page', { default: 1 })
   >
     <PaginationList
       v-slot="{ items }"
-      :class="cn('flex items-center justify-end gap-4', $attrs.class)"
+      :class="cn('flex items-center justify-end gap-compact', $attrs.class)"
     >
       <PaginationFirst as-child>
         <IconButton icon="chevron-double-left" />

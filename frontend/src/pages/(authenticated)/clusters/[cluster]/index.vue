@@ -50,7 +50,7 @@ useTitle('Overview')
 </script>
 
 <template>
-  <PageContainer class="flex flex-col gap-6">
+  <PageContainer class="flex flex-col gap-base">
     <div role="heading" aria-level="1" :aria-label="selectedCluster">
       <TSelectList
         v-model="selectedCluster"

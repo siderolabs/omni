@@ -70,9 +70,9 @@ const clusterDestroyDialogOpen = ref(false)
   >
     <CollapsibleTrigger
       :aria-labelledby="labelId"
-      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-surface-chrome p-4 pl-2 text-left hover:bg-surface-raised"
+      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-surface-chrome p-compact pl-tight text-left hover:bg-surface-raised"
     >
-      <div class="flex min-w-0 items-center gap-2">
+      <div class="flex min-w-0 items-center gap-tight">
         <TIcon
           class="size-5 shrink-0 rounded-md bg-surface-hover transition-transform duration-250 group-data-[state=open]/collapsible-trigger:rotate-180 hover:text-content-default"
           icon="drop-up"
@@ -102,16 +102,16 @@ const clusterDestroyDialogOpen = ref(false)
 
       <ClusterStatus :cluster="item" />
 
-      <div class="flex items-center gap-3 text-content-muted">
+      <div class="flex items-center gap-snug text-content-muted">
         <Tooltip :description="`Talos version v${item.spec.talos_version}`">
-          <span class="flex items-center gap-1 text-content-default">
+          <span class="flex items-center gap-micro text-content-default">
             <TIcon class="size-3.5 shrink-0" icon="talos" />
             {{ item.spec.talos_version }}
           </span>
         </Tooltip>
 
         <Tooltip :description="`Kubernetes version v${item.spec.kubernetes_version}`">
-          <span class="flex items-center gap-1 text-content-default">
+          <span class="flex items-center gap-micro text-content-default">
             <TIcon class="size-3.5 shrink-0" icon="kubernetes" />
             {{ item.spec.kubernetes_version }}
           </span>
@@ -189,7 +189,9 @@ const clusterDestroyDialogOpen = ref(false)
       :aria-labelledby="labelId"
       class="collapsible-content col-span-full grid grid-cols-subgrid"
     >
-      <div class="col-span-full border-t border-border-strong bg-surface-chrome px-4 py-2">
+      <div
+        class="col-span-full border-t border-border-strong bg-surface-chrome px-compact py-tight"
+      >
         <ItemLabels
           :resource="item"
           :add-label-func="addClusterLabels"

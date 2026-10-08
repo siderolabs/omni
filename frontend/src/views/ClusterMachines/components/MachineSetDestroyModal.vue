@@ -81,6 +81,6 @@ const destroyMachineSet = async () => {
 
     <ManagedByTemplatesWarning :resource="cluster" warning-style="popup" />
 
-    <p class="mb-2 text-xs">Please confirm the action.</p>
+    <p class="mb-tight text-xs">Please confirm the action.</p>
   </ConfirmModal>
 </template>

@@ -62,8 +62,8 @@ const confirm = async () => {
       </li>
     </ul>
 
-    <p class="py-2 text-xs">Please confirm the action.</p>
-    <p class="py-2 text-xs text-accent-hover">
+    <p class="py-tight text-xs">Please confirm the action.</p>
+    <p class="py-tight text-xs text-accent-hover">
       Unrejecting machines will place them back in the pending machines list. You can accept or
       reject them again later.
     </p>

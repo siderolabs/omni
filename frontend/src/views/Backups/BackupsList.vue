@@ -96,7 +96,7 @@ const {
     type="warn"
     :title="`The backups storage is not properly configured: ${etcdBackupOverallStatus.spec.configuration_error}`"
   >
-    <div class="flex gap-1">
+    <div class="flex gap-micro">
       Check the
       <TButton
         is="a"
@@ -110,7 +110,7 @@ const {
       </TButton>
       on how to configure s3 backups using CLI.
     </div>
-    <div v-if="canManageBackupStore" class="flex gap-1">
+    <div v-if="canManageBackupStore" class="flex gap-micro">
       Or
       <TButton is="router-link" variant="subtle" size="xs" :to="{ name: 'BackupStorage' }">
         configure backups in the UI.
@@ -127,7 +127,7 @@ const {
       v-if="etcdBackupStatus.spec.error"
       type="warn"
       title="There was an issue creating the backup"
-      class="mb-4"
+      class="mb-compact"
     >
       {{ etcdBackupStatus.spec.error }}
     </TAlert>
@@ -150,8 +150,8 @@ const {
       ]"
     >
       <template #default="{ items, searchQuery }">
-        <div class="mb-1 bg-surface-card px-6 py-2 pl-10 text-xs">
-          <div class="grid grid-cols-4 items-center justify-center gap-1 pr-12">
+        <div class="mb-micro bg-surface-card px-base py-tight pl-10 text-xs">
+          <div class="grid grid-cols-4 items-center justify-center gap-micro pr-12">
             <div>ID</div>
             <div>Creation Date</div>
             <div>Size</div>
@@ -160,8 +160,8 @@ const {
         </div>
 
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 pl-7 text-content-default">
-            <div class="grid grid-cols-4 items-center justify-center gap-1 pr-12">
+          <div class="relative pr-snug pl-7 text-content-default">
+            <div class="grid grid-cols-4 items-center justify-center gap-micro pr-12">
               <WordHighlighter
                 :query="searchQuery"
                 :text-to-highlight="item.metadata.id"
@@ -173,7 +173,7 @@ const {
               <div class="text-content-emphasis">
                 {{ prettyBytes(parseInt(item.spec.size ?? '0')) }}
               </div>
-              <div class="flex items-center gap-2 text-content-emphasis">
+              <div class="flex items-center gap-tight text-content-emphasis">
                 {{ item.spec.snapshot }}
                 <IconButton icon="copy" @click="copy(item.spec.snapshot ?? '')" />
               </div>

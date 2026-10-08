@@ -223,14 +223,17 @@ const tipLeft = computed(() =>
 
 <template>
   <div class="flex flex-col">
-    <div class="flex justify-between px-3 text-xs">
+    <div class="flex justify-between px-snug text-xs">
       <span v-if="title" class="text-content-default">{{ title }}</span>
       <span v-if="readout">{{ readout }}</span>
     </div>
 
     <div class="relative h-45">
       <div v-if="err || loading" class="flex h-full items-center justify-center">
-        <span v-if="err" class="flex items-center justify-center gap-4 text-sm text-content-muted">
+        <span
+          v-if="err"
+          class="flex items-center justify-center gap-compact text-sm text-content-muted"
+        >
           <TIcon icon="exclamation-circle" class="size-6" />
           {{ errCode === Code.UNAVAILABLE ? 'Talos API is not ready yet' : err }}
         </span>
@@ -340,11 +343,11 @@ const tipLeft = computed(() =>
         <div
           v-if="tooltip"
           ref="tip"
-          class="pointer-events-none absolute top-2 flex flex-col gap-1 rounded bg-surface-raised px-3 py-2.5 text-xs whitespace-nowrap text-content-emphasis shadow"
+          class="pointer-events-none absolute top-2 flex flex-col gap-micro rounded bg-surface-raised px-snug py-2.5 text-xs whitespace-nowrap text-content-emphasis shadow"
           :style="{ left: `${tipLeft}px` }"
         >
           <div class="text-content-secondary">{{ tooltip.time }}</div>
-          <div v-for="row in tooltip.rows" :key="row.key" class="flex items-center gap-2">
+          <div v-for="row in tooltip.rows" :key="row.key" class="flex items-center gap-tight">
             <span
               aria-hidden="true"
               class="size-2 rounded-xs"

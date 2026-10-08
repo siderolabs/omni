@@ -74,25 +74,25 @@ const {
 </script>
 
 <template>
-  <div class="flex max-w-full flex-col gap-2">
+  <div class="flex max-w-full flex-col gap-tight">
     <slot
       name="header"
       :items-count="total"
       :filtered="searchState.searchFor?.length || searchState.selectors?.length"
     />
 
-    <div class="flex grow flex-col gap-4 overflow-hidden">
+    <div class="flex grow flex-col gap-compact overflow-hidden">
       <template v-if="pagination || search">
         <slot name="input">
           <TInput v-if="search" v-model="filterValue" icon="search" />
         </slot>
 
-        <div class="flex justify-between gap-2">
+        <div class="flex justify-between gap-tight">
           <div class="grow">
             <slot name="extra-controls" :selected-filter-option />
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-tight">
             <TSelectList
               v-if="filterOptions.length"
               v-model="selectedFilterOption"

@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>
 
 export const AllGlyphs: Story = {
   decorators: [
-    () => ({ template: '<div class="grid grid-cols-6 items-center gap-2"><story/></div>' }),
+    () => ({ template: '<div class="grid grid-cols-6 items-center gap-tight"><story/></div>' }),
   ],
   render: () => ({
     components: { StatusGlyph },

@@ -62,7 +62,7 @@ export const Default: Story = {
 
 export const AllButtons: Story = {
   decorators: [
-    () => ({ template: '<div class="grid grid-cols-4 items-center gap-2"><story/></div>' }),
+    () => ({ template: '<div class="grid grid-cols-4 items-center gap-tight"><story/></div>' }),
   ],
   render: (args) => ({
     components: { TButton },

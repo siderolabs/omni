@@ -39,7 +39,7 @@ export const Default: Story = {}
 
 export const AllTitles: Story = {
   decorators: [
-    () => ({ template: '<div class="grid grid-cols-4 items-center gap-2"><story/></div>' }),
+    () => ({ template: '<div class="grid grid-cols-4 items-center gap-tight"><story/></div>' }),
   ],
   render: (args) => ({
     components: { TStatus },

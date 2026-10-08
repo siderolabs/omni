@@ -66,7 +66,7 @@ const allocationItems = computed(() => [
 </script>
 
 <template>
-  <Card class="p-4">
+  <Card class="p-compact">
     <HomeStatusSegmentedBar
       title="Machines"
       :total="counts.totalCount"

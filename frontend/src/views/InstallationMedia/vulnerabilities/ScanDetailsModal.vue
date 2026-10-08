@@ -78,16 +78,16 @@ async function downloadReport(filename: VulnerabilityReportFormat) {
       <SeverityBadges
         :matches
         :active-filter="severityFilter"
-        class="mt-2"
+        class="mt-tight"
         clickable
         @click-severity="toggleSeverityFilter"
       />
     </template>
 
-    <div class="flex flex-col gap-4">
-      <div class="flex items-center gap-4 text-sm">
+    <div class="flex flex-col gap-compact">
+      <div class="flex items-center gap-compact text-sm">
         Supply chain
-        <ul class="flex gap-2">
+        <ul class="flex gap-tight">
           <li>
             <TButton
               size="sm"
@@ -116,9 +116,9 @@ async function downloadReport(filename: VulnerabilityReportFormat) {
         </ul>
       </div>
 
-      <div class="flex items-center gap-4 text-sm">
+      <div class="flex items-center gap-compact text-sm">
         Scan report
-        <ul class="flex gap-2">
+        <ul class="flex gap-tight">
           <li
             v-for="[label, filename] in [
               ['JSON', VulnerabilityReportFormat.JSON],

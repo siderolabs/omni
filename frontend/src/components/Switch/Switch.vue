@@ -19,7 +19,7 @@ const checked = defineModel<boolean>({ default: false })
 </script>
 
 <template>
-  <label class="inline-flex cursor-pointer items-center gap-2 has-disabled:cursor-not-allowed">
+  <label class="inline-flex cursor-pointer items-center gap-tight has-disabled:cursor-not-allowed">
     <span
       v-if="label || $slots.default"
       class="grow truncate text-xs text-content-secondary select-none"

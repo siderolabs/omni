@@ -124,10 +124,10 @@ const options = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-micro">
     <Tooltip placement="bottom">
       <template #description>
-        <div class="flex max-w-xs flex-col gap-1 p-2">
+        <div class="flex max-w-xs flex-col gap-micro p-tight">
           <p>
             The discovery service lets the machines in a cluster find one another. Each node
             registers its identity and addresses with the service and uses it to locate the other

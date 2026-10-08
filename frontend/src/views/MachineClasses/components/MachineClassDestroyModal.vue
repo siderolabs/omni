@@ -62,6 +62,6 @@ const destroy = async () => {
   >
     <template #description>Machine Class {{ machineClassId }}</template>
 
-    <p class="py-2 text-xs">Please confirm the action.</p>
+    <p class="py-tight text-xs">Please confirm the action.</p>
   </ConfirmModal>
 </template>

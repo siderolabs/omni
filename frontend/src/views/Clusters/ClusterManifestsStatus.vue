@@ -88,16 +88,16 @@ const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.grou
     <Tabs
       v-else-if="manifestsStatus"
       v-model="routeHash"
-      tabs-list-class="mb-2"
+      tabs-list-class="mb-tight"
       class="grow overflow-y-hidden"
     >
       <template #triggers>
-        <TabButton class="flex items-center gap-1" :value="TabType.GRAPH">
+        <TabButton class="flex items-center gap-micro" :value="TabType.GRAPH">
           <TIcon icon="pods" aria-hidden="true" class="size-4" />
           Graph
         </TabButton>
 
-        <TabButton class="flex items-center gap-1" :value="TabType.LIST">
+        <TabButton class="flex items-center gap-micro" :value="TabType.LIST">
           <TIcon icon="list-bullet" aria-hidden="true" class="size-4" />
           List
         </TabButton>

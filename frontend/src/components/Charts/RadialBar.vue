@@ -86,11 +86,11 @@ const labelId = useId()
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-tight">
     <h2 :id="labelId" class="text-xl font-medium text-content-emphasis">{{ title }}</h2>
 
     <figure
-      class="flex flex-col items-center gap-2 self-center py-2 not-visited:px-4"
+      class="flex flex-col items-center gap-tight self-center py-tight not-visited:px-compact"
       :aria-labelledby="labelId"
     >
       <svg
@@ -136,11 +136,11 @@ const labelId = useId()
         </g>
       </svg>
 
-      <figcaption class="flex flex-col gap-2">
+      <figcaption class="flex flex-col gap-tight">
         <dl
           v-for="(item, index) in legendItems"
           :key="item.label"
-          class="flex items-center gap-2 text-xs whitespace-nowrap"
+          class="flex items-center gap-tight text-xs whitespace-nowrap"
         >
           <span
             aria-hidden="true"

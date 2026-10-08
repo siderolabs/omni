@@ -18,7 +18,7 @@ const { class: className } = defineProps<Props>()
 </script>
 
 <template>
-  <main :class="cn({ 'px-4 py-2 md:px-6 md:py-4': !disablePadding }, className)">
+  <main :class="cn({ 'px-compact py-tight md:px-base md:py-compact': !disablePadding }, className)">
     <slot></slot>
   </main>
 </template>

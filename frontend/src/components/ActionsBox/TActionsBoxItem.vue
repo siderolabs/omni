@@ -32,7 +32,7 @@ const forwarded = useForwardPropsEmits(dropdownMenuItemProps, emit)
 
 <template>
   <DropdownMenuItem
-    class="flex w-full items-center gap-2 px-3 py-2 not-data-disabled:cursor-pointer data-disabled:cursor-not-allowed data-disabled:text-content-disabled"
+    class="flex w-full items-center gap-tight px-snug py-tight not-data-disabled:cursor-pointer data-disabled:cursor-not-allowed data-disabled:text-content-disabled"
     :class="
       danger
         ? 'text-status-danger-text not-data-disabled:hover:text-accent-text'

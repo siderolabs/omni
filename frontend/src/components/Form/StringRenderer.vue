@@ -28,7 +28,7 @@ const control = p.control
       :disabled="!control.enabled"
       :model-value="control.data ?? ''"
       compact
-      class="-my-2 min-w-56"
+      class="-my-tight min-w-56"
       @update:model-value="(value: string) => p.handleChange(control.path, value)"
     />
   </ContentWrapper>

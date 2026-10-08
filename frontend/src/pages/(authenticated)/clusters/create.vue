@@ -316,11 +316,11 @@ useTitle(['Clusters', 'Create'])
 </script>
 
 <template>
-  <PageContainer disable-padding class="flex h-full flex-col pt-6">
-    <PageHeader title="Create Cluster" class="px-6" />
+  <PageContainer disable-padding class="flex h-full flex-col pt-base">
+    <PageHeader title="Create Cluster" class="px-base" />
 
-    <div class="flex grow flex-col items-stretch gap-4 overflow-y-auto px-6 pb-6">
-      <div class="flex flex-wrap gap-2">
+    <div class="flex grow flex-col items-stretch gap-compact overflow-y-auto px-base pb-base">
+      <div class="flex flex-wrap gap-tight">
         <TInput
           title="Cluster Name"
           class="grow"
@@ -355,10 +355,10 @@ useTitle(['Clusters', 'Create'])
         :remove-label-func="removeLabels"
       />
       <div class="text-content-default">Cluster Features</div>
-      <div class="flex max-w-sm flex-col gap-3">
+      <div class="flex max-w-sm flex-col gap-snug">
         <Tooltip placement="bottom">
           <template #description>
-            <div class="flex flex-col gap-1 p-2">
+            <div class="flex flex-col gap-micro p-tight">
               <p>Encrypt machine disks using Omni as a key management server.</p>
               <p>Once cluster is created it is not possible to update encryption settings.</p>
             </div>
@@ -425,7 +425,7 @@ useTitle(['Clusters', 'Create'])
             Machine is available when it is connected, not allocated and is reporting Talos events.
           </TAlert>
 
-          <AddingMachinesTutorial class="mt-4" />
+          <AddingMachinesTutorial class="mt-compact" />
         </template>
 
         <template #input>
@@ -457,7 +457,7 @@ useTitle(['Clusters', 'Create'])
     </div>
 
     <div
-      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-3"
+      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-snug"
     >
       <ClusterMenu
         class="w-full"

@@ -162,7 +162,7 @@ function labelFromValue(value?: T | null) {
 
 <template>
   <component :is="title && overheadTitle ? 'label' : 'div'" class="inline-block">
-    <FormLabel v-if="title && overheadTitle" as="span" class="mb-4">
+    <FormLabel v-if="title && overheadTitle" as="span" class="mb-compact">
       {{ title }}
     </FormLabel>
 

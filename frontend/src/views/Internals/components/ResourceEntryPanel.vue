@@ -37,8 +37,10 @@ const yaml = computed(() => (item ? dump(item, { noRefs: true }) : ''))
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 border-l-border-default bg-surface-page p-4 md:border-l">
-    <div class="flex justify-between gap-2">
+  <div
+    class="flex flex-col gap-tight border-l-border-default bg-surface-page p-compact md:border-l"
+  >
+    <div class="flex justify-between gap-tight">
       <h2 class="truncate font-medium text-content-emphasis">{{ id }}</h2>
 
       <CloseButton class="shrink-0" @click="$emit('close')" />
@@ -57,8 +59,8 @@ const yaml = computed(() => (item ? dump(item, { noRefs: true }) : ''))
       This resource type may contain secrets such as private keys or tokens.
     </TAlert>
 
-    <!-- pr-1 to give some padding between bg & scrollbar -->
-    <div v-else class="min-h-0 overflow-auto pr-1">
+    <!-- pr-micro to give some padding between bg & scrollbar -->
+    <div v-else class="min-h-0 overflow-auto pr-micro">
       <CodeBlock :code="yaml" lang="yaml" :search />
     </div>
   </div>

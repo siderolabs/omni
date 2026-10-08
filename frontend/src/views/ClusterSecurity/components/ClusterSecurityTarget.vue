@@ -89,9 +89,9 @@ const upgradeVersionScans = computed(() => {
 </script>
 
 <template>
-  <article class="flex flex-col gap-4 rounded border border-border-strong p-4">
-    <header class="flex flex-col gap-1">
-      <h2 class="flex items-center gap-1 text-sm text-content-default">
+  <article class="flex flex-col gap-compact rounded border border-border-strong p-compact">
+    <header class="flex flex-col gap-micro">
+      <h2 class="flex items-center gap-micro text-sm text-content-default">
         <TIcon aria-hidden="true" icon="document-text" class="size-4" />
         Schematic
         <Tooltip :description="artifactTarget.schematic_id">
@@ -99,7 +99,7 @@ const upgradeVersionScans = computed(() => {
         </Tooltip>
       </h2>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-tight">
         <span class="resource-label">
           {{ archToString(arch) }}
         </span>
@@ -113,8 +113,8 @@ const upgradeVersionScans = computed(() => {
       </div>
     </header>
 
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-col gap-snug">
+      <div class="flex flex-wrap items-center justify-between gap-snug">
         <div class="flex flex-col gap-1.5">
           <div
             v-if="currentVersionScan?.loading"
@@ -156,7 +156,7 @@ const upgradeVersionScans = computed(() => {
         </TButton>
       </div>
 
-      <div v-if="currentVersionScan && upgradeVersionScans.length" class="flex flex-col gap-3">
+      <div v-if="currentVersionScan && upgradeVersionScans.length" class="flex flex-col gap-snug">
         <h3 class="text-sm text-content-secondary">Upgrade paths</h3>
         <UpgradePathCard
           v-for="{ scan, version, isPatch } in upgradeVersionScans"

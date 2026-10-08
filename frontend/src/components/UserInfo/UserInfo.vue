@@ -41,7 +41,7 @@ const initials = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-tight">
     <div class="overflow-hidden rounded-full" :class="size === 'small' ? 'size-8' : 'size-12'">
       <img v-if="avatar" class="size-full" :src="avatar" alt="" referrerpolicy="no-referrer" />
 

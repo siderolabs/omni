@@ -209,7 +209,7 @@ const doInstall = async () => {
       inProgressFromServer
     "
     :loading="installing"
-    content-class="flex max-w-xl flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-tight"
     @confirm="doInstall"
   >
     <template #description>Node {{ machineId }}</template>
@@ -221,7 +221,7 @@ const doInstall = async () => {
       </TAlert>
 
       <template v-if="!showProgress">
-        <div class="flex items-center justify-end gap-2">
+        <div class="flex items-center justify-end gap-tight">
           <span
             v-if="installDiskStatus?.spec.message"
             :title="installDiskStatus.spec.message"
@@ -237,16 +237,16 @@ const doInstall = async () => {
         <RadioGroup
           id="talos-install-version"
           v-model="selectedVersion"
-          class="flex max-h-80 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
+          class="flex max-h-80 flex-1 flex-col gap-tight overflow-y-auto text-content-default"
         >
           <template v-for="(group, label) in installVersions" :key="label">
             <RadioGroupLabel
               as="div"
-              class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
+              class="sticky top-0 w-full bg-surface-hover p-micro pl-7 text-sm font-bold"
             >
               {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
             </RadioGroupLabel>
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-micro">
               <RadioGroupOption
                 v-for="version in group.versions"
                 :key="version"
@@ -254,7 +254,7 @@ const doInstall = async () => {
                 :value="version"
               >
                 <div
-                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+                  class="flex transform cursor-pointer items-center gap-tight px-tight py-micro text-sm transition-colors hover:bg-surface-hover"
                   :class="{ 'bg-surface-hover': checked }"
                 >
                   <TCheckbox
@@ -278,14 +278,14 @@ const doInstall = async () => {
         </RadioGroup>
       </template>
 
-      <div v-else class="flex flex-col gap-2 overflow-hidden">
+      <div v-else class="flex flex-col gap-tight overflow-hidden">
         <span class="shrink-0 text-sm">
           The installation runs on the server and continues even if you close this window.
         </span>
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
+          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-tight text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
           >{{ progress.length ? progress.join('\n') : 'Starting install…' }}</pre>
       </div>
     </template>

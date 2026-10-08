@@ -44,7 +44,7 @@ const current = computed(
 
     <DropdownMenuPortal>
       <DropdownMenuContent
-        class="z-50 min-w-36 origin-(--reka-dropdown-menu-content-transform-origin) rounded border border-border-default bg-surface-raised py-1 data-[side=bottom]:slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        class="z-50 min-w-36 origin-(--reka-dropdown-menu-content-transform-origin) rounded border border-border-default bg-surface-raised py-micro data-[side=bottom]:slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         align="end"
         side="bottom"
         :side-offset="10"
@@ -54,7 +54,7 @@ const current = computed(
             v-for="option in options"
             :key="option.value"
             :value="option.value"
-            class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs text-content-secondary transition-colors hover:text-content-default data-[state=checked]:text-content-emphasis"
+            class="flex w-full cursor-pointer items-center gap-tight px-snug py-tight text-xs text-content-secondary transition-colors hover:text-content-default data-[state=checked]:text-content-emphasis"
           >
             <TIcon class="size-4" :icon="option.icon" />
             <span class="grow">{{ option.label }}</span>

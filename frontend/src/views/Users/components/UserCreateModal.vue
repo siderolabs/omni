@@ -60,7 +60,7 @@ const handleUserCreate = async () => {
     :loading="isCreating"
     @confirm="handleUserCreate"
   >
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-tight">
       <TInput v-model="identity" title="User Email" class="h-full flex-1" placeholder="..." />
 
       <TSelectList

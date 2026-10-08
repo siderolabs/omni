@@ -16,6 +16,6 @@ useTitle('Page Not Found')
   <PageContainer class="flex h-full flex-col items-center justify-center">
     <div class="text-[18.75rem] leading-none font-bold text-content-muted">404</div>
     <div class="text-center text-xl">Page not found</div>
-    <TButton is="router-link" class="mt-4" :to="{ name: 'Home' }">Go Back</TButton>
+    <TButton is="router-link" class="mt-compact" :to="{ name: 'Home' }">Go Back</TButton>
   </PageContainer>
 </template>

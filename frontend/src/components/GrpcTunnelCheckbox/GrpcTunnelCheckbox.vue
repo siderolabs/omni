@@ -48,7 +48,7 @@ watch(
     />
 
     <template #description>
-      <div class="flex flex-col gap-1 p-2">
+      <div class="flex flex-col gap-micro p-tight">
         <p>
           Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP/2 for Omni
           management traffic, instead of UDP. Only enable this if the network blocks UDP packets, as

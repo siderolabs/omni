@@ -61,8 +61,10 @@ useTitle('OIDC Login')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md">
-      <div class="flex items-center gap-4">
+    <div
+      class="flex flex-col gap-tight rounded-md bg-surface-raised px-section py-section drop-shadow-md"
+    >
+      <div class="flex items-center gap-compact">
         <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
         <div class="text-xl font-bold text-content-default">
           <div>Authenticate Kubernetes Access</div>
@@ -71,7 +73,7 @@ useTitle('OIDC Login')
 
       <div v-if="!authRequestId" class="mx-12">Public key ID parameter is missing...</div>
       <template v-else>
-        <div class="flex w-full flex-col gap-4">
+        <div class="flex w-full flex-col gap-compact">
           <div>The Kubernetes access is going to be granted for the user:</div>
           <UserInfo
             user="user"
@@ -82,24 +84,24 @@ useTitle('OIDC Login')
           />
           <div
             v-if="authCode"
-            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-border-default p-1 pl-2"
+            class="flex w-full items-center justify-center gap-0.5 rounded-lg border border-border-default p-micro pl-tight"
           >
-            <div class="mr-2 text-sm text-content-emphasis">Access Code</div>
+            <div class="mr-tight text-sm text-content-emphasis">Access Code</div>
             <div class="flex-1" />
             <div
-              class="cursor-pointer rounded-l-md bg-surface-inert px-2 py-0.5 font-mono font-bold text-content-emphasis"
+              class="cursor-pointer rounded-l-md bg-surface-inert px-tight py-0.5 font-mono font-bold text-content-emphasis"
               @click="copyCode"
             >
               {{ copied ? 'Copied' : authCode }}
             </div>
             <div
-              class="cursor-pointer rounded-r-md bg-surface-inert px-2 py-1 text-content-emphasis transition-colors hover:bg-surface-hover"
+              class="cursor-pointer rounded-r-md bg-surface-inert px-tight py-micro text-content-emphasis transition-colors hover:bg-surface-hover"
               @click="copyCode"
             >
               <TIcon icon="copy" class="size-5" />
             </div>
           </div>
-          <div v-else class="my-0.5 flex w-full flex-col gap-3">
+          <div v-else class="my-0.5 flex w-full flex-col gap-snug">
             <TButton class="w-full" variant="highlighted" @click="confirmOIDCRequest">
               Grant Access
             </TButton>
@@ -114,6 +116,6 @@ useTitle('OIDC Login')
 @reference "../../index.css";
 
 .user-info {
-  @apply rounded-md bg-surface-inert px-6 py-2;
+  @apply rounded-md bg-surface-inert px-base py-tight;
 }
 </style>

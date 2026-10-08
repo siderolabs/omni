@@ -95,7 +95,7 @@ const labelId = useId()
 
 <template>
   <li
-    class="my-1 flex items-center gap-2 rounded border border-border-strong bg-surface-raised px-2 py-2 pr-3 text-xs text-content-default"
+    class="my-micro flex items-center gap-tight rounded border border-border-strong bg-surface-raised px-tight py-tight pr-snug text-xs text-content-default"
     :aria-labelledby="labelId"
   >
     <div class="w-14">
@@ -104,11 +104,11 @@ const labelId = useId()
       </MachineSetLabel>
     </div>
 
-    <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+    <div class="flex flex-1 flex-wrap items-center gap-x-compact gap-y-micro">
       <div :id="labelId" class="w-32 truncate" :title="machineSet.name">
         {{ machineSet.name }}
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-tight">
         Allocation Mode:
         <TButtonGroup
           :model-value="
@@ -154,9 +154,9 @@ const labelId = useId()
         <div v-else>{{ pluralize('Machines', Object.keys(machineSet.machines).length, true) }}</div>
       </div>
     </div>
-    <div class="flex w-24 items-center justify-end gap-2">
+    <div class="flex w-24 items-center justify-end gap-tight">
       <TButton v-if="!noRemove" class="h-6" size="sm" @click="$emit('onRemove')">Remove</TButton>
-      <div class="flex justify-center gap-1">
+      <div class="flex justify-center gap-micro">
         <IconButton icon="chart-bar" @click="machineSetConfigEditModalOpen = true" />
         <IconButton
           :icon="machineSet.patches[PatchID.Default] ? 'settings-toggle' : 'settings'"

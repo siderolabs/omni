@@ -123,8 +123,8 @@ useTitle(() => getMachineName(machine.value) || machineId.value)
 </script>
 
 <template>
-  <div v-if="machine && isPartOfCluster" class="flex h-full flex-col pt-6">
-    <div class="mb-7 flex flex-col gap-4 px-4 md:px-6">
+  <div v-if="machine && isPartOfCluster" class="flex h-full flex-col pt-base">
+    <div class="mb-7 flex flex-col gap-compact px-compact md:px-base">
       <NodesHeader :cluster-id="clusterId" :machine-id="machineId" />
 
       <TAlert
@@ -140,7 +140,7 @@ useTitle(() => getMachineName(machine.value) || machineId.value)
     <Tabs
       :model-value="$route.name?.toString()"
       class="grow overflow-y-hidden"
-      tabs-list-class="px-4 md:px-6"
+      tabs-list-class="px-compact md:px-base"
     >
       <template #triggers>
         <TabButton

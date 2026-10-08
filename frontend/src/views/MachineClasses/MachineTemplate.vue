@@ -72,19 +72,19 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
 <template>
   <div class="text-content-default">Machine Template</div>
   <div class="rounded border border-border-default bg-surface-card">
-    <div class="px-4 pt-4 pb-2 text-sm text-content-default">Talos Config</div>
+    <div class="px-compact pt-compact pb-tight text-sm text-content-default">Talos Config</div>
     <div
       class="flex flex-col divide-y divide-border-default border-t-8 border-border-default text-xs"
     >
-      <div class="flex items-center justify-between gap-2 px-4 py-2">
+      <div class="flex items-center justify-between gap-tight px-compact py-tight">
         <span class="whitespace-nowrap">Kernel Arguments</span>
         <TInput v-model="kernelArguments" class="h-7 w-56" />
       </div>
-      <div class="flex items-center justify-between gap-2 px-4 py-2">
+      <div class="flex items-center justify-between gap-tight px-compact py-tight">
         <span class="whitespace-nowrap">Initial Labels</span>
         <Labels v-model="initialLabels" />
       </div>
-      <div class="flex items-center justify-between gap-2 px-4 py-2">
+      <div class="flex items-center justify-between gap-tight px-compact py-tight">
         <span class="whitespace-nowrap">Use gRPC Tunnel</span>
         <TSelectList
           class="h-6"
@@ -99,7 +99,7 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
     v-if="infraProviderStatus?.spec.schema"
     class="rounded border border-border-default bg-surface-card"
   >
-    <div class="px-4 pt-4 pb-2 text-sm text-content-default">
+    <div class="px-compact pt-compact pb-tight text-sm text-content-default">
       {{ infraProviderStatus.spec.name }} Provider Config
     </div>
     <div

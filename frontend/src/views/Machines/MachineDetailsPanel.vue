@@ -88,15 +88,17 @@ const secureBoot = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 border-l-border-default bg-surface-page p-4 md:border-l">
-    <div class="flex justify-between gap-2">
+  <div
+    class="flex flex-col gap-tight border-l-border-default bg-surface-page p-compact md:border-l"
+  >
+    <div class="flex justify-between gap-tight">
       <h2 class="truncate font-medium text-content-emphasis">{{ machineName }}</h2>
 
       <CloseButton class="shrink-0" @click="$emit('close')" />
     </div>
 
-    <!-- pr-1 to give some padding between bg & scrollbar -->
-    <div class="flex flex-col gap-2 overflow-auto pr-1">
+    <!-- pr-micro to give some padding between bg & scrollbar -->
+    <div class="flex flex-col gap-tight overflow-auto pr-micro">
       <MachineItemInfoCard
         title="Hardware"
         :sections="[

@@ -83,7 +83,7 @@ const {
 </script>
 
 <template>
-  <Card class="flex flex-col gap-6 p-4 text-content-emphasis">
+  <Card class="flex flex-col gap-base p-compact text-content-emphasis">
     <header class="flex items-center justify-between">
       <h2 class="text-sm font-medium">General Information</h2>
       <TSpinner v-if="apiConfigLoading" class="size-4" />
@@ -91,7 +91,7 @@ const {
 
     <TAlert v-if="apiConfigErr" type="error" :title="apiConfigErr" />
 
-    <dl class="flex flex-col gap-4">
+    <dl class="flex flex-col gap-compact">
       <HomeGeneralInformationCopyable
         title="Backend Version"
         :value="sysData?.spec.backend_version"
@@ -117,7 +117,7 @@ const {
 
     <hr class="border border-border-default" />
 
-    <section class="flex flex-col gap-2" aria-labelledby="add-machines-header">
+    <section class="flex flex-col gap-tight" aria-labelledby="add-machines-header">
       <h3 id="add-machines-header" class="text-sm font-medium">Add Machines</h3>
 
       <TButton
@@ -148,7 +148,7 @@ const {
       </TButton>
     </section>
 
-    <section class="flex flex-col gap-2">
+    <section class="flex flex-col gap-tight">
       <h3 class="text-sm font-medium">CLI</h3>
 
       <TButton
@@ -185,7 +185,7 @@ const {
       </TButton>
     </section>
 
-    <section v-if="canReadAuditLog && auditLogAvailable" class="flex flex-col gap-2">
+    <section v-if="canReadAuditLog && auditLogAvailable" class="flex flex-col gap-tight">
       <h3 class="text-sm font-medium">Tools</h3>
 
       <TButton

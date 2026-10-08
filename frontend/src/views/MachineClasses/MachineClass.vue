@@ -408,7 +408,7 @@ const submit = async () => {
 
 <template>
   <PageContainer disable-padding class="flex h-full flex-col overflow-hidden">
-    <div class="grow overflow-auto p-6">
+    <div class="grow overflow-auto p-base">
       <PageHeader
         :title="`${machineClassEditId ? 'Edit' : 'Create'} Machine Class`"
         :subtitle="machineClassEditId ? `name: ${machineClassEditId}` : ''"
@@ -423,25 +423,25 @@ const submit = async () => {
       </TAlert>
 
       <template v-else>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-tight">
           <TInput
             v-if="!machineClassEditId"
             v-model.trim="machineClassName"
             title="Machine Class Name"
           />
-          <div v-if="infraProviders.length > 0" class="flex items-center gap-2 text-xs">
+          <div v-if="infraProviders.length > 0" class="flex items-center gap-tight text-xs">
             <span>Machine Class Type:</span>
             <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
           </div>
           <template v-if="machineClassMode === MachineClassMode.Manual">
             <div class="text-content-default">Conditions</div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-tight">
               <template v-for="(_, i) in conditions" :key="i">
                 <div
                   class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-border-accent"
                 >
                   <div
-                    class="flex cursor-pointer items-center rounded-l-md bg-surface-raised px-2 transition-colors hover:bg-surface-inert hover:text-content-emphasis"
+                    class="flex cursor-pointer items-center rounded-l-md bg-surface-raised px-tight transition-colors hover:bg-surface-inert hover:text-content-emphasis"
                     @click="deleteCondition(i)"
                   >
                     <TIcon icon="delete" class="h-4 w-4" />
@@ -451,7 +451,7 @@ const submit = async () => {
                     role="textbox"
                     style="min-width: 28px"
                     spellcheck="false"
-                    class="rounded-r-md bg-surface-raised px-2 py-1 font-mono text-sm whitespace-pre text-content-emphasis"
+                    class="rounded-r-md bg-surface-raised px-tight py-micro font-mono text-sm whitespace-pre text-content-emphasis"
                     contenteditable
                     @focus="lastFocused = i"
                     @keyup="(event) => updateContent(i, event)"
@@ -465,7 +465,7 @@ const submit = async () => {
               </template>
               <IconButton icon="plus" @click="addCondition" />
             </div>
-            <div class="flex flex-col gap-1 text-xs">
+            <div class="flex flex-col gap-micro text-xs">
               <p>
                 Click or type a node label to match nodes with those labels. Multiple labels in the
                 same condition, joined by
@@ -515,7 +515,7 @@ const submit = async () => {
           </template>
         </div>
 
-        <div class="flex flex-1 flex-col gap-2">
+        <div class="flex flex-1 flex-col gap-tight">
           <div v-if="machineClassMode === MachineClassMode.Manual">
             <div class="text-content-default">Matches</div>
 
@@ -559,7 +559,7 @@ const submit = async () => {
     </div>
 
     <div
-      class="flex h-16 items-center justify-end gap-2 border-t border-border-strong bg-surface-chrome px-12 py-6 text-xs"
+      class="flex h-16 items-center justify-end gap-tight border-t border-border-strong bg-surface-chrome px-12 py-base text-xs"
     >
       <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
         {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}
@@ -572,6 +572,6 @@ const submit = async () => {
 @reference "../../index.css";
 
 code {
-  @apply rounded bg-surface-inert px-1 py-0.5 font-mono text-content-default;
+  @apply rounded bg-surface-inert px-micro py-0.5 font-mono text-content-default;
 }
 </style>

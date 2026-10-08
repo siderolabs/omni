@@ -94,7 +94,7 @@ useTitle('Nodes')
 </script>
 
 <template>
-  <PageContainer class="flex w-full flex-col gap-4">
+  <PageContainer class="flex w-full flex-col gap-compact">
     <PageHeader title="All Nodes" />
     <TList
       :opts="{

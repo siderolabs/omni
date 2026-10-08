@@ -403,13 +403,13 @@ watch(
       <ManagedByTemplatesWarning />
       <TAlert
         v-if="state === State.Exists && !patchEnabled"
-        class="mb-4"
+        class="mb-compact"
         title="Disabled"
         type="warn"
       >
         This config patch is disabled and is not applied to any machines.
       </TAlert>
-      <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
+      <div v-if="state === State.NotExists" class="mb-compact flex items-center gap-snug">
         <TInput v-model="patchName" title="Name" />
         <TInput v-model="patchDescription" class="flex-1" title="Description" />
         <TSelectList
@@ -421,14 +421,14 @@ watch(
         <Tooltip :open="invalidWeight" placement="bottom-start">
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
           <template #description>
-            <div class="flex items-center gap-2 rounded bg-surface-raised p-2 text-xs">
+            <div class="flex items-center gap-tight rounded bg-surface-raised p-tight text-xs">
               <TIcon icon="exclamation-triangle" class="h-5 w-5 text-status-warning-default" />
               Weight should be in range of {{ MIN_WEIGHT }}-{{ MAX_WEIGHT }}.
             </div>
           </template>
         </Tooltip>
       </div>
-      <div class="font-sm flex-1 overflow-y-hidden rounded bg-surface-chrome px-2 py-3">
+      <div class="font-sm flex-1 overflow-y-hidden rounded bg-surface-chrome px-tight py-snug">
         <div v-if="configPatchLoading" class="flex h-full w-full items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>
@@ -444,7 +444,7 @@ watch(
       </div>
     </PageContainer>
     <div
-      class="flex h-16 shrink-0 items-center gap-4 border-t border-border-default bg-surface-chrome px-5 py-3"
+      class="flex h-16 shrink-0 items-center gap-compact border-t border-border-default bg-surface-chrome px-5 py-snug"
     >
       <TButton class="secondary" @click="() => $router.push(back)">Back</TButton>
       <div class="flex-1" />

@@ -145,15 +145,15 @@ useTitle(['Machines', 'Installation Media', 'Create'])
 
 <template>
   <PageContainer disable-padding class="flex h-full flex-col">
-    <div class="flex grow flex-col gap-6 overflow-auto p-6">
+    <div class="flex grow flex-col gap-base overflow-auto p-base">
       <h1 class="shrink-0 text-xl font-medium text-content-emphasis">Create New Media</h1>
       <RouterView v-if="!isFormResetting" v-model="formState" />
     </div>
 
     <div
-      class="flex w-full shrink-0 items-center gap-4 border-t border-border-default bg-surface-chrome px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
+      class="flex w-full shrink-0 items-center gap-compact border-t border-border-default bg-surface-chrome px-compact max-md:flex-col max-md:p-compact md:h-16 md:justify-end"
     >
-      <div v-if="currentFlowSteps && !isFirstStep" class="flex grow gap-4">
+      <div v-if="currentFlowSteps && !isFirstStep" class="flex grow gap-compact">
         <Tooltip description="Reset wizard">
           <button
             type="button"
@@ -173,7 +173,7 @@ useTitle(['Machines', 'Installation Media', 'Create'])
         />
       </div>
 
-      <div class="flex items-center gap-2 max-md:self-end">
+      <div class="flex items-center gap-tight max-md:self-end">
         <TButton
           is="router-link"
           v-if="currentFlowSteps && !isFirstStep"

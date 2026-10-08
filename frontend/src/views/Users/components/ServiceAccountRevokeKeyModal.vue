@@ -74,7 +74,7 @@ const revoke = async () => {
   >
     <template #description>{{ identity }}</template>
 
-    <div v-if="recentlyUsed || isLastValidKey" class="mb-4 flex max-w-md flex-col gap-2">
+    <div v-if="recentlyUsed || isLastValidKey" class="mb-compact flex max-w-md flex-col gap-tight">
       <TAlert v-if="recentlyUsed" type="warn" title="Key used recently">
         This key was last used {{ relativeISO(publicKey!.last_used!) }}.
       </TAlert>

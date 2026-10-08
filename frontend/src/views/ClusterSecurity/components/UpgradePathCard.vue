@@ -37,7 +37,7 @@ const canExpand = computed(
 
 <template>
   <div class="rounded border border-border-strong bg-surface-card">
-    <div class="flex flex-wrap items-center gap-3 px-4 py-3">
+    <div class="flex flex-wrap items-center gap-snug px-compact py-snug">
       <TIcon icon="upgrade" class="size-5 shrink-0 text-content-secondary" aria-hidden="true" />
 
       <div class="flex flex-1 flex-col">
@@ -53,22 +53,22 @@ const canExpand = computed(
         <ul class="flex flex-wrap items-center gap-1.5 text-xs">
           <li
             v-if="diff.resolved.length"
-            class="rounded-sm bg-status-success-subtle px-2 py-1 font-medium text-status-success-text ring-1 ring-status-success-subtle-border ring-inset"
+            class="rounded-sm bg-status-success-subtle px-tight py-micro font-medium text-status-success-text ring-1 ring-status-success-subtle-border ring-inset"
           >
             {{ diff.resolved.length }} fixed
           </li>
-          <li class="rounded-sm bg-surface-hover px-2 py-1 text-content-default">
+          <li class="rounded-sm bg-surface-hover px-tight py-micro text-content-default">
             {{ diff.remaining.length }} remaining
           </li>
           <li
             v-if="diff.introduced.length"
-            class="rounded-sm bg-status-danger-subtle px-2 py-1 font-medium text-status-danger-text ring-1 ring-status-danger-subtle-border ring-inset"
+            class="rounded-sm bg-status-danger-subtle px-tight py-micro font-medium text-status-danger-text ring-1 ring-status-danger-subtle-border ring-inset"
           >
             {{ diff.introduced.length }} new
           </li>
           <li
             v-if="!diff.resolved.length && !diff.introduced.length"
-            class="rounded-sm bg-surface-hover px-2 py-1 text-content-default"
+            class="rounded-sm bg-surface-hover px-tight py-micro text-content-default"
           >
             No change
           </li>
@@ -87,20 +87,25 @@ const canExpand = computed(
       </template>
     </div>
 
-    <TAlert v-if="scan.error" type="error" title="Scan failed" class="mx-4 mb-3">
+    <TAlert v-if="scan.error" type="error" title="Scan failed" class="mx-compact mb-snug">
       {{ scan.error }}
     </TAlert>
 
-    <TAlert v-else-if="scan.notFound" type="info" title="No report available" class="mx-4 mb-3">
+    <TAlert
+      v-else-if="scan.notFound"
+      type="info"
+      title="No report available"
+      class="mx-compact mb-snug"
+    >
       No vulnerability report was found for this schematic on Talos {{ version }}. The schematic may
       not exist on the image factory yet, or its scan may not have been published yet.
     </TAlert>
 
     <div
       v-else-if="expanded && diff"
-      class="flex flex-col gap-4 border-t border-border-strong px-4 py-3"
+      class="flex flex-col gap-compact border-t border-border-strong px-compact py-snug"
     >
-      <section v-if="diff.resolved.length" class="flex flex-col gap-2">
+      <section v-if="diff.resolved.length" class="flex flex-col gap-tight">
         <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-success-text">
           <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
           Fixed by this upgrade ({{ diff.resolved.length }})
@@ -108,7 +113,7 @@ const canExpand = computed(
         <VulnerabilityList :matches="diff.resolved" />
       </section>
 
-      <section v-if="diff.introduced.length" class="flex flex-col gap-2">
+      <section v-if="diff.introduced.length" class="flex flex-col gap-tight">
         <h4 class="flex items-center gap-1.5 text-xs font-medium text-status-danger-text">
           <TIcon icon="exclamation-triangle" class="size-4 shrink-0" aria-hidden="true" />
           Introduced by this upgrade ({{ diff.introduced.length }})

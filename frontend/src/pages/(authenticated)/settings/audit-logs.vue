@@ -152,18 +152,18 @@ useTitle('Audit Logs')
 
 <template>
   <PageContainer class="flex h-full flex-col">
-    <div class="flex items-start justify-between gap-1">
+    <div class="flex items-start justify-between gap-micro">
       <PageHeader title="Audit logs" />
       <TButton variant="highlighted" :disabled="loading" @click="downloadLogs">
         Download audit logs
       </TButton>
     </div>
 
-    <TAlert v-if="error" type="error" title="Error" class="mb-4">{{ error.message }}</TAlert>
+    <TAlert v-if="error" type="error" title="Error" class="mb-compact">{{ error.message }}</TAlert>
 
-    <TInput v-model="searchInput" class="mb-2" title="Search" />
+    <TInput v-model="searchInput" class="mb-tight" title="Search" />
 
-    <div class="mb-4 flex justify-end gap-2">
+    <div class="mb-compact flex justify-end gap-tight">
       <DateRangePicker v-model="dateRange" title="Date range" inline-title />
     </div>
 
@@ -178,7 +178,7 @@ useTitle('Audit Logs')
       "
       type="warn"
       title="Long date range"
-      class="mb-4"
+      class="mb-compact"
     >
       When downloading audit logs for longer time periods the file size may be excessively large
       which can negatively impact Omni performance. Consider shortening the date range.
@@ -190,14 +190,14 @@ useTitle('Audit Logs')
     >
       <div
         role="rowgroup"
-        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-surface-card px-2 text-left"
+        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-surface-card px-tight text-left"
       >
-        <div role="columnheader" aria-hidden="true" class="py-2 uppercase"></div>
+        <div role="columnheader" aria-hidden="true" class="py-tight uppercase"></div>
         <div
           v-for="{ label, value } in tableHeaders"
           :key="value"
           role="columnheader"
-          class="cursor-pointer py-2 uppercase transition-colors select-none hover:text-content-secondary active:text-content-muted"
+          class="cursor-pointer py-tight uppercase transition-colors select-none hover:text-content-secondary active:text-content-muted"
           @click="toggleSort(value)"
         >
           <span class="inline-flex items-center">

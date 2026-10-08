@@ -59,10 +59,12 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 overflow-hidden">
+  <div class="flex flex-col gap-tight overflow-hidden">
     <TInput v-model="filterExtensions" icon="search" />
 
-    <div class="grid grid-cols-4 bg-surface-hover py-2 pl-2 text-xs text-content-default uppercase">
+    <div
+      class="grid grid-cols-4 bg-surface-hover py-tight pl-tight text-xs text-content-default uppercase"
+    >
       <div class="col-span-2">Name</div>
       <div>Version</div>
       <div>Author</div>
@@ -72,11 +74,11 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
       <div
         v-for="extension in filteredExtensions"
         :key="extension.name"
-        class="grid grid-cols-4 gap-1 border-b border-border-strong p-2 transition-colors hover:bg-surface-inert"
+        class="grid grid-cols-4 gap-micro border-b border-border-strong p-tight transition-colors hover:bg-surface-inert"
         role="button"
         @click="updateExtension(extension, !modelValue[extension.name!])"
       >
-        <div class="col-span-2 flex items-center gap-2 text-xs text-content-default">
+        <div class="col-span-2 flex items-center gap-tight text-xs text-content-default">
           <TCheckbox
             :indeterminate="indeterminate && !changed"
             :disabled="immutableExtensions[extension.name!]"
@@ -97,7 +99,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
         </div>
       </div>
     </div>
-    <div v-else class="flex items-center gap-1 p-4 text-xs text-accent-hover">
+    <div v-else class="flex items-center gap-micro p-compact text-xs text-accent-hover">
       <TIcon class="h-3 w-3" icon="exclamation-triangle" />
       No extensions available for this Talos version
     </div>

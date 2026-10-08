@@ -67,11 +67,11 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-tight">
     <StatusPill v-bind="phaseStatus(item)" data-testid="machine-set-phase-name">
       {{ phaseName(item) || '' }}
     </StatusPill>
-    <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-status-info-text">
+    <div v-if="item.spec.locked_updates" class="flex items-center gap-micro text-status-info-text">
       <TIcon icon="time" class="size-4 shrink-0" />
       {{ pluralize('Pending Config Update', item.spec.locked_updates, true) }}
     </div>

@@ -77,7 +77,7 @@ const dynamicProps = computed(() => {
   <component
     :is="disabled ? 'button' : is === 'router-link' ? RouterLink : is"
     v-bind="dynamicProps"
-    class="flex items-center justify-center gap-1 rounded border transition-colors duration-200"
+    class="flex items-center justify-center gap-micro rounded border transition-colors duration-200"
     :class="
       cn(
         {
@@ -89,8 +89,8 @@ const dynamicProps = computed(() => {
             variant === 'subtle',
           'border-accent-fill bg-accent-fill text-content-on-accent hover:border-accent-fill-hover hover:bg-accent-fill-hover focus:border-accent-fill-hover focus:bg-accent-fill-hover active:border-accent-fill-active active:bg-accent-fill-active disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
             variant === 'highlighted',
-          'px-4 py-1.5 text-sm': size === 'md',
-          'px-2 py-0.5 text-sm': size === 'sm',
+          'px-compact py-1.5 text-sm': size === 'md',
+          'px-tight py-0.5 text-sm': size === 'sm',
           'p-0 text-sm': size === 'xs',
           'p-0 text-xs': size === 'xxs',
         },

@@ -53,19 +53,19 @@ const definitions = computed(() => {
 
 <template>
   <PageContainer class="flex h-full flex-col">
-    <div role="heading" aria-level="1" class="mb-2">
+    <div role="heading" aria-level="1" class="mb-tight">
       <ResourceBreadcrumbs
         :runtime="target.runtime"
         :machine="target.runtime === 'talos' ? target.machine : undefined"
       />
     </div>
 
-    <p class="mb-4 text-sm text-content-default">
+    <p class="mb-compact text-sm text-content-default">
       Every resource type registered in the selected runtime. Types your role cannot read will show
       an error when opened.
     </p>
 
-    <TInput v-model="search" class="mb-4" icon="search" title="Search" />
+    <TInput v-model="search" class="mb-compact" icon="search" title="Search" />
 
     <TAlert v-if="err" type="error" title="Failed to load resource definitions">
       {{ err }}

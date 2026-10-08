@@ -159,19 +159,19 @@ function isLastChild(item?: DeviceTreeItem) {
         <TreeItem
           :key="item._id"
           v-bind="item.bind"
-          class="group/tree-item relative w-full py-1"
-          :class="!item.hasChildren ? 'pl-9' : 'cursor-pointer pl-1'"
+          class="group/tree-item relative w-full py-micro"
+          :class="!item.hasChildren ? 'pl-9' : 'cursor-pointer pl-micro'"
         >
           <div
             v-if="item.hasChildren"
-            class="flex h-7.5 items-center justify-between gap-2 rounded-lg bg-surface-card pr-2 pl-4 hover:bg-surface-hover"
+            class="flex h-7.5 items-center justify-between gap-tight rounded-lg bg-surface-card pr-tight pl-compact hover:bg-surface-hover"
           >
-            <div class="flex min-w-0 items-center gap-4">
+            <div class="flex min-w-0 items-center gap-compact">
               <TIcon :icon="item.value.icon" class="size-4 shrink-0 text-content-emphasis" />
               <span class="truncate">{{ item.value.label }}</span>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-compact">
               <div class="rounded-md bg-surface-hover px-1.5 py-0.5 font-medium">
                 {{ countDevices(item.value as DeviceTreeItem) }}
               </div>
@@ -194,15 +194,15 @@ function isLastChild(item?: DeviceTreeItem) {
             ></div>
 
             <div
-              class="flex h-7.5 items-center gap-2 rounded px-1 group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-border-strong"
+              class="flex h-7.5 items-center gap-tight rounded px-micro group-focus-visible/tree-item:ring-2 group-focus-visible/tree-item:ring-border-strong"
             >
               <span class="min-w-0 truncate">{{ item.value.label }}</span>
 
-              <div class="h-px grow bg-surface-hover pr-4 pl-2"></div>
+              <div class="h-px grow bg-surface-hover pr-compact pl-tight"></div>
 
               <span
                 v-if="asDevice(item.value as DeviceTreeItem)?.device.spec.driver"
-                class="rounded bg-surface-hover px-2 py-1.5 whitespace-nowrap text-content-default"
+                class="rounded bg-surface-hover px-tight py-1.5 whitespace-nowrap text-content-default"
               >
                 {{ asDevice(item.value as DeviceTreeItem)?.device.spec.driver }}
               </span>

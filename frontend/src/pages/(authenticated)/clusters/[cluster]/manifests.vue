@@ -155,7 +155,7 @@ useTitle('Bootstrap Manifests')
 </script>
 
 <template>
-  <PageContainer class="flex flex-col gap-2">
+  <PageContainer class="flex flex-col gap-tight">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="title" />
       <TButton variant="highlighted" :disabled="applyChangesDisabled" @click="applyChanges">
@@ -227,13 +227,13 @@ useTitle('Bootstrap Manifests')
 @reference "../../../../index.css";
 
 .diff {
-  @apply pt-2 font-mono whitespace-pre;
+  @apply pt-tight font-mono whitespace-pre;
 }
 
 .bottom-line {
   @apply rounded-t-sm border-b border-b-border-strong;
 }
 .label {
-  @apply mr-2 rounded-full bg-surface-raised px-2 py-1 text-xs font-bold text-content-muted uppercase;
+  @apply mr-tight rounded-full bg-surface-raised px-tight py-micro text-xs font-bold text-content-muted uppercase;
 }
 </style>

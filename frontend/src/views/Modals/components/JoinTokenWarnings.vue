@@ -42,11 +42,11 @@ watchEffect(() => {
   <div class="flex flex-col overflow-hidden">
     <TSpinner v-if="loading" class="h-4 w-4" />
     <template v-else-if="joinTokenStatus?.spec.warnings">
-      <div class="flex items-center gap-1 text-status-warning-text">
+      <div class="flex items-center gap-micro text-status-warning-text">
         <TIcon icon="exclamation-triangle" class="h-5 w-5" />
         Warning
       </div>
-      <div class="flex items-center gap-1 text-xs text-status-warning-text">
+      <div class="flex items-center gap-micro text-xs text-status-warning-text">
         {{ joinTokenStatus.spec.warnings.length }} of
         {{ pluralize('machine', parseFloat(joinTokenStatus?.spec.use_count ?? '0'), true) }} won't
         be able to connect if the token is revoked/deleted
@@ -55,7 +55,7 @@ watchEffect(() => {
         <div
           v-for="warning in joinTokenStatus?.spec.warnings"
           :key="warning.machine"
-          class="my-1 rounded border-l-3 border-l-status-warning-fill bg-surface-hover px-4 py-2"
+          class="my-micro rounded border-l-3 border-l-status-warning-fill bg-surface-hover px-compact py-tight"
         >
           <div class="truncate">
             ID:
@@ -65,7 +65,7 @@ watchEffect(() => {
         </div>
       </div>
     </template>
-    <div v-else class="flex items-center gap-1 text-xs text-status-success-text">
+    <div v-else class="flex items-center gap-micro text-xs text-status-success-text">
       <TIcon icon="check-circle" class="size-4" />
       The token can be safely revoked/deleted.
     </div>

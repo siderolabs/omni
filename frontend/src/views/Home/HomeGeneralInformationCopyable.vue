@@ -26,10 +26,10 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <div class="flex flex-col gap-1 text-xs">
+  <div class="flex flex-col gap-micro text-xs">
     <dt class="text-content-secondary">{{ title }}</dt>
 
-    <div class="flex items-center justify-between gap-1">
+    <div class="flex items-center justify-between gap-micro">
       <dd
         class="grow truncate"
         :class="{ 'font-mono': secret }"

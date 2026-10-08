@@ -196,7 +196,7 @@ watchEffect((onCleanup) => {
 
 <template>
   <div class="flex flex-col">
-    <div class="mb-4 flex gap-2">
+    <div class="mb-compact flex gap-tight">
       <TSelectList
         title="Logs"
         :values="servicesSelectValues"
@@ -212,7 +212,7 @@ watchEffect((onCleanup) => {
       v-if="stream?.err"
       :title="logs.length ? 'Disconnected' : 'Failed to Fetch Logs'"
       type="error"
-      class="mb-2"
+      class="mb-tight"
     >
       {{ stream.err }}
     </TAlert>

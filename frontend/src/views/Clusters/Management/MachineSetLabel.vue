@@ -22,7 +22,7 @@ defineProps<Props>()
   <div
     class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors select-none"
     :class="[
-      segment ? 'h-full px-2.5 py-1' : 'rounded-sm px-2 py-1',
+      segment ? 'h-full px-2.5 py-micro' : 'rounded-sm px-tight py-micro',
       static
         ? 'bg-surface-hover text-content-default'
         : disabled

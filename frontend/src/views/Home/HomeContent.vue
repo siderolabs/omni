@@ -56,20 +56,20 @@ const showReleaseNotes = false
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-base">
     <header>
       <h1 class="text-xl font-medium text-content-emphasis">Home</h1>
     </header>
 
-    <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_auto]">
+    <div class="grid grid-cols-1 items-start gap-compact lg:grid-cols-[1fr_auto]">
       <div
-        class="grid grid-cols-1 gap-4"
+        class="grid grid-cols-1 gap-compact"
         :class="{
           'min-[118.75rem]:grid-cols-2': showReleaseNotes && canReadClusters && canReadMachines,
           'xl:grid-cols-2': showReleaseNotes && (!canReadClusters || !canReadMachines),
         }"
       >
-        <div v-if="canReadClusters || canReadMachines" class="flex flex-col gap-4">
+        <div v-if="canReadClusters || canReadMachines" class="flex flex-col gap-compact">
           <template
             v-if="canReadClusters && canReadMachines && !machinesLoading && !clustersLoading"
           >
@@ -77,20 +77,23 @@ const showReleaseNotes = false
             <HomeClustersTutorialCard v-else-if="!clusters.length" />
           </template>
 
-          <div class="grid grid-cols-1 gap-2">
+          <div class="grid grid-cols-1 gap-tight">
             <HomeClustersChart v-if="canReadClusters" />
             <HomeMachinesChart v-if="canReadMachines" />
           </div>
 
           <HomeOngoingOperations />
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-tight">
             <HomeRecentClusters v-if="canReadClusters" :clusters :loading="clustersLoading" />
             <HomeRecentMachines v-if="canReadMachines" :machines :loading="machinesLoading" />
           </div>
         </div>
 
-        <div v-if="showReleaseNotes" class="bg-status-warning-fill p-2 text-status-warning-on-fill">
+        <div
+          v-if="showReleaseNotes"
+          class="bg-status-warning-fill p-tight text-status-warning-on-fill"
+        >
           Release notes
         </div>
       </div>

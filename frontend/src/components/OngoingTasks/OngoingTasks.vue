@@ -20,7 +20,7 @@ const dropdownOpen = ref(false)
 <template>
   <PopoverRoot v-model:open="dropdownOpen">
     <PopoverTrigger
-      class="flex items-center gap-1 text-content-secondary transition-colors hover:text-content-emphasis"
+      class="flex items-center gap-micro text-content-secondary transition-colors hover:text-content-emphasis"
     >
       <TIcon
         :icon="data.length > 0 ? 'action-horizontal-animated' : 'action-horizontal'"
@@ -47,9 +47,9 @@ const dropdownOpen = ref(false)
         <div
           v-for="{ item, desc } in data"
           :key="item.metadata.id"
-          class="flex flex-col gap-2 border-border-default p-6 not-last:border-b"
+          class="flex flex-col gap-tight border-border-default p-base not-last:border-b"
         >
-          <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center justify-between gap-compact">
             <h3 class="truncate text-xs text-content-default">
               {{ item.spec.title }}
             </h3>
@@ -63,27 +63,30 @@ const dropdownOpen = ref(false)
           </div>
 
           <div class="text-xs text-content-muted">
-            <div v-if="desc.fromVersion && desc.toVersion" class="flex items-center gap-2 text-xs">
+            <div
+              v-if="desc.fromVersion && desc.toVersion"
+              class="flex items-center gap-tight text-xs"
+            >
               <span class="whitespace-nowrap">{{ desc.action }}</span>
               <div class="flex-1" />
               <span
-                class="truncate rounded bg-surface-hover px-2 text-xs font-bold text-content-default"
+                class="truncate rounded bg-surface-hover px-tight text-xs font-bold text-content-default"
               >
                 {{ desc.fromVersion }}
               </span>
               <span>⇾</span>
               <span
-                class="truncate rounded bg-surface-hover px-2 text-xs font-bold text-content-default"
+                class="truncate rounded bg-surface-hover px-tight text-xs font-bold text-content-default"
               >
                 {{ desc.toVersion }}
               </span>
             </div>
 
-            <div v-else-if="desc.revertingTo" class="flex items-center gap-2 text-xs">
+            <div v-else-if="desc.revertingTo" class="flex items-center gap-tight text-xs">
               <span class="whitespace-nowrap">Reverting back to</span>
               <div class="flex-1" />
               <span
-                class="rounded bg-surface-hover px-2 text-xs font-bold whitespace-nowrap text-content-default"
+                class="rounded bg-surface-hover px-tight text-xs font-bold whitespace-nowrap text-content-default"
               >
                 {{ desc.revertingTo }}
               </span>
@@ -97,7 +100,10 @@ const dropdownOpen = ref(false)
           </div>
         </div>
 
-        <div v-if="!data.length" class="flex w-32 items-center justify-center gap-2 p-4 text-xs">
+        <div
+          v-if="!data.length"
+          class="flex w-32 items-center justify-center gap-tight p-compact text-xs"
+        >
           <TIcon icon="check" class="h-4 w-4" />
           No tasks
         </div>

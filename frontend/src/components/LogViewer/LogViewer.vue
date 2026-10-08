@@ -56,13 +56,13 @@ watch(
 <template>
   <div class="flex flex-col">
     <div
-      class="flex w-full items-center justify-between rounded-xs border border-border-default bg-surface-card px-4 py-2.5"
+      class="flex w-full items-center justify-between rounded-xs border border-border-default bg-surface-card px-compact py-2.5"
     >
-      <div class="flex w-full gap-8 text-xs text-content-default">
+      <div class="flex w-full gap-section text-xs text-content-default">
         <p v-if="!withoutDate" class="w-35 shrink-0">Date</p>
         <p class="grow">Message</p>
       </div>
-      <div class="flex gap-6">
+      <div class="flex gap-base">
         <TButton :icon="copied ? 'check' : 'copy'" size="sm" @click="copyLogs">
           {{ copied ? 'Copied' : 'Copy' }}
         </TButton>
@@ -76,7 +76,7 @@ watch(
           :key="virtualRow.index"
           :ref="(el) => virtualizer.measureElement(el as HTMLElement)"
           :data-index="virtualRow.index"
-          class="absolute top-0 left-0 flex w-full gap-8 py-1.25 pl-4 font-mono text-xs"
+          class="absolute top-0 left-0 flex w-full gap-section py-1.25 pl-compact font-mono text-xs"
           :style="{ transform: `translateY(${virtualRow.start}px)` }"
         >
           <div v-if="!withoutDate" class="w-35 shrink-0">

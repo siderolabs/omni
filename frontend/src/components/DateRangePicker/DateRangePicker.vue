@@ -50,7 +50,7 @@ const id = useId()
 </script>
 
 <template>
-  <div class="inline-flex gap-2" :class="inlineTitle ? 'items-center' : 'flex-col'">
+  <div class="inline-flex gap-tight" :class="inlineTitle ? 'items-center' : 'flex-col'">
     <Label class="text-sm text-content-emphasis" :class="{ 'sr-only': hiddenTitle }" :for="id">
       {{ title }}
     </Label>
@@ -58,7 +58,7 @@ const id = useId()
     <DateRangePickerRoot v-bind="forwarded" :id>
       <DateRangePickerField
         v-slot="{ segments }"
-        class="flex items-center rounded border border-border-strong bg-surface-raised p-1 text-center text-sm text-content-default select-none data-invalid:border-status-danger-default"
+        class="flex items-center rounded border border-border-strong bg-surface-raised p-micro text-center text-sm text-content-default select-none data-invalid:border-status-danger-default"
       >
         <template v-for="item in segments.start" :key="item.part">
           <DateRangePickerInput v-if="item.part === 'literal'" :part="item.part" type="start">
@@ -73,7 +73,7 @@ const id = useId()
             {{ item.value }}
           </DateRangePickerInput>
         </template>
-        <span class="mx-2 text-content-muted">-</span>
+        <span class="mx-tight text-content-muted">-</span>
         <template v-for="item in segments.end" :key="item.part">
           <DateRangePickerInput v-if="item.part === 'literal'" :part="item.part" type="end">
             {{ item.value }}
@@ -89,7 +89,7 @@ const id = useId()
         </template>
 
         <DateRangePickerTrigger
-          class="ml-4 rounded p-1 text-content-muted hover:text-content-default"
+          class="ml-compact rounded p-micro text-content-muted hover:text-content-default"
         >
           <TIcon icon="calendar" class="h-4 w-4" />
         </DateRangePickerTrigger>
@@ -100,7 +100,7 @@ const id = useId()
         class="data-[state=open]:data-[side=bottom]:animate-slideUpAndFade data-[state=open]:data-[side=left]:animate-slideRightAndFade data-[state=open]:data-[side=right]:animate-slideLeftAndFade data-[state=open]:data-[side=top]:animate-slideDownAndFade z-100 rounded border border-border-strong bg-surface-raised shadow-lg will-change-[transform,opacity]"
       >
         <DateRangePickerArrow class="fill-surface-raised stroke-surface-inert" />
-        <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-4">
+        <DateRangePickerCalendar v-slot="{ weekDays, grid }" class="p-compact">
           <DateRangePickerHeader class="flex items-center justify-between">
             <DateRangePickerPrev
               class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-content-muted hover:border-border-strong hover:bg-surface-inert hover:text-content-default active:bg-surface-hover"
@@ -115,14 +115,16 @@ const id = useId()
               <TIcon icon="chevron-right" class="h-4 w-4" />
             </DateRangePickerNext>
           </DateRangePickerHeader>
-          <div class="flex flex-col space-y-4 pt-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+          <div
+            class="flex flex-col space-y-compact pt-compact sm:flex-row sm:space-y-0 sm:space-x-compact"
+          >
             <DateRangePickerGrid
               v-for="month in grid"
               :key="month.value.toString()"
-              class="w-full border-collapse space-y-1 select-none"
+              class="w-full border-collapse space-y-micro select-none"
             >
               <DateRangePickerGridHead>
-                <DateRangePickerGridRow class="mb-1 flex w-full justify-between">
+                <DateRangePickerGridRow class="mb-micro flex w-full justify-between">
                   <DateRangePickerHeadCell
                     v-for="day in weekDays"
                     :key="day"

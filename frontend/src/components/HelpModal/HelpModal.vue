@@ -73,7 +73,7 @@ const icsUrl = computed(() => {
         href="https://support.siderolabs.com/"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-compact rounded-sm border border-border-default bg-surface-card p-compact transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-accent-subtle text-accent-text"
@@ -100,7 +100,7 @@ const icsUrl = computed(() => {
         :href="getDocsLink('omni')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-compact rounded-sm border border-border-default bg-surface-card p-compact transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
@@ -122,17 +122,17 @@ const icsUrl = computed(() => {
       </a>
 
       <div
-        class="flex items-start gap-4 rounded-sm border border-border-default bg-surface-card p-4"
+        class="flex items-start gap-compact rounded-sm border border-border-default bg-surface-card p-compact"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="code-bracket" />
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-micro">
           <span class="text-sm font-medium text-content-default">GitHub Issues</span>
           <span class="text-xs text-content-muted">Report a bug or request a feature</span>
-          <div class="mt-1 flex items-center gap-2 text-xs">
+          <div class="mt-micro flex items-center gap-tight text-xs">
             <a
               href="https://github.com/siderolabs/omni/issues"
               target="_blank"
@@ -167,7 +167,7 @@ const icsUrl = computed(() => {
         :href="getDocsLink('talos', '/overview/what-is-talos#community-&-support')"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center gap-4 rounded-sm border border-border-default bg-surface-card p-4 transition-colors hover:bg-surface-hover"
+        class="group flex items-center gap-compact rounded-sm border border-border-default bg-surface-card p-compact transition-colors hover:bg-surface-hover"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
@@ -189,19 +189,19 @@ const icsUrl = computed(() => {
       </a>
 
       <div
-        class="flex items-start gap-4 rounded-sm border border-border-default bg-surface-card p-4"
+        class="flex items-start gap-compact rounded-sm border border-border-default bg-surface-card p-compact"
       >
         <div
           class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-surface-inert text-content-secondary"
         >
           <TIcon class="size-5" icon="calendar" />
         </div>
-        <div class="flex flex-1 flex-col gap-1">
+        <div class="flex flex-1 flex-col gap-micro">
           <span class="text-sm font-medium text-content-default">Office Hours</span>
           <span class="text-xs text-content-muted">
             Monthly community call with Sidero Labs engineers
           </span>
-          <div class="mt-1 flex items-center gap-3">
+          <div class="mt-micro flex items-center gap-snug">
             <a
               :href="getDocsLink('talos', '/overview/what-is-talos#office-hours')"
               target="_blank"

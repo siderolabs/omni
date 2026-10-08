@@ -20,7 +20,7 @@ const checked = defineModel<boolean>({ default: false })
 <template>
   <Tooltip placement="bottom">
     <template #description>
-      <div class="flex flex-col gap-1 p-2">
+      <div class="flex flex-col gap-micro p-tight">
         <p>
           Allow the omni.sidero.dev/node-audit-skip annotation on Kubernetes nodes to exempt them
           from Omni's node audit.

@@ -61,7 +61,7 @@ useTitle('Extra Args')
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 text-xs [&_code]:font-bold">
+  <div class="flex flex-col gap-compact text-xs [&_code]:font-bold">
     <span class="text-sm font-medium text-content-emphasis">Customization</span>
 
     <TInput
@@ -108,7 +108,7 @@ useTitle('Extra Args')
     <p>Skip this step if unsure.</p>
 
     <template v-if="quirks?.spec.supports_embedded_config">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-tight">
         <span class="text-sm font-medium text-content-emphasis">
           Embedded machine configuration
         </span>
@@ -156,7 +156,7 @@ useTitle('Extra Args')
     </template>
 
     <template v-if="selectedSBC">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-tight">
         <span class="text-sm font-medium text-content-emphasis">
           Extra overlay options (advanced)
         </span>

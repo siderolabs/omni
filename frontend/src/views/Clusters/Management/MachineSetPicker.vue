@@ -87,7 +87,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
       <PopoverPortal>
         <PopoverContent
           side="left"
-          class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-surface-raised p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-micro rounded bg-surface-raised p-micro text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           <IconButton
             icon="chevron-up"
@@ -125,10 +125,10 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
         </PopoverContent>
       </PopoverPortal>
 
-      <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
+      <PopoverTrigger class="group flex h-6 items-center gap-micro px-micro">
         <TIcon
           icon="chevron-left"
-          class="mx-1 h-3 w-3 text-content-muted transition-all group-hover:scale-125 group-hover:text-content-emphasis"
+          class="mx-micro h-3 w-3 text-content-muted transition-all group-hover:scale-125 group-hover:text-content-emphasis"
         />
         <template v-if="pickedOption">
           <MachineSetLabel static :marker-class="pickedOption.markerClass">

@@ -275,10 +275,10 @@ const toggleDisabled = async (item: RouteItem) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 overflow-y-auto">
+  <div class="flex flex-col gap-compact overflow-y-auto">
     <ManagedByTemplatesWarning />
 
-    <div class="flex gap-4">
+    <div class="flex gap-compact">
       <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
       <TButton
         is="router-link"
@@ -314,7 +314,7 @@ const toggleDisabled = async (item: RouteItem) => {
         <template #default="{ open }">
           <DisclosureButton
             :id="`disclosure-${index}`"
-            class="grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-surface-chrome px-4 py-3 text-left text-xs font-bold text-content-secondary transition-colors duration-200 select-none hover:text-content-emphasis"
+            class="grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-compact bg-surface-chrome px-compact py-snug text-left text-xs font-bold text-content-secondary transition-colors duration-200 select-none hover:text-content-emphasis"
             :aria-label="group.name"
           >
             <WordHighlighter
@@ -338,13 +338,13 @@ const toggleDisabled = async (item: RouteItem) => {
               <div
                 v-for="item in group.items"
                 :key="item.name"
-                class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-surface-raised hover:text-content-default"
+                class="my-micro grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-tight px-compact py-tight text-xs transition-colors duration-200 select-none hover:bg-surface-raised hover:text-content-default"
                 :class="{ 'text-content-muted': item.disabled }"
                 role="listitem"
                 :aria-label="item.id"
                 @click="() => $router.push(item.route)"
               >
-                <div class="flex min-w-0 items-center gap-4">
+                <div class="flex min-w-0 items-center gap-compact">
                   <TIcon icon="document" class="size-4 shrink-0" />
 
                   <WordHighlighter

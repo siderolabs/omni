@@ -15,13 +15,13 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-1">
+  <div class="flex flex-wrap gap-micro">
     <Tooltip v-for="condition in conditions" :key="condition.name" :description="condition.reason">
       <div
-        class="flex cursor-pointer items-center gap-1 rounded-md bg-surface-hover px-3 py-1 text-xs font-bold text-content-default"
+        class="flex cursor-pointer items-center gap-micro rounded-md bg-surface-hover px-snug py-micro text-xs font-bold text-content-default"
       >
         {{ condition.name }}
-        <TIcon icon="exclamation-triangle" class="-mr-1 h-3 w-3 text-status-warning-default" />
+        <TIcon icon="exclamation-triangle" class="-mr-micro h-3 w-3 text-status-warning-default" />
       </div>
     </Tooltip>
   </div>

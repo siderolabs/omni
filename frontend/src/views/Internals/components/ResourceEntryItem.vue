@@ -34,7 +34,7 @@ defineEmits<{
     @keydown.enter.prevent="$emit('open')"
     @keydown.space.prevent="$emit('open')"
   >
-    <div role="cell" class="truncate pl-2 text-content-emphasis">
+    <div role="cell" class="truncate pl-tight text-content-emphasis">
       <WordHighlighter
         :query="search"
         :text-to-highlight="item.metadata.id"
@@ -46,7 +46,7 @@ defineEmits<{
     <div role="cell" class="truncate">{{ item.metadata.version }}</div>
     <div role="cell" class="truncate">{{ item.metadata.owner }}</div>
 
-    <div role="cell" class="truncate pr-2">
+    <div role="cell" class="truncate pr-tight">
       <time v-if="!hideUpdated && item.metadata.updated" :datetime="item.metadata.updated">
         {{ relativeISO(item.metadata.updated) }}
       </time>

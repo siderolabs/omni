@@ -47,10 +47,10 @@ const age = computed(() => {
 <template>
   <CollapsibleRoot
     v-slot="{ open }"
-    class="group relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-border-strong not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-border-strong"
+    class="group relative mb-micro flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-tight transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-border-strong not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-border-strong"
   >
     <ul class="flex w-full items-center justify-start">
-      <li class="flex w-1/6 items-center gap-1 text-xs text-content-default">
+      <li class="flex w-1/6 items-center gap-micro text-xs text-content-default">
         <CollapsibleTrigger
           class="cursor-pointer rounded transition-colors hover:bg-surface-inert"
           :aria-label="open ? 'Collapse details' : 'Expand details'"
@@ -117,11 +117,11 @@ const age = computed(() => {
 
       <div class="mt-5 flex flex-col gap-3.75 px-7">
         <div class="font-bold">Containers</div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-tight">
           <div
             v-for="container in item.spec?.containers"
             :key="container.name"
-            class="rounded bg-surface-hover p-1 px-2"
+            class="rounded bg-surface-hover p-micro px-tight"
           >
             {{ container.image }}
           </div>

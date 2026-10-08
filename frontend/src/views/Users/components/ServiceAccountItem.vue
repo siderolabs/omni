@@ -51,9 +51,9 @@ const labelId = useId()
   >
     <CollapsibleTrigger
       :aria-labelledby="labelId"
-      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-surface-chrome p-4 pl-2 text-left hover:bg-surface-raised"
+      class="group/collapsible-trigger col-span-full grid grid-cols-subgrid items-center bg-surface-chrome p-compact pl-tight text-left hover:bg-surface-raised"
     >
-      <div class="flex min-w-0 items-center gap-2">
+      <div class="flex min-w-0 items-center gap-tight">
         <TIcon
           class="size-5 shrink-0 rounded-md bg-surface-hover transition-transform duration-250 group-data-[state=open]/collapsible-trigger:rotate-180 hover:text-content-default"
           icon="drop-up"

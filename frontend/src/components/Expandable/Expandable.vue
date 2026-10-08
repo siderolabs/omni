@@ -40,12 +40,12 @@ onKeyStroke('Escape', (event) => {
       :class="
         cn(
           expanded &&
-            'fixed inset-0 z-50 flex flex-col gap-3 rounded-sm bg-surface-raised p-6 sm:inset-6',
+            'fixed inset-0 z-50 flex flex-col gap-snug rounded-sm bg-surface-raised p-base sm:inset-6',
           $attrs.class,
         )
       "
     >
-      <div v-if="expanded" class="flex shrink-0 items-center justify-between gap-4">
+      <div v-if="expanded" class="flex shrink-0 items-center justify-between gap-compact">
         <span class="font-medium text-content-emphasis">{{ title }}</span>
 
         <IconButton

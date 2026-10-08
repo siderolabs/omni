@@ -18,7 +18,7 @@ const forwarded = useForwardProps(delegatedProps)
 </script>
 
 <template>
-  <SelectItemText v-bind="forwarded" :class="cn('truncate px-1 transition-all', props.class)">
+  <SelectItemText v-bind="forwarded" :class="cn('truncate px-micro transition-all', props.class)">
     <slot></slot>
   </SelectItemText>
 </template>

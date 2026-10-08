@@ -54,7 +54,7 @@ useTitle('System Extensions')
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 overflow-hidden">
+  <div class="flex flex-col gap-compact overflow-hidden">
     <span class="text-sm font-medium text-content-emphasis">System Extensions</span>
 
     <p class="text-xs">
@@ -74,7 +74,7 @@ useTitle('System Extensions')
 
     <TInput v-model="filterExtensions" placeholder="Search" icon="search" />
 
-    <div class="flex flex-col gap-4 overflow-auto">
+    <div class="flex flex-col gap-compact overflow-auto">
       <TCheckbox
         v-for="item in filteredExtensions"
         :key="item.name"

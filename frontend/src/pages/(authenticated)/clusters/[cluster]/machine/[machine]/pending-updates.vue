@@ -41,7 +41,7 @@ useTitle('Pending Updates')
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
+  <PageContainer class="flex h-full flex-col gap-compact">
     <template v-if="!loading">
       <TAlert v-if="!diffEntries.length" type="info" title="No Records">
         No pending config updates found for this machine
@@ -50,6 +50,6 @@ useTitle('Pending Updates')
       <DiffRenderer v-else class="h-full" :diffs="diffEntries" with-search />
     </template>
 
-    <TSpinner v-else class="mx-auto my-8 size-6" />
+    <TSpinner v-else class="mx-auto my-section size-6" />
   </PageContainer>
 </template>

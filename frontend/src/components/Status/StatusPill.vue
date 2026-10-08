@@ -57,8 +57,8 @@ const statusGlyphClass: Record<StatusTone, string> = {
   <span
     :class="
       cn(
-        'inline-flex w-fit items-center rounded-full py-px pr-2 text-xs font-semibold whitespace-nowrap ring-1 ring-inset',
-        glyph === 'dot' ? 'gap-1.5 pl-1.75' : 'gap-1 pl-1',
+        'inline-flex w-fit items-center rounded-full py-px pr-tight text-xs font-semibold whitespace-nowrap ring-1 ring-inset',
+        glyph === 'dot' ? 'gap-1.5 pl-1.75' : 'gap-micro pl-micro',
         statusPillClass[tone],
         $props.class,
       )

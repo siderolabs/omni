@@ -91,16 +91,16 @@ useTitle(['Machines', 'Pending'])
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-2">
+  <PageContainer class="flex h-full flex-col gap-tight">
     <PageHeader title="Pending Machines">
       <StatsItem title="Machines" :value="total" icon="nodes" />
     </PageHeader>
 
-    <div class="flex grow flex-col gap-4 overflow-auto">
+    <div class="flex grow flex-col gap-compact overflow-auto">
       <TInput v-model="filterValue" icon="search" />
 
-      <div class="flex justify-between gap-2">
-        <div class="flex grow gap-2">
+      <div class="flex justify-between gap-tight">
+        <div class="flex grow gap-tight">
           <template v-if="selectedFilterOption === 'pending'">
             <TButton
               icon="check"
@@ -140,7 +140,7 @@ useTitle(['Machines', 'Pending'])
           </TButton>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-tight">
           <TSelectList
             v-model="selectedFilterOption"
             title="Acceptance status"
@@ -188,7 +188,7 @@ useTitle(['Machines', 'Pending'])
               "
             >
               <TableCell>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-tight">
                   <TCheckbox
                     :model-value="selectedMachines.has(item.metadata.id!)"
                     class="pointer-events-none"
