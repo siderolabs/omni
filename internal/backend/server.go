@@ -667,11 +667,13 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 
 func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *apiServer {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		setClientAddress(req)
+
 		if req.ProtoMajor == 2 && strings.HasPrefix(
 			req.Header.Get("Content-Type"), "application/grpc",
 		) {
 			// grpcServer provides top-level gRPC proxy handler.
-			grpcServer.ServeHTTP(w, setRealIPRequest(req))
+			grpcServer.ServeHTTP(w, req)
 
 			return
 		}
@@ -995,25 +997,6 @@ func (s *Server) runK8sProxyServer(
 	logger := s.logger.With(zap.String("server", s.k8sProxyService.GetEndpoint()), zap.String("server_type", "k8s_proxy"))
 
 	return services.NewFromConfig(&s.k8sProxyService, k8sProxy).Run(ctx, logger)
-}
-
-// setRealIPRequest extracts ip from the request and sets it to the X-Forwarded-For header if there is no
-// existing X-Forwarded-For.
-func setRealIPRequest(req *http.Request) *http.Request {
-	if req.Header.Get("X-Forwarded-For") != "" {
-		return req
-	}
-
-	actualIP, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		return req
-	}
-
-	newReq := req.Clone(req.Context())
-
-	newReq.Header.Set("X-Forwarded-For", actualIP)
-
-	return newReq
 }
 
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {
