@@ -307,6 +307,23 @@ tests:
           path: spec.template.spec.containers[0].args
           content: "--config-path=/config/config.yaml"
 
+  - it: Should bind metrics on all interfaces when metrics are enabled
+    template: deployment.yaml
+    set:
+      metrics:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--metrics-bind-addr=0.0.0.0:2122"
+
+  - it: Should not override the metrics bind address when metrics are disabled
+    template: deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--metrics-bind-addr=0.0.0.0:2122"
+
   - it: Should set resources
     template: deployment.yaml
     set:

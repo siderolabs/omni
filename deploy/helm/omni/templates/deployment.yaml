@@ -79,6 +79,9 @@ spec:
             {{- range $index, $source := .Values.additionalConfigSources }}
             - --config-path=/config/additional-{{ $index }}/{{ $source.key | default "config.yaml" }}
             {{- end }}
+            {{- if .Values.metrics.enabled }}
+            - --metrics-bind-addr=0.0.0.0:2122
+            {{- end }}
             {{- range .Values.args }}
             - {{ . | quote }}
             {{- end }}

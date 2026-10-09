@@ -639,7 +639,7 @@ func TestSchemaDefaults(t *testing.T) {
 	assert.Equal(t, "http://localhost:8080", p.Services.Api.GetAdvertisedURL())
 
 	// services.metrics
-	assert.Equal(t, "0.0.0.0:2122", p.Services.Metrics.GetEndpoint())
+	assert.Equal(t, "127.0.0.1:2122", p.Services.Metrics.GetEndpoint())
 
 	// services.kubernetesProxy
 	assert.Equal(t, "0.0.0.0:8095", p.Services.KubernetesProxy.GetEndpoint())
