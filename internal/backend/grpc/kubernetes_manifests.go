@@ -167,7 +167,7 @@ func (s *managementServer) syncSSA(
 			return fmt.Errorf("failed to send manifest sync response: %w", err)
 		}
 
-		switch r.Action {
+		switch r.Action { //nolint:exhaustive
 		case ssa.CreatedAction, ssa.ConfiguredAction:
 			if !req.DryRun && !resp.Skipped {
 				rollouts = append(rollouts, &management.KubernetesSyncManifestResponse{

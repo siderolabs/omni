@@ -601,7 +601,7 @@ func (ctrl *ClusterManifestsStatusController) sync(
 			zap.String("action", string(change.Action)),
 		)
 
-		switch change.Action {
+		switch change.Action { //nolint:exhaustive
 		case ssa.CreatedAction, ssa.ConfiguredAction:
 			requeue = true
 		}

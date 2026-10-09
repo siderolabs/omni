@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.27.1
+go 1.27.2
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing (crewjam/saml#626)
@@ -104,7 +104,7 @@ require (
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20260809190231-643e93b9c9be
 	golang.org/x/crypto v0.57.0
-	golang.org/x/net v0.59.0
+	golang.org/x/net v0.60.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/text v0.42.0

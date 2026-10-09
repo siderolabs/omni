@@ -65,8 +65,8 @@ func TestConfigIsSafeToMarshal(t *testing.T) {
 }
 
 func lastSegment(path string) string {
-	if i := strings.LastIndex(path, "."); i >= 0 {
-		return path[i+1:]
+	if _, after, ok := strings.CutLast(path, "."); ok {
+		return after
 	}
 
 	return path

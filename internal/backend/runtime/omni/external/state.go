@@ -72,17 +72,17 @@ func (s *State) Get(ctx context.Context, pointer resource.Pointer, opts ...state
 }
 
 func extractClusterID(id resource.ID) (string, error) {
-	idx := strings.LastIndex(id, "-")
-	if idx == -1 {
+	before, after, ok := strings.CutLast(id, "-")
+	if !ok {
 		return "", fmt.Errorf("invalid ID %q", id)
 	}
 
-	_, err := strconv.Atoi(id[idx+1:])
+	_, err := strconv.Atoi(after)
 	if err != nil {
 		return "", fmt.Errorf("invalid timestamp in ID %q: %w", id, err)
 	}
 
-	return id[:idx], nil
+	return before, nil
 }
 
 // List implements [state.CoreState] interface.

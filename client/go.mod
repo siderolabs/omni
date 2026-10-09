@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.27.1
+go 1.27.2
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
 replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
@@ -131,7 +131,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
