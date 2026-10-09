@@ -23,7 +23,7 @@ defineProps<{
 
 <template>
   <Card class="text-xs">
-    <header class="flex justify-between gap-1 px-4 py-3">
+    <header class="flex justify-between gap-micro px-compact py-snug">
       <h2 class="text-sm font-medium text-content-emphasis">Recent Machines</h2>
 
       <TButton
@@ -37,7 +37,7 @@ defineProps<{
       </TButton>
     </header>
 
-    <div v-if="!machines.length" class="p-4">
+    <div v-if="!machines.length" class="p-compact">
       <TSpinner v-if="loading" class="mx-auto size-4" />
       <span v-else>No machines found</span>
     </div>
@@ -45,9 +45,9 @@ defineProps<{
     <div
       v-for="item in machines.slice(0, 5)"
       :key="item.metadata.id"
-      class="grid grid-cols-3 items-center gap-2 border-t border-border-default px-4 py-3 max-sm:grid-cols-[1fr_1fr_auto]"
+      class="grid grid-cols-3 items-center gap-tight border-t border-border-default px-compact py-snug max-sm:grid-cols-[1fr_1fr_auto]"
     >
-      <div class="flex min-w-0 items-center gap-2">
+      <div class="flex min-w-0 items-center gap-tight">
         <RouterLink
           :to="{ name: 'Machine', params: { machine: item.metadata.id! } }"
           class="list-item-link truncate"

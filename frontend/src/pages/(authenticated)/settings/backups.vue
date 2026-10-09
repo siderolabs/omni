@@ -170,12 +170,12 @@ useTitle('Backup Storage')
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
+  <PageContainer class="flex h-full flex-col gap-compact">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Settings" subtitle="Backup Storage" class="flex-1" />
     </div>
 
-    <div class="flex grow flex-col gap-5">
+    <div class="flex grow flex-col gap-base">
       <!-- prettier-ignore -->
       <p class="text-sm">
       Automatically back up your Kubernetes etcd databases to the configured endpoint and bucket. To
@@ -207,7 +207,11 @@ useTitle('Backup Storage')
       <TAlert v-if="error" title="Failed to Fetch Current Storage State" type="error">
         {{ error }}
       </TAlert>
-      <div v-else-if="ready && !saving" class="flex flex-col gap-5" @keydown.enter="updateConfig">
+      <div
+        v-else-if="ready && !saving"
+        class="flex flex-col gap-base"
+        @keydown.enter="updateConfig"
+      >
         <div class="font-bold text-content-emphasis">
           Storage Type {{ `${store.charAt(0).toUpperCase()}${store.slice(1)}` }}
         </div>
@@ -227,7 +231,7 @@ useTitle('Backup Storage')
             :model-value="s3Spec.region || ''"
             @update:model-value="(value) => (s3Spec.region = value)"
           />
-          <div class="flex gap-5">
+          <div class="flex gap-base">
             <TInput
               title="Access Key ID"
               type="password"
@@ -248,7 +252,7 @@ useTitle('Backup Storage')
             :model-value="s3Spec.session_token || ''"
             @update:model-value="(value) => (s3Spec.session_token = value)"
           />
-          <div class="flex gap-2 place-self-end">
+          <div class="flex gap-tight place-self-end">
             <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
             <TButton :disabled="!canManageBackupStore" variant="highlighted" @click="updateConfig">
               Save

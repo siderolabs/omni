@@ -50,7 +50,7 @@ if (oldVal !== control.value.data) {
       compact
       :min="schema.minimum"
       :max="schema.maximum"
-      class="-my-2 min-w-56"
+      class="-my-tight min-w-56"
       @update:model-value="(value: number) => p.handleChange(control.path, value)"
     />
   </ContentWrapper>

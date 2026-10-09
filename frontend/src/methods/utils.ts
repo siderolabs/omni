@@ -4,7 +4,15 @@
 // included in the LICENSE file.
 import type { ClassValue } from 'clsx'
 import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      spacing: ['micro', 'tight', 'snug', 'compact', 'base', 'section', 'major'],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

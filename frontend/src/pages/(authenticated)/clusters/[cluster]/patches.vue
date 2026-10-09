@@ -16,7 +16,7 @@ useTitle('Config Patches')
 </script>
 
 <template>
-  <PageContainer class="flex flex-col gap-2 overflow-y-auto">
+  <PageContainer class="flex flex-col gap-tight overflow-y-auto">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="`Cluster ${$route.params.cluster} Config Patches`" />
     </div>

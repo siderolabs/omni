@@ -26,11 +26,11 @@ const { theme } = useTheme()
       unstyled: true,
       classes: {
         toast:
-          'flex w-sm gap-2 rounded border border-border-strong bg-surface-raised p-2 shadow-dropdown',
+          'flex w-sm gap-tight rounded border border-border-strong bg-surface-raised p-tight shadow-dropdown',
         closeButton:
-          'absolute top-2 right-2 rounded-full bg-surface-hover p-0.5 text-content-emphasis hover:bg-surface-inert',
+          'absolute top-2 right-2 rounded-full bg-surface-hover p-micro text-content-emphasis hover:bg-surface-inert',
         icon: 'size-5 shrink-0 self-center *:size-full',
-        content: 'flex flex-col gap-1',
+        content: 'flex flex-col gap-micro',
         title: 'text-sm text-content-emphasis',
         description: 'overflow-auto text-xs whitespace-pre-wrap text-content-secondary',
 

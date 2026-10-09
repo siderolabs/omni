@@ -36,9 +36,9 @@ const sortedKeys = computed(() =>
   >
     <div
       v-if="sortedKeys.length"
-      class="col-span-full grid grid-cols-subgrid border-border-strong bg-surface-chrome py-2 pr-4 pl-2 text-xs text-content-secondary"
+      class="col-span-full grid grid-cols-subgrid border-border-strong bg-surface-chrome py-tight pr-compact pl-tight text-xs text-content-secondary"
     >
-      <div class="ml-6">Public Key ID</div>
+      <div class="ml-base">Public Key ID</div>
       <div>Created</div>
       <div>Last Used</div>
       <div></div>
@@ -47,7 +47,7 @@ const sortedKeys = computed(() =>
 
     <p
       v-if="!sortedKeys.length"
-      class="col-span-full border-t border-border-default p-2 pl-9 text-xs text-content-muted"
+      class="col-span-full border-t border-border-default p-tight pl-section text-xs text-content-muted"
     >
       No keys
     </p>
@@ -55,9 +55,9 @@ const sortedKeys = computed(() =>
     <div
       v-for="key in sortedKeys"
       :key="key.id"
-      class="col-span-full grid grid-cols-subgrid items-center border-t border-border-default p-2 pr-4 text-xs text-content-emphasis hover:bg-surface-raised"
+      class="col-span-full grid grid-cols-subgrid items-center border-t border-border-default p-tight pr-compact text-xs text-content-emphasis hover:bg-surface-raised"
     >
-      <div class="ml-6 flex min-w-0 items-center gap-2">
+      <div class="ml-base flex min-w-0 items-center gap-tight">
         <TIcon icon="key" class="size-4 shrink-0" aria-hidden="true" />
         <span class="truncate font-mono">{{ key.id }}</span>
       </div>

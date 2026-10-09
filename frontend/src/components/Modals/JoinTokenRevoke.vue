@@ -40,7 +40,7 @@ const revoke = async () => {
     :disabled="!isReady"
     @confirm="revoke"
   >
-    <JoinTokenWarnings :id="token" class="mb-2 flex-1" @ready="isReady = true" />
+    <JoinTokenWarnings :id="token" class="mb-tight flex-1" @ready="isReady = true" />
 
     <p class="text-xs">Please confirm the action.</p>
   </ConfirmModal>

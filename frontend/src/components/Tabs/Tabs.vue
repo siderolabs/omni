@@ -40,7 +40,7 @@ defineSlots<{
     <TabsList
       :class="
         cn(
-          'relative flex shrink-0 gap-6 overflow-x-auto overflow-y-hidden border-b border-border-default pb-3.5 whitespace-nowrap',
+          'relative flex shrink-0 gap-base overflow-x-auto overflow-y-hidden border-b border-border-default pb-snug whitespace-nowrap',
           tabsListClass,
         )
       "

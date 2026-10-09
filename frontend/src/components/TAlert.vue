@@ -32,7 +32,7 @@ const icons: Record<AlertType, IconType> = {
 
 <template>
   <div
-    class="rounded-md border p-4"
+    class="rounded-md border p-compact"
     :class="{
       'border-l-3 border-status-danger-border border-l-status-danger-fill bg-status-danger-surface':
         type === 'error',
@@ -56,7 +56,7 @@ const icons: Record<AlertType, IconType> = {
           }"
         />
       </div>
-      <div class="ml-3 flex flex-col gap-2">
+      <div class="ml-snug flex flex-col gap-tight">
         <h3
           class="text-sm font-medium"
           :class="{
@@ -77,7 +77,7 @@ const icons: Record<AlertType, IconType> = {
           </p>
         </div>
       </div>
-      <div v-if="dismiss" class="flex flex-1 justify-end pr-2">
+      <div v-if="dismiss" class="flex flex-1 justify-end pr-tight">
         <TButton size="sm" class="notification-right-button" @click="dismiss?.action">
           {{ dismiss.name }}
         </TButton>

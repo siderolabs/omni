@@ -120,7 +120,7 @@ const organizedDisks = computed(() =>
 </script>
 
 <template>
-  <PageContainer class="space-y-4">
+  <PageContainer class="space-y-compact">
     <TAlert v-if="errCode === Code.UNAVAILABLE" type="warn" title="Machine not ready">
       Talos API is not ready yet
     </TAlert>
@@ -137,11 +137,11 @@ const organizedDisks = computed(() =>
       class="overflow-hidden rounded-lg border border-border-default bg-surface-card"
       :aria-labelledby="`disk-${diskInfo.disk.metadata.id}-title`"
     >
-      <div class="border-b border-border-strong bg-surface-raised p-4">
+      <div class="border-b border-border-strong bg-surface-raised p-compact">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-snug">
             <TIcon icon="server" class="size-6 text-content-default" />
-            <div class="space-y-1 text-sm/none">
+            <div class="space-y-micro text-sm/none">
               <p :id="`disk-${diskInfo.disk.metadata.id}-title`" class="text-content-emphasis">
                 {{ diskInfo.disk.metadata.id }}
               </p>
@@ -150,26 +150,26 @@ const organizedDisks = computed(() =>
               </p>
             </div>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-compact">
             <span class="text-sm text-content-emphasis">
               {{ prettyBytes(diskInfo.disk.spec.size ?? 0) }}
             </span>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-tight">
               <span
                 v-if="diskInfo.disk.spec.cdrom"
-                class="rounded bg-surface-inert px-2 py-1 text-xs text-content-default"
+                class="rounded bg-surface-inert px-tight py-micro text-xs text-content-default"
               >
                 CD-ROM
               </span>
               <span
                 v-if="diskInfo.disk.spec.transport"
-                class="rounded bg-surface-inert px-2 py-1 text-xs text-content-default"
+                class="rounded bg-surface-inert px-tight py-micro text-xs text-content-default"
               >
                 {{ diskInfo.disk.spec.transport }}
               </span>
               <span
                 v-if="diskInfo.disk.spec.readonly"
-                class="rounded bg-status-warning-subtle px-2 py-1 text-xs text-status-warning-text ring-1 ring-status-warning-subtle-border ring-inset"
+                class="rounded bg-status-warning-subtle px-tight py-micro text-xs text-status-warning-text ring-1 ring-status-warning-subtle-border ring-inset"
               >
                 Read-only
               </span>
@@ -178,7 +178,7 @@ const organizedDisks = computed(() =>
         </div>
       </div>
 
-      <div class="space-y-2 bg-surface-card p-4">
+      <div class="space-y-tight bg-surface-card p-compact">
         <DiskUsageBar :disk="diskInfo.disk" :volumes="diskInfo.partitions.map((p) => p.volume)" />
         <DiskPartitionTable v-if="diskInfo.partitions.length" :partitions="diskInfo.partitions" />
       </div>

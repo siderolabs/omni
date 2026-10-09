@@ -28,7 +28,7 @@ const apiURL = computed(() => (endpoints.value ? endpoints.value.spec.grpc_api_u
 </script>
 
 <template>
-  <div v-if="apiURL" class="flex flex-col gap-1 text-xs">
+  <div v-if="apiURL" class="flex flex-col gap-micro text-xs">
     <span class="text-content-default">
       Set the following environment variables to use the service account:
     </span>

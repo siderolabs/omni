@@ -96,7 +96,7 @@ watch(filterValue, () => {
         <div
           v-for="(label, index) in filterLabels"
           :key="label.key"
-          class="-mx-1 -my-2 rounded-md border p-0.5 transition-all"
+          class="-mx-micro -my-tight rounded-md border p-micro transition-all"
           :class="selectedLabel === index ? 'border-border-accent' : 'border-transparent'"
         >
           <ItemLabel
@@ -110,12 +110,12 @@ watch(filterValue, () => {
 
     <div
       v-if="completions.length > 0 && showCompletions"
-      class="absolute top-full left-0 z-10 mt-1 flex min-w-full flex-col divide-y divide-border-strong rounded border border-border-default bg-surface-card"
+      class="absolute top-full left-0 z-10 mt-micro flex min-w-full flex-col divide-y divide-border-strong rounded border border-border-default bg-surface-card"
     >
       <div
         v-for="(suggestion, index) in completions"
         :key="index"
-        class="flex cursor-pointer px-2 py-2 text-xs hover:bg-surface-hover"
+        class="flex cursor-pointer px-tight py-tight text-xs hover:bg-surface-hover"
         :class="{ 'bg-surface-hover': index === selectedSuggestion }"
         @click="autoComplete(index)"
       >

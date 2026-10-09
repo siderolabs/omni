@@ -94,12 +94,12 @@ const defaultBinary = computed(() => {
       for more information.
     </template>
 
-    <div class="mb-5 flex flex-col gap-2">
+    <div class="mb-base flex flex-col gap-tight">
       <span class="text-xs text-content-emphasis">macOS and Linux (recommended)</span>
       <CodeBlock code="brew install siderolabs/tap/sidero-tools" />
     </div>
 
-    <span class="mb-2 text-xs text-content-emphasis">Manual installation</span>
+    <span class="mb-tight text-xs text-content-emphasis">Manual installation</span>
 
     <TAlert v-if="binariesErr" title="Failed to get talosctl versions" type="error">
       {{ binariesErr }}
@@ -113,7 +113,7 @@ const defaultBinary = computed(() => {
       No talosctl binaries were found for version {{ selectedVersion }}
     </TAlert>
 
-    <div class="mt-2 mb-5 flex flex-wrap gap-4">
+    <div class="mt-tight mb-base flex flex-wrap gap-compact">
       <TalosVersionSelect
         v-model="selectedVersion"
         title="Talos version"

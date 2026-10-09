@@ -60,12 +60,12 @@ const detailsModal = ref<{
 </script>
 
 <template>
-  <section class="flex flex-col gap-6">
+  <section class="flex flex-col gap-base">
     <header class="flex flex-col items-start">
       <h1 class="text-lg text-content-emphasis">
         Vulnerabilities for {{ clusterId }}
 
-        <span v-if="currentVersion" class="resource-label inline-flex items-center gap-1">
+        <span v-if="currentVersion" class="resource-label inline-flex items-center gap-micro">
           <TIcon class="size-3.5 shrink-0" icon="talos" aria-label="Talos version" />
           {{ currentVersion }}
         </span>
@@ -96,7 +96,7 @@ const detailsModal = ref<{
 
     <p
       v-else-if="!clusterStatus || targetsLoading"
-      class="flex items-center gap-1.5 text-sm text-content-secondary"
+      class="flex items-center gap-micro text-sm text-content-secondary"
     >
       <TSpinner class="size-4" />
       Loading cluster information…

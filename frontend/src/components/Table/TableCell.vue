@@ -9,7 +9,7 @@ defineProps<{ th?: boolean }>()
 </script>
 
 <template>
-  <component :is="th ? 'th' : 'td'" class="px-2" :class="th ? 'py-2 uppercase' : 'py-2.5'">
+  <component :is="th ? 'th' : 'td'" class="px-tight" :class="th ? 'py-tight uppercase' : 'py-snug'">
     <slot></slot>
   </component>
 </template>

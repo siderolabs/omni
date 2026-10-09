@@ -97,21 +97,21 @@ const resourceWord = computed(() => {
 
 <template>
   <template v-if="resourceIsManagedByTemplates || resourceIsManagedByGitops">
-    <div v-if="warningStyle === 'alert'" class="pb-5">
+    <div v-if="warningStyle === 'alert'" class="pb-base">
       <TAlert type="warn" :title="`This ${resourceWord} is managed using ${managedByString}.`">
         {{ warningText }}
       </TAlert>
     </div>
-    <div v-else-if="warningStyle === 'popup'" class="pb-5 text-xs">
-      <p class="py-2 text-status-warning-text">
+    <div v-else-if="warningStyle === 'popup'" class="pb-base text-xs">
+      <p class="py-tight text-status-warning-text">
         This {{ resourceWord }} is managed using {{ managedByString }}.
       </p>
-      <p class="py-2 font-bold text-status-warning-text">
+      <p class="py-tight font-bold text-status-warning-text">
         {{ warningText }}
       </p>
     </div>
     <div v-else class="text-xs">
-      <p class="py-2 text-status-warning-text">Managed using {{ managedByString }}</p>
+      <p class="py-tight text-status-warning-text">Managed using {{ managedByString }}</p>
     </div>
   </template>
 </template>

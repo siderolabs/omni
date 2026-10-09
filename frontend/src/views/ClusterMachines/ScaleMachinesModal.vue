@@ -105,7 +105,7 @@ async function confirm() {
   >
     <ManagedByTemplatesWarning v-if="cluster" warning-style="popup" :resource="cluster" />
 
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-compact">
       <TInput
         v-model="machineCount"
         type="number"

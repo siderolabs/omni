@@ -248,12 +248,12 @@ useTitle('Scale')
 </script>
 
 <template>
-  <PageContainer disable-padding class="flex h-full flex-col pt-6">
-    <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" class="px-6" />
+  <PageContainer disable-padding class="flex h-full flex-col pt-base">
+    <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" class="px-base" />
 
     <div
       v-if="existingResources.length > 0"
-      class="flex grow flex-col gap-4 overflow-y-auto px-6 pb-6"
+      class="flex grow flex-col gap-compact overflow-y-auto px-base pb-base"
     >
       <ManagedByTemplatesWarning :resource="currentCluster" />
 
@@ -261,8 +261,8 @@ useTitle('Scale')
       <MachineSets />
       <div class="text-content-default">Available Machines</div>
 
-      <div class="flex h-max max-w-full shrink-0 flex-col gap-2">
-        <div class="flex grow flex-col gap-4 overflow-hidden">
+      <div class="flex h-max max-w-full shrink-0 flex-col gap-tight">
+        <div class="flex grow flex-col gap-compact overflow-hidden">
           <LabelsInput
             v-model:filter-labels="filterLabels"
             v-model:filter-value="filterValue"
@@ -314,7 +314,7 @@ useTitle('Scale')
     </div>
 
     <div
-      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-5 py-3"
+      class="flex h-16 shrink-0 items-center border-t border-border-default bg-surface-chrome px-base py-snug"
     >
       <ClusterMenu
         class="w-full"

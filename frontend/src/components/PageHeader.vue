@@ -19,12 +19,12 @@ defineProps<{
 
 <template>
   <div
-    class="flex flex-col gap-1"
-    :class="cn({ 'mb-7': !subtitle, 'mb-2': subtitle }, $props.class)"
+    class="flex flex-col gap-micro"
+    :class="cn({ 'mb-base': !subtitle, 'mb-tight': subtitle }, $props.class)"
   >
-    <div class="flex items-center gap-6">
+    <div class="flex items-center gap-base">
       <h3 class="text-xl font-medium text-content-emphasis">{{ title }}</h3>
-      <div class="flex items-center gap-6 max-md:hidden">
+      <div class="flex items-center gap-base max-md:hidden">
         <slot />
       </div>
     </div>

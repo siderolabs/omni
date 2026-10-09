@@ -138,8 +138,8 @@ const destroyUserLabel = async (key: string) => {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs">
-    <div v-for="(group, i) in groups" :key="i" class="flex flex-wrap items-center gap-1.5">
+  <div class="flex flex-wrap items-center gap-x-base gap-y-micro text-xs">
+    <div v-for="(group, i) in groups" :key="i" class="flex flex-wrap items-center gap-micro">
       <ItemLabel
         v-for="label in group"
         :key="label.key"

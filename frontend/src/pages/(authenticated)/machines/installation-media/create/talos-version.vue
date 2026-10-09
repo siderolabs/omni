@@ -100,7 +100,7 @@ useTitle('Talos Version')
 </script>
 
 <template>
-  <div class="flex flex-col items-start gap-4">
+  <div class="flex flex-col items-start gap-compact">
     <TalosVersionSelect
       v-model="formState.talosVersion"
       title="Choose Talos Linux Version"
@@ -119,16 +119,16 @@ useTitle('Talos Version')
 
       <br />
       Selecting
-      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-micro">Automatic</code>
       will automatically get the latest version, even if it changes.
     </p>
 
-    <div class="space-y-2">
+    <div class="space-y-tight">
       <h2 id="docs-label-id" class="text-xs font-medium text-content-emphasis after:content-[':']">
         Documentation for Talos Linux {{ resolvedTalosVersion }}
       </h2>
       <ul
-        class="list-inside list-disc space-y-2 text-xs text-status-warning-text"
+        class="list-inside list-disc space-y-tight text-xs text-status-warning-text"
         aria-labelledby="docs-label-id"
       >
         <li>
@@ -177,7 +177,7 @@ useTitle('Talos Version')
 
     <p class="text-xs">
       Selecting
-      <code class="rounded bg-surface-hover px-0.5">Automatic</code>
+      <code class="rounded bg-surface-hover px-micro">Automatic</code>
       will automatically get the default join token, even if it changes.
     </p>
 

@@ -79,23 +79,23 @@ const manifestYAML = computed(() => {
 </script>
 
 <template>
-  <div class="flex grow flex-col gap-2 @3xl:flex-row">
-    <div class="flex min-w-0 grow flex-col gap-2">
+  <div class="flex grow flex-col gap-tight @3xl:flex-row">
+    <div class="flex min-w-0 grow flex-col gap-tight">
       <div
-        class="flex flex-wrap items-center justify-between rounded-lg border border-border-default bg-surface-card p-2"
+        class="flex flex-wrap items-center justify-between rounded-lg border border-border-default bg-surface-card p-tight"
       >
-        <div class="flex items-center gap-4 text-xs">
-          <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-compact text-xs">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
             <span>Applied</span>
           </div>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
             <span>Deleting</span>
           </div>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-micro">
             <div class="h-0 w-5 border-t-2 border-dashed border-status-warning-default"></div>
             <span>Pending</span>
           </div>
@@ -137,10 +137,10 @@ const manifestYAML = computed(() => {
       class="flex w-full shrink-0 flex-col overflow-hidden rounded-lg border border-border-default @3xl:w-md"
     >
       <div
-        class="flex justify-between gap-2 border-b border-border-default bg-surface-chrome px-4 py-2"
+        class="flex justify-between gap-tight border-b border-border-default bg-surface-chrome px-compact py-tight"
       >
-        <div class="flex flex-col gap-1 leading-tight">
-          <div class="flex items-center gap-4">
+        <div class="flex flex-col gap-micro leading-tight">
+          <div class="flex items-center gap-compact">
             <h3 class="text-sm font-medium text-content-emphasis">
               {{ selectedManifest.manifest.name }}
             </h3>
@@ -164,7 +164,7 @@ const manifestYAML = computed(() => {
         />
       </div>
 
-      <div class="flex-1 overflow-y-auto p-2">
+      <div class="flex-1 overflow-y-auto p-tight">
         <div v-if="selectedManifestGroupLoading" class="flex h-40 items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>

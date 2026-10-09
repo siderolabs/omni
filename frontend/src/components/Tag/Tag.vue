@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <template>
   <div
-    class="rounded border border-border-strong bg-surface-hover px-1.5 py-1 text-xs text-content-default"
+    class="rounded border border-border-strong bg-surface-hover px-micro py-micro text-xs text-content-default"
   >
     <slot />
   </div>

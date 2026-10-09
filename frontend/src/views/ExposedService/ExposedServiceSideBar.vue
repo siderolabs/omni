@@ -68,8 +68,11 @@ const errors = computed(() => {
             icon="window"
             regular-link
           />
-          <div v-if="errors.length" class="flex items-center gap-4 pr-5 pl-6 text-xs">
-            <TIcon icon="exclamation-triangle" class="ml-0.5 size-4 text-status-warning-default" />
+          <div
+            v-if="errors.length"
+            class="flex items-center gap-compact border-x-2 border-transparent px-base text-xs"
+          >
+            <TIcon icon="exclamation-triangle" class="size-4 text-status-warning-default" />
             <div class="flex-1 truncate text-status-warning-text">
               {{ pluralize('service', errors.length, true) }}
               {{ errors.length === 1 ? 'has' : 'have' }} errors
@@ -82,12 +85,14 @@ const errors = computed(() => {
                   </div>
                 </div>
               </template>
-              <IconButton icon="question-mark-circle" class="mr-0.5" />
+              <IconButton icon="question-mark-circle" />
             </Tooltip>
           </div>
         </template>
         <template v-else>
-          <p class="my-1 items-center justify-start px-6 py-1.5 text-xs text-content-muted">
+          <p
+            class="my-micro items-center justify-start px-base py-tight text-xs text-content-muted"
+          >
             No exposed services
           </p>
         </template>
@@ -100,7 +105,7 @@ const errors = computed(() => {
 @reference "../../index.css";
 
 .title {
-  @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-surface-hover;
+  @apply my-micro flex items-center justify-start gap-compact border-l-2 border-transparent px-base py-1.5 transition-all duration-200 hover:bg-surface-hover;
 }
 
 .title:hover .title-name {
@@ -130,7 +135,7 @@ const errors = computed(() => {
 }
 
 .expand-button {
-  @apply -my-1 flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 hover:border-border-strong;
+  @apply -my-micro flex h-5 w-5 items-center justify-center rounded-md border border-transparent bg-surface-hover transition-colors duration-200 hover:border-border-strong;
 }
 
 .title:hover .expand-button {

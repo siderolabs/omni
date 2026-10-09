@@ -87,10 +87,10 @@ const updateLock = async () => {
 
 <template>
   <div
-    class="col-span-full grid cursor-pointer grid-cols-subgrid p-2 pr-4 text-xs text-content-emphasis hover:bg-surface-raised"
+    class="col-span-full grid cursor-pointer grid-cols-subgrid p-tight pr-compact text-xs text-content-emphasis hover:bg-surface-raised"
     @click="openNodeInfo"
   >
-    <div class="col-span-2 ml-6 flex items-center gap-2">
+    <div class="col-span-2 ml-base flex items-center gap-tight">
       <TIcon :icon="icon" class="size-4 shrink-0" />
       <RouterLink
         :to="{
@@ -104,7 +104,7 @@ const updateLock = async () => {
       </RouterLink>
     </div>
 
-    <div class="col-span-2 flex items-center gap-2">
+    <div class="col-span-2 flex items-center gap-tight">
       <ClusterMachinePhase :machine="machine" />
       <RouterLink
         v-if="lockedUpdate"
@@ -112,7 +112,7 @@ const updateLock = async () => {
           name: 'NodePendingUpdates',
           params: { cluster: clusterName, machine: machine.metadata.id! },
         }"
-        class="flex items-center gap-1 truncate text-status-info-text hover:text-content-emphasis"
+        class="flex items-center gap-micro truncate text-status-info-text hover:text-content-emphasis"
         @click.stop
       >
         <TIcon icon="time" class="size-4 min-w-max shrink-0" />
@@ -125,7 +125,7 @@ const updateLock = async () => {
         v-if="machine.spec.last_config_error"
         :description="machine.spec.last_config_error.trim()"
       >
-        <TIcon icon="x-circle" class="mx-1.5 size-4 shrink-0 text-status-danger-default" />
+        <TIcon icon="x-circle" class="mx-micro size-4 shrink-0 text-status-danger-default" />
       </Tooltip>
 
       <Tooltip
@@ -134,7 +134,7 @@ const updateLock = async () => {
       >
         <TIcon
           icon="exclamation-triangle"
-          class="mx-1.5 size-4 shrink-0 text-status-warning-default"
+          class="mx-micro size-4 shrink-0 text-status-warning-default"
         />
       </Tooltip>
 

@@ -70,13 +70,13 @@ useTitle(() => ['Machines', machineName.value])
 </script>
 
 <template>
-  <div class="flex h-full flex-col pt-6">
-    <PageHeader :title="machineName" class="px-4 md:px-6" />
+  <div class="flex h-full flex-col pt-base">
+    <PageHeader :title="machineName" class="px-compact md:px-base" />
 
     <Tabs
       :model-value="$route.name?.toString()"
       :class="{ grow: hasMatchingTab }"
-      tabs-list-class="px-4 md:px-6"
+      tabs-list-class="px-compact md:px-base"
     >
       <template #triggers>
         <TabButton

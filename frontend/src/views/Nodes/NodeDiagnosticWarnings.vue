@@ -25,7 +25,7 @@ defineProps<Props>()
         target="_blank"
         rel="noopener noreferrer"
       >
-        <TIcon icon="exclamation-triangle" class="mr-2 h-4 w-4 text-status-warning-default" />
+        <TIcon icon="exclamation-triangle" class="mr-tight h-4 w-4 text-status-warning-default" />
         <div class="text-status-warning-text">{{ diagnostic.message }}</div>
       </a>
       <template #details>
@@ -35,7 +35,7 @@ defineProps<Props>()
             :key="index"
             class="diagnostic-subitem"
           >
-            <TIcon icon="dot" class="mr-2 h-4 w-4" />
+            <TIcon icon="dot" class="mr-tight h-4 w-4" />
             <span class="flex-1">{{ detail }}</span>
           </div>
         </div>
@@ -52,7 +52,7 @@ defineProps<Props>()
 }
 
 .diagnostic-sublist {
-  @apply flex flex-col gap-1 pl-6;
+  @apply flex flex-col gap-micro pl-base;
 }
 
 .diagnostic-subitem {

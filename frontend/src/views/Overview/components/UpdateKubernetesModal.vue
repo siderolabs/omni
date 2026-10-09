@@ -208,7 +208,7 @@ const upgradeClick = async () => {
       !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
     "
     :loading="statusLoading || runningPrechecks"
-    content-class="flex max-w-xl flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-tight"
     @confirm="upgradeClick"
   >
     <div class="shrink-0">
@@ -218,7 +218,7 @@ const upgradeClick = async () => {
     <RadioGroup
       v-if="status"
       v-model="selectedVersion"
-      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-content-default"
+      class="flex max-h-64 min-h-16 flex-1 flex-col gap-tight overflow-y-auto text-content-default"
     >
       <template
         v-for="(
@@ -228,7 +228,7 @@ const upgradeClick = async () => {
       >
         <RadioGroupLabel
           as="div"
-          class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
+          class="sticky top-0 w-full bg-surface-hover p-micro pl-section text-sm font-bold"
         >
           {{ group }}
           {{
@@ -239,7 +239,7 @@ const upgradeClick = async () => {
                 : ` - Requires Talos version ${minTalosVersion}`
           }}
         </RadioGroupLabel>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-micro">
           <RadioGroupOption
             v-for="{ upgradeable, version } in versions"
             :key="version"
@@ -248,7 +248,7 @@ const upgradeClick = async () => {
             :disabled="!upgradeable"
           >
             <div
-              class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+              class="flex transform cursor-pointer items-center gap-tight px-tight py-micro text-sm transition-colors hover:bg-surface-hover"
               :class="{ 'bg-surface-hover': checked }"
             >
               <TCheckbox

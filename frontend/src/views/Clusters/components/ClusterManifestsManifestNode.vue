@@ -39,7 +39,7 @@ const isPending = computed(
 
 <template>
   <div
-    class="flex size-full items-center gap-2 rounded-md border border-border-strong bg-surface-card px-2.5 py-2 shadow-lg/40"
+    class="flex size-full items-center gap-tight rounded-md border border-border-strong bg-surface-card px-snug py-tight shadow-lg/40"
   >
     <Handle id="left" type="target" :position="Position.Left" class="min-h-0! min-w-0!" />
 
@@ -52,21 +52,21 @@ const isPending = computed(
       }"
     ></div>
 
-    <div class="flex min-w-0 grow flex-col gap-1 leading-tight">
+    <div class="flex min-w-0 grow flex-col gap-micro leading-tight">
       <span class="truncate text-[0.6875rem] font-medium text-content-default">
         {{ data.manifest.name }}
       </span>
 
       <ClusterManifestPhase class="shrink-0" :phase="data.manifest.phase" />
 
-      <div v-if="data.manifest.kind" class="flex items-center gap-0.5 truncate text-[0.5625rem]">
+      <div v-if="data.manifest.kind" class="flex items-center gap-micro truncate text-[0.5625rem]">
         <span class="text-content-muted">Kind:</span>
         <span class="text-content-default">{{ data.manifest.kind }}</span>
       </div>
 
       <div
         v-if="data.manifest.namespace"
-        class="flex items-center gap-0.5 truncate text-[0.5625rem]"
+        class="flex items-center gap-micro truncate text-[0.5625rem]"
       >
         <span class="text-content-muted">Namespace:</span>
         <span class="text-content-default">{{ data.manifest.namespace }}</span>

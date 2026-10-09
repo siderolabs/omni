@@ -15,7 +15,7 @@ const progress = defineModel<number>({ required: true })
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-tight">
     <ProgressRoot v-model="progress" class="h-2 flex-1 overflow-hidden rounded-sm bg-surface-inert">
       <ProgressIndicator
         class="h-full w-full origin-left transition-colors transition-transform"

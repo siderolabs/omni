@@ -202,14 +202,14 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
   >
     <template #description>Cluster: {{ clusterId }}</template>
 
-    <div class="mb-4">
+    <div class="mb-compact">
       <Tooltip
         description="To encrypt to your own key as well, so that you can open the bundle too, use omnictl support --encryption-recipients."
       >
         <TCheckbox v-model="encrypt" :disabled="encryptLocked" label="Encrypt for Sidero Labs" />
       </Tooltip>
 
-      <p class="mt-1 ml-5.5 text-xs text-content-muted">
+      <p class="mt-micro ml-base text-xs text-content-muted">
         {{
           encrypt
             ? 'Only Sidero Labs team will be able to open the bundle, so it is safe to attach to an issue or a ticket.'
@@ -218,13 +218,15 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
       </p>
     </div>
 
-    <div class="space-y-2">
+    <div class="space-y-tight">
       <div
         v-for="source in sortedSources"
         :key="source"
         class="flex flex-col divide-y divide-border-strong rounded-md border border-border-strong text-xs"
       >
-        <div class="flex items-center gap-2 overflow-x-hidden p-3 px-3 text-content-default">
+        <div
+          class="flex items-center gap-tight overflow-x-hidden p-snug px-snug text-content-default"
+        >
           <IconButton
             icon="chevron-up"
             class="shrink-0 transition-transform"
@@ -251,10 +253,10 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
           />
         </div>
 
-        <div v-if="expanded[source]" class="py-4">
+        <div v-if="expanded[source]" class="py-compact">
           <ul
             v-if="sourceToProgress[source].info"
-            class="mx-4 mb-2 grid grid-cols-[auto_1fr] gap-x-2"
+            class="mx-compact mb-tight grid grid-cols-[auto_1fr] gap-x-tight"
           >
             <li class="col-span-full grid grid-cols-subgrid">
               <span class="font-medium text-content-emphasis">UUID</span>
@@ -271,7 +273,9 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
             :key="state.text"
             :description="state.error"
           >
-            <div class="flex cursor-pointer items-center gap-2 px-4 py-0.5 hover:bg-surface-hover">
+            <div
+              class="flex cursor-pointer items-center gap-tight px-compact py-micro hover:bg-surface-hover"
+            >
               <TIcon
                 class="h-4 w-4"
                 :class="{

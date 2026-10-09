@@ -52,7 +52,7 @@ export const Default: Story = {}
 export const AllPills: Story = {
   decorators: [
     // One column per glyph, after the column for the glyph the tone implies
-    () => ({ template: '<div class="grid grid-cols-8 items-center gap-2"><story/></div>' }),
+    () => ({ template: '<div class="grid grid-cols-8 items-center gap-tight"><story/></div>' }),
   ],
   render: () => ({
     components: { StatusPill },

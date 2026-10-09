@@ -11,7 +11,7 @@ import { getDocsLink } from '@/methods'
 
 <template>
   <div class="@container flex grow flex-col items-center justify-center overflow-y-auto">
-    <div class="flex flex-col items-center gap-3 text-center">
+    <div class="flex flex-col items-center gap-snug text-center">
       <div class="flex size-14 items-center justify-center rounded-full bg-surface-raised">
         <TIcon icon="document-text" class="size-7 text-accent-text" />
       </div>
@@ -28,16 +28,16 @@ import { getDocsLink } from '@/methods'
         :href="getDocsLink('omni', '/cluster-management/sync-kubernetes-manifests')"
         target="_blank"
         rel="noopener noreferrer"
-        class="link-primary inline-flex items-center gap-1 text-sm"
+        class="link-primary inline-flex items-center gap-micro text-sm"
       >
         Learn more about syncing Kubernetes manifests
         <TIcon icon="external-link" class="size-3.5" />
       </a>
     </div>
 
-    <div class="grid max-w-3xl gap-3 py-6 @2xl:grid-cols-3">
+    <div class="grid max-w-3xl gap-snug py-base @2xl:grid-cols-3">
       <div
-        class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        class="flex flex-col items-center gap-tight rounded-lg border border-border-default bg-surface-card p-compact text-center"
       >
         <TIcon icon="pods" class="size-5 text-content-default" />
         <h3 class="text-sm font-medium text-content-emphasis">Grouped manifests</h3>
@@ -48,7 +48,7 @@ import { getDocsLink } from '@/methods'
       </div>
 
       <div
-        class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        class="flex flex-col items-center gap-tight rounded-lg border border-border-default bg-surface-card p-compact text-center"
       >
         <TIcon icon="check-circle" class="size-5 text-content-default" />
         <h3 class="text-sm font-medium text-content-emphasis">Sync tracking</h3>
@@ -59,7 +59,7 @@ import { getDocsLink } from '@/methods'
       </div>
 
       <div
-        class="flex flex-col items-center gap-2 rounded-lg border border-border-default bg-surface-card p-4 text-center"
+        class="flex flex-col items-center gap-tight rounded-lg border border-border-default bg-surface-card p-compact text-center"
       >
         <TIcon icon="list-bullet" class="size-5 text-content-default" />
         <h3 class="text-sm font-medium text-content-emphasis">Graph &amp; list views</h3>

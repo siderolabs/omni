@@ -34,10 +34,10 @@ const matches = computed(() => data.value?.matches)
 </script>
 
 <template>
-  <section class="flex flex-col gap-3">
+  <section class="flex flex-col gap-snug">
     <h3 class="text-sm text-content-emphasis">Vulnerability Scan</h3>
 
-    <p v-if="loading" class="flex items-center gap-1.5">
+    <p v-if="loading" class="flex items-center gap-micro">
       <TSpinner class="size-4" />
       Running vulnerability scan...
     </p>
@@ -46,14 +46,14 @@ const matches = computed(() => data.value?.matches)
     <template v-if="matches">
       <p
         v-if="matches.length === 0"
-        class="flex items-center gap-1.5 text-xs text-status-success-text"
+        class="flex items-center gap-micro text-xs text-status-success-text"
       >
         <TIcon icon="check-circle" class="size-4 shrink-0" aria-hidden="true" />
         No vulnerabilities detected
       </p>
 
-      <div v-else class="flex flex-col items-start gap-2">
-        <p class="flex items-center gap-1.5 text-xs text-status-warning-text">
+      <div v-else class="flex flex-col items-start gap-tight">
+        <p class="flex items-center gap-micro text-xs text-status-warning-text">
           <TIcon icon="exclamation-triangle" class="size-4 shrink-0" aria-hidden="true" />
           <span>
             <span class="font-medium">{{ matches.length }}</span>

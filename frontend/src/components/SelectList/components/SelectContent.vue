@@ -31,7 +31,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emit)
     v-bind="forwarded"
     :class="
       cn(
-        'relative z-50 max-h-[min(--spacing(70),var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width) translate-y-1 space-y-1 overflow-hidden rounded border border-border-default bg-surface-raised p-1.5 text-xs [--arrow-size:--spacing(4)] slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+        'relative z-50 max-h-[min(--spacing(70),var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width) translate-y-1 space-y-micro overflow-hidden rounded border border-border-default bg-surface-raised p-micro text-xs [--arrow-size:var(--spacing-compact)] slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
         props.class,
       )
     "

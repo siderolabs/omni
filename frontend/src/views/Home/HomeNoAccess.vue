@@ -16,8 +16,8 @@ const downloadOmnictlModalOpen = ref(false)
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-center justify-center gap-2">
-    <div class="relative mb-6 h-16 w-16">
+  <div class="flex h-full flex-col items-center justify-center gap-tight">
+    <div class="relative mb-base h-16 w-16">
       <div
         class="absolute top-0 left-0 h-full w-full translate-x-1.5 -translate-y-1.5 rotate-12 rounded-lg bg-surface-card"
       />
@@ -32,7 +32,7 @@ const downloadOmnictlModalOpen = ref(false)
     <p class="text-lg text-content-emphasis">You don't have access to Omni Web</p>
     <p class="text-xs text-content-muted">At least Reader role is required</p>
 
-    <div class="mt-3 flex gap-3">
+    <div class="mt-snug flex gap-snug">
       <TButton
         variant="primary"
         icon="talos-config"

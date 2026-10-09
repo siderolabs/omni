@@ -45,7 +45,7 @@ watchEffect(() => {
       }
     "
   >
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-compact">
       <p class="text-sm">
         This cluster has a single control plane node and no workers. By default, control plane nodes
         are tainted so that user workloads are not scheduled on them, which would leave this cluster
@@ -53,20 +53,20 @@ watchEffect(() => {
       </p>
 
       <RadioGroup v-model="untaint">
-        <RadioGroupLabel class="mb-3 block text-sm">
+        <RadioGroupLabel class="mb-snug block text-sm">
           Apply a patch (
           <code class="text-xs text-content-default">allowSchedulingOnControlPlanes: true</code>
           ) that will enable scheduling user workloads on this node?
         </RadioGroupLabel>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-compact">
           <RadioGroupOption :value="false">No</RadioGroupOption>
           <RadioGroupOption :value="true">Yes</RadioGroupOption>
         </div>
       </RadioGroup>
 
       <a
-        class="link-primary inline-flex items-center gap-1 self-end text-xs"
+        class="link-primary inline-flex items-center gap-micro self-end text-xs"
         :href="
           getDocsLink('talos', '/deploy-and-manage-workloads/workers-on-controlplane', {
             talosVersion,

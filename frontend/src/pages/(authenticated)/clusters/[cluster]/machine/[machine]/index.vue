@@ -294,7 +294,7 @@ useTitle('Overview')
             v-if="talosMachineStatus.spec.status?.unmetConditions?.length"
             :conditions="talosMachineStatus.spec.status.unmetConditions"
           />
-          <div v-else class="flex items-center gap-1 text-xs text-status-success-text">
+          <div v-else class="flex items-center gap-micro text-xs text-status-success-text">
             <TIcon icon="check-circle" class="size-4" />
             None
           </div>
@@ -364,7 +364,7 @@ useTitle('Overview')
       <TGroupAnimation v-if="services.length">
         <TListItem v-for="service in services" :key="service.name">
           <template #default>
-            <div class="grid grid-cols-4 p-1">
+            <div class="grid grid-cols-4 p-micro">
               <RouterLink
                 class="list-item-link col-span-2"
                 :to="{
@@ -388,12 +388,12 @@ useTitle('Overview')
             </div>
           </template>
           <template #details>
-            <NodeServiceEvents class="mt-4 -mb-2" :events="service.events" />
+            <NodeServiceEvents class="mt-compact -mb-tight" :events="service.events" />
           </template>
         </TListItem>
       </TGroupAnimation>
 
-      <div v-else-if="servicesErr" class="flex items-center justify-center py-8 text-sm">
+      <div v-else-if="servicesErr" class="flex items-center justify-center py-section text-sm">
         <span v-if="servicesErrCode === Code.UNAVAILABLE">Talos API is not ready yet</span>
         <span v-else class="text-status-danger-text">{{ servicesErr }}</span>
       </div>
@@ -405,11 +405,11 @@ useTitle('Overview')
 @reference "../../../../../../index.css";
 
 .overview {
-  @apply flex w-full flex-col gap-6;
+  @apply flex w-full flex-col gap-base;
 }
 
 .overview-data-list {
-  @apply flex flex-col items-stretch justify-start gap-y-6 xl:flex-row xl:items-start xl:justify-between xl:gap-x-6;
+  @apply flex flex-col items-stretch justify-start gap-y-base xl:flex-row xl:items-start xl:justify-between xl:gap-x-base;
 }
 
 .overview-data-item {
@@ -419,11 +419,11 @@ useTitle('Overview')
 }
 
 .overview-data-heading {
-  @apply w-full border-b border-border-default px-4 py-3 text-xs text-content-default;
+  @apply w-full border-b border-border-default px-compact py-snug text-xs text-content-default;
   font-size: 13px;
 }
 .overview-data-row {
-  @apply flex w-full items-center justify-between gap-2;
+  @apply flex w-full items-center justify-between gap-tight;
   padding: 14px 16px 10px 16px;
 }
 .overview-data-row:last-of-type {
@@ -439,13 +439,13 @@ useTitle('Overview')
   @apply flex;
 }
 .overview-data-role:not(:last-of-type) {
-  margin-right: 6px;
+  @apply mr-tight;
 }
 .overview-services-heading {
-  @apply mb-4 flex items-center;
+  @apply mb-compact flex items-center;
 }
 .overview-services-title {
-  @apply mr-2 text-base text-content-default;
+  @apply mr-tight text-base text-content-default;
 }
 .overview-services-amount {
   @apply bg-surface-inert text-xs text-content-default;
@@ -453,7 +453,7 @@ useTitle('Overview')
   padding: 3px 7px;
 }
 .overview-table-header {
-  @apply rounded-sm bg-surface-card px-4 py-2 pl-11;
+  @apply rounded-sm bg-surface-card px-compact py-tight pl-11;
 }
 .overview-table-name {
   @apply w-full text-xs text-content-default;

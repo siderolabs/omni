@@ -125,7 +125,7 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
     :aria-label="group.id"
     disable-border-on-expand
   >
-    <div class="flex flex-1 items-center gap-4">
+    <div class="flex flex-1 items-center gap-compact">
       <span class="font-bold">{{ group.id }}</span>
       <StatusPill v-bind="groupPhaseStatus(group.phase)">
         {{ groupPhaseName(group.phase) }}
@@ -141,10 +141,10 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
 
     <template #details>
       <div v-if="group.manifestsList.length === 0">No manifests in this group.</div>
-      <div v-else class="flex flex-col gap-1" role="table">
+      <div v-else class="flex flex-col gap-micro" role="table">
         <div role="rowgroup">
           <div
-            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 px-2 py-1 text-xs font-bold text-content-muted"
+            class="grid grid-cols-[repeat(4,1fr)_auto] gap-tight px-tight py-micro text-xs font-bold text-content-muted"
             role="row"
           >
             <div role="columnheader">ID</div>
@@ -159,7 +159,7 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
           <div
             v-for="manifest in group.manifestsList"
             :key="manifest.id"
-            class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 rounded px-2 py-1.5 text-xs hover:bg-surface-raised"
+            class="grid grid-cols-[repeat(4,1fr)_auto] gap-tight rounded px-tight py-tight text-xs hover:bg-surface-raised"
             role="row"
             :aria-label="manifest.id"
           >

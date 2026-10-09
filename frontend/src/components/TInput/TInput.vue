@@ -89,20 +89,20 @@ onMounted(() => focus && inputRef.value?.focus())
 </script>
 
 <template>
-  <label class="flex flex-col gap-4 text-sm font-medium text-content-emphasis">
+  <label class="flex flex-col gap-compact text-sm font-medium text-content-emphasis">
     <span v-if="title && overheadTitle" class="text-sm">
       {{ title }}
     </span>
 
     <div
-      class="flex max-h-full items-center justify-start gap-x-2 gap-y-3 rounded border transition-colors focus-within:border-border-accent has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
+      class="flex max-h-full items-center justify-start gap-x-tight gap-y-snug rounded border transition-colors focus-within:border-border-accent has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:border-border-strong has-disabled:bg-surface-raised has-disabled:text-content-muted has-disabled:select-none"
       :class="[
-        compact ? 'px-2 py-1' : 'px-2 py-2.25',
+        compact ? 'px-tight py-micro' : 'px-tight py-tight',
         secondary ? 'border-transparent' : 'border-border-strong',
       ]"
     >
       <slot name="labels"></slot>
-      <span v-if="title && !overheadTitle" class="mr-1 min-w-fit text-xs after:content-[':']">
+      <span v-if="title && !overheadTitle" class="mr-micro min-w-fit text-xs after:content-[':']">
         {{ title }}
       </span>
       <input
@@ -123,7 +123,7 @@ onMounted(() => focus && inputRef.value?.focus())
         :icon="icon"
       />
 
-      <div v-if="type === 'number'" class="-my-1 flex flex-col select-none">
+      <div v-if="type === 'number'" class="-my-micro flex flex-col select-none">
         <TIcon
           class="h-2 w-2 rotate-180 text-content-default hover:text-content-emphasis"
           icon="chevron-down"

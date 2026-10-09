@@ -82,8 +82,8 @@ const saveAndClose = async () => {
   >
     <template #description>{{ id }}</template>
 
-    <div class="flex flex-col gap-3">
-      <div class="self-end px-8">
+    <div class="flex flex-col gap-snug">
+      <div class="self-end px-section">
         <TButton
           is="a"
           :href="getDocsLink('talos', '/reference/configuration/overview', { talosVersion })"

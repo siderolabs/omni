@@ -34,15 +34,15 @@ const filtered = computed(() => {
 
 <template>
   <PageContainer class="flex h-full flex-col">
-    <div role="heading" aria-level="1" class="mb-2">
+    <div role="heading" aria-level="1" class="mb-tight">
       <ResourceBreadcrumbs runtime="talos" />
     </div>
 
-    <p class="mb-4 text-sm text-content-default">
+    <p class="mb-compact text-sm text-content-default">
       Talos resources are served by each node. Pick a machine to browse its resources.
     </p>
 
-    <TInput v-model="search" class="mb-4" icon="search" title="Search" />
+    <TInput v-model="search" class="mb-compact" icon="search" title="Search" />
 
     <div v-if="loading" class="flex grow items-center justify-center">
       <TSpinner class="size-6" />

@@ -120,10 +120,10 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
+  <PageContainer class="flex h-full flex-col gap-compact">
     <PageHeader title="Settings" subtitle="Service Accounts" />
 
-    <div class="flex grow flex-col gap-2">
+    <div class="flex grow flex-col gap-tight">
       <div class="flex justify-end">
         <TButton
           icon="plus"
@@ -157,12 +157,12 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
 
       <div
         v-else
-        class="grid grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_--spacing(24)] gap-3"
+        class="grid grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_--spacing(24)] gap-snug"
       >
         <div
-          class="col-span-full grid grid-cols-subgrid bg-surface-card px-3 py-2.5 text-xs max-lg:hidden"
+          class="col-span-full grid grid-cols-subgrid bg-surface-card px-snug py-snug text-xs max-lg:hidden"
         >
-          <div class="pl-6">ID</div>
+          <div class="pl-base">ID</div>
           <div>Role</div>
           <div>Last Active</div>
           <div>Keys</div>
@@ -170,7 +170,7 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
           <div>Actions</div>
         </div>
 
-        <ul class="col-span-full grid grid-cols-subgrid gap-3">
+        <ul class="col-span-full grid grid-cols-subgrid gap-snug">
           <ServiceAccountItem
             v-for="item in serviceAccounts"
             :key="item.metadata.id"

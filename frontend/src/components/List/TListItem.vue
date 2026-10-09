@@ -24,16 +24,16 @@ defineSlots<{
 <template>
   <CollapsibleRoot
     v-slot="{ open }"
-    class="group flex w-full flex-col rounded-t-sm border-b border-border-strong px-2 py-4 text-xs text-content-default transition-all duration-500 last-of-type:border-none"
+    class="group flex w-full flex-col rounded-t-sm border-b border-border-strong px-tight py-compact text-xs text-content-default transition-all duration-500 last-of-type:border-none"
     :class="
       !disableBorderOnExpand &&
-      'data-[state=open]:mt-1 data-[state=open]:rounded data-[state=open]:last-of-type:border-border-strong'
+      'data-[state=open]:mt-micro data-[state=open]:rounded data-[state=open]:last-of-type:border-border-strong'
     "
     role="row"
     :default-open="isDefaultOpened"
   >
-    <div class="flex flex-col gap-1">
-      <div class="flex items-center gap-1">
+    <div class="flex flex-col gap-micro">
+      <div class="flex items-center gap-micro">
         <CollapsibleTrigger
           v-if="$slots.details"
           class="cursor-pointer rounded transition-colors hover:bg-surface-inert"
@@ -46,7 +46,7 @@ defineSlots<{
           />
         </CollapsibleTrigger>
 
-        <div class="min-w-0 flex-1 px-1">
+        <div class="min-w-0 flex-1 px-micro">
           <slot></slot>
         </div>
       </div>
@@ -55,7 +55,7 @@ defineSlots<{
     </div>
 
     <CollapsibleContent v-if="$slots.details" class="collapsible-content overflow-hidden">
-      <div class="p-2">
+      <div class="p-tight">
         <slot name="details"></slot>
       </div>
     </CollapsibleContent>

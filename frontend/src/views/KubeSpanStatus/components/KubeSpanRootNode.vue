@@ -25,7 +25,7 @@ const { dimensions, data } = defineProps<NodeProps<KubeSpanRootNodeData>>()
 <template>
   <div class="w-full rounded-lg border border-border-strong bg-surface-card shadow-lg/40">
     <div
-      class="flex items-center gap-1 rounded-[7px] border border-border-accent bg-surface-card px-3"
+      class="flex items-center gap-micro rounded-[7px] border border-border-accent bg-surface-card px-snug"
       :style="{ height: `${dimensions.height}px` }"
     >
       <Handle id="right" type="source" :position="Position.Right" class="min-h-0! min-w-0!" />
@@ -36,8 +36,8 @@ const { dimensions, data } = defineProps<NodeProps<KubeSpanRootNodeData>>()
       </span>
     </div>
 
-    <div class="flex flex-col gap-2 px-4 py-2 text-xs">
-      <div class="flex flex-col gap-1 text-xs">
+    <div class="flex flex-col gap-tight px-compact py-tight text-xs">
+      <div class="flex flex-col gap-micro text-xs">
         <span class="text-content-secondary">Role</span>
         <span class="text-content-emphasis">
           {{
@@ -48,7 +48,7 @@ const { dimensions, data } = defineProps<NodeProps<KubeSpanRootNodeData>>()
         </span>
       </div>
 
-      <div class="flex flex-col gap-1 text-xs">
+      <div class="flex flex-col gap-micro text-xs">
         <span class="text-content-secondary">Incoming / Outgoing traffic</span>
         <span class="text-content-emphasis">
           {{ data.traffic }}

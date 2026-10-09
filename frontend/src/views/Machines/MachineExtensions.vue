@@ -156,19 +156,19 @@ const extensionsLevel = computed(() => {
 
 <template>
   <div class="flex h-full flex-col">
-    <PageContainer class="flex grow flex-col gap-4 overflow-y-auto">
+    <PageContainer class="flex grow flex-col gap-compact overflow-y-auto">
       <TInput v-model="searchString" icon="search" />
       <div class="flex flex-1 flex-col overflow-y-auto">
         <template v-if="ready && extensionsState.length > 0">
           <div
-            class="mb-1 grid grid-cols-3 items-center justify-center bg-surface-card px-6 py-2 text-xs"
+            class="mb-micro grid grid-cols-3 items-center justify-center bg-surface-card px-base py-tight text-xs"
           >
             <div>Name</div>
             <div>State</div>
             <div>Level</div>
           </div>
           <TListItem v-for="item in extensionsState" :key="item.name">
-            <div class="flex gap-2 px-3">
+            <div class="flex gap-tight px-snug">
               <div class="grid flex-1 grid-cols-3 items-center justify-center text-content-default">
                 <WordHighlighter
                   :query="searchString"
@@ -178,7 +178,7 @@ const extensionsLevel = computed(() => {
                 />
                 <div class="flex">
                   <div
-                    class="flex items-center gap-2 rounded bg-surface-raised px-2 py-1 text-xs text-content-default"
+                    class="flex items-center gap-tight rounded bg-surface-raised px-tight py-micro text-xs text-content-default"
                   >
                     <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
                       <TIcon
@@ -227,7 +227,7 @@ const extensionsLevel = computed(() => {
 
     <div
       v-if="!readOnly"
-      class="flex h-16 shrink-0 items-center justify-end border-t border-border-strong bg-surface-chrome px-12"
+      class="flex h-16 shrink-0 items-center justify-end border-t border-border-strong bg-surface-chrome px-section"
     >
       <TButton
         variant="highlighted"

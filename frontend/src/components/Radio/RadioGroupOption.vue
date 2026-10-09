@@ -14,13 +14,16 @@ defineProps<{
 
 <template>
   <RadioGroupOption v-slot="{ checked }" as="template" :value>
-    <div class="flex cursor-pointer items-center gap-2.5 rounded-md">
+    <div class="flex cursor-pointer items-center gap-snug rounded-md">
       <div
-        class="size-3.5 shrink-0 rounded-full border bg-clip-content p-0.5 transition-colors duration-250"
-        :class="
-          checked ? 'border-accent-fill bg-accent-fill' : 'border-border-control bg-transparent'
-        "
-      ></div>
+        class="grid size-3.5 shrink-0 place-items-center rounded-full border transition-colors duration-250"
+        :class="checked ? 'border-accent-fill' : 'border-border-control'"
+      >
+        <div
+          class="size-2 rounded-full transition-colors duration-250"
+          :class="checked ? 'bg-accent-fill' : 'bg-transparent'"
+        ></div>
+      </div>
 
       <div class="text-xs">
         <RadioGroupLabel as="p" class="font-medium text-content-emphasis">

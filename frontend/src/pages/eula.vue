@@ -88,13 +88,13 @@ useTitle('License Agreement')
 <template>
   <PageContainer v-if="!loading && !data" class="flex h-full items-center justify-center">
     <form
-      class="flex w-full max-w-2xl flex-col gap-6 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md"
+      class="flex w-full max-w-2xl flex-col gap-base rounded-md bg-surface-raised px-section py-section drop-shadow-md"
       @submit.prevent="accept"
     >
       <h1 class="text-2xl font-bold text-content-default uppercase">End User License Agreement</h1>
 
       <div
-        class="flex flex-col gap-4 rounded-md border border-border-default bg-surface-card p-4 font-mono text-xs text-content-secondary"
+        class="flex flex-col gap-compact rounded-md border border-border-default bg-surface-card p-compact font-mono text-xs text-content-secondary"
       >
         <p>
           Before using Sidero Omni, please review the End User License Agreement ("Agreement") at:
@@ -116,7 +116,7 @@ useTitle('License Agreement')
         </p>
       </div>
 
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-compact">
         <TInput
           v-model="name"
           title="Full Name"

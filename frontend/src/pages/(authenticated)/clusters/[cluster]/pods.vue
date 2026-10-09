@@ -105,13 +105,15 @@ useTitle('Pods')
       No entries of the requested resource type are found on the server.
     </TAlert>
 
-    <div v-else class="pt-2">
-      <div class="mb-3 flex gap-4">
+    <div v-else class="pt-tight">
+      <div class="mb-snug flex gap-compact">
         <TInput v-model="searchOption" icon="search" placeholder="Search..." class="w-full" />
         <TSelectList v-model="filterOption" title="Phase" :values="filterOptions" />
       </div>
 
-      <ul class="mb-1 flex rounded bg-surface-card px-8 py-2.5 text-xs text-content-default">
+      <ul
+        class="mb-micro flex rounded bg-surface-card px-section py-snug text-xs text-content-default"
+      >
         <li class="w-1/6">Namespace</li>
         <li class="w-1/3">Name</li>
         <li class="w-1/6">Phase</li>
@@ -128,7 +130,7 @@ useTitle('Pods')
         />
       </div>
 
-      <Pagination v-model:current-page="currentPage" :page-count="pageCount" class="mt-6" />
+      <Pagination v-model:current-page="currentPage" :page-count="pageCount" class="mt-base" />
     </div>
   </PageContainer>
 </template>

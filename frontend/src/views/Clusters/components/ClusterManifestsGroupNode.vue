@@ -38,7 +38,7 @@ const { dimensions, data } = defineProps<NodeProps<ClusterManifestsGroupNodeData
 <template>
   <div class="w-full rounded-lg border border-border-strong bg-surface-card shadow-lg/40">
     <div
-      class="flex items-center gap-1 rounded-[7px] border border-border-accent bg-surface-card px-3"
+      class="flex items-center gap-micro rounded-[7px] border border-border-accent bg-surface-card px-snug"
       :style="{ height: `${dimensions.height}px` }"
     >
       <Handle id="right" type="source" :position="Position.Right" class="min-h-0! min-w-0!" />
@@ -46,13 +46,13 @@ const { dimensions, data } = defineProps<NodeProps<ClusterManifestsGroupNodeData
       <span class="truncate text-sm font-medium text-content-emphasis">{{ id }}</span>
     </div>
 
-    <div class="flex gap-4 px-4 py-2 text-xs">
-      <div class="flex items-center gap-1">
+    <div class="flex gap-compact px-compact py-tight text-xs">
+      <div class="flex items-center gap-micro">
         <span class="text-content-secondary">Mode:</span>
         <span class="text-content-emphasis">{{ modeName(data.group.mode) }}</span>
       </div>
 
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-micro">
         <span class="text-content-secondary">In sync:</span>
         <span class="text-content-emphasis">{{ data.inSyncCount }} / {{ data.manifestCount }}</span>
       </div>

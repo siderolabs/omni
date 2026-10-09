@@ -58,12 +58,14 @@ function toggleRow() {
       as="div"
       role="row"
       tabindex="0"
-      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-2 py-2.5 select-none group-hover/root:bg-surface-hover"
+      class="group/trigger col-span-full grid cursor-pointer grid-cols-subgrid items-center px-tight py-snug select-none group-hover/root:bg-surface-hover"
       @keydown.enter.prevent="toggleRow"
       @keydown.space.prevent="toggleRow"
     >
       <div role="cell" aria-hidden="true">
-        <div class="size-5 rounded-md bg-surface-inert p-0.5 text-content-muted">
+        <div
+          class="flex size-5 items-center justify-center rounded-md bg-surface-inert text-content-muted"
+        >
           <TIcon
             icon="dropdown"
             class="size-4 transition-transform group-data-[state=open]/trigger:rotate-180"
@@ -80,7 +82,7 @@ function toggleRow() {
       <div role="cell">
         <span
           v-if="item.event_type.toUpperCase()"
-          class="resource-label inline-flex items-center gap-1.5"
+          class="resource-label inline-flex items-center gap-micro"
         >
           <span
             aria-hidden="true"
@@ -104,7 +106,7 @@ function toggleRow() {
         />
       </div>
 
-      <div role="cell" class="min-w-20 space-x-2 truncate whitespace-nowrap">
+      <div role="cell" class="min-w-20 space-x-tight truncate whitespace-nowrap">
         <WordHighlighter
           v-if="item.event_data.session.role"
           :query="search"
@@ -132,7 +134,7 @@ function toggleRow() {
       role="row"
       class="collapsible-content col-span-full overflow-hidden group-hover/root:bg-surface-hover"
     >
-      <div role="cell" class="px-2 pb-2">
+      <div role="cell" class="px-tight pb-tight">
         <CodeBlock :code="JSON.stringify(item, null, 2)" lang="json" :search />
       </div>
     </CollapsibleContent>

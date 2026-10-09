@@ -177,7 +177,7 @@ const doUpgrade = async () => {
       inProgressFromServer
     "
     :loading="upgrading"
-    content-class="flex max-w-xl flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-tight"
     @confirm="doUpgrade"
   >
     <template #description>Node {{ machineId }}</template>
@@ -188,7 +188,7 @@ const doUpgrade = async () => {
         finish before starting a new one.
       </TAlert>
 
-      <div v-if="!showProgress" class="flex flex-col gap-2">
+      <div v-if="!showProgress" class="flex flex-col gap-tight">
         <span v-if="!Object.keys(upgradeVersions).length">No versions found</span>
 
         <span class="text-sm">
@@ -198,17 +198,17 @@ const doUpgrade = async () => {
         <RadioGroup
           id="talos-upgrade-version"
           v-model="selectedVersion"
-          class="flex flex-1 flex-col gap-2 overflow-y-auto text-content-default"
+          class="flex flex-1 flex-col gap-tight overflow-y-auto text-content-default"
         >
           <template v-for="(group, label) in upgradeVersions" :key="label">
             <RadioGroupLabel
               as="div"
-              class="sticky top-0 w-full bg-surface-hover p-1 pl-7 text-sm font-bold"
+              class="sticky top-0 w-full bg-surface-hover p-micro pl-section text-sm font-bold"
             >
               {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
             </RadioGroupLabel>
 
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-micro">
               <RadioGroupOption
                 v-for="version in group.versions"
                 :key="version"
@@ -216,7 +216,7 @@ const doUpgrade = async () => {
                 :value="version"
               >
                 <div
-                  class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-surface-hover"
+                  class="flex transform cursor-pointer items-center gap-tight px-tight py-micro text-sm transition-colors hover:bg-surface-hover"
                   :class="{ 'bg-surface-hover': checked }"
                 >
                   <TCheckbox
@@ -240,14 +240,14 @@ const doUpgrade = async () => {
         </RadioGroup>
       </div>
 
-      <div v-else class="flex flex-col gap-2 overflow-hidden">
+      <div v-else class="flex flex-col gap-tight overflow-hidden">
         <span class="shrink-0 text-sm">
           The upgrade runs on the server and continues even if you close this window.
         </span>
 
         <pre
           ref="progressEl"
-          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-2 text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
+          class="grow basis-80 overflow-y-auto rounded border border-border-default bg-surface-card p-tight text-xs wrap-anywhere whitespace-pre-wrap text-content-secondary"
         ><template v-if="progress.length > 0"><template v-for="line in progress" :key="line.message"><span v-if="line.level === 'info'" class="text-content-secondary">{{ line.message }}
 </span><span v-else-if="line.level === 'error'" class="text-status-danger-text">{{ line.message }}
 </span></template></template><template v-else>Starting upgrade...</template>

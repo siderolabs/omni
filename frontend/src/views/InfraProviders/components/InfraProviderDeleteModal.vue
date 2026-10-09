@@ -61,7 +61,7 @@ async function deleteProvider() {
   >
     <template #description>Provider {{ providerId }}</template>
 
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-snug">
       <p class="text-xs">Please confirm the action.</p>
 
       <div class="text-xs text-status-warning-text">

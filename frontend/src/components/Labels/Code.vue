@@ -22,14 +22,14 @@ const showCopyButton = ref(false)
 
 <template>
   <code
-    class="relative overflow-hidden p-2"
+    class="relative overflow-hidden p-tight"
     @mouseenter="() => (showCopyButton = true)"
     @mouseleave="() => (showCopyButton = false)"
   >
     <TAnimation>
       <div
         v-if="showCopyButton"
-        class="absolute top-0 right-0 left-0 flex h-14 justify-end rounded bg-linear-to-b from-surface-page p-1"
+        class="absolute top-0 right-0 left-0 flex h-14 justify-end rounded bg-linear-to-b from-surface-page p-micro"
       >
         <span class="rounded">
           <button @click="copy(text)">{{ copied ? 'Copied' : 'Copy' }}</button>
@@ -44,10 +44,10 @@ const showCopyButton = ref(false)
 @reference "../../index.css";
 
 code {
-  @apply relative rounded bg-surface-hover p-2 break-all whitespace-pre-line;
+  @apply relative rounded bg-surface-hover p-tight break-all whitespace-pre-line;
 }
 
 button {
-  @apply rounded border border-border-strong bg-surface-hover px-1 py-0.5 transition-colors duration-200 hover:border-border-strong hover:bg-surface-inert hover:text-content-default;
+  @apply rounded border border-border-strong bg-surface-hover px-micro py-0.5 transition-colors duration-200 hover:border-border-strong hover:bg-surface-inert hover:text-content-default;
 }
 </style>

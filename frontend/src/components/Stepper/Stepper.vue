@@ -27,7 +27,7 @@ const model = defineModel<number>()
     <StepperItem v-for="step in stepCount" :key="step" :step class="group contents">
       <StepperSeparator
         v-if="step !== 1"
-        class="mx-4 h-0.5 shrink grow rounded-full bg-accent-fill group-data-[state=inactive]:bg-surface-inert"
+        class="mx-compact h-0.5 shrink grow rounded-full bg-accent-fill group-data-[state=inactive]:bg-surface-inert"
       />
 
       <StepperTrigger

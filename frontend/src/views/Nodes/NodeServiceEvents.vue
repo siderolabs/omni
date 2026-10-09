@@ -55,12 +55,12 @@ const eventStyle = (state: string) => {
 </script>
 
 <template>
-  <div class="pl-1">
-    <div class="flex h-full w-full flex-col gap-4 border-l-2 border-border-default">
-      <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-3">
-        <div class="flex items-center gap-3">
+  <div class="pl-micro">
+    <div class="flex h-full w-full flex-col gap-compact border-l-2 border-border-default">
+      <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-snug">
+        <div class="flex items-center gap-snug">
           <div
-            class="max-w-min rounded-full p-1"
+            class="max-w-min rounded-full p-micro"
             :class="eventStyle(event.state!).color"
             style="margin-left: -11px"
           >

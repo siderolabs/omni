@@ -161,7 +161,7 @@ const installerImage = computed(() => {
 </script>
 
 <template>
-  <div v-if="schematic" class="flex flex-col gap-4 text-xs">
+  <div v-if="schematic" class="flex flex-col gap-compact text-xs">
     <Scan
       v-if="isEnterpriseFactory"
       :schematic-id
@@ -184,9 +184,11 @@ const installerImage = computed(() => {
 
     <h2 v-if="!isReviewPage" class="text-sm text-content-emphasis">Schematic Ready</h2>
 
-    <p class="flex items-center gap-1">
+    <p class="flex items-center gap-micro">
       Your image schematic ID is:
-      <code class="rounded bg-surface-hover px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
+      <code class="rounded bg-surface-hover px-tight py-micro wrap-anywhere">
+        {{ schematic.id }}
+      </code>
       <CopyButton aria-label="Copy schematic ID" :text="schematic.id" />
     </p>
 
@@ -207,7 +209,7 @@ const installerImage = computed(() => {
     </p>
     <p v-else-if="selectedSBC">Use the following disk image for {{ selectedSBC.spec.label }}:</p>
 
-    <dl class="flex flex-col gap-2">
+    <dl class="flex flex-col gap-tight">
       <TAlert v-if="orphaned" title="Orphaned" type="warn">
         The factory used to create this preset is no longer configured with Omni
       </TAlert>
@@ -216,7 +218,7 @@ const installerImage = computed(() => {
         {{ linksError.message }}
       </TAlert>
 
-      <p v-else-if="linksLoading" class="flex items-center gap-1.5">
+      <p v-else-if="linksLoading" class="flex items-center gap-micro">
         <TSpinner class="size-4" />
         Generating links...
       </p>
@@ -226,7 +228,7 @@ const installerImage = computed(() => {
         v-else
         :key="link"
       >
-        <dt class="font-medium text-content-emphasis not-first-of-type:mt-2">
+        <dt class="font-medium text-content-emphasis not-first-of-type:mt-tight">
           {{ label }}
           <Tooltip v-if="documentation" description="Documentation">
             <a
@@ -240,9 +242,9 @@ const installerImage = computed(() => {
           </Tooltip>
         </dt>
 
-        <dd class="flex items-center gap-1.5">
+        <dd class="flex items-center gap-micro">
           <template v-if="copyOnly">
-            <code class="whitespace-wrap rounded bg-surface-hover px-2 py-1 wrap-anywhere">
+            <code class="whitespace-wrap rounded bg-surface-hover px-tight py-micro wrap-anywhere">
               {{ link }}
             </code>
             <CopyButton :aria-label="`Copy ${label} link`" :text="link" />
@@ -324,7 +326,7 @@ const installerImage = computed(() => {
     </template>
 
     <h3 class="text-sm text-content-emphasis">Documentation</h3>
-    <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-status-warning-text">
+    <ul class="ml-tight flex list-inside list-disc flex-col gap-tight text-status-warning-text">
       <li>
         <a
           class="link-primary"
@@ -466,7 +468,7 @@ const installerImage = computed(() => {
     >
       <h3 class="text-sm text-content-emphasis">Extra Assets</h3>
       <dl
-        class="flex flex-col gap-2 [&_dd+dt]:mt-2 [&_dt]:font-medium [&_dt]:text-content-emphasis"
+        class="flex flex-col gap-tight [&_dd+dt]:mt-tight [&_dt]:font-medium [&_dt]:text-content-emphasis"
       >
         <dt>Talosctl CLI</dt>
         <dd v-for="path in talosctlPaths" :key="path">
@@ -478,8 +480,8 @@ const installerImage = computed(() => {
     </template>
   </div>
 
-  <div v-else class="flex flex-col gap-4">
-    <p v-if="schematicLoading" class="flex items-center gap-2 text-sm">
+  <div v-else class="flex flex-col gap-compact">
+    <p v-if="schematicLoading" class="flex items-center gap-tight text-sm">
       <TSpinner class="size-4" />
       Generating schematic ...
     </p>

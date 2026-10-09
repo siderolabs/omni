@@ -31,7 +31,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <nav class="pt-2">
+  <nav class="pt-tight">
     <div class="flex-col">
       <TMenuItem
         v-for="item of items"

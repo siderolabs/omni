@@ -250,9 +250,9 @@ const machineLockedForSecretRotation = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col justify-start gap-6 max-lg:gap-4 lg:flex-row lg:items-start">
+  <div class="flex flex-col justify-start gap-base max-lg:gap-compact lg:flex-row lg:items-start">
     <div class="grow">
-      <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-4">
+      <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-compact">
         All operations on this cluster are currently disabled. Config patches can be created,
         updated or deleted but these changes will not be applied while the cluster is locked.
       </TAlert>
@@ -260,13 +260,15 @@ const machineLockedForSecretRotation = computed(() => {
         v-if="machinesWithErrors.length > 0"
         :title="`${machinesWithErrors.length} ${machinesWithErrors.length === 1 ? 'machine has' : 'machines have'} configuration errors`"
         type="error"
-        class="mb-4"
+        class="mb-compact"
       >
         Open the cluster machine detail page for each affected node to view the error and recover.
       </TAlert>
-      <div class="relative mb-5 min-h-25 rounded border border-border-default bg-surface-card p-5">
+      <div
+        class="relative mb-base min-h-25 rounded border border-border-default bg-surface-card p-base"
+      >
         <div
-          class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
+          class="flex w-full flex-wrap gap-tight transition-opacity duration-500 *:flex-1"
           :class="{ 'opacity-25': !showStats }"
         >
           <RadialBar
@@ -306,7 +308,7 @@ const machineLockedForSecretRotation = computed(() => {
           v-if="!showStats"
           class="absolute top-0 right-0 bottom-0 left-0 flex items-center justify-center text-sm"
         >
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-tight">
             <div class="text-content-default">
               Kubernetes stats are disabled due to the size of the cluster
             </div>
@@ -315,27 +317,29 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="kubernetesUpgradeStatus && kubernetesUpgradeStatus.spec.step"
-        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
+        class="mb-base rounded border border-border-default bg-surface-card pt-base"
       >
-        <div class="flex items-center gap-1 px-6 pb-4">
+        <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Kubernetes Update</span>
           <template v-if="kubernetesUpgradeStatus.spec.current_upgrade_version">
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
             </span>
             <span>⇾</span>
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.current_upgrade_version }}
             </span>
           </template>
           <template v-else>
             <span class="text-sm text-content-default">Reverting back to</span>
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
             </span>
           </template>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
+        <div
+          class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
+        >
           <TIcon
             v-if="clusterLocked || machineLockedForKubernetesUpgrade"
             icon="pause-circle"
@@ -365,16 +369,16 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="talosUpgradeStatus && talosUpgradeStatus.spec.status"
-        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
+        class="mb-base rounded border border-border-default bg-surface-card pt-base"
       >
-        <div class="flex items-center gap-1 px-6 pb-4">
+        <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Talos Update</span>
           <template v-if="talosUpgradeStatus.spec.current_upgrade_version">
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.last_upgrade_version }}
             </span>
             <span>⇾</span>
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.current_upgrade_version }}
             </span>
           </template>
@@ -382,7 +386,7 @@ const machineLockedForSecretRotation = computed(() => {
             v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting"
           >
             <span class="text-sm text-content-default">Reverting back to</span>
-            <span class="rounded bg-surface-hover px-2 text-sm font-bold text-content-default">
+            <span class="rounded bg-surface-hover px-tight text-sm font-bold text-content-default">
               {{ talosUpgradeStatus.spec.last_upgrade_version }}
             </span>
           </template>
@@ -395,7 +399,9 @@ const machineLockedForSecretRotation = computed(() => {
             <span class="text-sm text-content-default">Updating Machine Schematics</span>
           </template>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
+        <div
+          class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
+        >
           <TIcon
             v-if="clusterLocked || machineLockedForTalosUpgrade"
             icon="pause-circle"
@@ -427,13 +433,15 @@ const machineLockedForSecretRotation = computed(() => {
       <ClusterHealthChecks :cluster-id="clusterId" />
       <div
         v-if="secretRotationStatus && secretRotationStatus.spec.status"
-        class="mb-5 rounded border border-border-default bg-surface-card pt-5"
+        class="mb-base rounded border border-border-default bg-surface-card pt-base"
       >
-        <div class="flex items-center gap-1 px-6 pb-4">
+        <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Secret Rotation</span>
           <span class="text-sm text-content-default">{{ getComponentInRotation }}</span>
         </div>
-        <div class="flex min-h-20 items-center gap-2 border-t-8 border-border-default p-4 text-xs">
+        <div
+          class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
+        >
           <TIcon
             v-if="clusterLocked || machineLockedForSecretRotation"
             icon="pause-circle"
@@ -449,12 +457,14 @@ const machineLockedForSecretRotation = computed(() => {
           </div>
         </div>
       </div>
-      <div class="flex gap-5">
-        <div class="mb-5 flex-1 rounded border border-border-default bg-surface-card px-6 py-5">
-          <div class="mb-3">
+      <div class="flex gap-base">
+        <div
+          class="mb-base flex-1 rounded border border-border-default bg-surface-card px-base py-base"
+        >
+          <div class="mb-snug">
             <span class="text-sm text-content-default">Features</span>
           </div>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-tight">
             <ClusterWorkloadProxyingCheckbox
               :model-value="enableWorkloadProxy"
               :disabled="!canManageClusterFeatures || !features?.spec.enable_workload_proxying"
@@ -482,8 +492,10 @@ const machineLockedForSecretRotation = computed(() => {
             />
           </div>
         </div>
-        <div class="mb-5 flex-1 rounded border border-border-default bg-surface-card px-6 py-5">
-          <div class="mb-3">
+        <div
+          class="mb-base flex-1 rounded border border-border-default bg-surface-card px-base py-base"
+        >
+          <div class="mb-snug">
             <span class="text-sm text-content-default">Labels</span>
           </div>
           <ItemLabels
@@ -494,8 +506,8 @@ const machineLockedForSecretRotation = computed(() => {
           />
         </div>
       </div>
-      <div class="flex-col rounded border border-border-default bg-surface-card pt-5">
-        <div class="flex px-6 pb-4">
+      <div class="flex-col rounded border border-border-default bg-surface-card pt-base">
+        <div class="flex px-base pb-compact">
           <span class="text-sm text-content-default">Machines</span>
         </div>
         <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)]">

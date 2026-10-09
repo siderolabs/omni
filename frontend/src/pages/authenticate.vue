@@ -269,8 +269,10 @@ useTitle('Authenticate')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div class="flex flex-col gap-2 rounded-md bg-surface-raised px-8 py-8 drop-shadow-md">
-      <div class="flex items-center gap-4">
+    <div
+      class="flex flex-col gap-tight rounded-md bg-surface-raised px-section py-section drop-shadow-md"
+    >
+      <div class="flex items-center gap-compact">
         <TIcon icon="key" class="fill-color h-6 w-6" />
         <div class="text-xl font-bold text-content-default">
           <div v-if="authFlow === Auth.CLI">Authenticate CLI Access</div>
@@ -279,23 +281,23 @@ useTitle('Authenticate')
         </div>
       </div>
 
-      <div v-if="!publicKeyId && authFlow === Auth.CLI" class="mx-12">
+      <div v-if="!publicKeyId && authFlow === Auth.CLI" class="mx-section">
         Public key ID parameter is missing...
       </div>
       <div v-else-if="!identity">Redirecting to the authentication provider...</div>
       <div v-else-if="confirmed" id="confirmed">
         Successfully logged in as {{ identity }}, you can return to the application...
       </div>
-      <div v-else class="flex w-full flex-col gap-4">
+      <div v-else class="flex w-full flex-col gap-compact">
         <div>The keys are going to be issued for the user:</div>
         <UserInfo
           user="user"
-          class="rounded-md bg-surface-inert px-6 py-2"
+          class="rounded-md bg-surface-inert px-base py-tight"
           :email="identity"
           :avatar="picture"
           :fullname="name"
         />
-        <div class="flex w-full flex-col gap-3">
+        <div class="flex w-full flex-col gap-snug">
           <TButton variant="secondary" class="w-full" @click="logout">Switch User</TButton>
           <TButton
             v-if="authFlow === Auth.CLI"

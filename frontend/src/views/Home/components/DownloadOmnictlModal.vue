@@ -45,7 +45,7 @@ const selectedOption = ref<string>()
     :action-href="`/api/omnictl/${encodeURI(selectedOption!)}`"
     @confirm="open = false"
   >
-    <p class="mb-5 text-xs">
+    <p class="mb-base text-xs">
       <code>omnictl</code>
       can be used to access omni resources. Read the
       <a
@@ -59,14 +59,14 @@ const selectedOption = ref<string>()
       for more information.
     </p>
 
-    <div class="mb-5 flex flex-col gap-2">
+    <div class="mb-base flex flex-col gap-tight">
       <span class="text-xs text-content-emphasis">macOS and Linux (recommended)</span>
       <CodeBlock code="brew install siderolabs/tap/sidero-tools" />
     </div>
 
-    <span class="mb-2 text-xs text-content-emphasis">Manual installation</span>
+    <span class="mb-tight text-xs text-content-emphasis">Manual installation</span>
 
-    <div v-if="platform" class="flex flex-wrap gap-4">
+    <div v-if="platform" class="flex flex-wrap gap-compact">
       <TSelectList
         v-model="selectedOption"
         title="omnictl"

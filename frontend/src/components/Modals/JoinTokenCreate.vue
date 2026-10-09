@@ -62,10 +62,10 @@ const handleCreate = async () => {
     :action-disabled="!canManageUsers && authType !== AuthType.SAML"
     @confirm="handleCreate"
   >
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-tight">
       <TInput v-model="name" title="Name" class="h-full flex-1" clearable />
 
-      <div class="flex items-center gap-1 text-xs">
+      <div class="flex items-center gap-micro text-xs">
         Lifetime:
         <TButtonGroup
           v-model="lifetime"

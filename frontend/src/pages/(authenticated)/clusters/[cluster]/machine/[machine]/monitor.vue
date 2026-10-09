@@ -332,7 +332,7 @@ useTitle('Monitor')
         <div
           v-for="h in headers"
           :key="h.id"
-          class="flex cursor-pointer flex-row items-center gap-1 text-center text-xs capitalize transition-colors hover:text-content-muted"
+          class="flex cursor-pointer flex-row items-center gap-micro text-center text-xs capitalize transition-colors hover:text-content-muted"
           @click="() => sortBy(h.id)"
         >
           <span>{{ h.header || h.id }}</span>
@@ -348,7 +348,7 @@ useTitle('Monitor')
         <div
           v-for="process in sortedProcesses"
           :key="process.pid"
-          class="grid grid-cols-12 py-2 text-xs text-content-default"
+          class="grid grid-cols-12 py-tight text-xs text-content-default"
           :title="process.command"
         >
           <div>
@@ -386,37 +386,37 @@ useTitle('Monitor')
 @reference "../../../../../../index.css";
 
 .monitor {
-  @apply flex flex-col justify-start pb-5;
+  @apply flex flex-col justify-start pb-base;
 }
 .monitor-charts-box {
   @apply flex flex-col overflow-hidden;
   padding-bottom: 0 !important;
 }
 .monitor-charts-wrapper {
-  @apply mb-6 flex flex-1 gap-2;
+  @apply mb-base flex flex-1 gap-tight;
 }
 .monitor-charts-wrapper:last-of-type {
   @apply mb-0;
 }
 .monitor-chart {
-  @apply flex-1 rounded border border-border-default bg-surface-card p-3 pt-4;
+  @apply flex-1 rounded border border-border-default bg-surface-card p-snug pt-compact;
 }
 .monitor-chart:nth-child(1) {
-  @apply mr-3;
+  @apply mr-snug;
 }
 .monitor-chart:nth-child(2) {
-  @apply ml-3;
+  @apply ml-snug;
 }
 .monitor-chart-wide {
   @apply border-b-border-subtle;
   margin-right: 0 !important;
-  padding-bottom: 29px;
+  @apply pb-section;
   border-radius: 4px 4px 0 0;
 }
 .monitor-data-wrapper {
-  @apply flex w-full flex-1 flex-col overflow-hidden rounded-b border-x border-b border-border-default bg-surface-card px-2 pt-5 text-xs text-content-default lg:px-8;
+  @apply flex w-full flex-1 flex-col overflow-hidden rounded-b border-x border-b border-border-default bg-surface-card px-tight pt-base text-xs text-content-default lg:px-section;
 }
 .monitor-data-box {
-  @apply flex-1 overflow-x-auto bg-surface-card py-3;
+  @apply flex-1 overflow-x-auto bg-surface-card py-snug;
 }
 </style>

@@ -121,34 +121,34 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
 </script>
 
 <template>
-  <PageContainer v-if="kubeSpanLink" class="@container flex h-full flex-col gap-4">
-    <div class="flex flex-wrap gap-6">
+  <PageContainer v-if="kubeSpanLink" class="@container flex h-full flex-col gap-compact">
+    <div class="flex flex-wrap gap-base">
       <h1 class="shrink-0 text-xl font-medium text-content-emphasis">KubeSpan status</h1>
-      <div class="flex flex-wrap gap-6">
+      <div class="flex flex-wrap gap-base">
         <StatsItem title="Total Nodes" :value="peers.length" icon="server-stack" />
         <StatsItem title="Online" :value="onlineCount" icon="check-circle" />
         <StatsItem title="Offline" :value="offlineCount" icon="x-circle" />
       </div>
     </div>
 
-    <div class="flex grow flex-col gap-2 @3xl:flex-row">
-      <div class="flex min-w-0 grow flex-col gap-2">
+    <div class="flex grow flex-col gap-tight @3xl:flex-row">
+      <div class="flex min-w-0 grow flex-col gap-tight">
         <div
-          class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border-default bg-surface-card p-2"
+          class="flex flex-wrap items-center justify-between gap-compact rounded-lg border border-border-default bg-surface-card p-tight"
         >
-          <div class="flex items-center gap-4 text-xs text-content-secondary">
-            <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-compact text-xs text-content-secondary">
+            <div class="flex items-center gap-micro">
               <div class="h-0 w-5 border-t-2 border-status-success-default"></div>
               <span>Online</span>
             </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-micro">
               <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
               <span>Offline</span>
             </div>
 
-            <div class="flex items-center gap-1.5">
-              <div class="flex items-center gap-0.5">
+            <div class="flex items-center gap-micro">
+              <div class="flex items-center gap-micro">
                 <div class="h-0 w-2 rounded-[1px] border-t-2 border-status-success-default"></div>
                 <div class="h-0 w-2 rounded-[1px] border-t-4 border-status-success-default"></div>
                 <div class="h-0 w-2 rounded-[1px] border-t-8 border-status-success-default"></div>
@@ -195,13 +195,13 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
       </div>
 
       <div
-        class="flex shrink-0 flex-col rounded-lg border border-border-default bg-surface-card px-2 @3xl:w-64"
+        class="flex shrink-0 flex-col rounded-lg border border-border-default bg-surface-card px-tight @3xl:w-64"
       >
-        <div class="px-2 py-3">
+        <div class="px-tight py-snug">
           <h3 class="text-sm font-medium text-content-emphasis">Cluster nodes</h3>
         </div>
 
-        <div class="flex items-center justify-between px-2 py-2">
+        <div class="flex items-center justify-between px-tight py-tight">
           <span class="text-xs font-medium tracking-wide text-content-emphasis uppercase">
             Name
           </span>
@@ -214,20 +214,20 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
           <div
             v-for="peer in peers"
             :key="peer.metadata.id"
-            class="flex cursor-pointer flex-col gap-1 border-border-strong px-2 py-3 transition-opacity not-last-of-type:border-b hover:bg-surface-raised"
+            class="flex cursor-pointer flex-col gap-micro border-border-strong px-tight py-snug transition-opacity not-last-of-type:border-b hover:bg-surface-raised"
             :class="!peerMatches.has(peer.metadata.id!) && 'opacity-30'"
             @click="onPeerClick(peer)"
           >
-            <div class="flex items-center justify-between gap-1">
+            <div class="flex items-center justify-between gap-micro">
               <span class="truncate text-sm text-content-default">{{ peer.spec.label }}</span>
               <StatusPill :tone="isOnline(peer) ? 'success' : 'danger'">
                 {{ isOnline(peer) ? 'Online' : 'Offline' }}
               </StatusPill>
             </div>
 
-            <div class="flex justify-between gap-3 text-[0.625rem] text-content-secondary">
-              <span class="flex items-center gap-1">
-                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
+            <div class="flex justify-between gap-snug text-[0.625rem] text-content-secondary">
+              <span class="flex items-center gap-micro">
+                <span class="inline-flex items-center gap-micro text-content-emphasis">
                   <TIcon icon="long-arrow-down" class="size-3" />
                   <span class="font-medium tracking-wide uppercase">RX</span>
                 </span>
@@ -235,8 +235,8 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
                 {{ prettyBytes(peer.spec.receiveBytes ?? 0) }}
               </span>
 
-              <span class="flex items-center gap-1">
-                <span class="inline-flex items-center gap-0.5 text-content-emphasis">
+              <span class="flex items-center gap-micro">
+                <span class="inline-flex items-center gap-micro text-content-emphasis">
                   <span class="font-medium tracking-wide uppercase">TX</span>
                   <TIcon icon="long-arrow-top" class="size-3" />
                 </span>

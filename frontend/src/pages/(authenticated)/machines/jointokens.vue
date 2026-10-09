@@ -113,8 +113,8 @@ useTitle(['Machines', 'Join Tokens'])
 </script>
 
 <template>
-  <PageContainer class="flex flex-col gap-2">
-    <div class="flex items-start gap-1">
+  <PageContainer class="flex flex-col gap-tight">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Machine Join Tokens" class="flex-1" />
     </div>
     <div class="flex justify-end">
@@ -152,9 +152,9 @@ useTitle(['Machines', 'Join Tokens'])
           </div>
         </div>
         <TListItem v-for="item in items" :key="item.metadata.id">
-          <div class="flex gap-2">
+          <div class="flex gap-tight">
             <div class="tokens-grid flex-1">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-tight">
                 <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
                 <div v-if="item.spec.is_default" class="resource-label">Default</div>
               </div>
@@ -196,7 +196,7 @@ useTitle(['Machines', 'Join Tokens'])
                 >
                   Download Machine Join Config
                 </TActionsBoxItem>
-                <div class="my-0.5 w-full border-b border-border-strong" />
+                <div class="my-micro w-full border-b border-border-strong" />
                 <TActionsBoxItem
                   v-if="!item.spec.is_default"
                   icon="check"
@@ -258,11 +258,11 @@ useTitle(['Machines', 'Join Tokens'])
 @reference "../../../index.css";
 
 .tokens-grid {
-  @apply grid grid-cols-5 items-center gap-4 pr-10;
+  @apply grid grid-cols-5 items-center gap-compact pr-10;
 }
 
 .tokens-header {
-  @apply mb-1 bg-surface-card px-3 py-2 pr-12;
+  @apply mb-micro bg-surface-card px-snug py-tight pr-12;
 }
 
 .tokens-header > * {

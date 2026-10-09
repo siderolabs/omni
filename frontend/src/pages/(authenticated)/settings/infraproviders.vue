@@ -114,12 +114,12 @@ useTitle('Infra Providers')
 </script>
 
 <template>
-  <PageContainer class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
+  <PageContainer class="flex h-full flex-col gap-compact">
+    <div class="flex items-start gap-micro">
       <PageHeader title="Settings" subtitle="Infra Providers" class="flex-1" />
     </div>
 
-    <div class="flex grow flex-col gap-2">
+    <div class="flex grow flex-col gap-tight">
       <div class="flex justify-end">
         <TButton
           icon-position="left"
@@ -147,21 +147,21 @@ useTitle('Infra Providers')
         filter-caption="Status"
       >
         <template #default="{ items }">
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-tight">
             <div
               v-for="item in items"
               :key="item.metadata.id"
-              class="grid grid-cols-5 items-center rounded border border-border-strong bg-surface-chrome p-3"
+              class="grid grid-cols-5 items-center rounded border border-border-strong bg-surface-chrome p-snug"
               :class="{ 'border-dashed': !item.spec.name }"
             >
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-snug">
                 <TIcon
                   :svg-base-64="item.spec.icon"
                   icon="cloud-connection"
                   class="size-8 text-content-default"
                 />
 
-                <div class="flex flex-col gap-0.5">
+                <div class="flex flex-col gap-micro">
                   <span v-if="item.spec.name" class="text-md text-content-default">
                     {{ item.spec.name }}
                   </span>
