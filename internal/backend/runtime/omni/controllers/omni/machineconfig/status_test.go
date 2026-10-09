@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -202,6 +203,145 @@ func TestMachineConfigStatusController(t *testing.T) {
 				rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, ids[0])
 
 				require.Len(t, machineServices.Get(ids[0]).GetResetRequests(), 0)
+			},
+		)
+	})
+
+	// The machine got its config but still reports the maintenance stage when it is removed.
+	t.Run("resetConfiguredMachineInMaintenance", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, "reset-configured-in-maintenance", 1, 1)
+
+				ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+					return m.Metadata().ID()
+				})
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+					m.OnReset = func(ctx context.Context, _ *machine.ResetRequest, st state.State, id string) (*machine.ResetResponse, error) {
+						return &machine.ResetResponse{}, safe.StateModify(ctx, st, omni.NewMachineStatusSnapshot(id), func(res *omni.MachineStatusSnapshot) error {
+							res.TypedSpec().Value.BootId = "after-reset"
+
+							return nil
+						})
+					}
+				})
+
+				for _, id := range ids {
+					rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, testContext.State, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+						res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+
+						return nil
+					}))
+				}
+
+				rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, ids)
+
+				for _, id := range ids {
+					rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, id)
+
+					resetRequests := machineServices.Get(id).GetResetRequests()
+
+					if assert.NotEmpty(t, resetRequests, "a machine with a config must be reset") {
+						assert.False(t, resetRequests[0].GetGraceful(), "a machine in maintenance mode must be reset non-gracefully")
+					}
+				}
+			},
+		)
+	})
+
+	t.Run("removeConfiguredMachineInMaintenanceBeforeTalos113", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				const talosVersion = "1.12.6"
+
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, "remove-configured-before-1-13", 1, 0,
+					withClusterMockOption(options.WithTalosVersion(talosVersion)),
+					withMachineStatusModifier(func(res *omni.MachineStatus) error {
+						res.TypedSpec().Value.TalosVersion = talosVersion
+
+						return nil
+					}),
+				)
+
+				id := machines[0].Metadata().ID()
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				active, err := safe.StateGetByID[*configres.MachineConfig](ctx, machineServices.Get(id).State, configres.ActiveID)
+				require.NoError(t, err)
+				require.True(t, active.Provider().CompleteForBoot())
+
+				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, testContext.State, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+
+					return nil
+				}))
+
+				rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, []string{id})
+
+				rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, id)
+
+				assert.Empty(t, machineServices.Get(id).GetResetRequests(), "a machine in maintenance mode on Talos < 1.13 must not be reset")
+			},
+		)
+	})
+
+	// A machine in maintenance mode with only the partial maintenance config has nothing to reset.
+	t.Run("removeMaintenanceMachineWithPartialConfig", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, "remove-partial-config", 1, 0)
+
+				id := machines[0].Metadata().ID()
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				partialConfig, err := configloader.NewFromBytes([]byte(`apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: https://siderolink.example.org:8099?jointoken=token
+`))
+				require.NoError(t, err)
+
+				require.NoError(t, machineServices.Get(id).SetConfig(ctx, partialConfig, configres.ActiveID))
+
+				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, testContext.State, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+
+					return nil
+				}))
+
+				rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, []string{id})
+
+				rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, id)
+
+				assert.Empty(t, machineServices.Get(id).GetResetRequests(), "a machine with only the partial maintenance config must not be reset")
 			},
 		)
 	})

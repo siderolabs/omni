@@ -20,12 +20,17 @@ import (
 	"testing"
 
 	"github.com/cosi-project/runtime/api/v1alpha1"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
+	"github.com/siderolabs/talos/pkg/machinery/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
+	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -271,6 +276,10 @@ func (ms *MachineServiceMock) ApplyConfiguration(ctx context.Context, req *machi
 
 	ms.applyRequests = append(ms.applyRequests, req)
 
+	if err := ms.storeConfig(ctx, req); err != nil {
+		return nil, err
+	}
+
 	if ms.OnApplyConfig != nil {
 		return ms.OnApplyConfig(ctx, req, ms.omniState, ms.id)
 	}
@@ -351,6 +360,14 @@ func (ms *MachineServiceMock) Reset(ctx context.Context, req *machine.ResetReque
 	defer ms.lock.Unlock()
 
 	ms.resetRequests = append(ms.resetRequests, req)
+
+	if slices.ContainsFunc(req.GetSystemPartitionsToWipe(), func(p *machine.ResetPartitionSpec) bool { return p.GetLabel() == talosconstants.StatePartitionLabel }) {
+		for _, id := range []resource.ID{configres.ActiveID, configres.PersistentID} {
+			if err := ms.State.Destroy(ctx, configres.NewMachineConfigWithID(nil, id).Metadata()); err != nil && !state.IsNotFoundError(err) {
+				return nil, err
+			}
+		}
+	}
 
 	if ms.OnReset != nil {
 		return ms.OnReset(ctx, req, ms.omniState, ms.id)
@@ -687,4 +704,43 @@ func (ms *MachineServiceMock) Read(request *machine.ReadRequest, grpc grpc.Serve
 	}
 
 	return nil
+}
+
+// storeConfig keeps the machine's config resources the way Talos does: every apply makes the config active, every apply but a try also persists it.
+func (ms *MachineServiceMock) storeConfig(ctx context.Context, req *machine.ApplyConfigurationRequest) error {
+	provider, err := configloader.NewFromBytes(req.GetData())
+	if err != nil {
+		return nil //nolint:nilerr // not every test sends a parseable config, and those do not look at the config resources
+	}
+
+	ids := []resource.ID{configres.ActiveID}
+	if req.GetMode() != machine.ApplyConfigurationRequest_TRY {
+		ids = append(ids, configres.PersistentID)
+	}
+
+	for _, id := range ids {
+		if err = ms.SetConfig(ctx, provider, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetConfig sets one of the machine's config resources, the active one (configres.ActiveID) or the persisted one.
+func (ms *MachineServiceMock) SetConfig(ctx context.Context, provider config.Provider, id resource.ID) error {
+	res := configres.NewMachineConfigWithID(provider, id)
+
+	existing, err := ms.State.Get(ctx, res.Metadata())
+	if err != nil {
+		if !state.IsNotFoundError(err) {
+			return err
+		}
+
+		return ms.State.Create(ctx, res)
+	}
+
+	res.Metadata().SetVersion(existing.Metadata().Version())
+
+	return ms.State.Update(ctx, res)
 }

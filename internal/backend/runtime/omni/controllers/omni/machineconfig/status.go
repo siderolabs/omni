@@ -1143,8 +1143,7 @@ func (ctrl *StatusController) reset(
 		logger.Debug("maintenance mode check", zap.Error(err))
 
 		if err == nil {
-			// really in maintenance mode, no need to reset
-			return nil
+			return ctrl.resetIfConfigured(ctx, c, logger, machineID, machineStatus.TypedSpec().Value.TalosVersion)
 		}
 
 		wrappedErr := fmt.Errorf("failed to get version in maintenance mode for machine '%s': %w", machineID, err)
@@ -1199,6 +1198,27 @@ func (ctrl *StatusController) reset(
 	}
 
 	return ctrl.resetMachine(ctx, c, logger, graceful, machineID, machineStatus.TypedSpec().Value.TalosVersion)
+}
+
+// resetIfConfigured resets a machine in maintenance mode which already has a complete config.
+func (ctrl *StatusController) resetIfConfigured(ctx context.Context, c *client.Client, logger *zap.Logger, machineID resource.ID, talosVersion string) error {
+	// the maintenance API of older Talos versions can neither read the config nor reset the system partitions
+	if _, ok := omni.ParseTalosVersionLifecycleSupport(talosVersion); !ok {
+		return nil
+	}
+
+	configured, err := talosutils.HasCompleteConfig(ctx, c.COSI)
+	if err != nil {
+		return fmt.Errorf("failed to check the config of machine '%s' in maintenance mode: %w", machineID, err)
+	}
+
+	if !configured {
+		// really in maintenance mode, no need to reset
+		return nil
+	}
+
+	// once it leaves maintenance mode, it boots with the config of a cluster it is no longer part of
+	return ctrl.resetMachine(ctx, c, logger, false, machineID, talosVersion)
 }
 
 func (ctrl *StatusController) resetMachine(
