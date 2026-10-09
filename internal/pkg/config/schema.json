@@ -344,7 +344,7 @@
           "description": "Metrics contains metrics service configuration.",
           "$ref": "#/definitions/Service",
           "properties": {
-            "endpoint": { "x-cli-flag": "metrics-bind-addr", "default": "0.0.0.0:2122" }
+            "endpoint": { "x-cli-flag": "metrics-bind-addr", "default": "127.0.0.1:2122" }
           }
         },
         "kubernetesProxy": {

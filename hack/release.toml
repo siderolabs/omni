@@ -15,6 +15,10 @@ The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind bolt
 future release. It keeps working in this release and Omni logs a warning at startup when it runs on it. There is no automated \
 migration between the two backends, so if your Omni runs on BoltDB, plan the move to etcd, which is the default, before \
 the removal lands.
+
+The metrics endpoint now listens on `127.0.0.1:2122` by default instead of `0.0.0.0:2122`. If you scrape the Omni metrics \
+from another host or from outside the Omni container (e.g., through a published Docker port), set `services.metrics.endpoint` \
+(`--metrics-bind-addr`) to `0.0.0.0:2122` explicitly. The Helm chart still binds it to `0.0.0.0:2122` when `metrics.enabled` is set.
 """
 
 [notes.image-factory-api-token]
