@@ -861,7 +861,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 func testConfigPatching(options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
-Tests applying various config patching, including "broken" config patches which should not apply.`)
+Tests applying various config patching, including "broken" config patches which should not apply,
+and a config patch that cuts a machine off from Omni, which the machine should roll back.`)
 
 		t.Parallel()
 
@@ -914,6 +915,13 @@ Tests applying various config patching, including "broken" config patches which 
 		t.Run(
 			"InvalidConfigPatchShouldNotBeApplied",
 			AssertConfigPatchWithInvalidConfig(t.Context(), options.omniClient, clusterName),
+		)
+
+		assertClusterAndAPIReady(t, clusterName, options)
+
+		t.Run(
+			"BlackholeConfigPatchShouldBeRolledBack",
+			AssertBlackholeConfigPatchIsRolledBack(t.Context(), options, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)

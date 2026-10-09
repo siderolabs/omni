@@ -20,13 +20,18 @@ import (
 	"testing"
 
 	"github.com/cosi-project/runtime/api/v1alpha1"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
+	"github.com/siderolabs/talos/pkg/machinery/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
+	talosruntime "github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -119,6 +124,16 @@ func NewMachineServiceMock(ctx context.Context, t *testing.T, id string, omniSta
 
 	st, err := newTalosState(ctx)
 	require.NoError(t, err)
+
+	bootID := talosruntime.NewBootID()
+	bootID.TypedSpec().BootID = "boot-" + id
+
+	require.NoError(t, st.Create(ctx, bootID))
+
+	machineStatus := talosruntime.NewMachineStatus()
+	machineStatus.TypedSpec().Stage = talosruntime.MachineStageRunning
+
+	require.NoError(t, st.Create(ctx, machineStatus))
 
 	machineService := &MachineServiceMock{
 		address:                address,
@@ -223,6 +238,17 @@ func (ms *MachineServiceMock) SetReadHandler(callback func(*machine.ReadRequest,
 	ms.readHandler = callback
 }
 
+// SetBootID sets the boot ID the machine serves in its BootID resource. Setting a new one stands in for a reboot.
+func (ms *MachineServiceMock) SetBootID(ctx context.Context, bootID string) error {
+	_, err := safe.StateModifyWithResult(ctx, ms.State, talosruntime.NewBootID(), func(res *talosruntime.BootID) error {
+		res.TypedSpec().BootID = bootID
+
+		return nil
+	})
+
+	return err
+}
+
 func (ms *MachineServiceMock) GetUpgradeRequests() []*machine.UpgradeRequest {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
@@ -271,6 +297,10 @@ func (ms *MachineServiceMock) ApplyConfiguration(ctx context.Context, req *machi
 
 	ms.applyRequests = append(ms.applyRequests, req)
 
+	if err := ms.storeConfig(ctx, req); err != nil {
+		return nil, err
+	}
+
 	if ms.OnApplyConfig != nil {
 		return ms.OnApplyConfig(ctx, req, ms.omniState, ms.id)
 	}
@@ -288,7 +318,7 @@ func (ms *MachineServiceMock) GetApplyRequests() []*machine.ApplyConfigurationRe
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	return ms.applyRequests
+	return slices.Clone(ms.applyRequests)
 }
 
 func (ms *MachineServiceMock) Bootstrap(ctx context.Context, req *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
@@ -687,4 +717,43 @@ func (ms *MachineServiceMock) Read(request *machine.ReadRequest, grpc grpc.Serve
 	}
 
 	return nil
+}
+
+// storeConfig keeps the machine's config resources the way Talos does: every apply makes the config active, every apply but a try also persists it.
+func (ms *MachineServiceMock) storeConfig(ctx context.Context, req *machine.ApplyConfigurationRequest) error {
+	provider, err := configloader.NewFromBytes(req.GetData())
+	if err != nil {
+		return nil //nolint:nilerr // not every test sends a parseable config, and those do not look at the config resources
+	}
+
+	ids := []resource.ID{configres.ActiveID}
+	if req.GetMode() != machine.ApplyConfigurationRequest_TRY {
+		ids = append(ids, configres.PersistentID)
+	}
+
+	for _, id := range ids {
+		if err = ms.SetConfig(ctx, provider, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetConfig sets one of the machine's config resources, the active one (configres.ActiveID) or the persisted one.
+func (ms *MachineServiceMock) SetConfig(ctx context.Context, provider config.Provider, id resource.ID) error {
+	res := configres.NewMachineConfigWithID(provider, id)
+
+	existing, err := ms.State.Get(ctx, res.Metadata())
+	if err != nil {
+		if !state.IsNotFoundError(err) {
+			return err
+		}
+
+		return ms.State.Create(ctx, res)
+	}
+
+	res.Metadata().SetVersion(existing.Metadata().Version())
+
+	return ms.State.Update(ctx, res)
 }

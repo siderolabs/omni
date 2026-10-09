@@ -7,23 +7,35 @@ package omni_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/resources/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	siderolinkomni "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -572,10 +584,543 @@ certificates: |
 	suite.Contains(dataStr, "omni-kmsg")
 }
 
+//nolint:gocognit,gocyclo,cyclop,maintidx
+func TestMaintenanceConfigStatusTryMode(t *testing.T) {
+	t.Parallel()
+
+	const patchID = "000-try-mode-patch"
+
+	// maintenanceTryTimings keeps the shape of the production set, scaled down to fit inside a test.
+	maintenanceTryTimings := configtry.Timings{
+		Timeout:         4 * time.Second,
+		ConfirmAfter:    300 * time.Millisecond,
+		ConfirmDeadline: 3 * time.Second,
+		RollbackGrace:   500 * time.Millisecond,
+		ConfirmRetry:    200 * time.Millisecond,
+		MaxAttempts:     2,
+	}
+
+	// runWithTryModeMachine brings up a machine in maintenance on Talos 1.14 with its first config applied, and passes the hash recorded for it.
+	runWithTryModeMachine := func(
+		t *testing.T, id string, maintenanceClient *recordingMaintenanceClient, test func(ctx context.Context, st state.State, firstHash string),
+	) {
+		ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				factory := func(context.Context, string) (omni.MaintenanceClient, error) { return maintenanceClient, nil }
+
+				require.NoError(t, tc.Runtime.RegisterQController(
+					omni.NewMaintenanceConfigStatusController(factory, 123, 456, tc.State, nil,
+						omni.WithMaintenanceTryTimings(maintenanceTryTimings)),
+				))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				link := siderolinkres.NewLink(id, &specs.SiderolinkSpec{})
+				link.TypedSpec().Value.Connected = true
+				link.TypedSpec().Value.NodePublicKey = id + "-key"
+
+				require.NoError(t, tc.State.Create(ctx, link))
+
+				machineStatus := omnires.NewMachineStatus(id)
+				machineStatus.TypedSpec().Value.Maintenance = true
+				machineStatus.TypedSpec().Value.ManagementAddress = id + "-address"
+				machineStatus.TypedSpec().Value.TalosVersion = "1.14.0"
+
+				require.NoError(t, tc.State.Create(ctx, machineStatus))
+
+				extractionStatus := omnires.NewMachineConfigExtractionStatus(id)
+				extractionStatus.TypedSpec().Value.Initialized = true
+
+				require.NoError(t, tc.State.Create(ctx, extractionStatus))
+
+				// the machine boots with no config at all, so the first apply cannot be tried
+				var firstHash string
+
+				require.EventuallyWithT(t, func(c *assert.CollectT) {
+					status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, tc.State, id)
+					if !assert.NoError(c, err) {
+						return
+					}
+
+					firstHash = status.TypedSpec().Value.LastAppliedConfigHash
+
+					assert.NotEmpty(c, firstHash)
+					assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+				}, 10*time.Second, 20*time.Millisecond)
+
+				requests := maintenanceClient.getRequests()
+				require.Len(t, requests, 1)
+				require.Equal(t, machine.ApplyConfigurationRequest_AUTO, requests[0].GetMode())
+
+				test(ctx, tc.State, firstHash)
+			},
+		)
+	}
+
+	createTryModePatch := func(ctx context.Context, t *testing.T, st state.State, id string) {
+		patch := omnires.NewConfigPatch(patchID)
+		patch.Metadata().Labels().Set(omnires.LabelMachine, id)
+		require.NoError(t, patch.TypedSpec().Value.SetUncompressedData([]byte("apiVersion: v1alpha1\nkind: KmsgLogConfig\nname: try-mode-test\nurl: tcp://127.0.0.1:5170\n")))
+		require.NoError(t, st.Create(ctx, patch))
+	}
+
+	waitForMaintenanceTry := func(t *testing.T, maintenanceClient *recordingMaintenanceClient) {
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			assert.True(c, slices.ContainsFunc(maintenanceClient.getRequests(), func(req *machine.ApplyConfigurationRequest) bool {
+				return req.GetMode() == machine.ApplyConfigurationRequest_TRY
+			}))
+		}, 10*time.Second, 20*time.Millisecond)
+	}
+
+	rotateKey := func(ctx context.Context, t *testing.T, st state.State, id, key string) {
+		_, err := safe.StateUpdateWithConflicts(ctx, st, siderolinkres.NewLink(id, nil).Metadata(), func(link *siderolinkres.Link) error {
+			link.TypedSpec().Value.NodePublicKey = key
+
+			return nil
+		})
+		require.NoError(t, err)
+	}
+
+	// The first config of a boot has no config to roll back to and goes in unprotected, while every change after it is tried first.
+	t.Run("afterFirstApply", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable"}
+
+		const id = "try-mode-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				var try *machine.ApplyConfigurationRequest
+
+				for _, req := range maintenanceClient.getRequests() {
+					if req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+						try = req
+					}
+				}
+
+				if !assert.NotNil(c, try, "the config change should have been applied in try mode") {
+					return
+				}
+
+				assert.Equal(c, maintenanceTryTimings.Timeout, try.GetTryModeTimeout().AsDuration())
+			}, 10*time.Second, 20*time.Millisecond)
+
+			// once it has stayed on the machine long enough, it is confirmed with a regular apply and recorded
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.NotEqual(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+				assert.Empty(c, status.TypedSpec().Value.LastConfigError)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			requests := maintenanceClient.getRequests()
+			last := requests[len(requests)-1]
+
+			assert.Equal(t, machine.ApplyConfigurationRequest_NO_REBOOT, last.GetMode())
+			assert.Nil(t, last.GetTryModeTimeout())
+		})
+	})
+
+	// A config that cuts the machine off before the try apply can answer: the try is recorded anyway and confirmed once the machine answers again.
+	t.Run("recordsTryWithoutAnswer", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", loseTryAnswer: true}
+
+		const id = "try-mode-silent-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.NotEqual(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+				assert.Empty(c, status.TypedSpec().Value.LastConfigError)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			var tries int
+
+			for _, req := range maintenanceClient.getRequests() {
+				if req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+					tries++
+				}
+			}
+
+			assert.Equal(t, 1, tries, "the unanswered try must be recorded, not sent again")
+		})
+	})
+
+	// A try that never reached the machine must not be confirmed as a regular apply.
+	t.Run("doesNotConfirmAnUnlandedTry", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", dropTries: 1}
+
+		const id = "try-mode-unlanded-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.NotEqual(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+			}, 20*time.Second, 20*time.Millisecond)
+
+			var tries, confirms int
+
+			for _, req := range maintenanceClient.getRequests()[1:] {
+				switch req.GetMode() { //nolint:exhaustive
+				case machine.ApplyConfigurationRequest_TRY:
+					tries++
+				case machine.ApplyConfigurationRequest_NO_REBOOT:
+					confirms++
+				}
+			}
+
+			assert.Equal(t, 2, tries, "the unlanded try should be followed by a second one")
+			assert.Equal(t, 1, confirms, "only the try that landed may be confirmed")
+		})
+	})
+
+	// A config that costs the machine its boot: the boot ID no longer matches when it is time to confirm, so the config is never recorded.
+	t.Run("stopsWhenMachineReboots", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-0", rebootOnTry: true}
+
+		const id = "try-mode-rebooting-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			// every attempt is spent, then the machine is left alone with an error to show for it
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.Contains(c, status.TypedSpec().Value.LastConfigError, "rolled back")
+				assert.Equal(c, maintenanceTryTimings.MaxAttempts, status.TypedSpec().Value.ConfigTry.GetAttempts())
+				assert.Equal(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash, "a config that was never confirmed must not be recorded")
+			}, 30*time.Second, 20*time.Millisecond)
+
+			for _, req := range maintenanceClient.getRequests()[1:] {
+				assert.Equal(t, machine.ApplyConfigurationRequest_TRY, req.GetMode(), "the unconfirmed config must only ever be applied in try mode")
+			}
+
+			// taking the patch back leaves nothing to try, so the error goes away without another apply
+			require.NoError(t, st.Destroy(ctx, omnires.NewConfigPatch(patchID).Metadata()))
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+				assert.Empty(c, status.TypedSpec().Value.LastConfigError)
+				assert.Equal(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			requests := maintenanceClient.getRequests()
+
+			assert.Equal(t, machine.ApplyConfigurationRequest_TRY, requests[len(requests)-1].GetMode(), "no apply should follow the patch removal")
+		})
+	})
+
+	// A real reboot also rotates the SideroLink key, which makes the next apply the first one of a boot. A config Omni
+	// gave up on must not be pushed then.
+	t.Run("staysStoppedAfterReboot", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-0", rebootOnTry: true}
+
+		const id = "try-mode-stopped-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.Contains(c, status.TypedSpec().Value.LastConfigError, "rolled back")
+			}, 30*time.Second, 20*time.Millisecond)
+
+			requestsBefore := len(maintenanceClient.getRequests())
+
+			rotateKey(ctx, t, st, id, "rebooted")
+
+			// the reconcile that sees the new key drops the in-flight part of the try and returns without an apply
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omnires.MaintenanceConfigStatus, a *assert.Assertions) {
+				a.Nil(res.TypedSpec().Value.ConfigTry.GetStartedAt())
+				a.Equal(maintenanceTryTimings.MaxAttempts, res.TypedSpec().Value.ConfigTry.GetAttempts())
+				a.Contains(res.TypedSpec().Value.LastConfigError, "rolled back")
+				a.Equal(firstHash, res.TypedSpec().Value.LastAppliedConfigHash)
+			})
+
+			assert.Len(t, maintenanceClient.getRequests(), requestsBefore, "a config Omni gave up on must not be applied after a reboot")
+		})
+	})
+
+	t.Run("clearsErrorOutsideMaintenance", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-0", rebootOnTry: true}
+
+		const id = "try-mode-installed-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, _ string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.Contains(c, status.TypedSpec().Value.LastConfigError, "rolled back")
+			}, 30*time.Second, 20*time.Millisecond)
+
+			_, err := safe.StateUpdateWithConflicts(ctx, st, omnires.NewMachineStatus(id).Metadata(), func(res *omnires.MachineStatus) error {
+				res.TypedSpec().Value.Maintenance = false
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omnires.MaintenanceConfigStatus, a *assert.Assertions) {
+				a.Empty(res.TypedSpec().Value.LastConfigError)
+				a.Equal(maintenanceTryTimings.MaxAttempts, res.TypedSpec().Value.ConfigTry.GetAttempts())
+			})
+		})
+	})
+
+	// A reboot during a try: the config is tried again on the new boot, never applied plainly.
+	t.Run("triesAgainAfterReboot", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", failConfirmsOf: "127.0.0.1:5170"}
+
+		const id = "try-mode-interrupted-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, _ string) {
+			createTryModePatch(ctx, t, st, id)
+			waitForMaintenanceTry(t, maintenanceClient)
+
+			rotateKey(ctx, t, st, id, "rebooted")
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				var tries int
+
+				for _, req := range maintenanceClient.getRequests()[1:] {
+					if req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+						tries++
+					}
+				}
+
+				assert.Equal(c, 2, tries)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			for _, req := range maintenanceClient.getRequests()[1:] {
+				assert.NotEqual(t, machine.ApplyConfigurationRequest_AUTO, req.GetMode(), "a config that was tried and never confirmed must not be applied plainly")
+			}
+		})
+	})
+
+	// A config change while a try is pending: the new config is tried and confirmed without waiting for the pending try to roll back.
+	t.Run("replacesPendingTry", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", failConfirmsOf: "127.0.0.1:5170"}
+
+		const id = "try-mode-replacing-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+			waitForMaintenanceTry(t, maintenanceClient)
+
+			_, err := safe.StateUpdateWithConflicts(ctx, st, omnires.NewConfigPatch(patchID).Metadata(), func(patch *omnires.ConfigPatch) error {
+				return patch.TypedSpec().Value.SetUncompressedData([]byte("apiVersion: v1alpha1\nkind: KmsgLogConfig\nname: try-mode-test\nurl: tcp://127.0.0.1:5171\n"))
+			})
+			require.NoError(t, err)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.NotEqual(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+			}, maintenanceTryTimings.Timeout, 20*time.Millisecond, "the new config must be confirmed before the pending try times out")
+
+			requests := maintenanceClient.getRequests()
+			last := requests[len(requests)-1]
+
+			assert.Equal(t, machine.ApplyConfigurationRequest_NO_REBOOT, last.GetMode())
+			assert.Contains(t, string(last.GetData()), "127.0.0.1:5171")
+		})
+	})
+
+	// Taking a change back while its try is pending: the confirmed config is tried and confirmed again, instead of being
+	// treated as in sync while the other config is still active.
+	t.Run("revertReplacesPendingTry", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", failConfirmsOf: "127.0.0.1:5170"}
+
+		const id = "try-mode-reverting-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			confirmedConfig := string(maintenanceClient.getRequests()[0].GetData())
+
+			createTryModePatch(ctx, t, st, id)
+			waitForMaintenanceTry(t, maintenanceClient)
+
+			require.NoError(t, st.Destroy(ctx, omnires.NewConfigPatch(patchID).Metadata()))
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				var tried, confirmed bool
+
+				for _, req := range maintenanceClient.getRequests()[1:] {
+					if string(req.GetData()) != confirmedConfig {
+						continue
+					}
+
+					switch req.GetMode() { //nolint:exhaustive
+					case machine.ApplyConfigurationRequest_TRY:
+						tried = true
+					case machine.ApplyConfigurationRequest_NO_REBOOT:
+						confirmed = tried
+					}
+				}
+
+				assert.True(c, confirmed, "the confirmed config must be tried and confirmed again")
+			}, maintenanceTryTimings.Timeout, 20*time.Millisecond)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.Equal(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+			}, 10*time.Second, 20*time.Millisecond)
+		})
+	})
+}
+
 func TestMaintenanceConfigStatusControllerSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(MaintenanceConfigStatusControllerSuite))
+}
+
+// recordingMaintenanceClient stands in for a machine in maintenance mode: it remembers the config it
+// was last given, the way Talos keeps an active config, and records every request.
+type recordingMaintenanceClient struct {
+	active *config.MachineConfig
+	bootID string
+
+	// failConfirmsOf makes every confirming apply of a config containing it fail, which keeps its try pending.
+	failConfirmsOf string
+
+	requests []*machine.ApplyConfigurationRequest
+	mu       sync.Mutex
+	boots    int
+
+	// dropTries is how many try applies never reach the machine: Omni gets no answer and nothing changes on the machine.
+	dropTries int
+
+	// rebootOnTry makes every try apply look like it rebooted the machine: the boot ID changes with it.
+	rebootOnTry bool
+
+	// loseTryAnswer makes every try apply land without answering, the way a config that cuts the machine off does.
+	loseTryAnswer bool
+}
+
+func (m *recordingMaintenanceClient) GetMachineConfig(context.Context) (*config.MachineConfig, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.active, nil
+}
+
+func (m *recordingMaintenanceClient) GetBootID(context.Context) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.bootID, nil
+}
+
+func (m *recordingMaintenanceClient) ApplyConfiguration(_ context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.requests = append(m.requests, req)
+
+	if m.dropTries > 0 && req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+		m.dropTries--
+
+		return nil, grpcstatus.Error(codes.DeadlineExceeded, "the request never reached the machine")
+	}
+
+	if m.failConfirmsOf != "" && req.GetMode() == machine.ApplyConfigurationRequest_NO_REBOOT && strings.Contains(string(req.GetData()), m.failConfirmsOf) {
+		return nil, grpcstatus.Error(codes.Unavailable, "machine is unreachable")
+	}
+
+	provider, err := configloader.NewFromBytes(req.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	m.active = config.NewMachineConfig(provider)
+
+	if m.rebootOnTry && req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+		m.boots++
+		m.bootID = fmt.Sprintf("boot-%d", m.boots)
+	}
+
+	if m.loseTryAnswer && req.GetMode() == machine.ApplyConfigurationRequest_TRY {
+		return nil, grpcstatus.Error(codes.DeadlineExceeded, "the answer never came back")
+	}
+
+	return &machine.ApplyConfigurationResponse{}, nil
+}
+
+func (m *recordingMaintenanceClient) getRequests() []*machine.ApplyConfigurationRequest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return slices.Clone(m.requests)
+}
+
+func (m *recordingMaintenanceClient) Close() error {
+	return nil
 }
 
 type maintenanceClientMock struct {
@@ -604,4 +1149,8 @@ func (m *maintenanceClientMock) ApplyConfiguration(ctx context.Context, req *mac
 
 func (m *maintenanceClientMock) Close() error {
 	return nil
+}
+
+func (m *maintenanceClientMock) GetBootID(context.Context) (string, error) {
+	return "boot-1", nil
 }

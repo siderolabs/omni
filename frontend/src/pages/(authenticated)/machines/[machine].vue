@@ -8,13 +8,18 @@ included in the LICENSE file.
 import { computed } from 'vue'
 import { RouterLink, type RouterView, useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import { MachineStatusLinkType, MetricsNamespace } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
+import TAlert from '@/components/TAlert.vue'
 import { usePermissions } from '@/methods/auth'
 import { useMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({
   name: 'Machine',
@@ -59,6 +64,15 @@ const route = useRoute()
 
 const machineName = useMachineName(() => route.params.machine)
 
+const { data: machineStatusLink } = useResourceWatch<MachineStatusLinkSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: MetricsNamespace,
+    type: MachineStatusLinkType,
+    id: route.params.machine,
+  },
+}))
+
 /**
  * Some child routes do not match any tab, e.g. MachinePatchEdit
  */
@@ -72,6 +86,15 @@ useTitle(() => ['Machines', machineName.value])
 <template>
   <div class="flex h-full flex-col pt-6">
     <PageHeader :title="machineName" class="px-4 md:px-6" />
+
+    <TAlert
+      v-if="machineStatusLink?.spec.maintenance_config_error"
+      title="Config Error"
+      type="error"
+      class="mx-4 mb-4 md:mx-6"
+    >
+      {{ machineStatusLink.spec.maintenance_config_error.trim() }}
+    </TAlert>
 
     <Tabs
       :model-value="$route.name?.toString()"

@@ -30,8 +30,10 @@ type MachineStatusLinkSpec struct {
 	MachineCreatedAt  int64                      `protobuf:"varint,3,opt,name=machine_created_at,json=machineCreatedAt,proto3" json:"machine_created_at,omitempty"`
 	TearingDown       bool                       `protobuf:"varint,4,opt,name=tearing_down,json=tearingDown,proto3" json:"tearing_down,omitempty"`
 	Snapshot          *MachineStatusSnapshotSpec `protobuf:"bytes,5,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// MaintenanceConfigError is why the maintenance config could not be applied, if it could not be. Empty once the machine leaves maintenance.
+	MaintenanceConfigError string `protobuf:"bytes,6,opt,name=maintenance_config_error,json=maintenanceConfigError,proto3" json:"maintenance_config_error,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *MachineStatusLinkSpec) Reset() {
@@ -99,17 +101,25 @@ func (x *MachineStatusLinkSpec) GetSnapshot() *MachineStatusSnapshotSpec {
 	return nil
 }
 
+func (x *MachineStatusLinkSpec) GetMaintenanceConfigError() string {
+	if x != nil {
+		return x.MaintenanceConfigError
+	}
+	return ""
+}
+
 var File_omni_specs_ephemeral_proto protoreflect.FileDescriptor
 
 const file_omni_specs_ephemeral_proto_rawDesc = "" +
 	"\n" +
-	"\x1aomni/specs/ephemeral.proto\x12\x05specs\x1a\x15omni/specs/omni.proto\x1a\x1bomni/specs/siderolink.proto\"\xb4\x02\n" +
+	"\x1aomni/specs/ephemeral.proto\x12\x05specs\x1a\x15omni/specs/omni.proto\x1a\x1bomni/specs/siderolink.proto\"\xee\x02\n" +
 	"\x15MachineStatusLinkSpec\x12?\n" +
 	"\x0emessage_status\x18\x01 \x01(\v2\x18.specs.MachineStatusSpecR\rmessageStatus\x12K\n" +
 	"\x12siderolink_counter\x18\x02 \x01(\v2\x1c.specs.SiderolinkCounterSpecR\x11siderolinkCounter\x12,\n" +
 	"\x12machine_created_at\x18\x03 \x01(\x03R\x10machineCreatedAt\x12!\n" +
 	"\ftearing_down\x18\x04 \x01(\bR\vtearingDown\x12<\n" +
-	"\bsnapshot\x18\x05 \x01(\v2 .specs.MachineStatusSnapshotSpecR\bsnapshotB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\bsnapshot\x18\x05 \x01(\v2 .specs.MachineStatusSnapshotSpecR\bsnapshot\x128\n" +
+	"\x18maintenance_config_error\x18\x06 \x01(\tR\x16maintenanceConfigErrorB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_ephemeral_proto_rawDescOnce sync.Once
