@@ -113,6 +113,13 @@ func (ctrl *MachineTeardownController) resetMachine(
 	machineStatus *omni.MachineStatus,
 	logger *zap.Logger,
 ) error {
+	// machine is not connected, so skip the wipe dial
+	if !machineStatus.TypedSpec().Value.Connected {
+		logger.Info("skipping machine wipe as the machine is not connected")
+
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
