@@ -97,7 +97,7 @@ services:
 
   vault-dev:
     container_name: local-vault
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:2.1
     environment:
       - VAULT_DEV_ROOT_TOKEN_ID=dev-o-token
     cap_add:
@@ -110,7 +110,7 @@ services:
       - vault-dev
     restart: on-failure
     container_name: local-vault-init
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:2.1
     volumes:
       - ../../internal/backend/runtime/omni/testdata/pgp/new_key.private:/tmp/key.private:ro
     environment:
@@ -136,7 +136,7 @@ services:
   # SeaweedFS serves S3 on 8333, published on 9000, which is the endpoint the tests are
   # configured with. The credentials come from a config file: without one it serves anonymously.
   seaweedfs:
-    image: chrislusf/seaweedfs:4.47
+    image: chrislusf/seaweedfs:4.48
     container_name: seaweedfs
     volumes:
       - seaweedfs:/data
@@ -161,7 +161,7 @@ services:
   # weed shell waits for the master rather than failing fast, so bound it and let the restart
   # policy come back around if the master is not up yet.
   seaweedfs-bucket:
-    image: chrislusf/seaweedfs:4.47
+    image: chrislusf/seaweedfs:4.48
     container_name: seaweedfs-bucket
     depends_on:
       - seaweedfs
