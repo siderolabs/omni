@@ -48,6 +48,7 @@ function makeEntry(ts: number): AuditLogMsg {
     event_data: {
       session: {
         user_agent: faker.internet.userAgent(),
+        client_address: faker.internet.ip(),
         ...(hasUser
           ? {
               role: faker.helpers.arrayElement(['Admin', 'Operator', 'Reader']),

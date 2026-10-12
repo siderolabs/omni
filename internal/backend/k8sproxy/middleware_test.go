@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/transport"
 
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
@@ -118,6 +119,7 @@ func TestAuthorize(t *testing.T) {
 		expectedImpersonateUser   string
 		expectedImpersonateGroups []string
 		expectedCluster           string
+		expectedClientAddress     string
 	}
 
 	testCases := []testCase{
@@ -170,6 +172,7 @@ func TestAuthorize(t *testing.T) {
 			extraHeaders: map[string]string{
 				transport.ImpersonateUserHeader:  "foo",
 				transport.ImpersonateGroupHeader: "bar",
+				"X-Forwarded-For":                "203.0.113.9",
 			},
 
 			expectedCode: http.StatusOK,
@@ -177,6 +180,7 @@ func TestAuthorize(t *testing.T) {
 			expectedImpersonateUser:   "user2",
 			expectedImpersonateGroups: []string{"group2"},
 			expectedCluster:           "cluster2",
+			expectedClientAddress:     "203.0.113.9",
 		},
 		{
 			name: "cluster-uuid mismatch",
@@ -305,6 +309,10 @@ func TestAuthorize(t *testing.T) {
 			v, ok := ctxstore.Value[k8sproxy.ClusterContextKey](receivedReq.Context()) //nolint:contextcheck
 			assert.True(t, ok)
 			assert.Equal(t, tc.expectedCluster, v.ClusterName)
+
+			auditData, ok := ctxstore.Value[*auditlog.Data](receivedReq.Context()) //nolint:contextcheck
+			require.True(t, ok)
+			assert.Equal(t, tc.expectedClientAddress, auditData.Session.ClientAddress)
 		})
 	}
 }

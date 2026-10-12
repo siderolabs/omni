@@ -127,6 +127,14 @@ function toggleRow() {
           highlight-class="search-match"
           class="text-content-muted"
         />
+
+        <WordHighlighter
+          v-if="item.event_data.session.client_address"
+          :query="search"
+          :text-to-highlight="item.event_data.session.client_address"
+          highlight-class="search-match"
+          class="text-content-muted"
+        />
       </div>
     </CollapsibleTrigger>
 

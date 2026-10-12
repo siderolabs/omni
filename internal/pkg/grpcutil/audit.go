@@ -7,6 +7,7 @@ package grpcutil
 
 import (
 	"context"
+	"net/netip"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -19,9 +20,20 @@ func SetAuditInCtx(ctx context.Context) context.Context {
 
 	return ctxstore.WithValue(ctx, &auditlog.Data{
 		Session: auditlog.Session{
-			UserAgent: typeAssertOrZero[string](m["user_agent"]),
+			UserAgent:     typeAssertOrZero[string](m["user_agent"]),
+			ClientAddress: clientAddress(m),
 		},
 	})
+}
+
+// clientAddress returns the address set by SetRealPeerAddress, or an empty string for its "<unknown_ip>" and "<invalid_ip>" placeholders.
+func clientAddress(tags map[string]any) string {
+	addr, err := netip.ParseAddr(typeAssertOrZero[string](tags["peer.address"]))
+	if err != nil {
+		return ""
+	}
+
+	return addr.String()
 }
 
 func typeAssertOrZero[T any](v any) T {

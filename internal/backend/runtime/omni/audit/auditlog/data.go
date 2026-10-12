@@ -46,6 +46,7 @@ type MigrationError struct {
 // Session contains information about the current session.
 type Session struct {
 	UserAgent           string    `json:"user_agent,omitempty"`
+	ClientAddress       string    `json:"client_address,omitempty"`
 	UserID              string    `json:"user_id,omitempty"`
 	Role                role.Role `json:"role,omitempty"`
 	Email               string    `json:"email,omitempty"`

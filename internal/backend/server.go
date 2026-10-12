@@ -996,7 +996,14 @@ func (s *Server) runK8sProxyServer(
 
 	logger := s.logger.With(zap.String("server", s.k8sProxyService.GetEndpoint()), zap.String("server_type", "k8s_proxy"))
 
-	return services.NewFromConfig(&s.k8sProxyService, k8sProxy).Run(ctx, logger)
+	// the k8s proxy does not go through the API server handler
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		setClientAddress(req)
+
+		k8sProxy.ServeHTTP(w, req)
+	})
+
+	return services.NewFromConfig(&s.k8sProxyService, handler).Run(ctx, logger)
 }
 
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {

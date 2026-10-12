@@ -122,8 +122,9 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 					ClusterUUID:    clusterUUID,
 				},
 				Session: auditlog.Session{
-					UserAgent: req.Header.Get("User-Agent"),
-					Email:     claims.Subject,
+					UserAgent:     req.Header.Get("User-Agent"),
+					ClientAddress: req.Header.Get("X-Forwarded-For"), // the single address set by setClientAddress
+					Email:         claims.Subject,
 				},
 			},
 		))
