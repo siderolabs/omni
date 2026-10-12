@@ -326,7 +326,7 @@ const installerImage = computed(() => {
     </template>
 
     <h3 class="text-sm text-content-emphasis">Documentation</h3>
-    <ul class="ml-tight flex list-inside list-disc flex-col gap-tight text-status-warning-text">
+    <ul class="ml-tight flex list-inside list-disc flex-col gap-tight text-accent-text">
       <li>
         <a
           class="link-primary"
