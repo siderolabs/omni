@@ -22,14 +22,15 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/store/encryption"
 	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"
 	"github.com/hashicorp/go-multierror"
-	"github.com/siderolabs/gen/xslices"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/pkg/v3/featuregate"
 	"go.etcd.io/etcd/server/v3/embed"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -39,8 +40,13 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-// compressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
-const compressionThresholdBytes = 2048
+const (
+	// compressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
+	compressionThresholdBytes = 2048
+
+	// embeddedConnBufferSize is the buffer size of the in-memory connection to the embedded etcd.
+	embeddedConnBufferSize = 1024 * 1024
+)
 
 func newEtcdPersistentState(ctx context.Context, params *config.Params, observer etcd.ObserverFunc, throttler *ratelimit.Throttler, logger *zap.Logger) (state *PersistentState, err error) {
 	accountID := params.Account.GetId()
@@ -194,25 +200,9 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		string(features.InitialCorruptCheck): true,
 	})
 
-	peerURL, err := url.Parse("http://localhost:0")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
-	}
-
-	cfg.ListenPeerUrls = []url.URL{*peerURL}
-
-	clientURLs := make([]url.URL, 0, len(params.Endpoints))
-
-	for _, endpoint := range params.Endpoints {
-		clientURL, parseErr := url.Parse(endpoint)
-		if parseErr != nil {
-			return nil, fmt.Errorf("failed to parse URL: %w", parseErr)
-		}
-
-		clientURLs = append(clientURLs, *clientURL)
-	}
-
-	cfg.ListenClientUrls = clientURLs
+	// Omni connects to the embedded etcd in-memory, so no listeners are needed
+	cfg.ListenPeerUrls = nil
+	cfg.ListenClientUrls = nil
 
 	embeddedServer, err := embed.StartEtcd(cfg)
 	if err != nil {
@@ -247,16 +237,28 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		return nil, errors.New("etcd failed to start")
 	}
 
+	// in-memory connection, not v3client: it has issues with canceled watches (see https://github.com/cosi-project/state-etcd/pull/156)
+	lis := bufconn.Listen(embeddedConnBufferSize)
+	grpcServer := v3rpc.Server(embeddedServer.Server, nil, nil)
+
+	panichandler.Go(func() {
+		if serveErr := grpcServer.Serve(lis); serveErr != nil && !errors.Is(serveErr, grpc.ErrServerStopped) {
+			logger.Error("embedded etcd gRPC server failed", zap.Error(serveErr))
+		}
+	}, logger)
+
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   xslices.Map(embeddedServer.Clients, func(l net.Listener) string { return l.Addr().String() }),
+		Endpoints:   []string{"embedded"},
 		DialTimeout: 5 * time.Second,
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
+			grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
 		},
 		// never enable debug logs for etcd client, they are too chatty
 		Logger: logging.IncreaseLevel(logger, zap.InfoLevel).With(logging.Component("etcd_client")),
 	})
 	if err != nil {
+		grpcServer.Stop()
 		embeddedServer.Close()
 
 		return nil, err
@@ -267,6 +269,7 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		elections:      map[string]*etcdElections{},
 		errors:         errs,
 		embeddedServer: embeddedServer,
+		grpcServer:     grpcServer,
 	}, nil
 }
 
@@ -386,6 +389,7 @@ func (e *etcdState) err() <-chan error {
 
 type embeddedEtcd struct {
 	embeddedServer *embed.Etcd
+	grpcServer     *grpc.Server
 	etcdState
 }
 
@@ -404,6 +408,7 @@ func (e *embeddedEtcd) Close() error {
 		errs = multierror.Append(errs, err)
 	}
 
+	e.grpcServer.Stop()
 	e.embeddedServer.Close()
 
 	select {

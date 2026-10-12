@@ -10,6 +10,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
@@ -35,6 +36,11 @@ func NewEtcdPersistentState(ctx context.Context, params *config.Params, logger *
 
 func GetEmbeddedEtcdClientWithServer(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
 	return getEmbeddedEtcdState(params, logger)
+}
+
+// EmbeddedEtcdServer returns the embedded etcd server of the state.
+func EmbeddedEtcdServer(st EtcdState) *embed.Etcd {
+	return st.(*embeddedEtcd).embeddedServer //nolint:errcheck,forcetypeassert
 }
 
 // FilterAccessByType exposes filterAccessByType for tests.

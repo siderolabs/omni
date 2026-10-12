@@ -19,6 +19,9 @@ the removal lands.
 The metrics endpoint now listens on `127.0.0.1:2122` by default instead of `0.0.0.0:2122`. If you scrape the Omni metrics \
 from another host or from outside the Omni container (e.g., through a published Docker port), set `services.metrics.endpoint` \
 (`--metrics-bind-addr`) to `0.0.0.0:2122` explicitly. The Helm chart still binds it to `0.0.0.0:2122` when `metrics.enabled` is set.
+
+The embedded etcd server no longer listens on any address, Omni connects to it in-memory. Previously, it listened on \
+`storage.default.etcd.endpoints` (`http://localhost:2379` by default) without TLS, and backups taken with `etcdctl` relied on it.
 """
 
 [notes.image-factory-api-token]

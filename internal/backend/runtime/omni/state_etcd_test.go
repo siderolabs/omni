@@ -17,7 +17,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/keystorage"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/conformance"
+	"github.com/cosi-project/runtime/pkg/state/impl/store"
+	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"
 	"github.com/siderolabs/gen/xtesting/check"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -244,5 +248,56 @@ func TestEncryptDecrypt(t *testing.T) {
 		if !res {
 			t.FailNow()
 		}
+	}
+}
+
+// TestEmbeddedEtcdInMemory also checks that canceling many watches does not break the new ones, see https://github.com/cosi-project/state-etcd/pull/156.
+func TestEmbeddedEtcdInMemory(t *testing.T) {
+	st, err := omni.GetEmbeddedEtcdClientWithServer(&config.EtcdParams{
+		Embedded:       new(true),
+		EmbeddedDBPath: new(t.TempDir()),
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, st.Close()) })
+
+	assert.Empty(t, omni.EmbeddedEtcdServer(st).Clients)
+	assert.Empty(t, omni.EmbeddedEtcdServer(st).Peers)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	s := state.WrapCore(etcd.NewState(st.Client(), store.ProtobufMarshaler{}))
+	res := conformance.NewPathResource("default", "path")
+
+	canceledCtx, cancelWatches := context.WithCancel(ctx)
+
+	for range 50 {
+		require.NoError(t, s.Watch(canceledCtx, res.Metadata(), make(chan state.Event)))
+	}
+
+	cancelWatches()
+
+	require.NoError(t, s.Create(ctx, res))
+	require.NoError(t, s.Destroy(ctx, res.Metadata()))
+
+	watchCh := make(chan state.Event)
+
+	require.NoError(t, s.Watch(ctx, res.Metadata(), watchCh))
+
+	select {
+	case ev := <-watchCh:
+		require.Equal(t, state.Destroyed, ev.Type)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for the initial event")
+	}
+
+	require.NoError(t, s.Create(ctx, res))
+
+	select {
+	case ev := <-watchCh:
+		require.Equal(t, state.Created, ev.Type)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for the created event")
 	}
 }
