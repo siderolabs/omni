@@ -1041,6 +1041,11 @@ func pickUnallocatedMachinesAttempt(ctx context.Context, st state.State, count i
 			continue
 		}
 
+		// provisioned for a machine set, so it is deprovisioned as soon as that machine set scales down
+		if _, ok := machineStatus.Metadata().Labels().Get(omni.LabelNoManualAllocation); ok {
+			continue
+		}
+
 		allocatedNode, isAllocated := nodeMap[machineStatus.Metadata().ID()]
 		if isAllocated {
 			allocatedCluster, _ := allocatedNode.Metadata().Labels().Get(omni.LabelCluster)

@@ -152,8 +152,8 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			Wait: true,
 		}, nil))
 
-		// re-check with short timeout to make sure the cluster is ready
-		checkCtx, checkCancel := context.WithTimeout(ctx, 30*time.Second)
+		// the load balancer marks a control plane healthy only on its next health check, which runs every 20 seconds
+		checkCtx, checkCancel := context.WithTimeout(ctx, time.Minute)
 		defer checkCancel()
 
 		rtestutils.AssertResources(checkCtx, t, st, []string{clusterName}, func(status *omni.ClusterStatus, assert *assert.Assertions) {
@@ -210,8 +210,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			))
 		}
 
-		// re-check with short timeout to make sure the cluster is ready
-		checkCtx, checkCancel = context.WithTimeout(ctx, 10*time.Second)
+		checkCtx, checkCancel = context.WithTimeout(ctx, time.Minute)
 		defer checkCancel()
 
 		rtestutils.AssertResources(checkCtx, t, st, []string{clusterName}, func(status *omni.ClusterStatus, assert *assert.Assertions) {
