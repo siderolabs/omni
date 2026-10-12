@@ -53,7 +53,8 @@ export default defineConfig(({ command }) => {
     },
     server: {
       port: 8121,
-      host: '127.0.0.1',
+      // Set HOST env to "true" or 0.0.0.0 to listen on all interfaces
+      host: process.env.HOST === 'true' || process.env.HOST || '127.0.0.1',
       forwardConsole: true,
       // See customizing the dev server in the readme for allowedHosts
     },
