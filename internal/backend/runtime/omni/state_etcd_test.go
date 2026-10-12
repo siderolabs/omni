@@ -7,8 +7,11 @@ package omni_test
 
 import (
 	"context"
+	"crypto/tls"
+	stdx509 "crypto/x509"
 	_ "embed"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,9 +23,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/conformance"
 	"github.com/cosi-project/runtime/pkg/state/impl/store"
 	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xtesting/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap/zaptest"
 
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -300,4 +305,126 @@ func TestEmbeddedEtcdInMemory(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout waiting for the created event")
 	}
+}
+
+func TestEmbeddedEtcdTLSListener(t *testing.T) {
+	ip := x509.IPAddresses([]net.IP{net.ParseIP("127.0.0.1")})
+
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	require.NoError(t, err)
+
+	serverCert, err := x509.NewKeyPair(ca, x509.ECDSA(true), ip)
+	require.NoError(t, err)
+
+	clientCert, err := x509.NewKeyPair(ca, x509.ECDSA(true))
+	require.NoError(t, err)
+
+	selfSigned, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true), ip)
+	require.NoError(t, err)
+
+	selfSignedCert, err := tls.X509KeyPair(selfSigned.CrtPEM, selfSigned.KeyPEM)
+	require.NoError(t, err)
+
+	for _, tt := range []struct { //nolint:govet
+		name           string
+		cert, key, ca  []byte
+		serverCA       []byte
+		acceptedClient tls.Certificate
+		rejectedClient tls.Certificate
+	}{
+		{
+			name:           "with CA",
+			cert:           serverCert.CrtPEM,
+			key:            serverCert.KeyPEM,
+			ca:             ca.CrtPEM,
+			serverCA:       ca.CrtPEM,
+			acceptedClient: *clientCert.Certificate,
+			rejectedClient: selfSignedCert,
+		},
+		{
+			name:           "self-signed without CA",
+			cert:           selfSigned.CrtPEM,
+			key:            selfSigned.KeyPEM,
+			serverCA:       selfSigned.CrtPEM,
+			acceptedClient: selfSignedCert,
+			rejectedClient: *clientCert.Certificate,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+
+			params := &config.EtcdParams{
+				Embedded:         new(true),
+				EmbeddedDBPath:   new(filepath.Join(dir, "etcd")),
+				Endpoints:        []string{"http://127.0.0.1:0"},
+				EmbeddedCertFile: new(filepath.Join(dir, "server.crt")),
+				EmbeddedKeyFile:  new(filepath.Join(dir, "server.key")),
+			}
+
+			require.NoError(t, os.WriteFile(params.GetEmbeddedCertFile(), tt.cert, 0o600))
+			require.NoError(t, os.WriteFile(params.GetEmbeddedKeyFile(), tt.key, 0o600))
+
+			if tt.ca != nil {
+				params.EmbeddedCaFile = new(filepath.Join(dir, "ca.crt"))
+
+				require.NoError(t, os.WriteFile(params.GetEmbeddedCaFile(), tt.ca, 0o600))
+			}
+
+			st, err := omni.GetEmbeddedEtcdClientWithServer(params, zaptest.NewLogger(t))
+			require.NoError(t, err)
+
+			t.Cleanup(func() { require.NoError(t, st.Close()) })
+
+			listeners := omni.EmbeddedEtcdServer(st).Clients
+			require.Len(t, listeners, 1)
+
+			rootCAs := stdx509.NewCertPool()
+			rootCAs.AppendCertsFromPEM(tt.serverCA)
+
+			put := func(certs ...tls.Certificate) error {
+				cli, cliErr := clientv3.New(clientv3.Config{
+					Endpoints:   []string{listeners[0].Addr().String()},
+					DialTimeout: 2 * time.Second,
+					TLS:         &tls.Config{RootCAs: rootCAs, Certificates: certs},
+				})
+				require.NoError(t, cliErr)
+
+				defer cli.Close() //nolint:errcheck
+
+				ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+				defer cancel()
+
+				_, cliErr = cli.Put(ctx, "key", "value")
+
+				return cliErr
+			}
+
+			require.NoError(t, put(tt.acceptedClient))
+			require.Error(t, put(tt.rejectedClient))
+			require.Error(t, put())
+		})
+	}
+}
+
+func TestEmbeddedEtcdTLSChainWithoutCA(t *testing.T) {
+	dir := t.TempDir()
+
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	require.NoError(t, err)
+
+	serverCert, err := x509.NewKeyPair(ca, x509.ECDSA(true))
+	require.NoError(t, err)
+
+	params := &config.EtcdParams{
+		Embedded:         new(true),
+		EmbeddedDBPath:   new(filepath.Join(dir, "etcd")),
+		EmbeddedCertFile: new(filepath.Join(dir, "server.crt")),
+		EmbeddedKeyFile:  new(filepath.Join(dir, "server.key")),
+	}
+
+	require.NoError(t, os.WriteFile(params.GetEmbeddedCertFile(), append(serverCert.CrtPEM, ca.CrtPEM...), 0o600))
+	require.NoError(t, os.WriteFile(params.GetEmbeddedKeyFile(), serverCert.KeyPEM, 0o600))
+
+	_, err = omni.GetEmbeddedEtcdClientWithServer(params, zaptest.NewLogger(t))
+	require.ErrorContains(t, err, "must contain a single certificate when no CA file is set, found 2")
 }

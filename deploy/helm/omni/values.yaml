@@ -440,7 +440,8 @@ config:
         #path: _out/omni.db
       # Etcd contains etcd storage backend configuration.
       etcd:
-        # Endpoints is the list of etcd endpoints. Only used when external etcd is used (i.e., embedded is false).
+        # Endpoints is the list of etcd endpoints. When embedded etcd is used, it is the list of addresses the embedded
+        # etcd server listens on, only if embeddedCertFile is set. The embedded etcd server always serves TLS.
         #endpoints:
         #  - http://localhost:2379
         # DialKeepAliveTime is the keep-alive time for etcd client connections.
@@ -461,6 +462,15 @@ config:
         # EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync calls for improved performance
         # at the cost of durability.
         #embeddedUnsafeFsync: false
+        # EmbeddedCertFile is the path to the TLS certificate file for the embedded etcd server. When it is not set, the
+        # embedded etcd server does not listen on any address, Omni connects to it in-memory.
+        #embeddedCertFile: ""
+        # EmbeddedKeyFile is the path to the TLS key file for the embedded etcd server.
+        #embeddedKeyFile: ""
+        # EmbeddedCaFile is the path to the CA certificate file the embedded etcd server uses to verify client
+        # certificates. When it is not set, embeddedCertFile must contain a single certificate, which is then used as
+        # the CA, so clients can use the same certificate and key.
+        #embeddedCaFile: ""
         # RunElections controls whether the embedded etcd server should run leader elections. Should be false for
         # single-node Omni installations.
         #runElections: false

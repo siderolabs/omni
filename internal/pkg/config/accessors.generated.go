@@ -413,6 +413,28 @@ func (s *EtcdParams) SetEmbedded(v bool) {
 	s.Embedded = &v
 }
 
+func (s *EtcdParams) GetEmbeddedCaFile() string {
+	if s == nil || s.EmbeddedCaFile == nil {
+		return *new(string)
+	}
+	return *s.EmbeddedCaFile
+}
+
+func (s *EtcdParams) SetEmbeddedCaFile(v string) {
+	s.EmbeddedCaFile = &v
+}
+
+func (s *EtcdParams) GetEmbeddedCertFile() string {
+	if s == nil || s.EmbeddedCertFile == nil {
+		return *new(string)
+	}
+	return *s.EmbeddedCertFile
+}
+
+func (s *EtcdParams) SetEmbeddedCertFile(v string) {
+	s.EmbeddedCertFile = &v
+}
+
 func (s *EtcdParams) GetEmbeddedDBPath() string {
 	if s == nil || s.EmbeddedDBPath == nil {
 		return *new(string)
@@ -422,6 +444,17 @@ func (s *EtcdParams) GetEmbeddedDBPath() string {
 
 func (s *EtcdParams) SetEmbeddedDBPath(v string) {
 	s.EmbeddedDBPath = &v
+}
+
+func (s *EtcdParams) GetEmbeddedKeyFile() string {
+	if s == nil || s.EmbeddedKeyFile == nil {
+		return *new(string)
+	}
+	return *s.EmbeddedKeyFile
+}
+
+func (s *EtcdParams) SetEmbeddedKeyFile(v string) {
+	s.EmbeddedKeyFile = &v
 }
 
 func (s *EtcdParams) GetEmbeddedUnsafeFsync() bool {

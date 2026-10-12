@@ -409,6 +409,52 @@ func TestValidateFactoryAuthConfig(t *testing.T) {
 	}
 }
 
+func TestValidateEmbeddedEtcdTLSConfig(t *testing.T) {
+	schema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
+	for _, tt := range []validateConfigCase{
+		{
+			name:   "cert without key",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Storage.Default.Etcd.SetEmbeddedCertFile("/etc/omni/etcd/server.crt")
+			},
+			validateErr: `is required when "embeddedCertFile" is set`,
+		},
+		{
+			name:   "ca without cert and key",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Storage.Default.Etcd.SetEmbeddedCaFile("/etc/omni/etcd/ca.crt")
+			},
+			validateErr: `is required when "embeddedCaFile" is set`,
+		},
+		{
+			name:   "empty ca",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Storage.Default.Etcd.SetEmbeddedCertFile("/etc/omni/etcd/server.crt")
+				cfg.Storage.Default.Etcd.SetEmbeddedKeyFile("/etc/omni/etcd/server.key")
+				cfg.Storage.Default.Etcd.SetEmbeddedCaFile("")
+			},
+			validateErr: `must not be empty`,
+		},
+		{
+			name:   "cert and key without ca",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Storage.Default.Etcd.SetEmbeddedCertFile("/etc/omni/etcd/server.crt")
+				cfg.Storage.Default.Etcd.SetEmbeddedKeyFile("/etc/omni/etcd/server.key")
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.run(t, schema)
+		})
+	}
+}
+
 func TestValidateSAMLSigningConfig(t *testing.T) {
 	schema, parseErr := config.ParseSchema()
 	require.NoError(t, parseErr)

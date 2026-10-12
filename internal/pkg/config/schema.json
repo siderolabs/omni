@@ -1723,9 +1723,14 @@
       "required": [
         "privateKeySource"
       ],
+      "dependentRequired": {
+        "embeddedCertFile": ["embeddedKeyFile"],
+        "embeddedKeyFile": ["embeddedCertFile"],
+        "embeddedCaFile": ["embeddedCertFile", "embeddedKeyFile"]
+      },
       "properties": {
         "endpoints": {
-          "description": "Endpoints is the list of etcd endpoints. Only used when external etcd is used (i.e., embedded is false).",
+          "description": "Endpoints is the list of etcd endpoints. When embedded etcd is used, it is the list of addresses the embedded etcd server listens on, only if embeddedCertFile is set. The embedded etcd server always serves TLS.",
           "x-cli-flag": "etcd-endpoints",
           "type": "array",
           "default": ["http://localhost:2379"],
@@ -1811,6 +1816,24 @@
           "description": "EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync calls for improved performance at the cost of durability.",
           "x-cli-flag": "etcd-embedded-unsafe-fsync",
           "type": "boolean"
+        },
+        "embeddedCertFile": {
+          "description": "EmbeddedCertFile is the path to the TLS certificate file for the embedded etcd server. When it is not set, the embedded etcd server does not listen on any address, Omni connects to it in-memory.",
+          "x-cli-flag": "etcd-embedded-cert-path",
+          "type": "string",
+          "minLength": 1
+        },
+        "embeddedKeyFile": {
+          "description": "EmbeddedKeyFile is the path to the TLS key file for the embedded etcd server.",
+          "x-cli-flag": "etcd-embedded-key-path",
+          "type": "string",
+          "minLength": 1
+        },
+        "embeddedCaFile": {
+          "description": "EmbeddedCaFile is the path to the CA certificate file the embedded etcd server uses to verify client certificates. When it is not set, embeddedCertFile must contain a single certificate, which is then used as the CA, so clients can use the same certificate and key.",
+          "x-cli-flag": "etcd-embedded-ca-path",
+          "type": "string",
+          "minLength": 1
         },
         "runElections": {
           "description": "RunElections controls whether the embedded etcd server should run leader elections. Should be false for single-node Omni installations.",

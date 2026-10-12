@@ -317,6 +317,9 @@ func defineStorageFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *confi
 	b.BoolVar("storage.default.etcd.embedded", &flagConfig.Storage.Default.Etcd.Embedded)
 	b.BoolVar("storage.default.etcd.embeddedUnsafeFsync", &flagConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync)
 	b.StringVar("storage.default.etcd.embeddedDBPath", &flagConfig.Storage.Default.Etcd.EmbeddedDBPath)
+	b.StringVar("storage.default.etcd.embeddedCertFile", &flagConfig.Storage.Default.Etcd.EmbeddedCertFile)
+	b.StringVar("storage.default.etcd.embeddedKeyFile", &flagConfig.Storage.Default.Etcd.EmbeddedKeyFile)
+	b.StringVar("storage.default.etcd.embeddedCaFile", &flagConfig.Storage.Default.Etcd.EmbeddedCaFile)
 
 	ensure.NoError(rootCmd.Flags().MarkHidden(b.mustFlagName("storage.default.etcd.embeddedUnsafeFsync")))
 

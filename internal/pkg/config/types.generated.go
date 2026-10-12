@@ -225,15 +225,30 @@ type EtcdParams struct {
 	// Embedded controls whether to use embedded etcd server as the storage backend.
 	Embedded *bool `json:"embedded,omitempty,omitzero" yaml:"embedded,omitempty"`
 
+	// EmbeddedCaFile is the path to the CA certificate file the embedded etcd server
+	// uses to verify client certificates. When it is not set, embeddedCertFile must
+	// contain a single certificate, which is then used as the CA, so clients can use
+	// the same certificate and key.
+	EmbeddedCaFile *string `json:"embeddedCaFile,omitempty,omitzero" yaml:"embeddedCaFile,omitempty"`
+
+	// EmbeddedCertFile is the path to the TLS certificate file for the embedded etcd
+	// server. When it is not set, the embedded etcd server does not listen on any
+	// address, Omni connects to it in-memory.
+	EmbeddedCertFile *string `json:"embeddedCertFile,omitempty,omitzero" yaml:"embeddedCertFile,omitempty"`
+
 	// EmbeddedDBPath is the path where the embedded etcd database files are stored.
 	EmbeddedDBPath *string `json:"embeddedDBPath,omitempty,omitzero" yaml:"embeddedDBPath,omitempty"`
+
+	// EmbeddedKeyFile is the path to the TLS key file for the embedded etcd server.
+	EmbeddedKeyFile *string `json:"embeddedKeyFile,omitempty,omitzero" yaml:"embeddedKeyFile,omitempty"`
 
 	// EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync
 	// calls for improved performance at the cost of durability.
 	EmbeddedUnsafeFsync *bool `json:"embeddedUnsafeFsync,omitempty,omitzero" yaml:"embeddedUnsafeFsync,omitempty"`
 
-	// Endpoints is the list of etcd endpoints. Only used when external etcd is used
-	// (i.e., embedded is false).
+	// Endpoints is the list of etcd endpoints. When embedded etcd is used, it is the
+	// list of addresses the embedded etcd server listens on, only if embeddedCertFile
+	// is set. The embedded etcd server always serves TLS.
 	Endpoints []string `json:"endpoints,omitempty,omitzero" yaml:"endpoints,omitempty" merge:"replace"`
 
 	// KeyFile is the path to the TLS key file for etcd client connections.

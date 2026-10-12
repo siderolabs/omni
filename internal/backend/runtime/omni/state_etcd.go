@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
@@ -200,9 +201,34 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		string(features.InitialCorruptCheck): true,
 	})
 
-	// Omni connects to the embedded etcd in-memory, so no listeners are needed
+	// Omni connects to the embedded etcd in-memory, so no listeners are needed by default
 	cfg.ListenPeerUrls = nil
 	cfg.ListenClientUrls = nil
+
+	if certFile := params.GetEmbeddedCertFile(); certFile != "" {
+		caFile, err := embeddedEtcdCAFile(params)
+		if err != nil {
+			return nil, err
+		}
+
+		cfg.ClientTLSInfo = transport.TLSInfo{
+			CertFile:       certFile,
+			KeyFile:        params.GetEmbeddedKeyFile(),
+			TrustedCAFile:  caFile,
+			ClientCertAuth: true,
+		}
+
+		for _, endpoint := range params.Endpoints {
+			clientURL, err := url.Parse(endpoint)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse URL: %w", err)
+			}
+
+			clientURL.Scheme = "https" // never serve plain text
+
+			cfg.ListenClientUrls = append(cfg.ListenClientUrls, *clientURL)
+		}
+	}
 
 	embeddedServer, err := embed.StartEtcd(cfg)
 	if err != nil {
@@ -271,6 +297,36 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		embeddedServer: embeddedServer,
 		grpcServer:     grpcServer,
 	}, nil
+}
+
+// embeddedEtcdCAFile returns the CA file to verify the client certificates with.
+//
+// Without a CA file, the certificate is its own CA, so it must not be a chain: every certificate in it would be trusted.
+func embeddedEtcdCAFile(params *config.EtcdParams) (string, error) {
+	if caFile := params.GetEmbeddedCaFile(); caFile != "" {
+		return caFile, nil
+	}
+
+	certFile := params.GetEmbeddedCertFile()
+
+	certPEM, err := os.ReadFile(certFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to read the embedded etcd certificate: %w", err)
+	}
+
+	var count int
+
+	for block, rest := pem.Decode(certPEM); block != nil; block, rest = pem.Decode(rest) {
+		if block.Type == "CERTIFICATE" {
+			count++
+		}
+	}
+
+	if count != 1 {
+		return "", fmt.Errorf("the embedded etcd certificate file must contain a single certificate when no CA file is set, found %d", count)
+	}
+
+	return certFile, nil
 }
 
 // getExternalEtcdState creates a client for the external etcd.

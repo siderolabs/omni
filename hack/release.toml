@@ -20,8 +20,13 @@ The metrics endpoint now listens on `127.0.0.1:2122` by default instead of `0.0.
 from another host or from outside the Omni container (e.g., through a published Docker port), set `services.metrics.endpoint` \
 (`--metrics-bind-addr`) to `0.0.0.0:2122` explicitly. The Helm chart still binds it to `0.0.0.0:2122` when `metrics.enabled` is set.
 
-The embedded etcd server no longer listens on any address, Omni connects to it in-memory. Previously, it listened on \
-`storage.default.etcd.endpoints` (`http://localhost:2379` by default) without TLS, and backups taken with `etcdctl` relied on it.
+The embedded etcd server no longer listens on any address by default, Omni connects to it in-memory. Previously, it listened \
+on `storage.default.etcd.endpoints` (`http://localhost:2379` by default) without TLS, and backups taken with `etcdctl` \
+relied on it. To access the embedded etcd from outside, set `storage.default.etcd.embeddedCertFile` and `embeddedKeyFile` \
+(`--etcd-embedded-cert-path`, `--etcd-embedded-key-path`), and optionally `embeddedCaFile` (`--etcd-embedded-ca-path`). The \
+embedded etcd server then listens on the `storage.default.etcd.endpoints` addresses with TLS, and only accepts clients with a \
+certificate signed by the given CA. When no CA is set, the certificate file must contain a single certificate, which is used \
+as the CA, so clients can use the same certificate and key.
 """
 
 [notes.image-factory-api-token]
