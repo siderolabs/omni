@@ -318,6 +318,7 @@ enum AuditLogOrderByField {
   AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID = 4;
   AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID = 5;
   AUDIT_LOG_ORDER_BY_FIELD_ACTOR = 6;
+  AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP = 7;
 }
 
 enum AuditLogOrderByDir {
@@ -357,6 +358,8 @@ message ReadAuditLogRequest {
   // exact. Only usable with follow, and only with ids obtained from the same server: following an
   // id position the server no longer knows fails the stream.
   int64 from_id = 13;
+  // ClientIp filters events by the exact client address they were made from.
+  string client_ip = 14;
 }
 
 message ReadAuditLogResponse {

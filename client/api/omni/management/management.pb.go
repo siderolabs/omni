@@ -155,6 +155,7 @@ const (
 	AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID   AuditLogOrderByField = 4
 	AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID    AuditLogOrderByField = 5
 	AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_ACTOR         AuditLogOrderByField = 6
+	AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP     AuditLogOrderByField = 7
 )
 
 // Enum value maps for AuditLogOrderByField.
@@ -167,6 +168,7 @@ var (
 		4: "AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID",
 		5: "AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID",
 		6: "AUDIT_LOG_ORDER_BY_FIELD_ACTOR",
+		7: "AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP",
 	}
 	AuditLogOrderByField_value = map[string]int32{
 		"AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED":   0,
@@ -176,6 +178,7 @@ var (
 		"AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID":   4,
 		"AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID":    5,
 		"AUDIT_LOG_ORDER_BY_FIELD_ACTOR":         6,
+		"AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP":     7,
 	}
 )
 
@@ -2183,7 +2186,9 @@ type ReadAuditLogRequest struct {
 	// Zero means unset. When set, it takes precedence over the timestamp fields, and the resume is
 	// exact. Only usable with follow, and only with ids obtained from the same server: following an
 	// id position the server no longer knows fails the stream.
-	FromId        int64 `protobuf:"varint,13,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	FromId int64 `protobuf:"varint,13,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	// ClientIp filters events by the exact client address they were made from.
+	ClientIp      string `protobuf:"bytes,14,opt,name=client_ip,json=clientIp,proto3" json:"client_ip,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2307,6 +2312,13 @@ func (x *ReadAuditLogRequest) GetFromId() int64 {
 		return x.FromId
 	}
 	return 0
+}
+
+func (x *ReadAuditLogRequest) GetClientIp() string {
+	if x != nil {
+		return x.ClientIp
+	}
+	return ""
 }
 
 type ReadAuditLogResponse struct {
@@ -4004,7 +4016,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12\x14\n" +
 	"\x05state\x18\x03 \x01(\tR\x05state\x12\x14\n" +
 	"\x05total\x18\x04 \x01(\x05R\x05total\x12\x14\n" +
-	"\x05value\x18\x05 \x01(\x05R\x05value\"\xfb\x03\n" +
+	"\x05value\x18\x05 \x01(\x05R\x05value\"\x98\x04\n" +
 	"\x13ReadAuditLogRequest\x12\x1d\n" +
 	"\n" +
 	"start_time\x18\x01 \x01(\tR\tstartTime\x12\x19\n" +
@@ -4024,7 +4036,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	" \x01(\tR\x05actor\x12\x16\n" +
 	"\x06follow\x18\v \x01(\bR\x06follow\x12\x1e\n" +
 	"\vstart_ts_ms\x18\f \x01(\x03R\tstartTsMs\x12\x17\n" +
-	"\afrom_id\x18\r \x01(\x03R\x06fromId\"C\n" +
+	"\afrom_id\x18\r \x01(\x03R\x06fromId\x12\x1b\n" +
+	"\tclient_ip\x18\x0e \x01(\tR\bclientIp\"C\n" +
 	"\x14ReadAuditLogResponse\x12\x1b\n" +
 	"\taudit_log\x18\x01 \x01(\fR\bauditLog\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x03R\x02id\"G\n" +
@@ -4123,7 +4136,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1dAUDIT_LOG_EVENT_TYPE_TEARDOWN\x10\x05\x12%\n" +
 	"!AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS\x10\x06\x12#\n" +
 	"\x1fAUDIT_LOG_EVENT_TYPE_K8S_ACCESS\x10\a\x12)\n" +
-	"%AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS\x10\b*\xaf\x02\n" +
+	"%AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS\x10\b*\xd7\x02\n" +
 	"\x14AuditLogOrderByField\x12(\n" +
 	"$AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAUDIT_LOG_ORDER_BY_FIELD_DATE\x10\x01\x12'\n" +
@@ -4131,7 +4144,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"&AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE\x10\x03\x12(\n" +
 	"$AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID\x10\x04\x12'\n" +
 	"#AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID\x10\x05\x12\"\n" +
-	"\x1eAUDIT_LOG_ORDER_BY_FIELD_ACTOR\x10\x06*}\n" +
+	"\x1eAUDIT_LOG_ORDER_BY_FIELD_ACTOR\x10\x06\x12&\n" +
+	"\"AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP\x10\a*}\n" +
 	"\x12AuditLogOrderByDir\x12&\n" +
 	"\"AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aAUDIT_LOG_ORDER_BY_DIR_ASC\x10\x01\x12\x1f\n" +

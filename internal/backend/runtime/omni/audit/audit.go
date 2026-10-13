@@ -202,6 +202,7 @@ func (l *Log) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilt
 		ResourceID:   filters.ResourceID,
 		ClusterID:    filters.ClusterID,
 		Actor:        filters.Actor,
+		ClientIP:     filters.ClientIP,
 	})
 }
 

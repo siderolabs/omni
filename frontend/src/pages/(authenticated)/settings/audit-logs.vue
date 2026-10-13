@@ -84,6 +84,7 @@ const tableHeaders = [
   { label: 'Timestamp', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_DATE },
   { label: 'Type', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_EVENT_TYPE },
   { label: 'Resource', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE },
+  { label: 'Client IP', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP },
   { label: 'Actor', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_ACTOR },
 ]
 
@@ -186,11 +187,11 @@ useTitle('Audit Logs')
 
     <div
       role="grid"
-      class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-content-default"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden text-xs text-content-default [--audit-log-cols:36px_160px_200px_200px_140px_1fr]"
     >
       <div
         role="rowgroup"
-        class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-micro bg-surface-card px-tight text-left"
+        class="grid shrink-0 grid-cols-(--audit-log-cols) gap-x-micro bg-surface-card px-tight text-left"
       >
         <div role="columnheader" aria-hidden="true" class="py-tight uppercase"></div>
         <div
@@ -226,7 +227,7 @@ useTitle('Audit Logs')
               :key="vRow.key.toString()"
               :ref="measureElement"
               :data-index="vRow.index"
-              class="grid grid-cols-[36px_160px_180px_220px_1fr] gap-x-micro border-t border-border-strong"
+              class="grid grid-cols-(--audit-log-cols) gap-x-micro border-t border-border-strong"
             >
               <AuditLogItem
                 :data="data[vRow.index]"

@@ -50,6 +50,42 @@ func TestReadAuditLogAuditsAccess(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(`{"event_type":"create"}`)}, stream.sent)
 }
 
+func TestReadAuditLogClientIP(t *testing.T) {
+	for _, testCase := range []struct {
+		name     string
+		clientIP string
+		want     string
+	}{
+		{name: "IPv4", clientIP: "10.0.0.1", want: "10.0.0.1"},
+		{name: "IPv4-mapped IPv6 is unmapped", clientIP: "::ffff:10.0.0.1", want: "10.0.0.1"},
+		{name: "IPv6 is canonicalized", clientIP: "2001:DB8::0001", want: "2001:db8::1"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			auditor := &auditLogAccessAuditor{}
+			server := newAuditLogTestServer(t, auditor)
+
+			stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "admin@example.com", role.Admin)}
+
+			require.NoError(t, server.ReadAuditLog(&management.ReadAuditLogRequest{ClientIp: testCase.clientIP}, stream))
+
+			require.NotNil(t, auditor.accessFilters)
+			require.Equal(t, testCase.want, auditor.accessFilters.ClientIP)
+		})
+	}
+
+	t.Run("invalid", func(t *testing.T) {
+		auditor := &auditLogAccessAuditor{}
+		server := newAuditLogTestServer(t, auditor)
+
+		stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "admin@example.com", role.Admin)}
+
+		err := server.ReadAuditLog(&management.ReadAuditLogRequest{ClientIp: "10.0.0"}, stream)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+		require.False(t, auditor.readerCalled)
+	})
+}
+
 func TestReadAuditLogFailsClosedOnAuditError(t *testing.T) {
 	auditor := &auditLogAccessAuditor{accessErr: errors.New("audit write failure")}
 	server := newAuditLogTestServer(t, auditor)
@@ -118,6 +154,7 @@ func TestFollowAuditLogRejectsIncompatibleFields(t *testing.T) {
 		{name: "resource_id", req: &management.ReadAuditLogRequest{ResourceId: "some-id"}},
 		{name: "cluster_id", req: &management.ReadAuditLogRequest{ClusterId: "some-cluster"}},
 		{name: "actor", req: &management.ReadAuditLogRequest{Actor: "someone@example.com"}},
+		{name: "client_ip", req: &management.ReadAuditLogRequest{ClientIp: "10.0.0.1"}},
 		{name: "start_ts_ms", req: &management.ReadAuditLogRequest{StartTsMs: -1}},
 		{name: "from_id", req: &management.ReadAuditLogRequest{FromId: -1}},
 	} {

@@ -573,8 +573,9 @@ func TestExtractedColumns(t *testing.T) {
 	// 1. Event with Actor + Machine ID + Cluster Label
 	evt1 := auditlog.MakeEvent("create", "omni.MachineSetNode", "machine-123", &auditlog.Data{
 		Session: auditlog.Session{
-			UserID: "user-abc",
-			Email:  "user@example.com",
+			UserID:        "user-abc",
+			Email:         "user@example.com",
+			ClientAddress: "10.0.0.1",
 		},
 		MachineSetNode: &auditlog.MachineSetNode{
 			ID:        "machine-123",
@@ -617,7 +618,7 @@ func TestExtractedColumns(t *testing.T) {
 
 	t.Cleanup(func() { db.Put(conn) })
 
-	q, err := sqlitexx.NewQuery(conn, "SELECT actor_email, resource_id, cluster_id FROM audit_logs ORDER BY event_ts_ms ASC")
+	q, err := sqlitexx.NewQuery(conn, "SELECT actor_email, resource_id, cluster_id, client_address FROM audit_logs ORDER BY event_ts_ms ASC")
 	require.NoError(t, err)
 
 	idx := 0
@@ -631,6 +632,7 @@ func TestExtractedColumns(t *testing.T) {
 			assert.Equal(t, "user@example.com", result.GetText("actor_email"))
 			assert.Equal(t, "machine-123", result.GetText("resource_id"))
 			assert.Equal(t, "cluster-id", result.GetText("cluster_id"), "cluster_id should be extracted from machine labels")
+			assert.Equal(t, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 10, 0, 0, 1}, columnBytes(result, "client_address"))
 		case 1:
 			// Row 2: Check Cluster ID (from Cluster struct)
 			assert.Equal(t, "cluster-xyz", result.GetText("resource_id"), "cluster.ID is considered the Resource ID")
@@ -644,6 +646,7 @@ func TestExtractedColumns(t *testing.T) {
 			assert.True(t, result.IsNull("actor_email"))
 			assert.True(t, result.IsNull("resource_id"))
 			assert.True(t, result.IsNull("cluster_id"))
+			assert.True(t, result.IsNull("client_address"))
 		default:
 			require.Failf(t, "unexpected row", " index %d", idx)
 		}
@@ -670,7 +673,7 @@ func TestReaderFilters(t *testing.T) {
 			ResourceID:   "cluster-a",
 			TimeMillis:   base.Add(1 * time.Second).UnixMilli(),
 			Data: &auditlog.Data{
-				Session: auditlog.Session{Email: "alice@example.com"},
+				Session: auditlog.Session{Email: "alice@example.com", ClientAddress: "10.0.0.1"},
 				Cluster: &auditlog.Cluster{ID: "cluster-a"},
 			},
 		},
@@ -680,7 +683,7 @@ func TestReaderFilters(t *testing.T) {
 			ResourceID:   "cluster-b",
 			TimeMillis:   base.Add(2 * time.Second).UnixMilli(),
 			Data: &auditlog.Data{
-				Session: auditlog.Session{Email: "bob@example.com"},
+				Session: auditlog.Session{Email: "bob@example.com", ClientAddress: "10.0.0.10"},
 				Cluster: &auditlog.Cluster{ID: "cluster-b"},
 			},
 		},
@@ -761,6 +764,16 @@ func TestReaderFilters(t *testing.T) {
 			wantCount: 2,
 		},
 		{
+			name:      "ClientIP=10.0.0.1 (exact, not a prefix of 10.0.0.10)",
+			filters:   auditlog.ReadFilters{ClientIP: "10.0.0.1"},
+			wantCount: 1,
+		},
+		{
+			name:      "ClientIP=10.0.0.10 + Actor=alice (no match)",
+			filters:   auditlog.ReadFilters{ClientIP: "10.0.0.10", Actor: "alice@example.com"},
+			wantCount: 0,
+		},
+		{
 			name:      "Search=alice (matches actor_email)",
 			filters:   auditlog.ReadFilters{Search: "alice"},
 			wantCount: 2,
@@ -811,6 +824,185 @@ func TestReaderFilters(t *testing.T) {
 			assert.Len(t, got, tt.wantCount)
 		})
 	}
+}
+
+func TestReaderOrderByClientIP(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+	store, _ := setupStore(ctx, t, logger)
+
+	base := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	for i, addr := range []string{"10.0.0.10", "", "2001:db8::1", "::ffff:10.0.0.1", "10.0.0.2"} {
+		require.NoError(t, store.Write(ctx, auditlog.Event{
+			Type:       "create",
+			TimeMillis: base.Add(time.Duration(i) * time.Second).UnixMilli(),
+			Data:       &auditlog.Data{Session: auditlog.Session{ClientAddress: addr}},
+		}))
+	}
+
+	tests := []struct {
+		name string
+		want []string
+		dir  auditlog.OrderByDir
+	}{
+		{
+			// numeric, not text order: 10.0.0.2 sorts before 10.0.0.10, IPv4 before IPv6, and the
+			// IPv4-mapped address is stored unmapped
+			name: "asc",
+			dir:  auditlog.OrderByDirASC,
+			want: []string{"", "10.0.0.1", "10.0.0.2", "10.0.0.10", "2001:db8::1"},
+		},
+		{
+			name: "desc",
+			dir:  auditlog.OrderByDirDESC,
+			want: []string{"2001:db8::1", "10.0.0.10", "10.0.0.2", "10.0.0.1", ""},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rdr, err := store.Reader(ctx, auditlog.ReadFilters{
+				Start:        base,
+				End:          base.Add(1 * time.Minute),
+				OrderByField: auditlog.OrderByFieldClientIP,
+				OrderByDir:   tt.dir,
+			})
+			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				require.NoError(t, rdr.Close())
+			})
+
+			got := make([]string, 0, len(tt.want))
+
+			for _, evt := range readAllEvents(t, rdr) {
+				got = append(got, evt.Data.Session.ClientAddress)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+
+	t.Run("filter rejects an invalid address", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := store.Reader(ctx, auditlog.ReadFilters{
+			Start:    base,
+			End:      base.Add(1 * time.Minute),
+			ClientIP: "10.0.0",
+		})
+		require.ErrorContains(t, err, "invalid client IP filter")
+	})
+
+	t.Run("filter matches the unmapped address", func(t *testing.T) {
+		t.Parallel()
+
+		rdr, err := store.Reader(ctx, auditlog.ReadFilters{
+			Start:    base,
+			End:      base.Add(1 * time.Minute),
+			ClientIP: "10.0.0.1",
+		})
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			require.NoError(t, rdr.Close())
+		})
+
+		assert.Len(t, readAllEvents(t, rdr), 1)
+	})
+}
+
+// TestClientAddressColumnMigration verifies that a table created before the client address column existed gets it
+// added and backfilled from the event data.
+func TestClientAddressColumnMigration(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(filepath.Join(t.TempDir(), "test.db"))
+
+	db, err := sqlite.OpenDB(conf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	conn, err := db.Take(ctx)
+	require.NoError(t, err)
+
+	require.NoError(t, sqlitex.ExecScript(conn, `
+		CREATE TABLE audit_logs (
+		  id            INTEGER PRIMARY KEY,
+		  event_type    TEXT,
+		  resource_type TEXT,
+		  event_ts_ms   INTEGER NOT NULL,
+		  event_data    BLOB,
+		  actor_email   TEXT,
+		  resource_id   TEXT,
+		  cluster_id    TEXT
+		) STRICT;
+
+		INSERT INTO audit_logs (event_ts_ms, event_data) VALUES
+		  (1000, CAST('{"session":{"client_address":"10.0.0.1"}}' AS BLOB)),
+		  (2000, CAST('{"session":{"client_address":"::ffff:10.0.0.2"}}' AS BLOB)),
+		  (3000, CAST('{"session":{}}' AS BLOB)),
+		  (4000, NULL);
+	`))
+
+	db.Put(conn)
+
+	// creating the store twice checks that the migration is skipped once the column exists
+	for range 2 {
+		_, err = auditlogsqlite.NewStore(ctx, db, 30*time.Second, 0, 0, logger)
+		require.NoError(t, err)
+	}
+
+	conn, err = db.Take(ctx)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { db.Put(conn) })
+
+	q, err := sqlitexx.NewQuery(conn, "SELECT client_address FROM audit_logs ORDER BY event_ts_ms ASC")
+	require.NoError(t, err)
+
+	var got [][]byte
+
+	for result, err := range q.QueryIter() {
+		require.NoError(t, err)
+
+		got = append(got, columnBytes(result, "client_address"))
+	}
+
+	assert.Equal(t, [][]byte{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 10, 0, 0, 1},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 10, 0, 0, 2},
+		nil,
+		nil,
+	}, got)
+}
+
+// columnBytes returns the value of a BLOB column, nil for NULL.
+func columnBytes(stmt *zombiesqlite.Stmt, column string) []byte {
+	if stmt.IsNull(column) {
+		return nil
+	}
+
+	value := make([]byte, stmt.GetLen(column))
+	stmt.GetBytes(column, value)
+
+	return value
 }
 
 func setupStore(ctx context.Context, t *testing.T, logger *zap.Logger) (*auditlogsqlite.Store, *sqlitexx.Pool) {

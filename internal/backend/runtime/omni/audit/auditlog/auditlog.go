@@ -9,10 +9,22 @@ package auditlog
 import (
 	"errors"
 	"io"
+	"net/netip"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 )
+
+// ParseClientAddress parses a client address, unmapping IPv4-mapped IPv6 addresses, so that a client is always
+// recorded and matched by the same address string.
+func ParseClientAddress(s string) (netip.Addr, error) {
+	addr, err := netip.ParseAddr(s)
+	if err != nil {
+		return netip.Addr{}, err
+	}
+
+	return addr.Unmap(), nil
+}
 
 type Reader interface {
 	io.Closer
@@ -83,6 +95,7 @@ const (
 	OrderByFieldResourceID
 	OrderByFieldClusterID
 	OrderByFieldActor
+	OrderByFieldClientIP
 )
 
 // OrderByDir represents the sort direction for audit log queries.
@@ -103,6 +116,7 @@ type ReadFilters struct {
 	ResourceID   string
 	ClusterID    string
 	Actor        string
+	ClientIP     string
 	EventType    EventType
 	OrderByField OrderByField
 	OrderByDir   OrderByDir

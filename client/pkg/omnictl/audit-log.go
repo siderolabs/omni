@@ -31,6 +31,7 @@ var auditLogFlags struct {
 	resourceID   string
 	clusterID    string
 	actor        string
+	clientIP     string
 	since        time.Duration
 	follow       bool
 }
@@ -73,6 +74,7 @@ var auditLog = &cobra.Command{
 				ResourceId:   auditLogFlags.resourceID,
 				ClusterId:    auditLogFlags.clusterID,
 				Actor:        auditLogFlags.actor,
+				ClientIp:     auditLogFlags.clientIP,
 			}
 
 			var events iter.Seq2[*management.ReadAuditLogResponse, error]
@@ -169,6 +171,7 @@ func init() {
 			"resource_id":   management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID,
 			"cluster_id":    management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID,
 			"actor":         management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_ACTOR,
+			"client_ip":     management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP,
 		},
 	}
 
@@ -187,6 +190,7 @@ func init() {
 	auditLog.Flags().StringVar(&auditLogFlags.resourceID, "resource-id", "", "filter events by resource ID")
 	auditLog.Flags().StringVar(&auditLogFlags.clusterID, "cluster-id", "", "filter events by cluster ID")
 	auditLog.Flags().StringVar(&auditLogFlags.actor, "actor", "", "filter events by actor email")
+	auditLog.Flags().StringVar(&auditLogFlags.clientIP, "client-ip", "", "filter events by exact client IP address")
 	auditLog.Flags().BoolVarP(&auditLogFlags.follow, "follow", "f", false,
 		"stream new events as they are written, starting at the current tail unless --since is given. "+
 			"Cannot be combined with filters. The stream is re-established transparently whenever the "+

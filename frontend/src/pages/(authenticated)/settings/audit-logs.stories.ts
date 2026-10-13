@@ -40,7 +40,7 @@ const RESOURCE_TYPES = [
 ]
 
 function makeEntry(ts: number): AuditLogMsg {
-  const hasUser = faker.datatype.boolean()
+  const hasUser = faker.datatype.boolean({ probability: 0.9 })
 
   return {
     event_ts: ts,

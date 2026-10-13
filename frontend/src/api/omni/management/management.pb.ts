@@ -37,6 +37,7 @@ export enum AuditLogOrderByField {
   AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID = 4,
   AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID = 5,
   AUDIT_LOG_ORDER_BY_FIELD_ACTOR = 6,
+  AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP = 7,
 }
 
 export enum AuditLogOrderByDir {
@@ -278,6 +279,7 @@ export type ReadAuditLogRequest = {
   follow?: boolean
   start_ts_ms?: string
   from_id?: string
+  client_ip?: string
 }
 
 export type ReadAuditLogResponse = {

@@ -676,6 +676,15 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 		Actor:        req.GetActor(),
 	}
 
+	if clientIP := req.GetClientIp(); clientIP != "" {
+		addr, parseErr := auditlog.ParseClientAddress(clientIP)
+		if parseErr != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid client IP: %v", parseErr)
+		}
+
+		filters.ClientIP = addr.String()
+	}
+
 	filters.Start, err = parseTime(req.GetStartTime(), now.AddDate(0, 0, -29))
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid start time: %v", err)
@@ -842,6 +851,7 @@ func validateAuditLogFollowRequest(req *management.ReadAuditLogRequest) error {
 		{"resource_id", req.GetResourceId() != ""},
 		{"cluster_id", req.GetClusterId() != ""},
 		{"actor", req.GetActor() != ""},
+		{"client_ip", req.GetClientIp() != ""},
 	}
 
 	for _, field := range incompatible {
@@ -1704,6 +1714,8 @@ func auditLogOrderByField(f management.AuditLogOrderByField) auditlog.OrderByFie
 		return auditlog.OrderByFieldClusterID
 	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_ACTOR:
 		return auditlog.OrderByFieldActor
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLIENT_IP:
+		return auditlog.OrderByFieldClientIP
 	}
 
 	return auditlog.OrderByFieldDate

@@ -106,6 +106,17 @@ function toggleRow() {
         />
       </div>
 
+      <div role="cell" class="truncate p-px">
+        <WordHighlighter
+          v-if="item.event_data.session.client_address"
+          :query="search"
+          :text-to-highlight="item.event_data.session.client_address"
+          highlight-class="search-match"
+          class="font-mono text-content-muted"
+          :title="item.event_data.session.client_address"
+        />
+      </div>
+
       <div role="cell" class="min-w-20 space-x-tight truncate whitespace-nowrap">
         <WordHighlighter
           v-if="item.event_data.session.role"
@@ -124,14 +135,6 @@ function toggleRow() {
               ? item.event_data.session.email
               : item.event_data.session.user_agent
           "
-          highlight-class="search-match"
-          class="text-content-muted"
-        />
-
-        <WordHighlighter
-          v-if="item.event_data.session.client_address"
-          :query="search"
-          :text-to-highlight="item.event_data.session.client_address"
           highlight-class="search-match"
           class="text-content-muted"
         />

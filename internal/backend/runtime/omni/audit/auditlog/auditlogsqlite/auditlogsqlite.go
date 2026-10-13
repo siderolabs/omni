@@ -14,6 +14,7 @@ import (
 	"io"
 	"iter"
 	"math/rand/v2"
+	"net/netip"
 	"slices"
 	"strings"
 	"sync"
@@ -45,6 +46,9 @@ const (
 	actorEmailColumn = "actor_email"
 	resourceIDColumn = "resource_id"
 	clusterIDColumn  = "cluster_id"
+
+	// clientAddressColumn holds the 16-byte form of the client address, which sorts addresses numerically.
+	clientAddressColumn = "client_address"
 )
 
 // Schema includes the new nullable TEXT columns for specific lookups.
@@ -58,7 +62,8 @@ const schemaTmpl = `
       
       {{.ActorEmailColumn}}    TEXT,
       {{.ResourceIDColumn}}    TEXT,
-      {{.ClusterIDColumn}}     TEXT
+      {{.ClusterIDColumn}}     TEXT,
+      {{.ClientAddressColumn}} BLOB
     ) STRICT;
 
     CREATE INDEX IF NOT EXISTS idx_{{.TableName}}_{{.EventTSMillisColumn}}
@@ -75,6 +80,7 @@ type schemaParams struct {
 	ActorEmailColumn    string
 	ResourceIDColumn    string
 	ClusterIDColumn     string
+	ClientAddressColumn string
 }
 
 // Option configures optional Store behavior.
@@ -122,6 +128,7 @@ func NewStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration, max
 		ActorEmailColumn:    actorEmailColumn,
 		ResourceIDColumn:    resourceIDColumn,
 		ClusterIDColumn:     clusterIDColumn,
+		ClientAddressColumn: clientAddressColumn,
 	}
 
 	tmpl, err := template.New("schema").Parse(schemaTmpl)
@@ -151,6 +158,10 @@ func NewStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration, max
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 
+	if err = addClientAddressColumn(conn); err != nil {
+		return nil, err
+	}
+
 	store := &Store{
 		db:                 db,
 		logger:             logger,
@@ -167,31 +178,35 @@ func NewStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration, max
 }
 
 func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
-	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES
-	($event_type, $resource_type, $event_ts_ms, $event_data, $actor_email, $resource_id, $cluster_id)`,
+	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s) VALUES
+	($event_type, $resource_type, $event_ts_ms, $event_data, $actor_email, $resource_id, $cluster_id, $client_address)`,
 		TableName, eventTypeColumn, resourceTypeColumn, eventTSMillisColumn, eventDataColumn,
-		actorEmailColumn, resourceIDColumn, clusterIDColumn)
+		actorEmailColumn, resourceIDColumn, clusterIDColumn, clientAddressColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	var (
-		dataJSON              []byte
-		actorEmail, clusterID string
+		dataJSON, clientAddress []byte
+		actorEmail, clusterID   string
 	)
 
 	if event.Data != nil {
 		var err error
 
-		if dataJSON, err = json.Marshal(event.Data); err != nil {
+		// the event data is copied, so the address can be stored normalized without changing the caller's data
+		data := *event.Data
+		data.Session.ClientAddress, clientAddress = normalizeClientAddress(data.Session.ClientAddress)
+
+		if dataJSON, err = json.Marshal(&data); err != nil {
 			return fmt.Errorf("failed to marshal event data: %w", err)
 		}
 
-		if event.Data.Session.Email != "" {
-			actorEmail = event.Data.Session.Email
+		if data.Session.Email != "" {
+			actorEmail = data.Session.Email
 		}
 
-		clusterID = extractClusterID(event.Data)
+		clusterID = extractClusterID(&data)
 	}
 
 	conn, err := s.db.Take(ctx)
@@ -214,6 +229,7 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 		BindStringIfSet("$actor_email", actorEmail).
 		BindStringIfSet("$resource_id", event.ResourceID).
 		BindStringIfSet("$cluster_id", clusterID).
+		BindBytes("$client_address", clientAddress).
 		Exec()
 	if err != nil {
 		return fmt.Errorf("failed to write audit log event: %w", err)
@@ -383,6 +399,17 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 }
 
 func (s *Store) Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error) {
+	var clientAddress []byte
+
+	if filters.ClientIP != "" {
+		addr, err := auditlog.ParseClientAddress(filters.ClientIP)
+		if err != nil {
+			return nil, fmt.Errorf("invalid client IP filter: %w", err)
+		}
+
+		clientAddress = clientAddressKey(addr)
+	}
+
 	// we take the connection here, but it will be released in logReader.Close()
 	conn, err := s.db.Take(ctx)
 	if err != nil {
@@ -434,6 +461,10 @@ func (s *Store) Reader(ctx context.Context, filters auditlog.ReadFilters) (audit
 		conditions = append(conditions, fmt.Sprintf("%s = $actor", actorEmailColumn))
 	}
 
+	if filters.ClientIP != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $client_address", clientAddressColumn))
+	}
+
 	orderByCol := orderByFieldColumn(filters.OrderByField)
 	orderByDir := orderByDirSQL(filters.OrderByDir)
 
@@ -462,6 +493,7 @@ func (s *Store) Reader(ctx context.Context, filters auditlog.ReadFilters) (audit
 		BindStringIfSet("$resource_id", filters.ResourceID).
 		BindStringIfSet("$cluster_id", filters.ClusterID).
 		BindStringIfSet("$actor", filters.Actor).
+		BindBytes("$client_address", clientAddress).
 		QueryIter()
 
 	next, stop := iter.Pull2(it)
@@ -624,6 +656,96 @@ func (s *Store) FollowBatch(ctx context.Context, afterID int64, limit int64) ([]
 	return entries, nil
 }
 
+// normalizeClientAddress returns the normalized client address and its column value. An address that does not parse
+// is kept as is, without a column value.
+func normalizeClientAddress(address string) (string, []byte) {
+	addr, err := auditlog.ParseClientAddress(address)
+	if err != nil {
+		return address, nil
+	}
+
+	return addr.String(), clientAddressKey(addr)
+}
+
+// clientAddressKey returns the 16-byte form of the address, in which IPv4 addresses sort together and numerically.
+func clientAddressKey(addr netip.Addr) []byte {
+	key := addr.As16()
+
+	return key[:]
+}
+
+// addClientAddressColumn adds the client address column to audit log tables created before it existed, backfilling
+// it from the event data. CREATE TABLE IF NOT EXISTS leaves an existing table as it is.
+func addClientAddressColumn(conn *zombiesqlite.Conn) (err error) {
+	q, err := sqlitexx.NewQuery(conn, fmt.Sprintf(
+		"SELECT COUNT(*) AS n FROM pragma_table_info('%s') WHERE name = '%s'", TableName, clientAddressColumn))
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	var exists bool
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		exists = stmt.GetInt64("n") > 0
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to read the audit log table columns: %w", err)
+	}
+
+	if exists {
+		return nil
+	}
+
+	defer sqlitex.Save(conn)(&err)
+
+	if err = sqlitex.ExecuteTransient(conn, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s BLOB", TableName, clientAddressColumn), nil); err != nil {
+		return fmt.Errorf("failed to add the client address column to the audit log table: %w", err)
+	}
+
+	// SQL cannot parse addresses, so the column values are computed here. The addresses are collected first, as
+	// the table is not updated while it is being read.
+	type row struct {
+		address string
+		id      int64
+	}
+
+	var rows []row
+
+	q, err = sqlitexx.NewQuery(conn, fmt.Sprintf(
+		"SELECT %[1]s, json_extract(CAST(%[2]s AS TEXT), '$.session.client_address') AS address FROM %[3]s WHERE address IS NOT NULL",
+		idColumn, eventDataColumn, TableName))
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	if err = q.QueryAll(func(stmt *zombiesqlite.Stmt) error {
+		rows = append(rows, row{id: stmt.GetInt64(idColumn), address: stmt.GetText("address")})
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to read the audit log client addresses: %w", err)
+	}
+
+	for _, r := range rows {
+		_, key := normalizeClientAddress(r.address)
+		if key == nil {
+			continue
+		}
+
+		q, err = sqlitexx.NewQuery(conn, fmt.Sprintf("UPDATE %s SET %s = $address WHERE %s = $id", TableName, clientAddressColumn, idColumn))
+		if err != nil {
+			return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+		}
+
+		if err = q.BindBytes("$address", key).BindInt64("$id", r.id).Exec(); err != nil {
+			return fmt.Errorf("failed to backfill the audit log client address: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // readMaxID returns the highest id in the audit log table, zero when the table is empty.
 func readMaxID(conn *zombiesqlite.Conn) (int64, error) {
 	q, err := sqlitexx.NewQuery(conn, fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) AS max_id FROM %s", idColumn, TableName))
@@ -763,6 +885,8 @@ func orderByFieldColumn(f auditlog.OrderByField) string {
 		return clusterIDColumn
 	case auditlog.OrderByFieldActor:
 		return actorEmailColumn
+	case auditlog.OrderByFieldClientIP:
+		return clientAddressColumn
 	}
 
 	return eventTSMillisColumn
