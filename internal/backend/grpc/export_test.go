@@ -65,10 +65,10 @@ func WithAuditLogFollowLease(lease time.Duration) ManagementServerOption {
 	}
 }
 
-// WithTalosRuntime configures the Talos runtime on a test management server.
-func WithTalosRuntime(talosRuntime TalosRuntime) ManagementServerOption {
+// WithTalosClientFactory configures the Talos client factory on a test management server.
+func WithTalosClientFactory(talosClientFactory TalosClientFactory) ManagementServerOption {
 	return func(server *ManagementServer) {
-		server.talosRuntime = talosRuntime
+		server.talosClientFactory = talosClientFactory
 	}
 }
 

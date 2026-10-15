@@ -110,7 +110,7 @@ type Runtime struct {
 func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, imageFactoryTokens *tokenfile.Set, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
-	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter,
+	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime,
 	lifecycleManager *lifecycle.Manager, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
@@ -238,7 +238,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewEtcdBackupEncryptionController(),
 		omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler),
 		omnictrl.NewKubeconfigController(constants.CertificateValidityTime),
-		omnictrl.NewKubernetesUpgradeManifestStatusController(talosRuntime, kubernetesRuntime),
+		omnictrl.NewKubernetesUpgradeManifestStatusController(talosClientFactory, kubernetesRuntime),
 		omnictrl.NewKubernetesUpgradeStatusController(),
 		omnictrl.NewMachineController(),
 		omnictrl.NewMachineExtensionsController(),

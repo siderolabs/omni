@@ -97,7 +97,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 	progress := make(chan bundle.Progress)
 
 	// the clients are closed only after the bundle is complete
-	talosClients := newTalosClientGroup(s.talosRuntime)
+	talosClients := newTalosClientGroup(s.talosClientFactory)
 	defer talosClients.Close()
 
 	options := bundle.NewOptions(

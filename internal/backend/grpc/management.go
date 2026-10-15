@@ -76,26 +76,30 @@ type KubernetesRuntime interface {
 	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
 }
 
-// TalosRuntime provides Talos cluster access capabilities.
-//
-// The returned clients must be closed by the caller.
+// TalosRuntime generates talosconfigs.
 type TalosRuntime interface {
 	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
-	GetClientForCluster(ctx context.Context, clusterName string) (*talos.Client, error)
-	GetClientForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+}
+
+// TalosClientFactory provides Talos clients for clusters and machines.
+//
+// The returned clients must be closed by the caller.
+type TalosClientFactory interface {
+	GetForCluster(ctx context.Context, clusterID string) (*talos.Client, error)
+	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 }
 
 // talosClientGroup obtains Talos clients and closes all of them at once.
 //
 // It is for the callers which hand the clients over to a library through a callback and cannot close them one by one.
 type talosClientGroup struct {
-	talosRuntime TalosRuntime
-	clients      map[string]*talos.Client
-	mu           sync.Mutex
+	talosClientFactory TalosClientFactory
+	clients            map[string]*talos.Client
+	mu                 sync.Mutex
 }
 
-func newTalosClientGroup(talosRuntime TalosRuntime) *talosClientGroup {
-	return &talosClientGroup{talosRuntime: talosRuntime, clients: map[string]*talos.Client{}}
+func newTalosClientGroup(talosClientFactory TalosClientFactory) *talosClientGroup {
+	return &talosClientGroup{talosClientFactory: talosClientFactory, clients: map[string]*talos.Client{}}
 }
 
 // GetForMachine returns a Talos client for the machine, closed when the group is closed. Repeated calls for the same
@@ -108,7 +112,7 @@ func (g *talosClientGroup) GetForMachine(ctx context.Context, machineID string) 
 		return c, nil
 	}
 
-	c, err := g.talosRuntime.GetClientForMachine(ctx, machineID)
+	c, err := g.talosClientFactory.GetForMachine(ctx, machineID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +153,7 @@ type LifecycleManager interface {
 
 func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
 	dnsService *dns.Service, imageFactoryClients *imagefactory.Clients, auditor AuditLogger, omniconfigDest string,
-	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosconfigProvider TalosconfigProvider,
+	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosClientFactory TalosClientFactory, talosconfigProvider TalosconfigProvider,
 	lifecycleManager LifecycleManager,
 ) *managementServer {
 	return &managementServer{
@@ -164,6 +168,7 @@ func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKe
 		omniconfigDest:        omniconfigDest,
 		kubernetesRuntime:     kubernetesRuntime,
 		talosRuntime:          talosRuntime,
+		talosClientFactory:    talosClientFactory,
 		talosconfigProvider:   talosconfigProvider,
 		lifecycleManager:      lifecycleManager,
 
@@ -189,6 +194,7 @@ type managementServer struct {
 	auditor               AuditLogger
 	talosconfigProvider   TalosconfigProvider
 	talosRuntime          TalosRuntime
+	talosClientFactory    TalosClientFactory
 	logHandler            *siderolinkinternal.LogHandler
 	logger                *zap.Logger
 	dnsService            *dns.Service
@@ -570,7 +576,7 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 	var logBuffer strings.Builder
 
 	// the clients are closed only after the pre-checks are done
-	talosClients := newTalosClientGroup(s.talosRuntime)
+	talosClients := newTalosClientGroup(s.talosClientFactory)
 	defer talosClients.Close()
 
 	preCheck, err := upgrade.NewChecksWithStateProvider(path, func(ctx context.Context, machineID string) (state.State, error) {
@@ -1331,7 +1337,7 @@ func (s *managementServer) MachinePowerOff(ctx context.Context, request *managem
 	}
 
 	// Call Talos Shutdown API.
-	talosClient, err := s.talosRuntime.GetClientForMachine(internalCtx, request.MachineId)
+	talosClient, err := s.talosClientFactory.GetForMachine(internalCtx, request.MachineId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}

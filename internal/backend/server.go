@@ -103,6 +103,7 @@ type Server struct {
 	omniRuntime             *omni.Runtime
 	kubernetesRuntime       *kubernetes.Runtime
 	talosRuntime            *talosruntime.Runtime
+	talosClientFactory      *talosruntime.ClientFactory
 	logHandler              *siderolink.LogHandler
 	logger                  *zap.Logger
 	state                   *omni.State
@@ -138,6 +139,7 @@ func NewServer(
 	logger *zap.Logger,
 	kubernetesRuntime *kubernetes.Runtime,
 	talosRuntime *talosruntime.Runtime,
+	talosClientFactory *talosruntime.ClientFactory,
 	lifecycleManager *lifecycle.Manager,
 ) (*Server, error) {
 	s := &Server{
@@ -146,6 +148,7 @@ func NewServer(
 		omniRuntime:             omniRuntime,
 		kubernetesRuntime:       kubernetesRuntime,
 		talosRuntime:            talosRuntime,
+		talosClientFactory:      talosClientFactory,
 		logger:                  logger.With(logging.Component("server")),
 		logHandler:              logHandler,
 		authConfig:              authConfig,
@@ -229,6 +232,7 @@ func (s *Server) Run(ctx context.Context) error {
 		s.cfg,
 		s.kubernetesRuntime,
 		s.talosRuntime,
+		s.talosClientFactory,
 		runtimes,
 		s.lifecycleManager,
 	)

@@ -47,7 +47,7 @@ const ManifestDryRunSyncTimeout = 5 * time.Minute
 
 // TalosClientGetter gets talos clients for clusters.
 type TalosClientGetter interface {
-	GetClientForCluster(ctx context.Context, clusterName string) (*talos.Client, error)
+	GetForCluster(ctx context.Context, clusterID string) (*talos.Client, error)
 }
 
 // KubeconfigGetter gets kubeconfigs for clusters.
@@ -164,7 +164,7 @@ func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientG
 				logger.Info("performing bootstrap manifests check", zap.String("cluster", clusterID))
 
 				// now we are ready to perform manifest checks
-				talosClient, err := talosClientGetter.GetClientForCluster(ctx, clusterID)
+				talosClient, err := talosClientGetter.GetForCluster(ctx, clusterID)
 				if err != nil {
 					return fmt.Errorf("failed to get talos client: %w", err)
 				}

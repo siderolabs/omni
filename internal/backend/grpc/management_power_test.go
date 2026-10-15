@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	commonOmni "github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
@@ -40,7 +39,7 @@ func TestMachinePowerOffUsesInternalContextAfterACLAuthorization(t *testing.T) {
 	st := newManagementPowerTestState(t, clusterID, identityID, machineID)
 	ctx := managementPowerTestContext(t.Context(), identityID, role.Reader)
 
-	talosRuntime := &capturingTalosRuntime{}
+	talosClientFactory := &capturingTalosClientFactory{}
 	auditor := &capturingAuditLogger{err: errors.New("stop before shutdown")}
 
 	server := grpcomni.NewManagementServer(
@@ -50,17 +49,17 @@ func TestMachinePowerOffUsesInternalContextAfterACLAuthorization(t *testing.T) {
 		false,
 		nil,
 		nil,
-		grpcomni.WithTalosRuntime(talosRuntime),
+		grpcomni.WithTalosClientFactory(talosClientFactory),
 		grpcomni.WithAuditLogger(auditor),
 	)
 
 	_, err := server.MachinePowerOff(ctx, &management.MachinePowerOffRequest{MachineId: machineID})
 	require.ErrorIs(t, err, auditor.err)
 
-	require.True(t, talosRuntime.machineCtx.captured)
-	require.True(t, talosRuntime.machineCtx.internal)
-	require.True(t, talosRuntime.machineCtx.hasRole)
-	require.Equal(t, role.Operator, talosRuntime.machineCtx.role)
+	require.True(t, talosClientFactory.machineCtx.captured)
+	require.True(t, talosClientFactory.machineCtx.internal)
+	require.True(t, talosClientFactory.machineCtx.hasRole)
+	require.Equal(t, role.Operator, talosClientFactory.machineCtx.role)
 
 	require.True(t, auditor.ctx.captured)
 	require.False(t, auditor.ctx.internal)
@@ -106,19 +105,15 @@ func managementPowerTestContext(ctx context.Context, identityID string, r role.R
 	return ctx
 }
 
-type capturingTalosRuntime struct {
+type capturingTalosClientFactory struct {
 	machineCtx capturedContext
 }
 
-func (c *capturingTalosRuntime) GetTalosconfigRaw(*commonOmni.Context, string) ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (c *capturingTalosRuntime) GetClientForCluster(context.Context, string) (*talosruntime.Client, error) {
+func (c *capturingTalosClientFactory) GetForCluster(context.Context, string) (*talosruntime.Client, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (c *capturingTalosRuntime) GetClientForMachine(ctx context.Context, _ string) (*talosruntime.Client, error) {
+func (c *capturingTalosClientFactory) GetForMachine(ctx context.Context, _ string) (*talosruntime.Client, error) {
 	c.machineCtx = captureContext(ctx)
 
 	return talosruntime.NewClient(nil, "", ""), nil

@@ -357,7 +357,7 @@ func (s *managementServer) prepareKubernetesSyncHelpers(ctx, authCtx context.Con
 		return nil, err
 	}
 
-	talosClient, err := s.talosRuntime.GetClientForCluster(ctx, requestContext.Name)
+	talosClient, err := s.talosClientFactory.GetForCluster(ctx, requestContext.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}

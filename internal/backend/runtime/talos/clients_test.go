@@ -872,45 +872,6 @@ func TestClientFactoryConcurrency(t *testing.T) {
 	})
 }
 
-// TestRuntimeReleasesClientOnError checks that the runtime does not keep a client open when it fails to hand it out.
-func TestRuntimeReleasesClientOnError(t *testing.T) {
-	t.Parallel()
-
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
-	t.Cleanup(cancel)
-
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
-	}, func(ctx context.Context, testContext testutils.TestContext) {
-		clientFactory := talos.NewClientFactory(testContext.State, testContext.Logger)
-		talosRuntime := talos.New(clientFactory, testContext.Logger, "omni", "https://omni.example.org")
-
-		createMaintenanceMachine(ctx, t, testContext.State, "m1")
-
-		// the machine has a status but no machine resource, so the connectivity check fails
-		_, err := talosRuntime.GetClientForMachine(ctx, "m1")
-		require.Error(t, err)
-
-		// the client was released: the cached connection has no open clients, so the sweep drops it
-		assert.Equal(t, 1, clientFactory.CacheLen())
-
-		clientFactory.Sweep(time.Now().Add(talos.IdleTimeout))
-
-		assert.Equal(t, 0, clientFactory.CacheLen())
-		assert.Equal(t, 0, clientFactory.ActiveClients("maintenance"))
-
-		// the machine is known but not connected, so the client is refused and released as well
-		require.NoError(t, testContext.State.Create(ctx, omni.NewMachine("m1")))
-
-		_, err = talosRuntime.GetClientForMachine(ctx, "m1")
-		require.ErrorContains(t, err, "not reachable")
-
-		clientFactory.Sweep(time.Now().Add(talos.IdleTimeout))
-
-		assert.Equal(t, 0, clientFactory.CacheLen())
-		assert.Equal(t, 0, clientFactory.ActiveClients("maintenance"))
-	})
-}
-
 // TestClientOpenClientsProfile checks that an open client is recorded in the pprof profile and removed on Close.
 func TestClientOpenClientsProfile(t *testing.T) {
 	t.Parallel()

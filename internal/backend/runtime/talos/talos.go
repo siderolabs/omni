@@ -330,10 +330,6 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 		return nil, nil, status.Errorf(codes.Unavailable, "machine %q changed its cluster", machineID)
 	}
 
-	if c, err = r.checkConnected(ctx, c); err != nil {
-		return nil, nil, err
-	}
-
 	if err = CheckSensitivity(ctx, c.COSI, resourceType); err != nil {
 		c.Close() //nolint:errcheck
 
@@ -341,54 +337,6 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 	}
 
 	return c.COSI, func() { c.Close() }, nil //nolint:errcheck
-}
-
-// GetClientForCluster returns talos client for the cluster name.
-//
-// The returned client must be closed by the caller.
-func (r *Runtime) GetClientForCluster(ctx context.Context, clusterName string) (*Client, error) {
-	c, err := r.clientFactory.GetForCluster(ctx, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.checkConnected(ctx, c)
-}
-
-// GetClientForMachine returns a Talos client connected directly to the given machine's SideroLink endpoint.
-//
-// Cluster membership is determined automatically from the machine's state.
-//
-// The returned client must be closed by the caller.
-func (r *Runtime) GetClientForMachine(ctx context.Context, machineID string) (*Client, error) {
-	c, err := r.clientFactory.GetForMachine(ctx, machineID)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.checkConnected(ctx, c)
-}
-
-// checkConnected returns the client if its cluster or machine is reachable, otherwise it closes the client.
-func (r *Runtime) checkConnected(ctx context.Context, c *Client) (*Client, error) {
-	connected, err := c.Connected(ctx, r.clientFactory.omniState)
-	if err != nil {
-		c.Close() //nolint:errcheck
-
-		return nil, err
-	}
-
-	if !connected {
-		c.Close() //nolint:errcheck
-
-		if c.clusterID == "" {
-			return nil, fmt.Errorf("the machine %s is not reachable", c.machineID)
-		}
-
-		return nil, fmt.Errorf("the cluster %s is not reachable", c.clusterID)
-	}
-
-	return c, nil
 }
 
 type item struct {

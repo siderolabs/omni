@@ -57,6 +57,7 @@ func MakeServiceServers(
 	cfg *config.Params,
 	kubernetesRuntime KubernetesRuntime,
 	talosRuntime TalosRuntime,
+	talosClientFactory TalosClientFactory,
 	runtimes map[string]runtime.Runtime,
 	lifecycleManager *lifecycle.Manager,
 ) iter.Seq2[ServiceServer, error] {
@@ -101,6 +102,7 @@ func MakeServiceServers(
 			dest,
 			kubernetesRuntime,
 			talosRuntime,
+			talosClientFactory,
 			omniRuntime,
 			lifecycleManager,
 		),
