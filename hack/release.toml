@@ -29,6 +29,17 @@ certificate signed by the given CA. When no CA is set, the certificate file must
 as the CA, so clients can use the same certificate and key.
 """
 
+[notes.eula-acceptance]
+title = "EULA Acceptance"
+description = """\
+The EULA page in the UI is removed. The [End User License Agreement](https://siderolabs.com/eula/) is now accepted with \
+the `--eula-accept-name` and `--eula-accept-email` flags (`eulaAccept` in the config file, `config.eulaAccept` in the Helm chart).
+
+Omni does not start until the EULA is accepted. Once accepted, it stays accepted, so a new installation needs the flags \
+only on its first start. Setting them again with different values updates the stored name and email. Installations that \
+already accepted the EULA need no changes.
+"""
+
 [notes.image-factory-api-token]
 title = "Image Factory API Token Authentication"
 description = """\

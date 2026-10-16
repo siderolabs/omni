@@ -60,6 +60,10 @@ One of the following authentication providers must be enabled and configured und
 
 Additionally, at least one initial admin user must be specified in `config.auth.initialUsers`.
 
+## End User License Agreement
+
+Omni does not start until the [End User License Agreement](https://siderolabs.com/eula/) is accepted. Set `config.eulaAccept.name` and `config.eulaAccept.email` to accept it on behalf of your Omni instance. Once accepted, it stays accepted, so they are only required on the first start.
+
 ## Example
 
 For Omni configuration reference, see the [Omni config schema](https://github.com/siderolabs/omni/blob/main/internal/pkg/config/schema.json).
@@ -120,6 +124,9 @@ config:
       domain: <your-auth0-domain>
     initialUsers:
       - admin@example.com
+  eulaAccept:
+    name: Jane Doe
+    email: jane.doe@example.com
   services:
     api:
       advertisedURL: https://omni.example.com

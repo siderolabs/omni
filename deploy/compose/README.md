@@ -12,7 +12,11 @@ OMNI_WG_IP=10.10.1.100
 OMNI_ADMIN_EMAIL=omni@siderolabs.com
 AUTH0_CLIENT_ID=xxxyyyzzz
 AUTH0_DOMAIN=dev-aaabbbccc.us.auth0.com
+EULA_ACCEPT_NAME="Jane Doe"
+EULA_ACCEPT_EMAIL=jane.doe@example.com
 ```
+
+Setting `EULA_ACCEPT_NAME` and `EULA_ACCEPT_EMAIL` accepts the [End User License Agreement](https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not start until it is accepted.
 
 You may also want to update certificate paths, etcd storage, and other settings.
 

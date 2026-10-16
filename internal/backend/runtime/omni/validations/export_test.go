@@ -101,10 +101,6 @@ func KubernetesManifestsValidationOptions() []validated.StateOption {
 	return kubernetesManifestsValidationOptions()
 }
 
-func EulaValidationOptions(st state.State) []validated.StateOption {
-	return eulaValidationOptions(st)
-}
-
 func KernelArgsValidationOptions() []validated.StateOption {
 	return kernelArgsValidationOptions()
 }

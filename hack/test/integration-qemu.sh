@@ -81,11 +81,6 @@ prepare_dex
 
 # Set the registration limit to the total number of machines so that the registration limit is actively enforced during the test.
 export MAX_REGISTERED_MACHINES="${TOTAL_MACHINES}"
-export EULA_CONFIG="
-eulaAccept:
-  name: Test User
-  email: test-user@siderolabs.com
-"
 
 # Advertise the machine API on the stable WireGuard IP to keep schematic IDs constant across runs.
 # That IP is only routable when the QEMU machines bring up its bridge, so without them (e.g. the import job) fall back to the reachable local IP.

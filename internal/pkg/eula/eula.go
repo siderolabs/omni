@@ -3,61 +3,53 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package eula provides helpers for managing EULA acceptance.
+// Package eula manages the End User License Agreement acceptance.
 package eula
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"go.uber.org/zap"
 
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 )
 
-// StateGetter is the minimal interface for reading state, used by the interceptor.
-type StateGetter interface {
-	Get(ctx context.Context, ptr resource.Pointer, opts ...state.GetOption) (resource.Resource, error)
-}
+// URL is the address of the End User License Agreement.
+const URL = "https://siderolabs.com/eula/"
 
-// IsAccepted returns true if the EULA has been accepted.
-func IsAccepted(ctx context.Context, st StateGetter) (bool, error) {
-	_, err := st.Get(ctx, authres.NewEulaAcceptance().Metadata())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	return true, nil
-}
-
-// AcceptParams holds the identity of the person accepting the EULA via CLI flags.
-type AcceptParams struct {
-	Name  string
-	Email string
-}
-
-// Accept creates the EulaAcceptance resource if it does not already exist.
-// This is used when Omni is started with --eula-accept-name/--eula-accept-email, where the accepting party
-// is considered to have accepted the EULA externally (e.g., SaaS users).
-func Accept(ctx context.Context, st state.State, params AcceptParams) error {
+// EnsureAccepted creates or updates the EulaAcceptance resource with the given name and email, if both are set.
+// It returns an error if the EULA was never accepted.
+func EnsureAccepted(ctx context.Context, st state.State, logger *zap.Logger, name, email string) error {
 	existing, err := safe.StateGetByID[*authres.EulaAcceptance](ctx, st, authres.EulaAcceptanceID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
 
-	if existing != nil {
-		// Already accepted — nothing to do.
+	if name == "" || email == "" {
+		if existing == nil {
+			return fmt.Errorf("the End User License Agreement (%s) is not accepted, set the --eula-accept-name and --eula-accept-email flags (eulaAccept in the config) to accept it", URL)
+		}
+
 		return nil
 	}
 
-	res := authres.NewEulaAcceptance()
-	res.TypedSpec().Value.AcceptedByName = params.Name
-	res.TypedSpec().Value.AcceptedByEmail = params.Email
+	if existing != nil && existing.TypedSpec().Value.AcceptedByName == name && existing.TypedSpec().Value.AcceptedByEmail == email {
+		return nil
+	}
 
-	return st.Create(ctx, res)
+	if err = safe.StateModify(ctx, st, authres.NewEulaAcceptance(), func(res *authres.EulaAcceptance) error {
+		res.TypedSpec().Value.AcceptedByName = name
+		res.TypedSpec().Value.AcceptedByEmail = email
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	logger.Info("End User License Agreement accepted", zap.String("url", URL), zap.String("name", name), zap.String("email", email))
+
+	return nil
 }

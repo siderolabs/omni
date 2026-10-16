@@ -59,7 +59,7 @@
       "$ref": "#/definitions/Features"
     },
     "eulaAccept": {
-      "description": "EulaAccept contains the identity of the person accepting the EULA via CLI flags or config.",
+      "description": "EulaAccept is used to accept the End User License Agreement (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not start until the agreement is accepted. Once accepted, it stays accepted, so these values are only needed on the first start.",
       "$ref": "#/definitions/EulaAccept"
     },
     "support": {
@@ -2052,7 +2052,7 @@
       },
       "properties": {
         "name": {
-          "description": "Name is the full name of the person accepting the EULA on behalf of this Omni instance.",
+          "description": "Name is the full name of the person accepting the End User License Agreement (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not start until the agreement is accepted.",
           "x-cli-flag": "eula-accept-name",
           "type": "string",
           "goJSONSchema": {
@@ -2060,7 +2060,7 @@
           }
         },
         "email": {
-          "description": "Email is the email address of the person accepting the EULA on behalf of this Omni instance.",
+          "description": "Email is the email address of the person accepting the End User License Agreement (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not start until the agreement is accepted.",
           "x-cli-flag": "eula-accept-email",
           "type": "string",
           "goJSONSchema": {

@@ -10,10 +10,10 @@ import { routes } from 'vue-router/auto-routes'
 import { handleHotUpdate } from 'vue-router/auto-routes'
 
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
-import { AuthType, authType, eulaAccepted } from '@/methods'
+import { AuthType, authType } from '@/methods'
 import { hasValidKeys } from '@/methods/key'
 
-export type RouteMetaGuard = 'keys' | 'auth0' | 'eula'
+export type RouteMetaGuard = 'keys' | 'auth0'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -54,11 +54,6 @@ router.afterEach(() => {
 })
 
 router.beforeEach(async (to) => {
-  // Check EULA before any other guard — redirect to /eula if not yet accepted.
-  if (!eulaAccepted.value && to.name !== 'Eula') {
-    return { name: 'Eula' }
-  }
-
   for (const record of to.matched) {
     switch (record.meta.guard) {
       case 'auth0': {

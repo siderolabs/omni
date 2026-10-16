@@ -47,11 +47,6 @@ prepare_dex
 
 export MAX_USERS=5
 export MAX_SERVICE_ACCOUNTS=5
-export EULA_CONFIG="
-eulaAccept:
-  name: Test User
-  email: test-user@siderolabs.com
-"
 
 prepare_omni_config
 

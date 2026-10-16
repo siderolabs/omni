@@ -295,12 +295,14 @@ type EtcdWriteRateLimits struct {
 }
 
 type EulaAccept struct {
-	// Email is the email address of the person accepting the EULA on behalf of this
-	// Omni instance.
+	// Email is the email address of the person accepting the End User License
+	// Agreement (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni
+	// does not start until the agreement is accepted.
 	Email *string `json:"email,omitempty,omitzero" yaml:"email,omitempty"`
 
-	// Name is the full name of the person accepting the EULA on behalf of this Omni
-	// instance.
+	// Name is the full name of the person accepting the End User License Agreement
+	// (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not
+	// start until the agreement is accepted.
 	Name *string `json:"name,omitempty,omitzero" yaml:"name,omitempty"`
 }
 
@@ -632,8 +634,10 @@ type Params struct {
 	// EtcdBackup contains etcd backup configuration for the clusters on Omni.
 	EtcdBackup EtcdBackup `json:"etcdBackup" yaml:"etcdBackup"`
 
-	// EulaAccept contains the identity of the person accepting the EULA via CLI flags
-	// or config.
+	// EulaAccept is used to accept the End User License Agreement
+	// (https://siderolabs.com/eula/) on behalf of this Omni instance. Omni does not
+	// start until the agreement is accepted. Once accepted, it stays accepted, so
+	// these values are only needed on the first start.
 	EulaAccept EulaAccept `json:"eulaAccept" yaml:"eulaAccept"`
 
 	// Features contains feature flags to enable/disable various Omni features.

@@ -1068,7 +1068,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:              authres.NewEulaAcceptance(),
-				allowedVerbSet:        xslices.ToSet([]state.Verb{state.Get, state.List, state.Create}),
+				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{

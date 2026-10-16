@@ -81,6 +81,10 @@ func Init(a *audit.Log) {
 
 	audit.ShouldLogCreate(a, omni.MachineConfigDiffType, machineConfigDiffCreate, audit.WithInternalAgent())
 
+	audit.ShouldLogCreate(a, auth.EulaAcceptanceType, eulaAcceptanceCreate, audit.WithInternalAgent())
+	audit.ShouldLogUpdate(a, auth.EulaAcceptanceType, eulaAcceptanceUpdate, audit.WithInternalAgent())
+	audit.ShouldLogUpdateWithConflicts(a, auth.EulaAcceptanceType, eulaAcceptanceUpdate, audit.WithInternalAgent())
+
 	emptyCreateFunc := func(_ context.Context, _ *auditlog.Data, _ resource.Resource, _ ...state.CreateOption) error {
 		return nil
 	}
@@ -313,6 +317,28 @@ func machineLabelsDestroy(_ context.Context, data *auditlog.Data, ptr resource.P
 	initPtrField(&data.MachineLabels)
 
 	data.MachineLabels.ID = ptr.ID()
+
+	return nil
+}
+
+func eulaAcceptanceCreate(_ context.Context, data *auditlog.Data, res resource.Resource, _ ...state.CreateOption) error {
+	return handleEulaAcceptance(data, res)
+}
+
+func eulaAcceptanceUpdate(_ context.Context, data *auditlog.Data, _, newRes resource.Resource, _ ...state.UpdateOption) error {
+	return handleEulaAcceptance(data, newRes)
+}
+
+func handleEulaAcceptance(data *auditlog.Data, res resource.Resource) error {
+	eulaAcceptance, ok := res.(*auth.EulaAcceptance)
+	if !ok {
+		return fmt.Errorf("unexpected type: %q", res.Metadata().Type())
+	}
+
+	initPtrField(&data.EulaAcceptance)
+
+	data.EulaAcceptance.Name = eulaAcceptance.TypedSpec().Value.AcceptedByName
+	data.EulaAcceptance.Email = eulaAcceptance.TypedSpec().Value.AcceptedByEmail
 
 	return nil
 }

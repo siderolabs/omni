@@ -264,6 +264,8 @@ const composeTemplate = `services:
       --auth-auth0-client-id {{ .ClientID }}
       --auth-auth0-domain {{ .Auth0Domain }}
       --initial-users {{ .Email }},test-user@siderolabs.com
+      --eula-accept-name "Test User"
+      --eula-accept-email {{ .Email }}
       --advertised-api-url https://{{ .Host }}{{- if .Port -}}:{{- end -}}{{ .Port }}
       --advertised-kubernetes-proxy-url https://{{ .Host }}:8095/
       --workload-proxying-enabled=true

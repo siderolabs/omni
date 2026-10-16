@@ -63,16 +63,8 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'eula',
-      testMatch: 'eula/**/*.spec.ts',
-    },
-    {
       name: 'talemu-setup',
       testMatch: 'talemu/talemu.setup.ts',
-      // The setup uses the auth fixture, which assumes the EULA is already
-      // accepted. Without this dependency talemu-setup races the eula project
-      // and intermittently gets stuck on the EULA gate ("setting up auth" timeout).
-      dependencies: ['eula'],
     },
     {
       name: 'auth0',
@@ -80,7 +72,6 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: 'auth0/**/*.spec.ts',
-      dependencies: ['eula'],
     },
     {
       name: 'saml',
@@ -88,21 +79,20 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: 'saml/**/*.spec.ts',
-      dependencies: ['eula'],
     },
     {
       name: 'talemu-chrome',
       use: chrome,
       testMatch: 'talemu/**/*.spec.ts',
       grepInvert: ENTERPRISE_ONLY,
-      dependencies: ['eula', 'talemu-setup'],
+      dependencies: ['talemu-setup'],
     },
     {
       name: 'talemu-firefox',
       use: firefox,
       testMatch: 'talemu/**/*.spec.ts',
       grepInvert: ENTERPRISE_ONLY,
-      dependencies: ['eula', 'talemu-setup'],
+      dependencies: ['talemu-setup'],
     },
     {
       name: 'talemu',
@@ -114,14 +104,14 @@ export default defineConfig({
       use: chrome,
       testMatch: 'talemu/**/*.spec.ts',
       grepInvert: COMMUNITY_ONLY,
-      dependencies: ['eula', 'talemu-setup'],
+      dependencies: ['talemu-setup'],
     },
     {
       name: 'talemu-enterprise-firefox',
       use: firefox,
       testMatch: 'talemu/**/*.spec.ts',
       grepInvert: COMMUNITY_ONLY,
-      dependencies: ['eula', 'talemu-setup'],
+      dependencies: ['talemu-setup'],
     },
     {
       // Same specs as `talemu`, run against an Omni pointed at the enterprise image factory.
@@ -136,7 +126,6 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: 'qemu/**/*.spec.ts',
-      dependencies: ['eula'],
     },
   ],
 })

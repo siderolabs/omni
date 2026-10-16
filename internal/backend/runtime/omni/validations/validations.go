@@ -47,7 +47,6 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		installationMediaConfigValidationOptions(st),
 		rotateSecretsValidationOptions(st),
 		kubernetesManifestsValidationOptions(),
-		eulaValidationOptions(st),
 		kernelArgsValidationOptions(),
 		machineInstallDiskConfigValidationOptions(),
 		kubernetesHealthcheckValidationOptions(),

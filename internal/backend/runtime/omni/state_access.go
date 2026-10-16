@@ -35,10 +35,9 @@ import (
 )
 
 // PublicResourceTypes is the set of resource types that are accessible without any authentication.
-// These are intentionally public and must remain readable before auth or EULA acceptance.
+// These are intentionally public and must remain readable before auth.
 var PublicResourceTypes = xslices.ToSet([]resource.Type{
 	authres.AuthConfigType,
-	authres.EulaAcceptanceType,
 })
 
 var (
@@ -382,7 +381,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return nil
 	}
 
-	// Public resource types are accessible without any authentication or EULA acceptance.
+	// Public resource types are accessible without any authentication.
 	if _, ok := PublicResourceTypes[access.ResourceType]; ok {
 		return filterAccessByType(access)
 	}
@@ -497,6 +496,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.TalosExtensionsType,
 		omni.TalosVersionType,
 		omni.KubernetesVersionType,
+		authres.EulaAcceptanceType,
 		omni.InstallationMediaType,
 		omni.OngoingTaskType,
 		omni.MachineStatusMetricsType,
@@ -562,13 +562,6 @@ func filterAccessByType(access state.Access) error {
 		}
 
 		return status.Error(codes.PermissionDenied, "only create and destroy access is permitted for imported cluster secrets")
-	case authres.EulaAcceptanceType:
-		// Allow read and create access. Update and destroy are forbidden — EULA acceptance is permanent.
-		if access.Verb.Readonly() || access.Verb == state.Create {
-			return nil
-		}
-
-		return status.Error(codes.PermissionDenied, "only read and create access is permitted for EULA acceptance")
 	case siderolink.PendingMachineType,
 		siderolink.LinkType,
 		oidcres.JWTPublicKeyType:
@@ -659,6 +652,7 @@ func filterAccessByType(access state.Access) error {
 		omni.UpgradeRolloutType,
 		omni.KubernetesHealthCheckStatusType,
 		authres.AuthConfigType,
+		authres.EulaAcceptanceType,
 		authres.IdentityType,
 		authres.IdentityLastActiveType,
 		authres.IdentityStatusType,

@@ -30,7 +30,9 @@ ${AUTH_PROVIDER_CONFIG}
   limits:
     maxUsers: ${MAX_USERS}
     maxServiceAccounts: ${MAX_SERVICE_ACCOUNTS}
-${EULA_CONFIG}
+eulaAccept:
+  name: Test User
+  email: test-user@siderolabs.com
 etcdBackup:
   s3Enabled: true
 ${REGISTRY_MIRROR_CONFIG}

@@ -516,7 +516,6 @@ type interceptorCreator interface {
 func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator, error) {
 	result := []interceptorCreator{
 		interceptor.NewAuthConfig(s.logger),
-		interceptor.NewEULACheck(s.state.Default(), s.logger, s.cfg.Services.Api.URL()),
 		interceptor.NewSignature(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.logger),
 	}
 

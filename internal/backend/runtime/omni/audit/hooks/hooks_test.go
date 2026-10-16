@@ -176,6 +176,33 @@ func TestJWTPublicKeyAudit(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(events, `"destroy"`))
 }
 
+func TestEulaAcceptanceAudit(t *testing.T) {
+	t.Parallel()
+
+	db := testDB(t)
+
+	cfg := config.LogsAudit{Enabled: new(true)}
+	l, err := audit.NewLog(t.Context(), cfg, db, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	hooks.Init(l)
+
+	res := authres.NewEulaAcceptance()
+	res.TypedSpec().Value.AcceptedByName = "Test User"
+	res.TypedSpec().Value.AcceptedByEmail = "test-user@example.com"
+
+	newRes := authres.NewEulaAcceptance()
+	newRes.TypedSpec().Value.AcceptedByName = "Another User"
+	newRes.TypedSpec().Value.AcceptedByEmail = "another-user@example.com"
+
+	require.NoError(t, l.LogCreate(res)(t.Context(), res))
+	require.NoError(t, l.LogUpdateWithConflicts(res.Metadata())(t.Context(), res, newRes))
+
+	events := readAuditEvents(t, l)
+	assert.Contains(t, events, `"eula_acceptance":{"name":"Test User","email":"test-user@example.com"}`)
+	assert.Contains(t, events, `"eula_acceptance":{"name":"Another User","email":"another-user@example.com"}`)
+}
+
 func readAuditEvents(t *testing.T, l *audit.Log) string {
 	t.Helper()
 

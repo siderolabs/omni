@@ -34,6 +34,7 @@ type Data struct {
 	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
 	AuditLogAccess    *AuditLogAccess    `json:"audit_log_access,omitempty"`
 	MigrationError    *MigrationError    `json:"migration_error,omitempty"`
+	EulaAcceptance    *EulaAcceptance    `json:"eula_acceptance,omitempty"`
 	Session           Session            `json:"session"`
 }
 
@@ -129,6 +130,12 @@ type MachineConfigDiff struct {
 	ID        resource.ID `json:"id,omitempty"`
 	Diff      string      `json:"diff,omitempty"`
 	ClusterID string      `json:"cluster_id,omitempty"`
+}
+
+// EulaAcceptance contains information about the EULA acceptance.
+type EulaAcceptance struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 // TalosAccess struct contains information about the access to the Talos node.
