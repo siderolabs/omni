@@ -3,7 +3,7 @@ module github.com/siderolabs/omni/client
 go 1.27.2
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
-replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260709220509-c4a5514d019f
 
 require (
 	filippo.io/age v1.3.2
@@ -18,11 +18,11 @@ require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gosuri/uiprogress v0.0.1
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.32.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jxskiss/base62 v1.1.0
-	github.com/klauspost/compress v1.20.1
+	github.com/klauspost/compress v1.20.3
 	github.com/mattn/go-isatty v0.0.24
 	github.com/neticdk/go-stdlib v1.0.1
 	github.com/planetscale/vtprotobuf v0.6.1-0.20260702190614-8ae5a48058df
@@ -35,16 +35,16 @@ require (
 	github.com/siderolabs/image-factory v1.7.2
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.18
-	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.0.0.20260915151949-0e1fdd26a1a6
+	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20260809190231-643e93b9c9be
-	golang.org/x/crypto v0.57.0
-	golang.org/x/sync v0.23.0
-	golang.org/x/term v0.46.0
-	google.golang.org/grpc v1.83.2
+	golang.org/x/crypto v0.58.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/term v0.47.0
+	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/apimachinery v0.37.1
 	k8s.io/client-go v0.37.1
@@ -53,6 +53,7 @@ require (
 )
 
 require (
+	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
@@ -76,7 +77,7 @@ require (
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-openapi/jsonpointer v1.0.1 // indirect
-	github.com/go-openapi/jsonreference v1.0.1 // indirect
+	github.com/go-openapi/jsonreference v1.0.2 // indirect
 	github.com/go-openapi/swag v0.29.2 // indirect
 	github.com/go-openapi/swag/cmdutils v0.29.2 // indirect
 	github.com/go-openapi/swag/conv v0.29.2 // indirect
@@ -130,18 +131,18 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
+	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446 // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
