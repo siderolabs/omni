@@ -56,7 +56,7 @@ var (
 
 				serviceAccountName := fmt.Sprintf("infra-provider:%s", name)
 
-				key, err := generateServiceAccountPGPKey(serviceAccountName)
+				key, err := generateServiceAccountPGPKey(serviceAccountName, infraProviderCreateFlags.ttl)
 				if err != nil {
 					return err
 				}
@@ -102,7 +102,7 @@ var (
 			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				serviceAccountName := fmt.Sprintf("infra-provider:%s", name)
 
-				key, err := generateServiceAccountPGPKey(serviceAccountName)
+				key, err := generateServiceAccountPGPKey(serviceAccountName, infraProviderRenewFlags.ttl)
 				if err != nil {
 					return err
 				}

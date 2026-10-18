@@ -49,7 +49,7 @@ var (
 			name := args[0]
 
 			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
-				key, err := generateServiceAccountPGPKey(name)
+				key, err := generateServiceAccountPGPKey(name, serviceAccountCreateFlags.ttl)
 				if err != nil {
 					return err
 				}
@@ -92,7 +92,7 @@ var (
 			name := args[0]
 
 			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
-				key, err := generateServiceAccountPGPKey(name)
+				key, err := generateServiceAccountPGPKey(name, serviceAccountRenewFlags.ttl)
 				if err != nil {
 					return err
 				}
@@ -220,12 +220,12 @@ var (
 	}
 )
 
-func generateServiceAccountPGPKey(name string) (*pgp.Key, error) {
+func generateServiceAccountPGPKey(name string, ttl time.Duration) (*pgp.Key, error) {
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 	sa := pkgaccess.ParseServiceAccountFromName(name)
 	email := sa.FullID()
 
-	return pgp.GenerateKey(sa.BaseName, comment, email, serviceAccountCreateFlags.ttl)
+	return pgp.GenerateKey(sa.BaseName, comment, email, ttl)
 }
 
 func init() {
