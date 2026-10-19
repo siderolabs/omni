@@ -1852,6 +1852,9 @@ func (ctrl *StatusController) deleteUpgradeMetaKey(
 	r controller.Reader,
 	rc *ReconciliationContext,
 ) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
 	client, err := ctrl.getClient(ctx, r, false, rc.machineStatus, rc.machineConfig)
 	if err != nil {
 		return fmt.Errorf("failed to get client for machine %q: %w", rc.ID(), err)
