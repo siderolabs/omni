@@ -57,6 +57,8 @@ func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *c
 			} else {
 				res.Metadata().Annotations().Delete(omni.ClusterLocked)
 				res.Metadata().Annotations().Delete(omni.ClusterImportIsInProgress)
+				res.Metadata().Annotations().Delete(omni.ClusterImportInitialTalosVersion)
+				res.Metadata().Annotations().Delete(omni.ClusterImportInitialKubernetesVersion)
 			}
 
 			return nil

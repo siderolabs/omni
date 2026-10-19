@@ -21,6 +21,8 @@ import type {
 } from '@/api/omni/specs/omni.pb'
 import { withRuntime, withSelectors, withTimeout } from '@/api/options'
 import {
+  ClusterImportInitialKubernetesVersion,
+  ClusterImportInitialTalosVersion,
   ClusterImportIsInProgress,
   ClusterLocked,
   ClusterType,
@@ -534,6 +536,8 @@ export const updateClusterLock = async (id: string, locked: boolean) => {
   } else {
     delete cluster.metadata.annotations[ClusterLocked]
     delete cluster.metadata.annotations[ClusterImportIsInProgress]
+    delete cluster.metadata.annotations[ClusterImportInitialTalosVersion]
+    delete cluster.metadata.annotations[ClusterImportInitialKubernetesVersion]
   }
 
   await ResourceService.Update(cluster, undefined, withRuntime(Runtime.Omni))

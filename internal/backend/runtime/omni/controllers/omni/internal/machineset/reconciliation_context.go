@@ -306,6 +306,10 @@ func (rc *ReconciliationContext) GetKubernetesVersion() (string, error) {
 		return "", errors.New("failed to get kubernetes version for the machine set as the cluster couldn't be found")
 	}
 
+	if initialVersion, ok := omni.GetImportInitialVersion(rc.cluster, omni.ClusterImportInitialKubernetesVersion); ok {
+		return initialVersion, nil
+	}
+
 	return rc.cluster.TypedSpec().Value.KubernetesVersion, nil
 }
 

@@ -587,6 +587,12 @@ func TestImportContext(t *testing.T) {
 
 					_, importIsInProgress := res.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
 					assertion.True(importIsInProgress)
+
+					initialTalosVersion, _ := res.Metadata().Annotations().Get(omni.ClusterImportInitialTalosVersion)
+					assertion.Equal("1.11.2", initialTalosVersion)
+
+					initialKubernetesVersion, _ := res.Metadata().Annotations().Get(omni.ClusterImportInitialKubernetesVersion)
+					assertion.Equal("1.34.1", initialKubernetesVersion)
 				})
 
 				rtestutils.AssertResource(ctx, t, data.omniState, omni.ControlPlanesResourceID(data.clusterID), func(res *omni.MachineSet, assertion *assert.Assertions) {
@@ -700,6 +706,12 @@ func TestImportContext(t *testing.T) {
 
 					_, importIsInProgress := res.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
 					assertion.True(importIsInProgress)
+
+					initialTalosVersion, _ := res.Metadata().Annotations().Get(omni.ClusterImportInitialTalosVersion)
+					assertion.Equal("1.6.0", initialTalosVersion)
+
+					initialKubernetesVersion, _ := res.Metadata().Annotations().Get(omni.ClusterImportInitialKubernetesVersion)
+					assertion.Equal("1.24.0", initialKubernetesVersion)
 				})
 
 				rtestutils.AssertResource(ctx, t, data.omniState, omni.ControlPlanesResourceID(data.clusterID), func(res *omni.MachineSet, assertion *assert.Assertions) {

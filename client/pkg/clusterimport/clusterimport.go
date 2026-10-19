@@ -317,8 +317,10 @@ func newContext(input Input, talosCli talosClientWrapper, ensureSchematicFn Sche
 	cluster := omni.NewCluster(clusterID)
 	cluster.Metadata().Annotations().Set(omni.ClusterLocked, "")
 	cluster.Metadata().Annotations().Set(omni.ClusterImportIsInProgress, "")
-	cluster.TypedSpec().Value.TalosVersion, _ = strings.CutPrefix(versions.TalosVersion, "v")
-	cluster.TypedSpec().Value.KubernetesVersion, _ = strings.CutPrefix(versions.KubernetesVersion, "v")
+	cluster.Metadata().Annotations().Set(omni.ClusterImportInitialTalosVersion, strings.TrimPrefix(versions.InitialTalosVersion, "v"))
+	cluster.Metadata().Annotations().Set(omni.ClusterImportInitialKubernetesVersion, strings.TrimPrefix(versions.InitialKubernetesVersion, "v"))
+	cluster.TypedSpec().Value.TalosVersion = strings.TrimPrefix(versions.TalosVersion, "v")
+	cluster.TypedSpec().Value.KubernetesVersion = strings.TrimPrefix(versions.KubernetesVersion, "v")
 
 	controlPlaneMachineSet := omni.NewMachineSet(clusterID + "-control-planes")
 	controlPlaneMachineSet.Metadata().Labels().Set(omni.LabelCluster, clusterID)

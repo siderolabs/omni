@@ -234,3 +234,55 @@ func TestReconciliationContext(t *testing.T) {
 		})
 	}
 }
+
+func TestGetKubernetesVersion(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		annotations map[string]string
+		name        string
+		expected    string
+	}{
+		{
+			name:     "no annotations",
+			expected: "1.37.1",
+		},
+		{
+			name: "importing",
+			annotations: map[string]string{
+				omni.ClusterImportIsInProgress:             "",
+				omni.ClusterImportInitialKubernetesVersion: "1.29.1",
+			},
+			expected: "1.29.1",
+		},
+		{
+			name: "import finished",
+			annotations: map[string]string{
+				omni.ClusterImportInitialKubernetesVersion: "1.29.1",
+			},
+			expected: "1.37.1",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cluster := omni.NewCluster("test")
+			cluster.TypedSpec().Value.KubernetesVersion = "1.37.1"
+
+			for key, value := range tt.annotations {
+				cluster.Metadata().Annotations().Set(key, value)
+			}
+
+			machineSet := omni.NewMachineSet("machineset")
+			machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
+			rc, err := machineset.NewReconciliationContext(cluster, machineSet, omni.NewLoadBalancerStatus(cluster.Metadata().ID()), nil, nil, nil, nil, nil, nil)
+			require.NoError(t, err)
+
+			version, err := rc.GetKubernetesVersion()
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expected, version)
+		})
+	}
+}

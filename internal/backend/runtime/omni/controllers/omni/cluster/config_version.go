@@ -41,10 +41,18 @@ func NewConfigVersionController() *ConfigVersionController {
 }
 
 func (*ConfigVersionController) transform(_ context.Context, _ controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterVersion *omni.ClusterConfigVersion) error {
+	if clusterVersion.TypedSpec().Value.Version != "" {
+		return nil
+	}
+
+	if initialVersion, ok := omni.GetImportInitialVersion(cluster, omni.ClusterImportInitialTalosVersion); ok {
+		clusterVersion.TypedSpec().Value.Version = "v" + initialVersion
+
+		return nil
+	}
+
 	if cluster.TypedSpec().Value.TalosVersion != "" {
-		if clusterVersion.TypedSpec().Value.Version == "" {
-			clusterVersion.TypedSpec().Value.Version = "v" + cluster.TypedSpec().Value.TalosVersion
-		}
+		clusterVersion.TypedSpec().Value.Version = "v" + cluster.TypedSpec().Value.TalosVersion
 	}
 
 	return nil

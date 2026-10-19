@@ -54,6 +54,18 @@ const (
 	// tsgen:ClusterImportIsInProgress
 	ClusterImportIsInProgress = SystemLabelPrefix + "cluster-import-is-in-progress"
 
+	// ClusterImportInitialTalosVersion is the Talos version the imported cluster was created with.
+	//
+	// It is used only while ClusterImportIsInProgress is set.
+	// tsgen:ClusterImportInitialTalosVersion
+	ClusterImportInitialTalosVersion = SystemLabelPrefix + "cluster-import-initial-talos-version"
+
+	// ClusterImportInitialKubernetesVersion is the Kubernetes version the imported cluster was created with.
+	//
+	// It is used only while ClusterImportIsInProgress is set.
+	// tsgen:ClusterImportInitialKubernetesVersion
+	ClusterImportInitialKubernetesVersion = SystemLabelPrefix + "cluster-import-initial-kubernetes-version"
+
 	// KernelArgsInitialized indicates that KernelArgs resource has been initialized for the machine.
 	//
 	// This annotation is set on MachineStatus resource.

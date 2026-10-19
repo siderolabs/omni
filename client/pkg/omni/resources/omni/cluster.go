@@ -68,6 +68,17 @@ func GetEncryptionEnabled(cluster *Cluster) bool {
 	return cluster.TypedSpec().Value.Features != nil && cluster.TypedSpec().Value.Features.DiskEncryption
 }
 
+// GetImportInitialVersion returns the initial version stored in the given annotation while the cluster is being imported.
+func GetImportInitialVersion(cluster *Cluster, annotation string) (string, bool) {
+	if _, importing := cluster.Metadata().Annotations().Get(ClusterImportIsInProgress); !importing {
+		return "", false
+	}
+
+	version, ok := cluster.Metadata().Annotations().Get(annotation)
+
+	return version, ok && version != ""
+}
+
 // ClusterValidator runs validations which do not require the information from the server (e.g., client-side validations) for the provided cluster properties.
 type ClusterValidator struct {
 	ID                string
