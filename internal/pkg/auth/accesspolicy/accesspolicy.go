@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -94,6 +95,8 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 			}
 		}
 	}
+
+	validationErrs = validateLabelSelectors(validationErrs, accessPolicySpec.UserGroups)
 
 	// check cluster groups
 	for name, clusterGroup := range accessPolicySpec.ClusterGroups {
@@ -215,6 +218,19 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 				expectedRole,
 				checkResult.Role,
 			))
+		}
+	}
+
+	return validationErrs
+}
+
+// validateLabelSelectors appends the errors of the label selectors that do not parse, parsed the same way as in Check.
+func validateLabelSelectors(validationErrs error, userGroups map[string]*specs.AccessPolicyUserGroup) error {
+	for _, userGroup := range userGroups {
+		for _, user := range userGroup.GetUsers() {
+			if _, err := labels.ParseSelectors([]string{strings.Join(user.GetLabelSelectors(), ",")}); err != nil {
+				validationErrs = multierror.Append(validationErrs, err)
+			}
 		}
 	}
 

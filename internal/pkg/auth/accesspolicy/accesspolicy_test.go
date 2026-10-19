@@ -151,6 +151,19 @@ func TestValidateInvalidGroups(t *testing.T) {
 	assert.ErrorContains(t, err, `"cluster-group-1" contains a cluster with mutually exclusive fields set`)
 }
 
+func TestValidateInvalidLabelSelectors(t *testing.T) {
+	for _, selectors := range [][]string{
+		{"oidc.omni.sidero.dev/groups/Omni Admins"}, // a space needs quoting
+		{"oidc.omni.sidero.dev/groups/admins", ""},  // empty once joined
+	} {
+		accessPolicy := getAccessPolicy(t, aclValidRaw)
+
+		accessPolicy.TypedSpec().Value.UserGroups["user-group-2"].Users = []*specs.AccessPolicyUserGroup_User{{LabelSelectors: selectors}}
+
+		assert.ErrorContains(t, accesspolicy.Validate(accessPolicy), "found '") // the parse error
+	}
+}
+
 func TestValidateWithMatchAndSelector(t *testing.T) {
 	accessPolicy := getAccessPolicy(t, aclValidMatchSelectorRaw)
 
