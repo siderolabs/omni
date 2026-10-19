@@ -125,15 +125,37 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		LoginUrl:    s.buildLoginURL(pubKey.id),
 	}
 
+	newPubKey := authres.NewPublicKey(pubKey.id)
+
+	newPubKey.TypedSpec().Value.Confirmed = true //nolint:staticcheck
+	newPubKey.TypedSpec().Value.PublicKey = pubKey.data
+	newPubKey.TypedSpec().Value.Type = pubKey.keyType
+	newPubKey.TypedSpec().Value.Expiration = timestamppb.New(pubKey.expiration)
+	newPubKey.TypedSpec().Value.Identity = &specs.Identity{
+		Email: email,
+	}
+
+	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
+	if err == nil {
+		return result, nil // it already exists, do nothing
+	}
+
+	if !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if state.IsNotFoundError(err) {
-		s.logger.Error(
-			"public key not registered, identity not found",
+		s.logger.Info(
+			"new public key registered for an identity which does not exist yet",
 			zap.String("email", email),
 			zap.String("fingerprint", pubKey.id),
 		)
 
+		// the login can create the user, the key is bound to it on confirmation
 		// we do not fail explicitly to prevent user enumeration
+		s.pending.add(newPubKey)
+
 		return result, nil
 	}
 
@@ -160,44 +182,19 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		return nil, err
 	}
 
-	setPubKeyAttributes := func(k *authres.PublicKey) {
-		k.Metadata().Labels().Set(authres.LabelPublicKeyUserID, userID)
+	newPubKey.Metadata().Labels().Set(authres.LabelPublicKeyUserID, userID)
 
-		k.TypedSpec().Value.Confirmed = true //nolint:staticcheck
-		k.TypedSpec().Value.PublicKey = pubKey.data
-		k.TypedSpec().Value.Type = pubKey.keyType
-		k.TypedSpec().Value.Expiration = timestamppb.New(pubKey.expiration)
+	// unused, will be removed in a later release
+	newPubKey.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
 
-		// unused, will be removed in a later release
-		k.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
+	s.pending.add(newPubKey) // stored once it is confirmed
 
-		k.TypedSpec().Value.Identity = &specs.Identity{
-			Email: email,
-		}
-	}
-
-	newPubKey := authres.NewPublicKey(pubKey.id)
-
-	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
-	if state.IsNotFoundError(err) {
-		setPubKeyAttributes(newPubKey)
-		s.pending.add(newPubKey) // stored once it is confirmed
-
-		s.logger.Info(
-			"new public key registered",
-			zap.String("email", email),
-			zap.String("fingerprint", pubKey.id),
-			zap.Time("expiration", pubKey.expiration),
-		)
-
-		return result, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// it already exists, do nothing
+	s.logger.Info(
+		"new public key registered",
+		zap.String("email", email),
+		zap.String("fingerprint", pubKey.id),
+		zap.Time("expiration", pubKey.expiration),
+	)
 
 	return result, nil
 }
@@ -230,7 +227,10 @@ func (s *authServer) AwaitPublicKeyConfirmation(ctx context.Context, request *au
 
 // storePendingKey creates the resource of a pending key. A conflict is accepted when the stored key belongs to the same user.
 func (s *authServer) storePendingKey(ctx context.Context, pubKey *authres.PublicKey, email, userID string) error {
-	if err := s.state.Create(ctx, pubKey.DeepCopy(), state.WithCreateOwner(new(omni.KeyPrunerController{}).Name())); err != nil {
+	storedKey := pubKey.DeepCopy()
+	storedKey.Metadata().Labels().Set(authres.LabelPublicKeyUserID, userID)
+
+	if err := s.state.Create(ctx, storedKey, state.WithCreateOwner(new(omni.KeyPrunerController{}).Name())); err != nil {
 		if !state.IsConflictError(err) {
 			return err
 		}
@@ -362,8 +362,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 
 	userID := identity.TypedSpec().Value.UserId
 
-	existingUserID, ok := pubKey.Metadata().Labels().Get(authres.LabelPublicKeyUserID)
-	if !ok || existingUserID != userID {
+	if !belongsTo(pubKey, isPending, email, userID) {
 		s.logger.Info("public key not confirmed",
 			zap.String("email", email),
 			zap.String("fingerprint", request.GetPublicKeyId()),
@@ -432,6 +431,16 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+// belongsTo reports whether the key belongs to the user. A pending key registered before the user was created belongs to the user with its email.
+func belongsTo(pubKey *authres.PublicKey, isPending bool, email, userID string) bool {
+	keyUserID, ok := pubKey.Metadata().Labels().Get(authres.LabelPublicKeyUserID)
+	if !ok {
+		return isPending && pubKey.TypedSpec().Value.GetIdentity().GetEmail() == email
+	}
+
+	return keyUserID == userID
 }
 
 func verifiedEmail(ctx context.Context) (string, error) {

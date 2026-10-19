@@ -270,20 +270,23 @@ func TestPublicKeyRegisterConfirm(t *testing.T) {
 		return awaitErr
 	}
 
-	keyID := register("caller@a.com", `-----BEGIN PUBLIC KEY-----
+	callerKeyPEM := `-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8N0YkTeVTfD8xgJsjSMgvAmZquzv
 LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
------END PUBLIC KEY-----`)
+-----END PUBLIC KEY-----`
+
+	keyID := register("caller@a.com", callerKeyPEM)
 
 	_, err = safe.StateGetByID[*authres.PublicKey](ctx, st, keyID)
 	require.True(t, state.IsNotFoundError(err), "the key must not be stored before it is confirmed")
 
 	// a registered key and a key of an unknown email wait the same way
 	registeredErr := awaitWithin(keyID, 100*time.Millisecond)
-	unknownErr := awaitWithin(register("nobody@a.com", `-----BEGIN PUBLIC KEY-----
+	unknownID := register("nobody@a.com", `-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsJ+S5HzNM92M894Nv1oa+wWBVBDf
 hsVo7TvVWjCmeFq64NncUawbmwbeWaYoSahFCc7jRVqrL+txdG9p+9+YHg==
------END PUBLIC KEY-----`), 100*time.Millisecond)
+-----END PUBLIC KEY-----`)
+	unknownErr := awaitWithin(unknownID, 100*time.Millisecond)
 
 	require.Error(t, registeredErr)
 	require.Equal(t, registeredErr.Error(), unknownErr.Error())
@@ -319,6 +322,29 @@ hsVo7TvVWjCmeFq64NncUawbmwbeWaYoSahFCc7jRVqrL+txdG9p+9+YHg==
 
 	_, err = authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: keyID})
 	require.NoError(t, err)
+
+	// the stored key registered again for an email without a user does not block its owner
+	register("nobody@a.com", callerKeyPEM)
+
+	_, err = authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: keyID})
+	require.NoError(t, err)
+
+	// a key registered before its user existed is bound to the user created by the login in the meantime
+	nobody := authres.NewIdentity("nobody@a.com")
+	nobody.TypedSpec().Value.UserId = "5d7e2c90-1f4b-4a8e-9c3d-6b2a0e8f1c47"
+	require.NoError(t, st.Create(ctx, nobody))
+	require.NoError(t, st.Create(ctx, authres.NewUser(nobody.TypedSpec().Value.UserId)))
+
+	_, err = authServer.ConfirmPublicKey(otherCtx, &auth.ConfirmPublicKeyRequest{PublicKeyId: unknownID})
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+	_, err = authServer.ConfirmPublicKey(ctxstore.WithValue(t.Context(), omniauth.VerifiedEmailContextKey{Email: "nobody@a.com"}),
+		&auth.ConfirmPublicKeyRequest{PublicKeyId: unknownID})
+	require.NoError(t, err)
+
+	stored, err = safe.StateGetByID[*authres.PublicKey](ctx, st, unknownID)
+	require.NoError(t, err)
+	require.Equal(t, nobody.TypedSpec().Value.UserId, stored.Metadata().Labels().Raw()[authres.LabelPublicKeyUserID])
 
 	// a registered key whose ID is taken by a key of another user in the meantime is not confirmed
 	takenID := register("caller@a.com", `-----BEGIN PUBLIC KEY-----
