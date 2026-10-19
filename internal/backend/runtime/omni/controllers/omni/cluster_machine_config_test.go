@@ -16,8 +16,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/config"
+	configconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
@@ -27,6 +30,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkpkg "github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
@@ -649,7 +653,19 @@ func assertUpgradeKeepsConfigStable(ctx context.Context, t *testing.T, st state.
 	// make sure that we didn't overwrite the previous image, so we compare the correct two things
 	require.Contains(t, previousConfig.Machine().Install().Image(), previousTalosVersion)
 
-	assertConfigsAreEqual(t, previousConfig, currentConfig)
+	comparedConfig := currentConfig
+
+	// the join config documents are added once the machine runs a version which supports them
+	if previousConfig.SideroLink() == nil && currentConfig.SideroLink() != nil {
+		var err error
+
+		comparedConfig, err = container.New(xslices.Filter(currentConfig.Documents(), func(document configconfig.Document) bool {
+			return !siderolinkpkg.IsJoinConfigDocument(document)
+		})...)
+		require.NoError(t, err)
+	}
+
+	assertConfigsAreEqual(t, previousConfig, comparedConfig)
 
 	return currentConfig
 }
@@ -979,6 +995,56 @@ func TestClusterMachineConfigRegistryAuthFollowsRunningVersion(t *testing.T) {
 			// downgrade back to 1.11: the document must not reach the 1.11 install
 			setVersions("1.12.0", "1.11.0")
 			assertRegistryAuth("1.11.0", false)
+		},
+	)
+}
+
+func TestClusterMachineConfigJoinConfigFollowsRunningVersion(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			// created at 1.4, which does not know the join config documents
+			_, machines := createConfigTestCluster(ctx, t, tc.State, "join-config", 0, "1.4.8")
+			machineID := machines[0].Metadata().ID()
+
+			setVersions := func(running, target string) {
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, tc.State, options.WithID(machineID), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+					res.TypedSpec().Value.TalosVersion = running
+					res.TypedSpec().Value.InstallImage.TalosVersion = target
+
+					return nil
+				}))
+
+				rmock.Mock[*omni.ClusterMachineTalosVersion](ctx, t, tc.State, options.WithID(machineID))
+			}
+
+			assertJoinConfig := func(installVersion string, expectDocument bool) {
+				rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+					cfg := machineConfigOf(t, res)
+
+					assertions.Contains(cfg.Machine().Install().Image(), ":v"+installVersion)
+					assertions.Equal(expectDocument, cfg.SideroLink() != nil)
+				})
+			}
+
+			assertJoinConfig("1.4.8", false)
+
+			// upgrade to 1.13: the machine still runs 1.4, no documents yet
+			setVersions("1.4.8", "1.13.10")
+			assertJoinConfig("1.13.10", false)
+
+			// the machine runs 1.13 now, the documents are added although the cluster was created at 1.4
+			setVersions("1.13.10", "1.13.10")
+			assertJoinConfig("1.13.10", true)
+
+			// not installed yet, the target version decides
+			setVersions("", "1.4.8")
+			assertJoinConfig("1.4.8", false)
 		},
 	)
 }

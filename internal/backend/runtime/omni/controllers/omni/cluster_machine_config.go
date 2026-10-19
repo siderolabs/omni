@@ -438,6 +438,13 @@ type clusterMachineConfigControllerHelper struct {
 	registries omnicfg.Registries
 }
 
+// supportsMultidoc reports whether all the given Talos versions support multi-document configs. Empty versions are not known yet and are skipped.
+func supportsMultidoc(talosVersions ...string) bool {
+	return !slices.ContainsFunc(talosVersions, func(talosVersion string) bool {
+		return talosVersion != "" && !quirks.New(talosVersion).SupportsMultidoc()
+	})
+}
+
 // buildRegistryAuthPatch builds the registry auth documents for the image factories, if all the given Talos versions support them.
 func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch(creds safe.List[*omni.ImageFactoryAuth], talosVersions ...string) (string, error) {
 	if creds.Len() == 0 {
@@ -644,7 +651,8 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		)
 	}
 
-	if quirks.New(initialTalosVersion).SupportsMultidoc() {
+	// the version the machine runs, when known, and the one it installs must both know the documents
+	if supportsMultidoc(configGenOptions.TypedSpec().Value.TalosVersion, installImageSpec.TalosVersion) {
 		patchList = append(patchList, machineJoinConfig.TypedSpec().Value.Config.Config)
 	}
 
