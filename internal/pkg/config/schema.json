@@ -907,7 +907,7 @@
           }
         },
         "recoveryAdmin": {
-          "description": "RecoveryAdmin is the email of a user raised to the Admin role on every Omni start. The user must already exist. Once configured, SAML label rules never lower its role. Intended as a break-glass path when a misconfigured SAML rule removes admin access from everyone.",
+          "description": "RecoveryAdmin is the email of a user raised to the Admin role on every Omni start. The user must already exist. Once configured, SAML label rules never lower its role, for both SAML and OIDC logins. Intended as a break-glass path when a misconfigured rule removes admin access from everyone.",
           "x-cli-flag": "recovery-admin",
           "type": "string"
         },
@@ -1054,6 +1054,11 @@
         "allowUnverifiedEmail": {
           "description": "AllowUnverifiedEmail controls whether users with unverified emails (without email_verified claim) are allowed to authenticate.",
           "x-cli-flag": "auth-oidc-allow-unverified-email",
+          "type": "boolean"
+        },
+        "autoCreateUsers": {
+          "description": "AutoCreateUsers controls whether OIDC users are created on their first login. They get the role from the matching SAML label rules, or None. The very first user of an instance becomes Admin. Enable it only when every account of the OIDC provider belongs to your organization.",
+          "x-cli-flag": "auth-oidc-auto-create-users",
           "type": "boolean"
         }
       }

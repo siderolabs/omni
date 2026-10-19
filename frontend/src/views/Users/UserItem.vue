@@ -9,7 +9,7 @@ import { computed, ref } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { IdentityStatusSpec } from '@/api/omni/specs/auth.pb'
-import { SAMLLabelPrefix } from '@/api/resources'
+import { OIDCLabelPrefix, SAMLLabelPrefix } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
@@ -42,8 +42,8 @@ const roleEditModal = ref<{
 const labels = computed(() => {
   return (
     Object.keys(item.metadata.labels || {})
-      .filter((l) => l.startsWith(SAMLLabelPrefix))
-      .map((l: string) => l.replace(`${SAMLLabelPrefix}`, '')) || []
+      .filter((l) => l.startsWith(SAMLLabelPrefix) || l.startsWith(OIDCLabelPrefix))
+      .map((l: string) => l.replace(SAMLLabelPrefix, '').replace(OIDCLabelPrefix, '')) || []
   )
 })
 </script>

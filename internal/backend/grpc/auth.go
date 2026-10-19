@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	authpb "github.com/siderolabs/go-api-signature/api/auth"
+	"github.com/siderolabs/go-api-signature/pkg/message"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -33,7 +34,10 @@ import (
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
+	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 const (
@@ -61,13 +65,15 @@ type authServer struct {
 
 	logger                    *zap.Logger
 	loginURL                  *url.URL
+	oidcVerifier              *oidcauth.IDTokenVerifier
+	oidcSyncer                *user.Syncer
 	state                     state.State
 	workloadProxyCookieDomain string
 	pending                   pendingKeys
 	registrations             registrationLimiter
 }
 
-func newAuthServer(state state.State, services config.Services, logger *zap.Logger) (*authServer, error) {
+func newAuthServer(state state.State, services config.Services, oidcVerifier *oidcauth.IDTokenVerifier, oidcSyncer *user.Syncer, logger *zap.Logger) (*authServer, error) {
 	advertisedURL, err := url.Parse(services.Api.URL())
 	if err != nil {
 		return nil, err
@@ -92,6 +98,8 @@ func newAuthServer(state state.State, services config.Services, logger *zap.Logg
 		logger:                    logger,
 		workloadProxyCookieDomain: workloadProxyCookieDomain,
 		loginURL:                  loginURL,
+		oidcVerifier:              oidcVerifier,
+		oidcSyncer:                oidcSyncer,
 		pending:                   pendingKeys{keys: map[string]*authres.PublicKey{}},
 	}, nil
 }
@@ -333,6 +341,10 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, status.Error(codes.InvalidArgument, "public key id is required")
 	}
 
+	if err = s.syncOIDCUser(ctx); err != nil {
+		return nil, err
+	}
+
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -441,6 +453,34 @@ func belongsTo(pubKey *authres.PublicKey, isPending bool, email, userID string) 
 	}
 
 	return keyUserID == userID
+}
+
+// syncOIDCUser syncs the user with the claims of the OIDC ID token which authenticated the request.
+func (s *authServer) syncOIDCUser(ctx context.Context) error {
+	if s.oidcSyncer == nil {
+		return nil
+	}
+
+	msg, ok := ctxstore.Value[auth.GRPCMessageContextKey](ctx)
+	if !ok {
+		return nil
+	}
+
+	token, err := msg.Message.JWT()
+	if errors.Is(err, message.ErrNotFound) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	email, labels, err := s.oidcVerifier.VerifyWithLabels(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	return s.oidcSyncer.Sync(ctx, email, labels)
 }
 
 func verifiedEmail(ctx context.Context) (string, error) {

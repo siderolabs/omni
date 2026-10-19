@@ -7,14 +7,25 @@ package grpc_test
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/siderolabs/go-api-signature/api/auth"
+	"github.com/siderolabs/go-api-signature/pkg/message"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -29,6 +40,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/grpc"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
+	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
+	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -418,4 +431,76 @@ LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
 
 	require.Equal(t, codes.ResourceExhausted, status.Code(register("203.0.113.9")))
 	require.NoError(t, register("203.0.113.10"))
+}
+
+func TestConfirmPublicKeySyncsOIDCUser(t *testing.T) {
+	const email = "newcomer@example.com"
+
+	idpKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]string{{
+				"kty": "RSA",
+				"alg": "RS256",
+				"kid": "test",
+				"n":   base64.RawURLEncoding.EncodeToString(idpKey.N.Bytes()),
+				"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(idpKey.E)).Bytes()),
+			}},
+		}))
+	}))
+	t.Cleanup(jwksServer.Close)
+
+	provider := (&oidc.ProviderConfig{IssuerURL: "https://idp.example.com", JWKSURL: jwksServer.URL}).NewProvider(t.Context())
+
+	verifier, err := oidcauth.NewIDTokenVerifier(t.Context(), provider, "omni", false)
+	require.NoError(t, err)
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	require.NoError(t, user.Ensure(t.Context(), st, "admin@example.com", role.Admin, false))
+
+	authServer, err := grpc.NewOIDCAuthServer(st, config.Services{Api: config.Service{AdvertisedURL: new("http://localhost:8099")}},
+		verifier, user.NewSyncer(st, zaptest.NewLogger(t), "", true), zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	// login confirms a key with an ID token carrying the given groups, the user is synced before the key is looked up
+	login := func(groups ...string) {
+		idToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+			"iss":            "https://idp.example.com",
+			"aud":            "omni",
+			"sub":            "1",
+			"iat":            time.Now().Unix(),
+			"exp":            time.Now().Add(time.Hour).Unix(),
+			"email":          email,
+			"email_verified": true,
+			"groups":         groups,
+		})
+		idToken.Header["kid"] = "test"
+
+		signedIDToken, signErr := idToken.SignedString(idpKey)
+		require.NoError(t, signErr)
+
+		md := metadata.Pairs("authorization", "Bearer "+signedIDToken)
+
+		ctx := ctxstore.WithValue(t.Context(), omniauth.GRPCMessageContextKey{Message: message.NewGRPC(md, "/auth.AuthService/ConfirmPublicKey")})
+		ctx = ctxstore.WithValue(ctx, omniauth.VerifiedEmailContextKey{Email: email})
+
+		_, confirmErr := authServer.ConfirmPublicKey(ctx, &auth.ConfirmPublicKeyRequest{PublicKeyId: "unknown"})
+		require.Equal(t, codes.PermissionDenied, status.Code(confirmErr))
+	}
+
+	// the first login creates the user, and the next one brings the changed groups, without going through the login callback
+	login("devs")
+	login("ops")
+
+	identity, err := safe.StateGetByID[*authres.Identity](t.Context(), st, email)
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]string{
+		authres.LabelIdentityUserID:            identity.TypedSpec().Value.UserId,
+		authres.OIDCLabelPrefix + "groups/ops": "",
+	}, identity.Metadata().Labels().Raw())
 }

@@ -10,6 +10,10 @@ const (
 	// SAMLLabelPrefix is the prefix added to all SAML attributes on the User resource.
 	// tsgen:SAMLLabelPrefix
 	SAMLLabelPrefix = "saml.omni.sidero.dev/"
+
+	// OIDCLabelPrefix is the prefix of the identity labels built from OIDC claims.
+	// tsgen:OIDCLabelPrefix
+	OIDCLabelPrefix = "oidc.omni.sidero.dev/"
 )
 
 const (

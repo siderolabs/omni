@@ -259,6 +259,7 @@ export const IdentityType = "Identities.omni.sidero.dev";
 export const IdentityLastActiveType = "IdentityLastActives.omni.sidero.dev";
 export const IdentityStatusType = "IdentityStatuses.omni.sidero.dev";
 export const SAMLLabelPrefix = "saml.omni.sidero.dev/";
+export const OIDCLabelPrefix = "oidc.omni.sidero.dev/";
 export const LabelPublicKeyUserID = "user-id";
 export const LabelIdentityUserID = "user-id";
 export const LabelIdentityTypeServiceAccount = "type-service-account";

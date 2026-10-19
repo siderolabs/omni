@@ -32,6 +32,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/memconn"
+	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
+	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -52,6 +54,7 @@ func MakeServiceServers(
 	jwtSigningKeyProvider JWTSigningKeyProvider,
 	dnsService *dns.Service,
 	imageFactoryClients *imagefactory.Clients,
+	oidcVerifier *oidcauth.IDTokenVerifier,
 	logger *zap.Logger,
 	auditor AuditLogger,
 	cfg *config.Params,
@@ -68,9 +71,17 @@ func MakeServiceServers(
 		}
 	}
 
+	var oidcSyncer *user.Syncer
+
+	if oidcVerifier != nil {
+		oidcSyncer = user.NewSyncer(omniRuntime.ValidatedState(), logger, cfg.Auth.GetRecoveryAdmin(), cfg.Auth.Oidc.GetAutoCreateUsers())
+	}
+
 	auth, err := newAuthServer(
 		state,
 		cfg.Services,
+		oidcVerifier,
+		oidcSyncer,
 		logger.With(logging.Component("auth_server")),
 	)
 	if err != nil {

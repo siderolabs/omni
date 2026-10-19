@@ -8,12 +8,14 @@ package oidc_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"maps"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/oidc"
 )
@@ -36,6 +38,8 @@ func TestIDTokenVerifier(t *testing.T) {
 
 	for _, tt := range []struct {
 		issuedAt        time.Time
+		claims          jwt.MapClaims
+		expectedLabels  map[string]string
 		name            string
 		expectedError   string
 		unverifiedEmail bool
@@ -59,6 +63,16 @@ func TestIDTokenVerifier(t *testing.T) {
 			expectedError: "token is issued in the future",
 		},
 		{
+			name:     "groups and roles",
+			issuedAt: now,
+			// values of other types give no labels
+			claims: jwt.MapClaims{"groups": []any{"devs", "Omni Admins", 42}, "roles": map[string]any{"reader": true}},
+			expectedLabels: map[string]string{
+				authres.OIDCLabelPrefix + "groups/devs":        "",
+				authres.OIDCLabelPrefix + "groups/Omni Admins": "",
+			},
+		},
+		{
 			name:            "unverified email",
 			issuedAt:        now,
 			unverifiedEmail: true,
@@ -68,7 +82,7 @@ func TestIDTokenVerifier(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+			claims := jwt.MapClaims{
 				"iss":            testIssuer,
 				"aud":            testClientID,
 				"sub":            "1",
@@ -76,10 +90,14 @@ func TestIDTokenVerifier(t *testing.T) {
 				"exp":            now.Add(time.Hour).Unix(),
 				"email":          testEmail,
 				"email_verified": !tt.unverifiedEmail,
-			}).SignedString(key)
+			}
+
+			maps.Copy(claims, tt.claims)
+
+			token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(key)
 			require.NoError(t, err)
 
-			verified, err := verifier.Verify(t.Context(), token)
+			email, labels, err := verifier.VerifyWithLabels(t.Context(), token)
 			if tt.unverifiedEmail {
 				require.ErrorAs(t, err, new(*auth.EmailNotVerifiedError))
 			}
@@ -91,7 +109,11 @@ func TestIDTokenVerifier(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, testEmail, verified.VerifiedEmail)
+			require.Equal(t, testEmail, email)
+
+			if tt.expectedLabels != nil {
+				require.Equal(t, tt.expectedLabels, labels)
+			}
 		})
 	}
 }

@@ -196,8 +196,15 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
+	var oidcVerifier *oidcauth.IDTokenVerifier
+
 	if s.cfg.Auth.Oidc.GetEnabled() {
 		s.oidcProvider, err = coidc.NewProvider(ctx, s.cfg.Auth.Oidc.GetProviderURL())
+		if err != nil {
+			return err
+		}
+
+		oidcVerifier, err = oidcauth.NewIDTokenVerifier(ctx, s.oidcProvider, s.cfg.Auth.Oidc.GetClientID(), s.cfg.Auth.Oidc.GetAllowUnverifiedEmail())
 		if err != nil {
 			return err
 		}
@@ -227,6 +234,7 @@ func (s *Server) Run(ctx context.Context) error {
 		oidcStorage,
 		s.dnsService,
 		s.imageFactoryClients,
+		oidcVerifier,
 		s.logger,
 		s.state.Auditor(),
 		s.cfg,

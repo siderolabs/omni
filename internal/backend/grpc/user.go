@@ -107,11 +107,16 @@ func (s *managementServer) ListUsers(ctx context.Context, _ *emptypb.Empty) (*ma
 		samlLabels := map[string]string{}
 
 		for key, value := range identity.Metadata().Labels().Raw() {
-			if !strings.HasPrefix(key, authres.SAMLLabelPrefix) {
+			name, ok := strings.CutPrefix(key, authres.SAMLLabelPrefix)
+			if !ok {
+				name, ok = strings.CutPrefix(key, authres.OIDCLabelPrefix)
+			}
+
+			if !ok {
 				continue
 			}
 
-			samlLabels[strings.TrimPrefix(key, authres.SAMLLabelPrefix)] = value
+			samlLabels[name] = value
 		}
 
 		if len(samlLabels) > 0 {

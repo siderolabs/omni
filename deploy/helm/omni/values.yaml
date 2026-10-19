@@ -323,6 +323,10 @@ config:
       # AllowUnverifiedEmail controls whether users with unverified emails (without email_verified claim) are allowed
       # to authenticate.
       #allowUnverifiedEmail: false
+      # AutoCreateUsers controls whether OIDC users are created on their first login. They get the role from the
+      # matching SAML label rules, or None. The very first user of an instance becomes Admin. Enable it only when
+      # every account of the OIDC provider belongs to your organization.
+      #autoCreateUsers: false
     # -- InitialUsers is a list of emails which should be created as admins when Omni is run for the first time.
     initialUsers: []
     # Example:
@@ -330,8 +334,8 @@ config:
     #  - initial-user-1@example.com
     #  - initial-user-2@example.com
     # RecoveryAdmin is the email of a user raised to the Admin role on every Omni start. The user must already
-    # exist. Once configured, SAML label rules never lower its role. Intended as a break-glass path when a
-    # misconfigured SAML rule removes admin access from everyone.
+    # exist. Once configured, SAML label rules never lower its role, for both SAML and OIDC logins. Intended as a
+    # break-glass path when a misconfigured rule removes admin access from everyone.
     #recoveryAdmin: admin@example.com
     # RequireReauthForNewKeys makes every new public key (for the UI, the CLI or the workload proxy) require a fresh
     # login at the identity provider. When it is off, the identity provider may reuse its existing session, so its

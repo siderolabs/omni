@@ -276,6 +276,7 @@ func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 	b.StringSliceVar("auth.oidc.scopes", &flagConfig.Auth.Oidc.Scopes, flagConfig.Auth.Oidc.Scopes)
 	b.StringVar("auth.oidc.logoutURL", &flagConfig.Auth.Oidc.LogoutURL)
 	b.BoolVar("auth.oidc.allowUnverifiedEmail", &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
+	b.BoolVar("auth.oidc.autoCreateUsers", &flagConfig.Auth.Oidc.AutoCreateUsers)
 }
 
 func defineLogsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) error {

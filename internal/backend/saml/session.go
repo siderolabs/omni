@@ -16,12 +16,9 @@ import (
 	"net/http"
 	"net/mail"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/crewjam/saml"
@@ -30,8 +27,6 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/access/role"
-	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -65,7 +60,7 @@ func NewSessionProvider(
 		tracker:                 tracker,
 		logger:                  logger,
 		attributeRules:          attributeRules,
-		recoveryAdmin:           strings.ToLower(recoveryAdmin),
+		syncer:                  user.NewSyncer(state, logger, recoveryAdmin, true),
 		sloCookieKey:            sloCookieKey,
 		requireReauthForNewKeys: requireReauthForNewKeys,
 	}
@@ -78,7 +73,7 @@ type SessionProvider struct {
 	tracker                 samlsp.RequestTracker
 	logger                  *zap.Logger
 	attributeRules          map[string]string
-	recoveryAdmin           string
+	syncer                  *user.Syncer
 	sloCookieKey            []byte
 	requireReauthForNewKeys bool
 }
@@ -196,7 +191,7 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		return err
 	}
 
-	if err = sp.ensureUser(ctx, user.Identity, samlLabels); err != nil {
+	if err = sp.syncer.Sync(ctx, user.Identity, samlLabels); err != nil {
 		return err
 	}
 
@@ -337,153 +332,6 @@ func (sp *SessionProvider) ReadLabelsFromAssertion(ctx context.Context, assertio
 	}
 
 	return samlLabels, nil
-}
-
-func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLabels map[string]string) error {
-	users, err := sp.state.List(ctx, auth.NewUser("").Metadata())
-	if err != nil {
-		return err
-	}
-
-	var updateOnEachLogin bool
-
-	r := role.Admin
-
-	if len(users.Items) > 0 {
-		var samlLabelRule *auth.SAMLLabelRule
-
-		samlLabelRule, err = sp.getSAMLLabelRule(ctx, samlLabels)
-		if err != nil {
-			return err
-		}
-
-		r = role.None
-
-		if samlLabelRule != nil {
-			r = role.Role(getRoleFromRule(samlLabelRule))
-			updateOnEachLogin = samlLabelRule.TypedSpec().Value.UpdateOnEachLogin
-		}
-	}
-
-	if sp.recoveryAdmin != "" && email == sp.recoveryAdmin && r != role.Admin {
-		sp.logger.Warn(
-			"skipping SAML role update for the recovery admin",
-			zap.String("email", email),
-			zap.String("rule_role", string(r)),
-		)
-
-		updateOnEachLogin = false
-	}
-
-	if err = user.Ensure(ctx, sp.state, email, r, updateOnEachLogin); err != nil {
-		return err
-	}
-
-	if err = sp.updateIdentityLabels(ctx, email, samlLabels); err != nil {
-		return err
-	}
-
-	return err
-}
-
-func (sp *SessionProvider) updateIdentityLabels(ctx context.Context, identity string, samlLabels map[string]string) error {
-	identityPtr := auth.NewIdentity(identity).Metadata()
-
-	_, err := safe.StateUpdateWithConflicts[*auth.Identity](ctx, sp.state, identityPtr, func(r *auth.Identity) error {
-		var toDelete []string
-
-		for _, label := range r.Metadata().Labels().Keys() {
-			if !strings.HasPrefix(label, auth.SAMLLabelPrefix) {
-				continue
-			}
-
-			if _, ok := samlLabels[label]; !ok {
-				toDelete = append(toDelete, label)
-			}
-		}
-
-		r.Metadata().Labels().Do(func(temp kvutils.TempKV) {
-			for k, v := range samlLabels {
-				temp.Set(k, v)
-			}
-
-			for _, k := range toDelete {
-				temp.Delete(k)
-			}
-		})
-
-		return nil
-	})
-
-	return err
-}
-
-// getSAMLLabelRule returns the rule with highest role found in the SAML label rules.
-//
-// If there is no rule matching the labels, nil is returned.
-func (sp *SessionProvider) getSAMLLabelRule(ctx context.Context, samlLabels map[string]string) (*auth.SAMLLabelRule, error) {
-	labelRuleList, err := safe.ReaderListAll[*auth.SAMLLabelRule](ctx, sp.state)
-	if err != nil {
-		return nil, err
-	}
-
-	labelRules := slices.AppendSeq(make([]*auth.SAMLLabelRule, 0, labelRuleList.Len()), labelRuleList.All())
-
-	return MatchSAMLLabelRule(labelRules, samlLabels, sp.logger), nil
-}
-
-// MatchSAMLLabelRule returns the SAMLLabelRules with the highest access level that matches the labels.
-func MatchSAMLLabelRule(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[string]string, logger *zap.Logger) *auth.SAMLLabelRule {
-	samlRole := role.None
-
-	resLabels := resource.Labels{}
-
-	for key, value := range samlLabels {
-		resLabels.Set(key, value)
-	}
-
-	var rule *auth.SAMLLabelRule
-
-	for _, labelRule := range samlLabelRules {
-		selectors, selectorsErr := labels.ParseSelectors(labelRule.TypedSpec().Value.GetMatchLabels())
-		if selectorsErr != nil {
-			logger.Warn("skip invalid match labels on identity label rule", zap.Error(selectorsErr))
-
-			continue
-		}
-
-		if selectors.Matches(resLabels) {
-			parsedRole, parseErr := role.Parse(getRoleFromRule(labelRule))
-			if parseErr != nil {
-				logger.Warn("skip invalid role on identity label rule", zap.Error(parseErr))
-
-				continue
-			}
-
-			maxRole, maxErr := role.Max(parsedRole, samlRole)
-			if maxErr != nil {
-				logger.Warn("skip invalid role on identity label rule", zap.Error(maxErr))
-
-				continue
-			}
-
-			if rule == nil || samlRole.Compare(maxRole) == -1 {
-				rule = labelRule
-			}
-
-			samlRole = maxRole
-		}
-	}
-
-	return rule
-}
-
-func getRoleFromRule(r *auth.SAMLLabelRule) string {
-	if r.TypedSpec().Value.AssignRole != "" {
-		return r.TypedSpec().Value.AssignRole
-	}
-
-	return r.TypedSpec().Value.AssignRoleOnRegistration //nolint:staticcheck
 }
 
 const (

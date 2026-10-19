@@ -1084,6 +1084,17 @@ func (s *OIDC) SetAllowUnverifiedEmail(v bool) {
 	s.AllowUnverifiedEmail = &v
 }
 
+func (s *OIDC) GetAutoCreateUsers() bool {
+	if s == nil || s.AutoCreateUsers == nil {
+		return *new(bool)
+	}
+	return *s.AutoCreateUsers
+}
+
+func (s *OIDC) SetAutoCreateUsers(v bool) {
+	s.AutoCreateUsers = &v
+}
+
 func (s *OIDC) GetClientID() string {
 	if s == nil || s.ClientID == nil {
 		return *new(string)

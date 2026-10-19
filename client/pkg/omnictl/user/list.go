@@ -108,11 +108,16 @@ func listUsersLegacy(ctx context.Context, client *client.Client) error {
 		samlLabels := make([]string, 0, len(allLabels))
 
 		for key, value := range allLabels {
-			if !strings.HasPrefix(key, auth.SAMLLabelPrefix) {
+			name, ok := strings.CutPrefix(key, auth.SAMLLabelPrefix)
+			if !ok {
+				name, ok = strings.CutPrefix(key, auth.OIDCLabelPrefix)
+			}
+
+			if !ok {
 				continue
 			}
 
-			samlLabels = append(samlLabels, strings.TrimPrefix(key, auth.SAMLLabelPrefix)+"="+value)
+			samlLabels = append(samlLabels, name+"="+value)
 		}
 
 		slices.Sort(samlLabels)

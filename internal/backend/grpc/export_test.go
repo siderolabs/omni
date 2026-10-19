@@ -17,6 +17,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
+	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
+	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -94,7 +96,11 @@ func NewImageFactoryServer(st state.State, clients *imagefactory.Clients, logger
 }
 
 func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {
-	return newAuthServer(st, services, logger)
+	return newAuthServer(st, services, nil, nil, logger)
+}
+
+func NewOIDCAuthServer(st state.State, services config.Services, verifier *oidcauth.IDTokenVerifier, syncer *user.Syncer, logger *zap.Logger) (*AuthServer, error) {
+	return newAuthServer(st, services, verifier, syncer, logger)
 }
 
 func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher, nodeResolver router.NodeResolver) *ResourceServer {

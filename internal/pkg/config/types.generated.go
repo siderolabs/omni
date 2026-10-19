@@ -48,8 +48,8 @@ type Auth struct {
 
 	// RecoveryAdmin is the email of a user raised to the Admin role on every Omni
 	// start. The user must already exist. Once configured, SAML label rules never
-	// lower its role. Intended as a break-glass path when a misconfigured SAML rule
-	// removes admin access from everyone.
+	// lower its role, for both SAML and OIDC logins. Intended as a break-glass path
+	// when a misconfigured rule removes admin access from everyone.
 	RecoveryAdmin *string `json:"recoveryAdmin,omitempty,omitzero" yaml:"recoveryAdmin,omitempty"`
 
 	// RequireReauthForNewKeys makes every new public key (for the UI, the CLI or the
@@ -572,6 +572,12 @@ type OIDC struct {
 	// AllowUnverifiedEmail controls whether users with unverified emails (without
 	// email_verified claim) are allowed to authenticate.
 	AllowUnverifiedEmail *bool `json:"allowUnverifiedEmail,omitempty,omitzero" yaml:"allowUnverifiedEmail,omitempty"`
+
+	// AutoCreateUsers controls whether OIDC users are created on their first login.
+	// They get the role from the matching SAML label rules, or None. The very first
+	// user of an instance becomes Admin. Enable it only when every account of the
+	// OIDC provider belongs to your organization.
+	AutoCreateUsers *bool `json:"autoCreateUsers,omitempty,omitzero" yaml:"autoCreateUsers,omitempty"`
 
 	// ClientID is the OIDC client ID.
 	ClientID *string `json:"clientID,omitempty,omitzero" yaml:"clientID,omitempty"`
