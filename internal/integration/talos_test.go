@@ -531,27 +531,30 @@ func machineIsEmulated(machine *omni.MachineStatus) bool {
 func applyUpgradeGate(ctx context.Context, t *testing.T, kubeClient *kubernetes.Clientset, healthy string) {
 	configMaps := kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault)
 
-	_, err := configMaps.Create(ctx, &corev1.ConfigMap{
-		Name:   upgradeGateConfigMapName,
-		Labels: map[string]string{"healthy": healthy},
-	}, metav1.CreateOptions{})
-	if err == nil {
-		return
-	}
+	// the request can reach a control plane that is rebooting for the upgrade
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		_, err := configMaps.Create(ctx, &corev1.ConfigMap{
+			Name:   upgradeGateConfigMapName,
+			Labels: map[string]string{"healthy": healthy},
+		}, metav1.CreateOptions{})
+		if err == nil {
+			return
+		}
 
-	require.True(t, kubeerrors.IsAlreadyExists(err), "unexpected error creating upgrade gate configmap: %s", err)
+		require.True(collect, kubeerrors.IsAlreadyExists(err), "unexpected error creating upgrade gate configmap: %s", err)
 
-	configMap, err := configMaps.Get(ctx, upgradeGateConfigMapName, metav1.GetOptions{})
-	require.NoError(t, err)
+		configMap, err := configMaps.Get(ctx, upgradeGateConfigMapName, metav1.GetOptions{})
+		require.NoError(collect, err)
 
-	if configMap.Labels == nil {
-		configMap.Labels = map[string]string{}
-	}
+		if configMap.Labels == nil {
+			configMap.Labels = map[string]string{}
+		}
 
-	configMap.Labels["healthy"] = healthy
+		configMap.Labels["healthy"] = healthy
 
-	_, err = configMaps.Update(ctx, configMap, metav1.UpdateOptions{})
-	require.NoError(t, err)
+		_, err = configMaps.Update(ctx, configMap, metav1.UpdateOptions{})
+		require.NoError(collect, err)
+	}, 2*time.Minute, 2*time.Second, "failed to update the healthcheck configmap")
 }
 
 // applyUpgradeGateRBAC creates - via a KubernetesManifestGroup that Omni syncs into the workload cluster, as a
