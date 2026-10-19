@@ -11,6 +11,7 @@ import { computed, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineIdentitySpec } from '@/api/omni/specs/omni.pb'
 import {
@@ -50,6 +51,7 @@ const {
   data: kubeSpanLink,
   loading: kubeSpanLinkLoading,
   err: kubeSpanLinkErr,
+  errCode: kubeSpanLinkErrCode,
 } = useResourceWatch<LinkStatusSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
@@ -258,7 +260,10 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
   </PageContainer>
 
   <PageContainer v-else-if="kubeSpanLinkErr">
-    <TAlert type="error" title="Error">{{ kubeSpanLinkErr }}</TAlert>
+    <TAlert v-if="kubeSpanLinkErrCode === Code.UNAVAILABLE" type="warn" title="Machine not ready">
+      Talos API is not ready yet
+    </TAlert>
+    <TAlert v-else type="error" title="Error">{{ kubeSpanLinkErr }}</TAlert>
   </PageContainer>
 
   <KubeSpanStatusQuickStart v-else :cluster-id="clusterId" />

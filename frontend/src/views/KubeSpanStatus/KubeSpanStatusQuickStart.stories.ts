@@ -12,6 +12,7 @@ import type {
   ClusterConfigVersionSpec,
   ClusterSpec,
   ClusterStatusSpec,
+  ConfigPatchSpec,
 } from '@/api/omni/specs/omni.pb'
 import type { ClusterPermissionsSpec, VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
@@ -19,6 +20,7 @@ import {
   ClusterPermissionsType,
   ClusterStatusType,
   ClusterType,
+  ConfigPatchType,
   DefaultNamespace,
   VersionContractType,
   VirtualNamespace,
@@ -128,6 +130,23 @@ function permissionsHandler(spec: ClusterPermissionsSpec) {
   )
 }
 
+const kubeSpanPatchHandler = createWatchStreamHandler<ConfigPatchSpec>({
+  expectedOptions: {
+    namespace: DefaultNamespace,
+    type: ConfigPatchType,
+  },
+  initialResources: [
+    {
+      spec: {},
+      metadata: {
+        namespace: DefaultNamespace,
+        type: ConfigPatchType,
+        id: `500-${clusterId}-kubespan`,
+      },
+    },
+  ],
+}).handler
+
 const meta: Meta<typeof KubeSpanStatusQuickStart> = {
   component: KubeSpanStatusQuickStart,
   parameters: {
@@ -179,6 +198,19 @@ export const ReadOnly: Story = {
       clusterHandler,
       clusterConfigHandler,
       clusterStatusHandler(6),
+    )
+  },
+}
+
+export const Enabling: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      versionContractHandler({ kube_span_multidoc_config: true }),
+      permissionsHandler({ can_manage_config_patches: true }),
+      clusterHandler,
+      clusterConfigHandler,
+      clusterStatusHandler(6),
+      kubeSpanPatchHandler,
     )
   },
 }

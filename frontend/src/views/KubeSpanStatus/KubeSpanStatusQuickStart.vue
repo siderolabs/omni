@@ -128,9 +128,23 @@ const kubeSpanPatch = computedAsync(() => {
   return getPatch(versionContract.value.spec, 'kubeSpan')
 })
 
+const kubeSpanPatchId = computed(() => `500-${clusterId}-kubespan`)
+
+// Watch the patch this page creates, so the in-progress state survives reloads and is shared
+// across tabs while the nodes apply it and the KubeSpan link comes up.
+const { data: existingKubeSpanPatch } = useResourceWatch<ConfigPatchSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ConfigPatchType,
+    id: kubeSpanPatchId.value,
+  },
+}))
+
+const requested = computed(() => !!existingKubeSpanPatch.value)
+
 const confirmOpen = ref(false)
 const enabling = ref(false)
-const requested = ref(false)
 
 async function enableKubeSpan() {
   enabling.value = true
@@ -139,7 +153,7 @@ async function enableKubeSpan() {
     metadata: {
       namespace: DefaultNamespace,
       type: ConfigPatchType,
-      id: `500-${clusterId}-kubespan`,
+      id: kubeSpanPatchId.value,
       labels: {
         [LabelCluster]: clusterId,
       },
@@ -155,7 +169,6 @@ async function enableKubeSpan() {
   try {
     await ResourceService.Create(patch, withRuntime(Runtime.Omni))
 
-    requested.value = true
     confirmOpen.value = false
     showSuccess(
       'Enabling KubeSpan',
@@ -165,7 +178,6 @@ async function enableKubeSpan() {
     if (e instanceof RequestError) {
       switch (e.code) {
         case Code.ALREADY_EXISTS:
-          requested.value = true
           confirmOpen.value = false
           showSuccess(
             'Enabling KubeSpan',
