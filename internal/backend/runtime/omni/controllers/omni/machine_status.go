@@ -480,8 +480,8 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.PlatformMetadata = event.PlatformMetadata
 		}
 
-		if event.KernelCmdline != "" {
-			spec.KernelCmdline = event.KernelCmdline
+		if event.KernelCmdline != nil {
+			spec.KernelCmdline = *event.KernelCmdline
 		}
 
 		if event.ImageLabels != nil {

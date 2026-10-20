@@ -8,6 +8,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"io"
 	"maps"
 	"path/filepath"
 	"strings"
@@ -61,6 +62,9 @@ var machinePollers = map[string]machinePollFunction{
 	//
 	// the resource is still watched: the FIPS state follows the installed image, so it changes across upgrades.
 	"securityState": pollSecurityState,
+
+	// Talos below 1.11 has no KernelCmdline resource, the file is read instead.
+	"kernelCmdlineFile": pollKernelCmdlineFile,
 }
 
 var allPollers = merged(resourcePollers, machinePollers)
@@ -608,8 +612,34 @@ func pollDiagnostics(ctx context.Context, c *client.Client, info *Info) error {
 	return nil
 }
 
+// pollKernelCmdlineFile reads /proc/cmdline. The maintenance API does not serve file reads, so the command line of a machine
+// in maintenance is unknown.
+func pollKernelCmdlineFile(ctx context.Context, c *client.Client, info *Info) error {
+	if info.MaintenanceMode {
+		info.KernelCmdline = new("")
+
+		return nil
+	}
+
+	r, err := c.Read(ctx, "/proc/cmdline")
+	if err != nil {
+		return err
+	}
+
+	defer r.Close() //nolint:errcheck
+
+	cmdline, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	info.KernelCmdline = new(strings.TrimSpace(string(cmdline)))
+
+	return nil
+}
+
 func pollKernelCmdline(ctx context.Context, c *client.Client, info *Info) error {
-	info.KernelCmdline = ""
+	info.KernelCmdline = new("")
 
 	return forEachResource(
 		ctx,
@@ -617,7 +647,7 @@ func pollKernelCmdline(ctx context.Context, c *client.Client, info *Info) error 
 		runtime.NamespaceName,
 		runtime.KernelCmdlineType,
 		func(r *runtime.KernelCmdline) error {
-			info.KernelCmdline = r.TypedSpec().Cmdline
+			info.KernelCmdline = new(r.TypedSpec().Cmdline)
 
 			return nil
 		},

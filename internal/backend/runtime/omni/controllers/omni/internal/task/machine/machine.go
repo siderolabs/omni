@@ -70,7 +70,7 @@ type Info struct { //nolint:govet
 
 	Diagnostics []*specs.MachineStatusSpec_Diagnostic
 
-	KernelCmdline string
+	KernelCmdline *string
 }
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -296,6 +296,10 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	// the Linux kernel view of the CPUs is more accurate than the SMBIOS one, prefer it when Talos provides it
 	if _, ok := registeredTypes[hardware.CPUCoreType]; ok {
 		skipPollers[hardware.ProcessorType] = struct{}{}
+	}
+
+	if _, ok := registeredTypes[runtime.KernelCmdlineType]; ok {
+		skipPollers["kernelCmdlineFile"] = struct{}{}
 	}
 
 	if quirks.New(pointer.SafeDeref(info.TalosVersion)).SkipDataPartitions() {

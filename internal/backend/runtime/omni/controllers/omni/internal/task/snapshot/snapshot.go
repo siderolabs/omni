@@ -34,8 +34,8 @@ const (
 	bootIDProbeInterval = 30 * time.Second
 	// bootIDCheckTimeout is how long the collect task waits for the machine bootID to be available.
 	bootIDCheckTimeout = 5 * time.Second
-	// minTalosVersionForRead is the earliest Talos version whose MachineService implements the Read RPC;
-	// older machines always return Unimplemented for it, so boot ID collection is skipped below it.
+	// minTalosVersionForRead is the earliest Talos version whose maintenance mode serves the Read RPC
+	// (below it, maintenance mode answers Unimplemented), so boot ID collection is skipped below it.
 	minTalosVersionForRead = "1.13"
 )
 
@@ -172,9 +172,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	}
 }
 
-// talosSupportsBootID reports whether the connected machine's Talos version implements the Read RPC used
-// to fetch boot_id. Older machines always return Unimplemented for it, so callers should skip the attempt
-// entirely rather than pay the RPC round trip (and its timeout) on every probe.
+// talosSupportsBootID reports whether the connected machine's Talos version serves the Read RPC used to fetch
+// boot_id in maintenance mode. Older versions answer Unimplemented there, so callers skip the attempt entirely
+// rather than pay the RPC round trip (and its timeout) on every probe.
 func (spec CollectTaskSpec) talosSupportsBootID(ctx context.Context, c *client.Client, logger *zap.Logger) bool {
 	ctx, cancel := context.WithTimeout(ctx, bootIDCheckTimeout)
 	defer cancel()

@@ -5,4 +5,7 @@
 
 package machine
 
-var PollCPUCores = pollCPUCores
+var (
+	PollCPUCores          = pollCPUCores
+	PollKernelCmdlineFile = pollKernelCmdlineFile
+)

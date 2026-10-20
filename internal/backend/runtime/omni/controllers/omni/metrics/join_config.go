@@ -28,8 +28,9 @@ const (
 // also after its schematic carries the join config.
 //
 // The kernel args are read from the kernel command line, whatever put them there (the schematic, the bootloader, PXE).
-// It is empty below Talos 1.11, so the kernel args of the schematic are checked there instead,
-// and without join args in them the location is unknown, as the bootloader may still have added them.
+// Below Talos 1.11 it is read from /proc/cmdline, which the maintenance API does not serve, so it is empty for those machines
+// in maintenance: the kernel args of the schematic are checked instead, and without join args in them the location is unknown,
+// as the bootloader may still have added them.
 //
 // The embedded machine config is checked as text, so the schematic is not parsed for every machine each time the metrics are gathered.
 func joinConfigLocation(ms *omni.MachineStatus) string {
