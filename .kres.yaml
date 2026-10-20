@@ -883,6 +883,12 @@ spec:
             path: ^pkg/omnictl/
             text: Error return value of `fmt\.Fprint
 ---
+kind: js.Toolchain
+spec:
+  extraPackages:
+    # npm installs @siderolabs/talos-design-system from GitHub.
+    - git
+---
 kind: js.Build
 spec:
   licenseText: |
