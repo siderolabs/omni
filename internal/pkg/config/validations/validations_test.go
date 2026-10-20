@@ -35,20 +35,20 @@ func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
 		},
 		{
 			name:      "machine below MinTalosVersion",
-			versions:  map[string]string{"m1": "v1.8.0"},
+			versions:  map[string]string{"m1": "v1.9.0"},
 			expectErr: true,
 		},
 		{
 			name:     "machine at MinTalosVersion",
-			versions: map[string]string{"m1": "v1.9.0"},
-		},
-		{
-			name:     "machine above MinTalosVersion",
 			versions: map[string]string{"m1": "v1.10.0"},
 		},
 		{
+			name:     "machine above MinTalosVersion",
+			versions: map[string]string{"m1": "v1.11.0"},
+		},
+		{
 			name:      "mix of below and above",
-			versions:  map[string]string{"m1": "v1.7.0", "m2": "v1.10.0"},
+			versions:  map[string]string{"m1": "v1.7.0", "m2": "v1.11.0"},
 			expectErr: true,
 		},
 		{

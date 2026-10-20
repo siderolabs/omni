@@ -128,19 +128,19 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 		},
 		{
 			name:                   "machines approaching end of support",
-			machineVersions:        map[string]string{"m1": "v1.9.0", "m2": "v1.10.0", "m3": "v1.13.0"},
+			machineVersions:        map[string]string{"m1": "v1.10.0", "m2": "v1.11.0", "m3": "v1.13.0"},
 			expectApproaching:      true,
 			expectApproachingCount: 2,
 		},
 		{
 			name:                    "machines past end of support",
-			machineVersions:         map[string]string{"m1": "v1.7.0", "m2": "v1.8.0", "m3": "v1.13.0"},
+			machineVersions:         map[string]string{"m1": "v1.8.0", "m2": "v1.9.0", "m3": "v1.13.0"},
 			expectEndOfSupport:      true,
 			expectEndOfSupportCount: 2,
 		},
 		{
 			name:                    "mix of approaching and past end of support",
-			machineVersions:         map[string]string{"m1": "v1.8.0", "m2": "v1.9.0", "m3": "v1.13.0"},
+			machineVersions:         map[string]string{"m1": "v1.9.0", "m2": "v1.10.0", "m3": "v1.13.0"},
 			expectApproaching:       true,
 			expectApproachingCount:  1,
 			expectEndOfSupport:      true,
@@ -294,7 +294,7 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testi
 			})
 
 			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, ms.Metadata(), func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.TalosVersion = "v1.11.0"
+				res.TypedSpec().Value.TalosVersion = "v1.12.0"
 
 				return nil
 			})
