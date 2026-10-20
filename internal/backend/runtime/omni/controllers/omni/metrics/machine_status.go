@@ -93,6 +93,7 @@ type MachineStatusMetricsController struct {
 	metricMachinePlatforms                               *prometheus.GaugeVec
 	metricMachineSecureBootStatus                        *prometheus.GaugeVec
 	metricMachineUKIStatus                               *prometheus.GaugeVec
+	metricMachineJoinConfig                              *prometheus.GaugeVec
 }
 
 // Name implements controller.Controller interface.
@@ -190,6 +191,11 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 			Name: "omni_machine_uki_status",
 			Help: "Number of machines in the instance by UKI (Unified Kernel Image) status.",
 		}, []string{"booted_with_uki"})
+
+		ctrl.metricMachineJoinConfig = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_machine_siderolink_join_config",
+			Help: "Number of machines in the instance by where their SideroLink join config is.",
+		}, []string{"location"})
 
 		allPlatforms := platforms.CloudPlatforms()
 		allPlatforms = append(allPlatforms, platforms.MetalPlatform())
@@ -368,6 +374,13 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		"false":       0,
 	}
 
+	joinConfigMetrics := map[string]uint32{
+		joinConfigKernelArgs:    0,
+		joinConfigEmbedded:      0,
+		joinConfigMachineConfig: 0,
+		joinConfigUnknown:       0,
+	}
+
 	minTalosVer := semver.MustParse(constants.MinTalosVersion)
 	// Machines at MinTalosVersion or 1 minor above are "approaching talos end of support"
 	approachingThreshold := semver.Version{Major: minTalosVer.Major, Minor: minTalosVer.Minor + 2}
@@ -433,6 +446,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		cores += uint64(machineCores)
 		ctrl.coresMap[machineCores]++
 
+		joinConfigMetrics[joinConfigLocation(ms)]++
+
 		securityState := ms.TypedSpec().Value.SecurityState
 		if securityState != nil {
 			secureBootStatusMetrics[strconv.FormatBool(securityState.SecureBoot)]++
@@ -461,6 +476,10 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	for key, num := range ukiMetrics {
 		ctrl.metricMachineUKIStatus.WithLabelValues(key).Set(float64(num))
+	}
+
+	for key, num := range joinConfigMetrics {
+		ctrl.metricMachineJoinConfig.WithLabelValues(key).Set(float64(num))
 	}
 
 	ctrl.metricNumCores.Set(float64(cores))
@@ -512,6 +531,7 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.metricMachinePlatforms.Collect(ch)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)
+	ctrl.metricMachineJoinConfig.Collect(ch)
 }
 
 var _ prometheus.Collector = &MachineStatusMetricsController{}

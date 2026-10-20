@@ -272,6 +272,88 @@ func TestMachineStatusMetricsController_MachinesByCores(t *testing.T) {
 	)
 }
 
+func TestMachineStatusMetricsController_JoinConfigLocation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	ctrl := metrics.NewMachineStatusMetricsController(0)
+
+	registry := prometheus.NewRegistry()
+	require.NoError(t, registry.Register(ctrl))
+
+	const (
+		joinArg = "siderolink.api=https://omni.example.com:8090/?jointoken=abc"
+
+		embeddedRaw = `customization:
+  embeddedMachineConfiguration: |
+    apiVersion: v1alpha1
+    kind: FutureConfig
+    ---
+    apiVersion: v1alpha1
+    kind: SideroLinkConfig
+    apiUrl: https://omni.example.com:8090/?jointoken=abc
+`
+		kernelArgsRaw = "customization:\n  extraKernelArgs:\n    - " + joinArg + "\n"
+		noJoinRaw     = "customization:\n  extraKernelArgs:\n    - console=ttyS0\n"
+	)
+
+	machines := map[string]*specs.MachineStatusSpec{
+		"embedded":                  {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "a", Raw: embeddedRaw}, KernelCmdline: "console=ttyS0"},
+		"embedded-and-command-line": {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "a", Raw: embeddedRaw}, KernelCmdline: "console=ttyS0 " + joinArg},
+		"command-line":              {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "c", Raw: noJoinRaw}, KernelCmdline: "console=ttyS0 " + joinArg},
+		"no-command-line":           {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "b", Raw: kernelArgsRaw, KernelArgs: []string{joinArg}}},
+		"no-command-line-no-args":   {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "c", Raw: noJoinRaw}},
+		"synthesized-schematic":     {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "b", Raw: kernelArgsRaw, KernelArgs: []string{joinArg}}, KernelCmdline: "console=ttyS0"},
+		"machine-config":            {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "c", Raw: noJoinRaw}, KernelCmdline: "console=ttyS0"},
+		"invalid":                   {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "e", Raw: kernelArgsRaw, KernelArgs: []string{joinArg}, Invalid: true}, KernelCmdline: "console=ttyS0"},
+		"unknown":                   {},
+		"no-raw":                    {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "d"}, KernelCmdline: "console=ttyS0"},
+	}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(ctrl))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, spec := range machines {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value = spec
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.MachineStatusMetricsID, func(res *omni.MachineStatusMetrics, a *assert.Assertions) {
+				a.EqualValues(len(machines), res.TypedSpec().Value.RegisteredMachinesCount)
+			})
+
+			families, err := registry.Gather()
+			require.NoError(t, err)
+
+			byLocation := map[string]float64{}
+
+			for _, family := range families {
+				if family.GetName() != "omni_machine_siderolink_join_config" {
+					continue
+				}
+
+				for _, m := range family.GetMetric() {
+					byLocation[m.GetLabel()[0].GetValue()] = m.GetGauge().GetValue()
+				}
+			}
+
+			assert.Equal(t, map[string]float64{
+				"kernel_args":     2,
+				"embedded_config": 2,
+				"machine_config":  3,
+				"unknown":         3,
+			}, byLocation)
+		},
+	)
+}
+
 func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testing.T) {
 	t.Parallel()
 
