@@ -126,9 +126,10 @@ services:
   node-dev:
     network_mode: host
     container_name: local-node
-    image: ${JS_TOOLCHAIN}
+    image: ${JS_TOOLCHAIN:?error}
     volumes:
-      - ../../frontend:/app:rw
+      - ../../frontend:/app
+      - dev-node-modules:/app/node_modules
     working_dir: /app
     command: sh -c 'npm i && npm run serve'
     stop_signal: SIGKILL
@@ -200,3 +201,4 @@ volumes:
   audit-logs:
   grafana_data:
   dlv-tools:
+  dev-node-modules:
