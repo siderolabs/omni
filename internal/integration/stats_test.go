@@ -96,7 +96,7 @@ func statsLimitsHook(t *testing.T) {
 
 				v1api := v1.NewAPI(promClient)
 
-				value, warnings, err = v1api.Query(ctx, tt.query, time.Now())
+				value, warnings, _, err = v1api.Query(ctx, tt.query, time.Now())
 				if err != nil {
 					return retry.ExpectedError(err)
 				}

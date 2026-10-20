@@ -7,20 +7,28 @@ package image
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/containers/image/v5/docker/reference"
+	"github.com/google/go-containerregistry/pkg/name"
 )
 
 // GetTag returns image tag if it's available.
 func GetTag(imageRef string) (string, error) {
-	ref, err := reference.Parse(imageRef)
+	if _, err := name.ParseReference(imageRef); err != nil {
+		return "", err
+	}
+
+	// ParseReference drops the tag of a "repo:tag@digest" reference
+	repoWithTag, _, _ := strings.Cut(imageRef, "@")
+
+	tag, err := name.NewTag(repoWithTag, name.WithDefaultTag(""))
 	if err != nil {
 		return "", err
 	}
 
-	if tagged, ok := ref.(reference.Tagged); ok {
-		return tagged.Tag(), nil
+	if tag.TagStr() == "" {
+		return "", fmt.Errorf("image reference %q doesn't have a tag", imageRef)
 	}
 
-	return "", fmt.Errorf("image reference %q doesn't have a tag", imageRef)
+	return tag.TagStr(), nil
 }

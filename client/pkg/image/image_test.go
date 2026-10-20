@@ -38,6 +38,11 @@ func TestGetTag(t *testing.T) {
 			wantErr: `image reference "registry.k8s.io/kube-apiserver@sha256:99e1ed9fbc8a8d36a70f148f25130c02e0e366875249906be0bcb2c2d9df0c26" doesn't have a tag`,
 		},
 		{
+			name:  "image with tag and digest",
+			input: "registry.k8s.io/kube-apiserver:v1.26.1@sha256:99e1ed9fbc8a8d36a70f148f25130c02e0e366875249906be0bcb2c2d9df0c26",
+			want:  "v1.26.1",
+		},
+		{
 			name:    "iamge without tag",
 			input:   "docker.io/autonomy/installer",
 			wantErr: `image reference "docker.io/autonomy/installer" doesn't have a tag`,
@@ -45,7 +50,7 @@ func TestGetTag(t *testing.T) {
 		{
 			name:    "invalid image",
 			input:   "docker.io/autonomy/installer:latest:latest",
-			wantErr: "invalid reference format",
+			wantErr: "could not parse reference: docker.io/autonomy/installer:latest:latest",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

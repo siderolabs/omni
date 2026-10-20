@@ -13,8 +13,8 @@ import (
 	"path"
 	"slices"
 
-	celgo "github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common/types"
+	celgo "cel.dev/cel-go/cel"
+	"cel.dev/cel-go/common/types"
 	"github.com/siderolabs/gen/xslices"
 	blockpb "github.com/siderolabs/talos/pkg/machinery/api/resource/definitions/block"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"

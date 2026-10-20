@@ -58,6 +58,10 @@ export type ContainerSpecSpec = {
   dependsOn?: ContainerDependsOnSpec
 }
 
+export type ContainerDependencyStatusSpec = {
+  waitingFor?: string[]
+}
+
 export type ContainerImageStatusSpec = {
   phase?: string
   image?: string

@@ -68,6 +68,9 @@ export type DiskSpec = {
   sub_system?: string
   transport?: string
   rotational?: boolean
+  device_mapper_name?: string
+  device_mapper_uuid?: string
+  device_mapper_kind?: string
   secondary_disks?: string[]
   symlinks?: string[]
 }
@@ -240,6 +243,12 @@ export type SymlinkProvisioningSpec = {
   force?: boolean
 }
 
+export type TrimOptionsSpec = {
+  chunkSize?: number
+  chunkDelay?: string
+  minLength?: number
+}
+
 export type VolumeConfigSpec = {
   parentId?: string
   type?: string
@@ -250,6 +259,7 @@ export type VolumeConfigSpec = {
   symlink?: SymlinkProvisioningSpec
   trimEnabled?: boolean
   trimInterval?: string
+  trimOptions?: TrimOptionsSpec
   scrubEnabled?: boolean
   scrubInterval?: string
 }
@@ -303,6 +313,7 @@ export type VolumeStatusSpec = {
   encryptionAllowDiscards?: boolean
   trimEnabled?: boolean
   trimInterval?: string
+  trimOptions?: TrimOptionsSpec
   scrubEnabled?: boolean
   scrubInterval?: string
   mountSpec?: MountSpec
@@ -314,6 +325,7 @@ export type VolumeTrimScheduleSpec = {
   filesystem?: string
   interval?: string
   nextTrim?: string
+  options?: TrimOptionsSpec
 }
 
 export type ZswapStatusSpec = {

@@ -147,3 +147,34 @@ export type MDArrayStatusSpec = {
 export type MDRefreshRequestSpec = {
   request?: number
 }
+
+export type StoragePoolSpecSpec = {
+  volumeID?: string
+}
+
+export type StoragePoolStatusSpec = {
+  volumeID?: string
+  targetPath?: string
+  phase?: string
+  error?: string
+}
+
+export type StoragePoolVolumeSpecSpec = {
+  pool?: string
+  name?: string
+  capacity?: number
+  format?: string
+  backingFile?: string
+  backingFormat?: string
+}
+
+export type StoragePoolVolumeStatusSpec = {
+  pool?: string
+  name?: string
+  path?: string
+  format?: string
+  capacity?: number
+  pendingCapacity?: number
+  phase?: string
+  error?: string
+}

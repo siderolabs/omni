@@ -14,8 +14,48 @@ export type BootIDSpec = {
   bootID?: string
 }
 
+export type BootPartitionStatusSpec = {
+  partitionUUID?: string
+}
+
 export type BootedEntrySpec = {
   bootedEntry?: string
+}
+
+export type CPUPartitionSliceSpec = {
+  name?: string
+  cpus?: string
+  exclusive?: boolean
+}
+
+export type CPUPartitionSpecSpec = {
+  enabled?: boolean
+  roots?: {[key: string]: string}
+  slices?: CPUPartitionSliceSpec[]
+}
+
+export type CPUPartitionTargetStatus = {
+  key?: string
+  initial?: string
+  lastApplied?: string
+  intended?: string
+}
+
+export type CPUPartitionBlock = {
+  reason?: string
+  virtualMachines?: string[]
+  cpus?: string
+}
+
+export type CPUPartitionStatusSpec = {
+  phase?: string
+  targets?: CPUPartitionTargetStatus[]
+  exclusive?: string[]
+  blocked?: CPUPartitionBlock[]
+  enforcementLoss?: string[]
+  error?: string
+  admissionErrors?: CPUPartitionBlock[]
+  waiting?: string
 }
 
 export type DevicesStatusSpec = {
@@ -177,6 +217,7 @@ export type SecurityStateSpec = {
   bootedWithUKI?: boolean
   moduleSignatureEnforced?: boolean
   lockdownState?: string
+  secureBootAuthorityFingerprints?: string[]
 }
 
 export type ServicePIDSpec = {
@@ -208,4 +249,9 @@ export type WatchdogTimerStatusSpec = {
   device?: string
   timeout?: string
   feedInterval?: string
+}
+
+export type WorkloadMemorySpecSpec = {
+  talosContainersLimit?: number
+  virtualMachinesLimit?: number
 }

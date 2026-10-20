@@ -135,6 +135,12 @@ export type KubeletConfigSpec = {
   enableFSQuotaMonitoring?: boolean
   credentialProviderConfig?: {[key: string]: unknown}
   registerWithTaints?: {[key: string]: string}
+  kubepodsMemoryLimit?: number
+}
+
+export type KubeletCPUReservationSpec = {
+  managed?: boolean
+  reservedCPUs?: string
 }
 
 export type KubeletKubeconfigSpec = {

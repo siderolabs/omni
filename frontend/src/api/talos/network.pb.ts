@@ -250,6 +250,7 @@ export type VRFMasterSpec = {
 export type WireguardPeer = {
   publicKey?: string
   presharedKey?: string
+  presharedKeyConfigured?: boolean
   endpoint?: string
   persistentKeepaliveInterval?: string
   allowedIPs?: string[]
@@ -348,6 +349,25 @@ export type LinkStatusSpec = {
   vrfMaster?: VRFMasterSpec
   wireguard?: WireguardSpec
   veth?: VethSpec
+}
+
+export type LLDPVLANSpec = {
+  id?: number
+  name?: string
+}
+
+export type LLDPNeighborSpec = {
+  chassisID?: string
+  systemName?: string
+  systemDescription?: string
+  portID?: string
+  portDescription?: string
+  managementAddresses?: string[]
+  vlans?: LLDPVLANSpec[]
+}
+
+export type LLDPNeighborStatusSpec = {
+  neighbors?: LLDPNeighborSpec[]
 }
 
 export type NfTablesIfNameMatch = {
@@ -473,6 +493,10 @@ export type VIPOperatorSpec = {
   hcloud?: VIPHCloudSpec
 }
 
+export type LLDPOperatorSpec = {
+  linkIndex?: number
+}
+
 export type OperatorSpecSpec = {
   operator?: string
   linkName?: string
@@ -480,6 +504,7 @@ export type OperatorSpecSpec = {
   dhcp4?: DHCP4OperatorSpec
   dhcp6?: DHCP6OperatorSpec
   vip?: VIPOperatorSpec
+  lldp?: LLDPOperatorSpec
   layer?: string
 }
 

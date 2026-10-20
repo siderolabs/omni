@@ -34,6 +34,31 @@ export type CPUCoreSpec = {
   addressSizes?: string
 }
 
+export type CPUScalingSpecSpec = {
+  governor?: string
+  energyPerformancePreference?: string
+  minFrequencyKhz?: number
+  maxFrequencyKhz?: number
+  configName?: string
+}
+
+export type CPUScalingStatusSpec = {
+  driver?: string
+  affectedCPUs?: number[]
+  relatedCPUs?: number[]
+  availableGovernors?: string[]
+  availableEPPs?: string[]
+  governor?: string
+  energyPerformancePreference?: string
+  cpuinfoMinFrequencyKhz?: number
+  cpuinfoMaxFrequencyKhz?: number
+  baseFrequencyKhz?: number
+  cpuCapacity?: number
+  coreType?: string
+  scalingMinFrequencyKhz?: number
+  scalingMaxFrequencyKhz?: number
+}
+
 export type MemoryModuleSpec = {
   sizeMiB?: number
   deviceLocator?: string
@@ -43,6 +68,18 @@ export type MemoryModuleSpec = {
   serialNumber?: string
   assetTag?: string
   productName?: string
+}
+
+export type NUMANodeSpec = {
+  cpus?: number[]
+  memoryTotalBytes?: number
+  id?: number
+}
+
+export type NUMATopologySpec = {
+  nodes?: NUMANodeSpec[]
+  presentCPUs?: number[]
+  onlineCPUs?: number[]
 }
 
 export type PCIDriverRebindConfigSpec = {
