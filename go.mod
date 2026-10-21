@@ -77,7 +77,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.13
 	github.com/siderolabs/go-debug v0.6.3
 	github.com/siderolabs/go-kubernetes v0.2.43
-	github.com/siderolabs/go-loadbalancer v0.5.0
+	github.com/siderolabs/go-loadbalancer v0.5.1
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-talos-support v0.3.1

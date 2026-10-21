@@ -199,6 +199,9 @@ func (registry *Reconciler) newLB(upstreamAddresses []string) (loadBalancer, err
 		// Start with a zero score - we wait for the first health check to complete on .Pick(),
 		// after that is done, the score of non-healthy remotes will be negative, so it won't be picked.
 		upstream.WithInitialScore(0),
+		upstream.WithLowHighScores(-1, 3),
+		// short enough to recover within seconds, long enough to not dial every ready node of the cluster every second
+		upstream.WithUnhealthyHealthcheckInterval(5 * time.Second),
 	}
 
 	if registry.lazyStopAfter > 0 {

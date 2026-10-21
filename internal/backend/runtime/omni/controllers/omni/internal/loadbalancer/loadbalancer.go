@@ -7,6 +7,8 @@
 package loadbalancer
 
 import (
+	"time"
+
 	"github.com/siderolabs/go-loadbalancer/controlplane"
 	"github.com/siderolabs/go-loadbalancer/upstream"
 	"go.uber.org/zap"
@@ -39,6 +41,8 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig c
 		controlplane.WithHealthCheckOptions(
 			upstream.WithHealthcheckInterval(lbConfig.GetHealthCheckInterval()),
 			upstream.WithHealthcheckTimeout(lbConfig.GetHealthCheckTimeout()),
+			upstream.WithLowHighScores(-1, 3),
+			upstream.WithUnhealthyHealthcheckInterval(time.Second),
 		),
 	)
 }
