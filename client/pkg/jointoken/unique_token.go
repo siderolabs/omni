@@ -108,6 +108,16 @@ func (t *NodeUniqueToken) HasToken() bool {
 	return t.Token != ""
 }
 
+// HashNodeUniqueToken returns the SHA-256 of an encoded node unique token, hex encoded.
+//
+// The hash is stored in the resources which are readable by more roles than the token itself, e.g., InfraMachine,
+// where the token is only compared and never used.
+func HashNodeUniqueToken(encoded string) string {
+	sum := sha256.Sum256([]byte(encoded))
+
+	return hex.EncodeToString(sum[:])
+}
+
 // ParseNodeUniqueToken from the marshaled version.
 func ParseNodeUniqueToken(data string) (*NodeUniqueToken, error) {
 	if data == "" {

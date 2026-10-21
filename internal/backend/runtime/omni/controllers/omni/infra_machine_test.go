@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -42,6 +43,11 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	link.Metadata().Labels().Set(omni.LabelInfraProviderID, "bare-metal")
 	suite.Require().NoError(suite.state.Create(suite.ctx, link))
 
+	nodeUniqueToken := siderolink.NewNodeUniqueToken("machine-1")
+
+	nodeUniqueToken.TypedSpec().Value.Token = "test-token"
+	suite.Require().NoError(suite.state.Create(suite.ctx, nodeUniqueToken))
+
 	infraMachine := infra.NewMachine("machine-1")
 	infraMachineMD := infraMachine.Metadata()
 
@@ -56,6 +62,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Empty(r.TypedSpec().Value.Extensions)
 		assertion.Empty(r.TypedSpec().Value.WipeId)
 		assertion.Zero(r.TypedSpec().Value.InstallEventId)
+		assertion.Equal(jointoken.HashNodeUniqueToken("test-token"), r.TypedSpec().Value.NodeUniqueToken)
 	})
 
 	machineStatus := omni.NewMachineStatus("machine-1")

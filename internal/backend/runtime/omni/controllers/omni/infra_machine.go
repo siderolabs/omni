@@ -20,6 +20,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -288,7 +289,7 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 	infraMachine.Metadata().Labels().Set(omni.LabelInfraProviderID, helper.providerID)
 
 	if helper.nodeUniqueToken != nil {
-		infraMachine.TypedSpec().Value.NodeUniqueToken = helper.nodeUniqueToken.TypedSpec().Value.Token
+		infraMachine.TypedSpec().Value.NodeUniqueToken = jointoken.HashNodeUniqueToken(helper.nodeUniqueToken.TypedSpec().Value.Token)
 	}
 
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, helper.runtime, helper.link.Metadata().ID())

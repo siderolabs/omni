@@ -281,12 +281,13 @@ func TestProvision(t *testing.T) {
 		},
 	} {
 		for _, tt := range []struct {
-			request           *pb.ProvisionRequest
-			linkSpec          *specs.SiderolinkSpec
-			errcheck          func(t *testing.T, err error)
-			nodeUniqueToken   string
-			name              string
-			talosNotInstalled bool
+			request              *pb.ProvisionRequest
+			linkSpec             *specs.SiderolinkSpec
+			errcheck             func(t *testing.T, err error)
+			nodeUniqueToken      string
+			wipedNodeUniqueToken string
+			name                 string
+			talosNotInstalled    bool
 		}{
 			{
 				name: "same fingerprint, valid join token, talos installed",
@@ -301,6 +302,36 @@ func TestProvision(t *testing.T) {
 				errcheck: func(t *testing.T, err error) {
 					require.Error(t, err)
 					require.Equal(t, codes.PermissionDenied, status.Code(err))
+				},
+			},
+			{
+				name: "same fingerprint, valid join token, talos installed, token wiped",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: new(validFingerprintOnly),
+					TalosVersion:    new("v1.6.0"),
+					JoinToken:       new(validToken),
+				},
+				linkSpec:             &specs.SiderolinkSpec{},
+				nodeUniqueToken:      validToken,
+				wipedNodeUniqueToken: jointoken.HashNodeUniqueToken(validToken),
+				errcheck: func(t *testing.T, err error) {
+					require.NoError(t, err)
+				},
+			},
+			{
+				name: "same fingerprint, valid join token, talos installed, token wiped before the hash",
+				request: &pb.ProvisionRequest{
+					NodePublicKey:   genKey(),
+					NodeUniqueToken: new(validFingerprintOnly),
+					TalosVersion:    new("v1.6.0"),
+					JoinToken:       new(validToken),
+				},
+				linkSpec:             &specs.SiderolinkSpec{},
+				nodeUniqueToken:      validToken,
+				wipedNodeUniqueToken: validToken,
+				errcheck: func(t *testing.T, err error) {
+					require.NoError(t, err)
 				},
 			},
 			{
@@ -462,6 +493,14 @@ func TestProvision(t *testing.T) {
 					}
 
 					require.NoError(t, state.Create(ctx, link))
+				}
+
+				if tt.wipedNodeUniqueToken != "" {
+					machineStatus := infra.NewMachineStatus(machine)
+
+					machineStatus.TypedSpec().Value.WipedNodeUniqueToken = tt.wipedNodeUniqueToken
+
+					require.NoError(t, state.Create(ctx, machineStatus))
 				}
 
 				tt.request.NodeUuid = machine

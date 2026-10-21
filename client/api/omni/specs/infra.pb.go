@@ -351,7 +351,10 @@ type InfraMachineSpec struct {
 	// - Comparing the value of this counter with the stored value to determine if Talos is installed:
 	//   It is installed if the value of the counter is greater than the stored value.
 	InstallEventId uint64 `protobuf:"varint,9,opt,name=install_event_id,json=installEventId,proto3" json:"install_event_id,omitempty"`
-	// NodeUniqueToken is copied from the corresponding siderolink.Link resource.
+	// NodeUniqueToken is the SHA-256 hash of the node unique token of the machine, hex encoded.
+	//
+	// It is a hash and not the token itself, because this resource is readable by the Reader role and the
+	// bare metal infra provider only compares this value with the one it wiped.
 	NodeUniqueToken string `protobuf:"bytes,10,opt,name=node_unique_token,json=nodeUniqueToken,proto3" json:"node_unique_token,omitempty"`
 	// PowerOffRequestId is generally copied from InfraMachineConfig. Omni may clear this field on the
 	// InfraMachine spec when the machine is unallocated or being deallocated, even if the config field
@@ -524,7 +527,7 @@ type InfraMachineStatusSpec struct {
 	LastRebootTimestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_reboot_timestamp,json=lastRebootTimestamp,proto3" json:"last_reboot_timestamp,omitempty"`
 	Installed           bool                   `protobuf:"varint,5,opt,name=installed,proto3" json:"installed,omitempty"`
 	// WipedNodeUniqueToken is updated when the bare metal infra provider wipes the machine.
-	// It reads the current token from the infra.Machine resource and updates it here.
+	// It reads the current NodeUniqueToken hash from the infra.Machine resource and updates it here.
 	WipedNodeUniqueToken string `protobuf:"bytes,6,opt,name=wiped_node_unique_token,json=wipedNodeUniqueToken,proto3" json:"wiped_node_unique_token,omitempty"`
 	// LastPowerOffId is the power-off request ID that the infra provider is currently honoring.
 	// It is empty if the provider is not honoring any power-off request, either because there is no

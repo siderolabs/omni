@@ -59,7 +59,10 @@ message InfraMachineSpec {
   //   It is installed if the value of the counter is greater than the stored value.
   uint64 install_event_id = 9;
 
-  // NodeUniqueToken is copied from the corresponding siderolink.Link resource.
+  // NodeUniqueToken is the SHA-256 hash of the node unique token of the machine, hex encoded.
+  //
+  // It is a hash and not the token itself, because this resource is readable by the Reader role and the
+  // bare metal infra provider only compares this value with the one it wiped.
   string node_unique_token = 10;
 
   // PowerOffRequestId is generally copied from InfraMachineConfig. Omni may clear this field on the
@@ -90,7 +93,7 @@ message InfraMachineStatusSpec {
   google.protobuf.Timestamp last_reboot_timestamp = 4;
   bool installed = 5;
   // WipedNodeUniqueToken is updated when the bare metal infra provider wipes the machine.
-  // It reads the current token from the infra.Machine resource and updates it here.
+  // It reads the current NodeUniqueToken hash from the infra.Machine resource and updates it here.
   string wiped_node_unique_token = 6;
 
   // LastPowerOffId is the power-off request ID that the infra provider is currently honoring.

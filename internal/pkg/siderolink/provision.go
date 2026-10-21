@@ -811,7 +811,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 			return nil, err
 		}
 
-		if machineStatus != nil && nodeUniqueToken.TypedSpec().Value.Token == machineStatus.TypedSpec().Value.WipedNodeUniqueToken {
+		if nodeUniqueTokenWasWiped(machineStatus, nodeUniqueToken.TypedSpec().Value.Token) {
 			forceValidUniqueToken = false
 
 			tokenWasWiped = true
@@ -836,6 +836,18 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *za
 		supportsSecureJoinTokens:  siderolink.SupportsSecureJoinTokens(talosVersion),
 		useWireguardOverGRPC:      useWireguardOverGRPC,
 	}, nil
+}
+
+// nodeUniqueTokenWasWiped reports whether the infra provider wiped the machine while it had the given node unique token.
+func nodeUniqueTokenWasWiped(machineStatus *infra.MachineStatus, token string) bool {
+	if machineStatus == nil {
+		return false
+	}
+
+	wiped := machineStatus.TypedSpec().Value.WipedNodeUniqueToken
+
+	// a wipe status written by an older version holds the token itself
+	return wiped == jointoken.HashNodeUniqueToken(token) || wiped == token
 }
 
 // validateTokenWithExtraData verifies the signature of a token which carries extra data.
