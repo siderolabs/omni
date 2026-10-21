@@ -156,3 +156,67 @@ func TestConfigContextSelection(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(after), "context: production\n")
 }
+
+func TestConfigNewPath(t *testing.T) {
+	t.Parallel()
+
+	if os.Getenv("OMNI_TEST_CONFIG_NEW_PATH") == "1" {
+		omnictl.RootCmd.SetArgs(os.Args[slices.Index(os.Args, "--")+1:])
+
+		if err := omnictl.Execute(); err != nil {
+			os.Exit(1)
+		}
+
+		os.Exit(0)
+	}
+
+	const existing = "context: default\ncontexts:\n  default:\n    url: https://existing.example.org\n"
+
+	files := []string{"environment.yaml", "flag.yaml", "positional.yaml"}
+
+	for _, tt := range []struct {
+		name string
+		want string
+		args []string
+	}{
+		{name: "omniconfig flag", args: []string{"--omniconfig", "flag.yaml"}, want: "flag.yaml"},
+		{name: "positional path overrides flag", args: []string{"--omniconfig", "flag.yaml", "positional.yaml"}, want: "positional.yaml"},
+		{name: "positional path overrides environment", args: []string{"positional.yaml"}, want: "positional.yaml"},
+		{name: "environment fallback", want: "environment.yaml"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			dir := t.TempDir()
+
+			for _, file := range files {
+				if file != tt.want {
+					require.NoError(t, os.WriteFile(filepath.Join(dir, file), []byte(existing), 0o600))
+				}
+			}
+
+			args := append([]string{"-test.run=^TestConfigNewPath$", "--", "config", "new"}, tt.args...)
+			args = append(args, "--url", "https://new.example.org", "--identity", "dev@example.org")
+			cmd := exec.CommandContext(t.Context(), os.Args[0], args...)
+
+			cmd.Dir = dir
+
+			cmd.Env = append(os.Environ(), "OMNI_TEST_CONFIG_NEW_PATH=1", "OMNICONFIG=environment.yaml")
+
+			output, err := cmd.CombinedOutput()
+			require.NoError(t, err, string(output))
+
+			for _, file := range files {
+				contents, err := os.ReadFile(filepath.Join(dir, file))
+				require.NoError(t, err)
+
+				if file == tt.want {
+					require.Contains(t, string(contents), "url: https://new.example.org\n")
+					require.Contains(t, string(contents), "identity: dev@example.org\n")
+				} else {
+					require.Equal(t, existing, string(contents))
+				}
+			}
+		})
+	}
+}

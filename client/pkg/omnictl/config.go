@@ -219,9 +219,11 @@ var configNewCmdFlags struct {
 var configNewCmd = &cobra.Command{
 	Use:   "new [<path>]",
 	Short: "Generate a new client configuration file",
-	Args:  cobra.RangeArgs(0, 1),
+	Long: "The file is written to <path> if given, otherwise to the path set by --omniconfig, " +
+		"otherwise to the path in the OMNICONFIG environment variable, otherwise to the default path.",
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(_ *cobra.Command, args []string) error {
-		path := ""
+		path := access.CmdFlags.Omniconfig
 		if len(args) > 0 {
 			path = args[0]
 		}
