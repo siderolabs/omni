@@ -6,7 +6,7 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.11.0"
+previous = "v1.12.0"
 
 [notes.aaa-boltdb-deprecation]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
@@ -38,15 +38,6 @@ the `--eula-accept-name` and `--eula-accept-email` flags (`eulaAccept` in the co
 Omni does not start until the EULA is accepted. Once accepted, it stays accepted, so a new installation needs the flags \
 only on its first start. Setting them again with different values updates the stored name and email. Installations that \
 already accepted the EULA need no changes.
-"""
-
-[notes.image-factory-api-token]
-title = "Image Factory API Token Authentication"
-description = """\
-Omni can now authenticate to the image factory with an API token instead of the deprecated download and node tokens. \
-Configure it with `registries.factories.<primary|secondary>.tokenFile` (or `--primary-factory-token-file`), pointing to a file \
-containing the token; Omni watches the file and picks up rotations without a restart. Basic auth is still supported for \
-self-hosted factories using htpasswd.
 """
 
 [notes.local-resource-service]
@@ -81,4 +72,126 @@ as the install image in its config changes to the new schematic.
 If you give Talos 1.12+ machines their configuration through another source, such as cloud user-data, the `talos.config` URL, \
 or the `talos.config.early` and `talos.config.inline` kernel args, include the join documents in it (`omnictl jointoken machine-config` prints them), \
 since that configuration replaces the embedded one.
+
+The new `omni_machine_siderolink_join_config` metric counts the machines by where their SideroLink join configuration is: `embedded_config`, \
+`kernel_args`, `machine_config` or `unknown`. It shows how many machines already have the join configuration in their schematic.
+"""
+
+[notes.config-try-mode]
+title = "Config Changes Applied in Try Mode"
+description = """\
+On machines running Talos 1.14 or later, Omni now applies config changes in try mode. It confirms a change only when the machine is still reachable \
+after it. When a config patch cuts a machine off from Omni (e.g., incorrect network configuration), Talos rolls it back, and the machine does not \
+stay unreachable.
+
+After 2 rolled back attempts, Omni stops and reports the error on the machine. Changing the config starts over. The first config, which takes a \
+machine out of maintenance mode, is still applied without try mode.
+
+Errors when applying a config to a machine in maintenance mode are now shown in the machine list and on the machine details page.
+"""
+
+[notes.oidc-identity-labels]
+title = "OIDC Identity Labels and Roles"
+description = """\
+OIDC logins now get identity labels, like SAML logins. The `groups` and `roles` claims of the ID token become labels on the identity, e.g., \
+`oidc.omni.sidero.dev/groups/devs`. They are synced on every login. The existing `SAMLLabelRule` resources apply to these labels too, so a rule \
+assigns a role to an OIDC user the same way it does to a SAML user.
+
+By default, OIDC users are still not created on their first login. To create them like SAML users, set `auth.oidc.autoCreateUsers` \
+(`--auth-oidc-auto-create-users`). Only do this when every account of the identity provider belongs to the organization.
+
+The labels are shown in the users list of the UI and in `omnictl user list`.
+"""
+
+[notes.saml-request-signing]
+title = "Signed SAML Requests"
+description = """\
+Omni can now sign the SAML `AuthnRequest` and `LogoutRequest`. To enable it, register a certificate at the identity provider, then set \
+`auth.saml.certFile` and `auth.saml.keyFile` (`--auth-saml-cert`, `--auth-saml-key`). Omni publishes the certificate in `/saml/metadata`.
+
+The `LogoutRequest` is sent over the HTTP-Redirect binding when the identity provider supports it, and over HTTP-POST otherwise.
+"""
+
+[notes.secret-flags-deprecation]
+title = "Secrets Through Environment Variables"
+description = """\
+The OIDC client secret can now be set with the `OMNI_AUTH_OIDC_CLIENT_SECRET` environment variable, like the image factory passwords.
+
+The flags that take a secret as their value are deprecated: `--auth-oidc-client-secret`, `--primary-factory-password`, `--secondary-factory-password` \
+and `--image-factory-password`.  Use the environment variables or a config file instead. `--config-path` can be given more than once, and the files are merged.
+"""
+
+[notes.audit-log-client-address]
+title = "Client Address in Audit Logs"
+description = """\
+Audit log entries now record the address of the client that made the request. This includes requests to the Kubernetes proxy. The audit log page shows \
+the address next to the actor.
+"""
+
+[notes.service-account-key-revocation]
+title = "Service Account Key Revocation"
+description = """\
+A single key of a service account can now be revoked, and the service account and its other keys stay. Use \
+`omnictl serviceaccount revoke-key <name> <public-key-id>`, or the list of keys on the service accounts page in the UI.
+"""
+
+[notes.join-token-labels]
+title = "Machine Labels Through Join Tokens"
+description = """\
+A join token can now carry machine labels, set with `omnictl jointoken machine-config|kernel-args --set-labels key=value`. A machine that joins with \
+such a token gets these labels as user labels, so they can be changed later like any other user label. A machine that already has user labels keeps \
+them.
+"""
+
+[notes.deprecated-talos-maintenance-upgrade]
+title = "Upgrades Between Unsupported Talos Versions in Maintenance"
+description = """\
+A machine in maintenance mode that runs a Talos version Omni no longer supports can now be upgraded to another unsupported version. This way, an old \
+machine can go through the intermediate versions Talos requires (e.g., 1.7 to 1.8 to 1.9) until it reaches a supported one.
+"""
+
+[notes.default-version-label]
+title = "Default Version Label"
+description = """\
+The `TalosVersion` and `KubernetesVersion` resources that Omni uses as its defaults now carry the `omni.sidero.dev/default-version` label. Clients can \
+find the default versions with a label query.
+"""
+
+[notes.min-talos-version]
+title = "Minimum Talos Version"
+description = """\
+New clusters now require Talos 1.10.0 or later. The minimum was 1.9.0 before.
+"""
+
+
+[notes.resource-browser]
+title = "Resource Browser"
+description = """\
+The UI has a new resource browser. It lists every Omni and Talos resource the user can read, with search and export, and is meant for debugging.
+"""
+
+[notes.ui-design-refresh]
+title = "UI Design Refresh and Themes"
+description = """\
+The UI now uses the fonts and colors of the Talos design system. Each status has its own glyph, so states differ in shape and not only in color. \
+Labels are neutral, with a glyph for their group.
+
+The UI now has a light theme, and a second dark theme, Dim, which uses Omni's original blue-grey colors. The theme menu at the right end of the top \
+bar offers Light, Dark, Dim and System. System is the default and follows the operating system.
+
+Config history and pending updates use a new diff view with split and inline modes. Code blocks have syntax highlighting.
+"""
+
+[notes.frontend-qol]
+title = "UI Improvements"
+description = """\
+The UI marks the Talos versions served from an enterprise image factory. The enterprise label is also shown on the cluster overview and in the Talos \
+update, upgrade and install dialogs.
+
+The cluster security page now says why scans are not available: either the cluster does not run enterprise images, or the factory has no scan report \
+for its schematic yet. Installation media downloads show a loading state, and a message when the enterprise factory does not support the selected \
+Talos version.
+
+Every page has its own browser tab title, e.g., "Overview · my-cluster · Clusters · Omni". The version selectors group Talos versions by minor \
+version. Users with no avatar from the identity provider get one generated from their name or email.
 """
