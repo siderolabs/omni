@@ -1674,7 +1674,7 @@ Test Omni upgrades, the second half that runs on the current Omni version
 
 		parentCtx := t.Context()
 
-		t.Run("AssertNoPendingMachineUpdates", AssertNoPendingMachineUpdates(t.Context(), options, clusterName))
+		t.Run("ClusterShouldNotChange", AssertClusterSnapshotHolds(t.Context(), options, clusterName, time.Minute))
 
 		// unlock the cluster
 		t.Run("UnlockCluster", func(t *testing.T) {
