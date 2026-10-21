@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
 import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
+import { flushPromises } from '@vue/test-utils'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -42,6 +43,7 @@ vi.mock('@auth0/auth0-vue', () => ({
 vi.mock('@/api/omni/auth/auth.pb', () => ({
   AuthService: {
     ConfirmPublicKey: vi.fn(),
+    RegisterPublicKey: vi.fn(),
   },
 }))
 
@@ -82,7 +84,9 @@ test('Forwards query string for SAML auth', async () => {
   })
 
   expect(router.currentRoute.value.fullPath).toBe(`/${expectedQueryString}`)
-  expect(locationHrefSpy).toHaveBeenCalledExactlyOnceWith(`/login${expectedQueryString}`)
+  await waitFor(() =>
+    expect(locationHrefSpy).toHaveBeenCalledExactlyOnceWith(`/login${expectedQueryString}`),
+  )
 })
 
 describe('Retries the login once when the public key is rejected', () => {
@@ -98,6 +102,8 @@ describe('Retries the login once when the public key is rejected', () => {
     )
 
     vi.mocked(useAuth0).mockReturnValue({
+      isLoading: ref(false),
+      isAuthenticated: ref(true),
       user: ref({ email: 'user@example.com' }),
       idTokenClaims: ref({ __raw: token }),
       loginWithRedirect,
@@ -178,6 +184,139 @@ describe('Retries the login once when the public key is rejected', () => {
         'invalid jwt',
       ),
     )
+    expect(loginWithRedirect).not.toHaveBeenCalled()
+  })
+})
+
+test('Waits for the provider to load before logging in', async () => {
+  vi.clearAllMocks()
+
+  authType.value = AuthType.Auth0
+
+  const isLoading = ref(true)
+  const loginWithRedirect = vi.fn()
+
+  vi.mocked(useAuth0).mockReturnValue({
+    isLoading,
+    isAuthenticated: ref(false),
+    user: ref(undefined),
+    idTokenClaims: ref(undefined),
+    loginWithRedirect,
+  } as unknown as ReturnType<typeof useAuth0>)
+
+  await router.push({ path: '/', query: { flow: 'frontend' } })
+  await router.isReady()
+
+  render(Authenticate, {
+    global: {
+      plugins: [router],
+    },
+  })
+
+  expect(loginWithRedirect).not.toHaveBeenCalled()
+
+  isLoading.value = false
+
+  await waitFor(() =>
+    expect(loginWithRedirect).toHaveBeenCalledExactlyOnceWith({
+      appState: { target: '/?flow=frontend' },
+      authorizationParams: undefined,
+    }),
+  )
+})
+
+// An unsolicited SAML response carries no flow, so a forged login must not skip the confirmation
+test('Requires confirmation to log in without a frontend flow', async () => {
+  vi.clearAllMocks()
+
+  authType.value = AuthType.SAML
+
+  vi.mocked(AuthService.RegisterPublicKey).mockResolvedValue({ public_key_id: 'key-id' })
+  vi.mocked(AuthService.ConfirmPublicKey).mockResolvedValue({})
+
+  await router.push({ path: '/', query: { session: 'session', identity: 'user@example.com' } })
+  await router.isReady()
+
+  mockLocation(router.currentRoute.value.fullPath.slice(1))
+
+  render(Authenticate, {
+    global: {
+      plugins: [router],
+    },
+  })
+
+  const logInButton = await screen.findByRole('button', { name: 'Log In' })
+
+  await flushPromises()
+
+  expect(AuthService.RegisterPublicKey).not.toHaveBeenCalled()
+  expect(AuthService.ConfirmPublicKey).not.toHaveBeenCalled()
+
+  await fireEvent.click(logInButton)
+
+  await waitFor(() =>
+    expect(AuthService.ConfirmPublicKey).toHaveBeenCalledExactlyOnceWith(
+      { public_key_id: 'key-id' },
+      expect.anything(),
+    ),
+  )
+})
+
+describe('Shows an error instead of logging in again when the identity provider gives no email', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  async function authenticate(query: Record<string, string>) {
+    await router.push({ path: '/', query: { flow: 'frontend', ...query } })
+    await router.isReady()
+
+    const locationHrefSpy = mockLocation(router.currentRoute.value.fullPath.slice(1))
+
+    render(Authenticate, {
+      global: {
+        plugins: [router],
+      },
+    })
+
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledExactlyOnceWith(
+        'Failed to generate keys',
+        'An email is required to issue keys',
+      ),
+    )
+
+    return locationHrefSpy
+  }
+
+  test.each([
+    { name: 'without an email claim', token: `header.${btoa(JSON.stringify({}))}.signature` },
+    { name: 'that cannot be decoded', token: 'not-a-jwt' },
+  ])('OIDC with a token $name', async ({ token }) => {
+    authType.value = AuthType.OIDC
+
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const locationHrefSpy = await authenticate({ token })
+
+    expect(locationHrefSpy).not.toHaveBeenCalled()
+  })
+
+  test('Auth0 with a user without an email', async () => {
+    authType.value = AuthType.Auth0
+
+    const loginWithRedirect = vi.fn()
+
+    vi.mocked(useAuth0).mockReturnValue({
+      isLoading: ref(false),
+      isAuthenticated: ref(true),
+      user: ref({}),
+      idTokenClaims: ref({ __raw: 'token' }),
+      loginWithRedirect,
+    } as unknown as ReturnType<typeof useAuth0>)
+
+    await authenticate({})
+
     expect(loginWithRedirect).not.toHaveBeenCalled()
   })
 })

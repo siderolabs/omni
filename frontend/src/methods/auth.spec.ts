@@ -25,6 +25,7 @@ vi.mock('@auth0/auth0-vue', () => ({
 
 vi.mock('@/methods/identity')
 vi.mock('@/methods/key')
+vi.mock('vue-router', () => ({ useRoute: vi.fn() }))
 vi.mock('@/api/omni/auth/auth.pb', () => ({
   AuthService: {
     RevokePublicKey: vi.fn(),
@@ -163,7 +164,7 @@ describe('useLogout', () => {
     expect(mockIdentity.clear).toHaveBeenCalled()
   })
 
-  test.each([AuthType.SAML, AuthType.OIDC, AuthType.None])(
+  test.each([AuthType.SAML, AuthType.OIDC])(
     'should redirect to the identity provider logout when authType is %s',
     async (mockAuthType) => {
       vi.mocked(AuthService.RevokePublicKey).mockResolvedValue(
@@ -180,6 +181,21 @@ describe('useLogout', () => {
       expect(mockIdentity.clear).toHaveBeenCalled()
     },
   )
+
+  test('should not redirect when authType is None', async () => {
+    vi.mocked(AuthService.RevokePublicKey).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof AuthService.RevokePublicKey>>,
+    )
+    authType.value = AuthType.None
+
+    const logout = useLogout()
+    await logout()
+
+    expect(mockAuth0.logout).not.toHaveBeenCalled()
+    expect(window.location.href).toBe('http://localhost:3000')
+    expect(mockKeys.clear).toHaveBeenCalled()
+    expect(mockIdentity.clear).toHaveBeenCalled()
+  })
 })
 
 describe('useClusterPermissions', () => {

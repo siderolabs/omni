@@ -2,7 +2,6 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { useAuth0 } from '@auth0/auth0-vue'
 import { createSharedComposable } from '@vueuse/core'
 import type { MaybeRefOrGetter } from 'vue'
 import { computed, effectScope, nextTick, toValue } from 'vue'
@@ -25,15 +24,14 @@ import {
   CurrentUserID,
   CurrentUserType,
   DefaultNamespace,
-  IdPLogoutPath,
   JoinTokenType,
   PermissionsID,
   PermissionsType,
   VirtualNamespace,
 } from '@/api/resources'
-import { AuthType, authType } from '@/methods'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
+import { useAuthProvider } from '@/methods/useAuthProvider'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 export const useCurrentUser = createSharedComposable(() => {
@@ -173,16 +171,8 @@ const updateToken = async (tokenID: string, update: (token: Resource<JoinTokenSp
   await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni))
 }
 
-const redirectToURL = (url: string) => {
-  if (window.top) {
-    window.top.location.href = url
-  } else {
-    window.location.href = url
-  }
-}
-
 export function useLogout() {
-  const auth0 = authType.value === AuthType.Auth0 ? useAuth0() : null
+  const provider = useAuthProvider()
   const keys = useKeys()
   const identity = useIdentity()
 
@@ -202,14 +192,6 @@ export function useLogout() {
     // Wait for storages to be set
     await nextTick()
 
-    if (auth0) {
-      await auth0.logout({
-        logoutParams: {
-          returnTo: window.location.origin,
-        },
-      })
-    } else {
-      redirectToURL(IdPLogoutPath)
-    }
+    await provider.logout()
   }
 }

@@ -17,6 +17,7 @@ import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { useIdentity } from '@/methods/identity'
 import { useTitle } from '@/methods/title'
 import { showError } from '@/notification'
+import AuthenticateCard from '@/views/Authenticate/components/AuthenticateCard.vue'
 
 definePage({
   name: 'OIDC Login',
@@ -61,23 +62,14 @@ useTitle('OIDC Login')
 
 <template>
   <PageContainer class="flex h-full items-center justify-center">
-    <div
-      class="flex flex-col gap-tight rounded-md bg-surface-raised px-section py-section drop-shadow-md"
-    >
-      <div class="flex items-center gap-compact">
-        <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
-        <div class="text-xl font-bold text-content-default">
-          <div>Authenticate Kubernetes Access</div>
-        </div>
-      </div>
-
+    <AuthenticateCard title="Authenticate Kubernetes Access" icon="kubernetes">
       <div v-if="!authRequestId" class="mx-section">Public key ID parameter is missing...</div>
       <template v-else>
         <div class="flex w-full flex-col gap-compact">
           <div>The Kubernetes access is going to be granted for the user:</div>
           <UserInfo
             user="user"
-            class="user-info"
+            class="rounded-md bg-surface-inert px-base py-tight"
             :avatar="avatar"
             :fullname="fullname"
             :email="identity"
@@ -108,14 +100,6 @@ useTitle('OIDC Login')
           </div>
         </div>
       </template>
-    </div>
+    </AuthenticateCard>
   </PageContainer>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.user-info {
-  @apply rounded-md bg-surface-inert px-base py-tight;
-}
-</style>
