@@ -207,8 +207,16 @@ describe('request interceptor', () => {
 describe('response interceptor', () => {
   let responseInterceptor: NonNullable<FetchInterceptor['response']>
 
-  const mockResponse = (status: number, url: string) =>
-    ({ status, url, request: new Request(url) }) as FetchInterceptorResponse
+  const mockResponse = (status: number, url: string, keyID = 'public_key_id') =>
+    ({
+      status,
+      url,
+      request: new Request(url, {
+        headers: {
+          'Grpc-Metadata-x-sidero-signature': `siderov1 testuser ${keyID} AAAAAAAAAAAAAA==`,
+        },
+      }),
+    }) as FetchInterceptorResponse
 
   beforeEach(() => {
     const keyPairRef = ref(mockKey)
@@ -246,6 +254,12 @@ describe('response interceptor', () => {
 
   test('does not invalidate on non-401 from signed request', () => {
     responseInterceptor(mockResponse(403, 'http://localhost/api/omni.Foo/Bar'))
+
+    expect(useKeys().invalidate).not.toHaveBeenCalled()
+  })
+
+  test('does not invalidate on 401 from request signed with a replaced key', () => {
+    responseInterceptor(mockResponse(401, 'http://localhost/api/omni.Foo/Bar', 'old_key_id'))
 
     expect(useKeys().invalidate).not.toHaveBeenCalled()
   })

@@ -60,10 +60,13 @@ export function useRegisterAPIInterceptor() {
     },
 
     response(response) {
+      // Only a rejection of the current key invalidates it. A request signed with a key
+      // that was replaced while it was in flight, e.g. by a login in another tab, is not.
       if (
         response.status === 401 &&
         keyPair.value &&
-        isSignedRequest(new URL(response.url).pathname)
+        isSignedRequest(new URL(response.url).pathname) &&
+        signingKeyID(response.request) === publicKeyID.value
       ) {
         invalidateKeys()
       }
@@ -80,12 +83,21 @@ export function useRegisterAPIInterceptor() {
       await until(keyPair).toBeTruthy()
     }
 
-    const array = new Uint8Array(await signDetached(payload, keyPair.value!))
-    const signature = b64Encode(array, 0, array.length)
+    // Read the key together with its ID and identity, as they may be replaced while signing
+    const key = keyPair.value!
     const fingerprint = publicKeyID.value
+    const email = identity.value
 
-    return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
+    const array = new Uint8Array(await signDetached(payload, key))
+    const signature = b64Encode(array, 0, array.length)
+
+    return `${SignatureVersionV1} ${email} ${fingerprint} ${signature}`
   }
+}
+
+/** Returns the ID of the public key that signed the request, see generateSignatureHeader. */
+function signingKeyID(request?: Request) {
+  return request?.headers.get(`Grpc-Metadata-${SignatureHeaderKey}`)?.split(' ')[2]
 }
 
 const includedHeaders = [
