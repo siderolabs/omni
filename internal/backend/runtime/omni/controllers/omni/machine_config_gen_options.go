@@ -68,6 +68,7 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 				}
 
 				options.TypedSpec().Value.TalosVersion = strings.TrimPrefix(machineStatus.TypedSpec().Value.TalosVersion, "v")
+				options.TypedSpec().Value.TalosInstalled = omni.GetMachineStatusSystemDisk(machineStatus) != ""
 
 				if clusterMachineTalosVersion == nil {
 					backfillImageFactoryHost(options.TypedSpec().Value.InstallImage, imageFactoryClients, imageFactoryHost)

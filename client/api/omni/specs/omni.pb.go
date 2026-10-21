@@ -6303,9 +6303,11 @@ type MachineConfigGenOptionsSpec struct {
 	// TalosVersion is the Talos version the machine runs.
 	TalosVersion string `protobuf:"bytes,3,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	// AcceptedIds are the schematic ids accepted as up to date next to InstallImage.SchematicId.
-	AcceptedIds   []string `protobuf:"bytes,4,rep,name=accepted_ids,json=acceptedIds,proto3" json:"accepted_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AcceptedIds []string `protobuf:"bytes,4,rep,name=accepted_ids,json=acceptedIds,proto3" json:"accepted_ids,omitempty"`
+	// TalosInstalled is true when the machine has Talos installed on a disk.
+	TalosInstalled bool `protobuf:"varint,5,opt,name=talos_installed,json=talosInstalled,proto3" json:"talos_installed,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MachineConfigGenOptionsSpec) Reset() {
@@ -6357,6 +6359,13 @@ func (x *MachineConfigGenOptionsSpec) GetAcceptedIds() []string {
 		return x.AcceptedIds
 	}
 	return nil
+}
+
+func (x *MachineConfigGenOptionsSpec) GetTalosInstalled() bool {
+	if x != nil {
+		return x.TalosInstalled
+	}
+	return false
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.
@@ -12826,11 +12835,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xe2\x03\n" +
+	"grpcTunnel\"\x8b\x04\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12T\n" +
 	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x12#\n" +
 	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x12!\n" +
-	"\faccepted_ids\x18\x04 \x03(\tR\vacceptedIds\x1a\x9e\x02\n" +
+	"\faccepted_ids\x18\x04 \x03(\tR\vacceptedIds\x12'\n" +
+	"\x0ftalos_installed\x18\x05 \x01(\bR\x0etalosInstalled\x1a\x9e\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +

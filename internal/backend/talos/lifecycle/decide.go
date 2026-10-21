@@ -36,12 +36,12 @@ const (
 func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string, schematicMismatch, talosVersionMismatch bool) Op {
 	hasSystemDisk := omni.GetMachineStatusSystemDisk(machineStatus) != ""
 
-	machineVersion, machineSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
-	targetVersion, targetSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(installImage.TalosVersion)
+	machineVersion, _ := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
+	targetVersion, _ := omni.ParseTalosVersionLifecycleSupport(installImage.TalosVersion)
 
 	// The LifecycleService paths (Talos 1.13+ both ends) decide from the live version/schematic, not the
 	// mismatch flags, so a stale status can't trigger a spurious first-reconcile upgrade.
-	if machineSupportsLifecycle && targetSupportsLifecycle {
+	if omni.InstallsOverLifecycleService(machineVersion, targetVersion) {
 		if machineStatus.TypedSpec().Value.Maintenance {
 			if hasSystemDisk {
 				if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage, acceptedIDs) {

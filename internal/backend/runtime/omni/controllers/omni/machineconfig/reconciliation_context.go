@@ -70,6 +70,14 @@ type ReconciliationContext struct {
 	// generated (which carries the high-priority documents) for the machine's current connection, and no
 	// change to it is still in flight in try mode.
 	maintenanceConfigApplied bool
+	// installImageNotSet is true when the desired config has no install image. Omni does not set it once Talos is installed,
+	// or for the machines it installs over the LifecycleService (Talos 1.13+), as Talos reads it only when it installs from
+	// the config.
+	//
+	// Such a config must never be applied to a machine with nothing installed: Talos would then install from it on its
+	// own, with its default installer (no extensions, no SideroLink join config), while Omni always installs the image
+	// of the machine's schematic. This field makes the config apply check that Talos is installed first.
+	installImageNotSet bool
 }
 
 // hasPendingLifecycleOperation returns true when an upgrade/install action needs to run before config can be applied.
@@ -144,10 +152,10 @@ func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus 
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by static infra provider but is not ready to use")
 		}
 
-		// Interim guard: right after a wipe the machine still reports its old system disk, so DecideOp
-		// treats it as installed and runs config-apply, whose install races the LifecycleService install
-		// and corrupts the disk. Wait until Omni also sees no disk. The provider Installed flag is wipe-aware.
-		// TODO: drop once .machine.install is removed from the config for Talos >= 1.13 clusters.
+		// Right after a wipe the machine still reports its old system disk, so DecideOp treats it as installed:
+		// it would run config-apply, whose install races the LifecycleService install and corrupts the disk, or
+		// an upgrade on a machine with nothing installed. Wait until Omni also sees no disk. The provider
+		// Installed flag is wipe-aware.
 		if !infraMachineStatus.TypedSpec().Value.Installed && omni.GetMachineStatusSystemDisk(machineStatus) != "" {
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine was wiped but still reports a stale system disk")
 		}
@@ -211,6 +219,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	if err != nil {
 		return nil, fmt.Errorf("failed to redact secrets: %w", err)
 	}
+
+	rc.installImageNotSet = config.Machine() == nil || config.Machine().Install().Image() == ""
 
 	rc.highPriorityHash, err = computeHighPriorityHash(config.Documents())
 	if err != nil {

@@ -43,6 +43,7 @@ var forbiddenFields = []string{
 	"machine.ca",
 	"machine.type",
 	"machine.install.disk",
+	"machine.install.image",
 	"machine.install.extensions",
 	"machine.acceptedCAs",
 }

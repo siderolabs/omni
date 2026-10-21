@@ -2112,6 +2112,7 @@ func (m *MachineConfigGenOptionsSpec) CloneVT() *MachineConfigGenOptionsSpec {
 	r := new(MachineConfigGenOptionsSpec)
 	r.InstallImage = m.InstallImage.CloneVT()
 	r.TalosVersion = m.TalosVersion
+	r.TalosInstalled = m.TalosInstalled
 	if rhs := m.AcceptedIds; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -6459,6 +6460,9 @@ func (this *MachineConfigGenOptionsSpec) EqualVT(that *MachineConfigGenOptionsSp
 		if vx != vy {
 			return false
 		}
+	}
+	if this.TalosInstalled != that.TalosInstalled {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -14329,6 +14333,16 @@ func (m *MachineConfigGenOptionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TalosInstalled {
+		i--
+		if m.TalosInstalled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.AcceptedIds) > 0 {
 		for iNdEx := len(m.AcceptedIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.AcceptedIds[iNdEx])
@@ -20296,6 +20310,9 @@ func (m *MachineConfigGenOptionsSpec) SizeVT() (n int) {
 			l = len(s)
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.TalosInstalled {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -37184,6 +37201,26 @@ func (m *MachineConfigGenOptionsSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.AcceptedIds = append(m.AcceptedIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosInstalled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.TalosInstalled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

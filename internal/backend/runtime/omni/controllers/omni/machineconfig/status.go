@@ -28,6 +28,7 @@ import (
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -1207,6 +1208,19 @@ func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 
 		if inMaintenance {
 			return applyResult{}, fmt.Errorf("machine '%s' is in maintenance, where a try of the config cannot be rolled back", rc.ID())
+		}
+	}
+
+	// Omni's view of the system disk lags a wipe (the old disk is still listed), so the machine itself is checked.
+	if applyMaintenance && rc.installImageNotSet {
+		if _, err = safe.StateGetByID[*block.SystemDisk](ctx, c.COSI, block.SystemDiskID); err != nil {
+			if state.IsNotFoundError(err) {
+				logger.Info("waiting for Talos to be installed, the config has no install image", zap.String("machine", rc.ID()))
+
+				return applyResult{}, controller.NewRequeueInterval(lifecycle.RetryInterval)
+			}
+
+			return applyResult{}, fmt.Errorf("failed to read the system disk of machine '%s': %w", rc.ID(), err)
 		}
 	}
 

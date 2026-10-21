@@ -252,3 +252,42 @@ func TestMachineConfigGenOptionsAcceptedIDs(t *testing.T) {
 		},
 	)
 }
+
+// TestMachineConfigGenOptionsTalosInstalled checks that the options record whether Talos is installed on a disk of the machine.
+func TestMachineConfigGenOptionsTalosInstalled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	const machineID = "machine-1"
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			primary, err := imagefactory.NewClient("https://factory.test", imagefactory.Auth{})
+			require.NoError(t, err)
+
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController(imagefactory.NewClients(tc.State, primary))))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			// the default machine status has a system disk
+			rmock.Mock[*omni.MachineStatus](ctx, t, tc.State, options.WithID(machineID))
+
+			rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
+				assertions.True(res.TypedSpec().Value.TalosInstalled)
+			})
+
+			// wiped
+			rmock.Mock[*omni.MachineStatus](ctx, t, tc.State, options.WithID(machineID), options.Modify(func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{}
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
+				assertions.False(res.TypedSpec().Value.TalosInstalled)
+			})
+		},
+	)
+}

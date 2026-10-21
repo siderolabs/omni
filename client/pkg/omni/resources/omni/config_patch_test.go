@@ -71,6 +71,16 @@ machine:
 			expectedError: "1 error occurred:\n\t* overriding \"machine.install.disk\" is not allowed in the config patch\n\n",
 		},
 		{
+			// Talos reads the install image only when it installs from the config, the installer image is decided by Omni
+			name: "install image",
+			config: strings.TrimSpace(`
+machine:
+  install:
+    image: ghcr.io/siderolabs/installer:v1.13.0
+`),
+			expectedError: "1 error occurred:\n\t* overriding \"machine.install.image\" is not allowed in the config patch\n\n",
+		},
+		{
 			name: "different configs",
 			config: strings.TrimSpace(`
 machine:

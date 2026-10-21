@@ -576,6 +576,15 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, err
 	}
 
+	// Talos reads the install image only when it installs from the config, so the config carries none once Talos is
+	// installed, or when the machine is installed over the LifecycleService, which gets the image with the install request.
+	runningVersion, _ := omni.ParseTalosVersionLifecycleSupport(configGenOptions.TypedSpec().Value.TalosVersion)
+	targetVersion, _ := omni.ParseTalosVersionLifecycleSupport(installImageSpec.TalosVersion)
+
+	if configGenOptions.TypedSpec().Value.TalosInstalled || omni.InstallsOverLifecycleService(runningVersion, targetVersion) {
+		installImage = ""
+	}
+
 	secretsBundle, err := omni.ToSecretsBundle(clusterMachineSecrets.TypedSpec().Value.Data)
 	if err != nil {
 		return nil, err

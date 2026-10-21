@@ -66,7 +66,7 @@ func versionCompatibleWithCluster(machineVersion semver.Version, installed bool,
 	}
 
 	// Not-installed, both sides >= 1.13: Omni installs Talos explicitly via LifecycleService, regardless of minor match.
-	if talosVersionSupportsLifecycleService(machineVersion) && talosVersionSupportsLifecycleService(clusterVersion) {
+	if InstallsOverLifecycleService(machineVersion, clusterVersion) {
 		return true, true, ""
 	}
 
@@ -77,6 +77,12 @@ func versionCompatibleWithCluster(machineVersion semver.Version, installed bool,
 
 	return false, false, "the machine running from ISO or PXE must have the same major and minor version as the cluster " +
 		"it is going to be added to. Please use another ISO or change the cluster Talos version"
+}
+
+// InstallsOverLifecycleService reports whether Omni installs Talos targetVersion on a machine running Talos runningVersion over the
+// LifecycleService: both versions have to support it. The zero version, returned for a version that cannot be parsed, does not.
+func InstallsOverLifecycleService(runningVersion, targetVersion semver.Version) bool {
+	return talosVersionSupportsLifecycleService(runningVersion) && talosVersionSupportsLifecycleService(targetVersion)
 }
 
 // talosVersionSupportsLifecycleService reports whether the Talos version exposes the LifecycleService install/upgrade APIs.

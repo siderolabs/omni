@@ -1654,7 +1654,7 @@ Test Omni upgrades, the second half that runs on the current Omni version
 
 - check that the cluster exists and is healthy
 - verify that machines were not restarted
-- check that machine configuration was not changed
+- check that machine configuration was not changed, except the removed install image
 - verify workload proxying still works
 - scale up the cluster by one worker`)
 
@@ -1674,7 +1674,11 @@ Test Omni upgrades, the second half that runs on the current Omni version
 
 		parentCtx := t.Context()
 
-		t.Run("ClusterShouldNotChange", AssertClusterSnapshotHolds(t.Context(), options, clusterName, time.Minute))
+		t.Run("ClusterShouldNotChange", AssertClusterSnapshotHolds(t.Context(), options, clusterName, time.Minute, withInstallImageRemoval()))
+
+		appliedConfigs := map[string]string{}
+
+		t.Run("SaveAppliedConfigs", SaveAppliedConfigs(t.Context(), options, clusterName, appliedConfigs))
 
 		// unlock the cluster
 		t.Run("UnlockCluster", func(t *testing.T) {
@@ -1687,7 +1691,9 @@ Test Omni upgrades, the second half that runs on the current Omni version
 			require.NoError(t, err)
 		})
 
-		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), options, clusterName))
+		t.Run("AppliedConfigsShouldOnlyLoseInstallImage", AssertAppliedConfigsOnlyLoseInstallImage(t.Context(), options, clusterName, appliedConfigs))
+
+		t.Run("AssertMachinesNotRebooted", AssertClusterSnapshot(t.Context(), options, clusterName, withInstallImageRemoval()))
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
 			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, workloadproxy.TestOptions{

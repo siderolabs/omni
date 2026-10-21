@@ -32,7 +32,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -1872,9 +1874,12 @@ func TestMachineConfigStatusController(t *testing.T) {
 type createClusterOption func(*createClusterOptions)
 
 type createClusterOptions struct {
-	machineStatusModifier     func(*omni.MachineStatus) error
-	installDiskStatusModifier func(*omni.MachineInstallDiskStatus) error
-	clusterOpts               []options.MockOption
+	machineStatusModifier         func(*omni.MachineStatus) error
+	installDiskStatusModifier     func(*omni.MachineInstallDiskStatus) error
+	machineStatusSnapshotModifier func(*omni.MachineStatusSnapshot) error
+	genOptionsModifier            func(*omni.MachineConfigGenOptions) error
+	machineConfigModifier         func(*omni.ClusterMachineConfig) error
+	clusterOpts                   []options.MockOption
 }
 
 // withClusterMockOption forwards an option to the cluster Mock call.
@@ -1899,6 +1904,29 @@ func withMachineStatusModifier(fn func(*omni.MachineStatus) error) createCluster
 func withInstallDiskStatusModifier(fn func(*omni.MachineInstallDiskStatus) error) createClusterOption {
 	return func(o *createClusterOptions) {
 		o.installDiskStatusModifier = fn
+	}
+}
+
+// withMachineStatusSnapshotModifier applies an additional modifier to every MachineStatusSnapshot created by createCluster.
+func withMachineStatusSnapshotModifier(fn func(*omni.MachineStatusSnapshot) error) createClusterOption {
+	return func(o *createClusterOptions) {
+		o.machineStatusSnapshotModifier = fn
+	}
+}
+
+// withGenOptionsModifier applies an additional modifier to every MachineConfigGenOptions created by createCluster, before the
+// ClusterMachineConfig preset generates the config from it.
+func withGenOptionsModifier(fn func(*omni.MachineConfigGenOptions) error) createClusterOption {
+	return func(o *createClusterOptions) {
+		o.genOptionsModifier = fn
+	}
+}
+
+// withMachineConfigModifier applies an additional modifier to every ClusterMachineConfig created by createCluster, so the controller
+// never sees the config without the modification.
+func withMachineConfigModifier(fn func(*omni.ClusterMachineConfig) error) createClusterOption {
+	return func(o *createClusterOptions) {
+		o.machineConfigModifier = fn
 	}
 }
 
@@ -2041,11 +2069,23 @@ func createCluster(
 
 		rmock.Mock[*omni.Machine](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, options.SameID(machine))
-		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.SameID(machine))
-		rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.SameID(machine))
-		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.SameID(machine))
+		snapshotOpts := []options.MockOption{options.SameID(machine)}
 
-		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.SameID(machine))
+		if clusterOpts.machineStatusSnapshotModifier != nil {
+			snapshotOpts = append(snapshotOpts, options.Modify(clusterOpts.machineStatusSnapshotModifier))
+		}
+
+		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, snapshotOpts...)
+		rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.SameID(machine))
+		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, snapshotOpts...)
+
+		genOptionsOpts := []options.MockOption{options.SameID(machine)}
+
+		if clusterOpts.genOptionsModifier != nil {
+			genOptionsOpts = append(genOptionsOpts, options.Modify(clusterOpts.genOptionsModifier))
+		}
+
+		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, genOptionsOpts...)
 
 		installDiskStatusOpts := []options.MockOption{options.SameID(machine)}
 
@@ -2054,7 +2094,14 @@ func createCluster(
 		}
 
 		rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, installDiskStatusOpts...)
-		rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.SameID(machine))
+
+		machineConfigOpts := []options.MockOption{options.SameID(machine)}
+
+		if clusterOpts.machineConfigModifier != nil {
+			machineConfigOpts = append(machineConfigOpts, options.Modify(clusterOpts.machineConfigModifier))
+		}
+
+		rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, machineConfigOpts...)
 	}
 
 	rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.SameID(cluster))
@@ -3291,6 +3338,117 @@ func (r stateReader) ListUncached(ctx context.Context, kind resource.Kind, opts 
 
 func (stateReader) ContextWithTeardown(ctx context.Context, _ resource.Pointer) (context.Context, error) {
 	return ctx, nil
+}
+
+// TestMaintenanceApplyWaitsForTalosOnDisk checks that a config without an install image is not applied to a machine in maintenance with
+// nothing installed, even when Omni still lists the system disk it had before a wipe: Talos would install its default installer from it.
+func TestMaintenanceApplyWaitsForTalosOnDisk(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+			machineServices := testutils.NewMachineServices(t, st)
+
+			// The machine is in maintenance with nothing installed, but Omni still lists its old system disk. An invalid schematic keeps the
+			// schematic out of the decision, so the config is applied. The cluster was created at 1.13, so its configs have an install section,
+			// and the config has no install image from the start.
+			_, machines := createCluster(
+				ctx, t, st, machineServices, "apply-without-install-image", 1, 0,
+				withClusterMockOption(options.WithTalosVersion(maintenanceMachineVersion)),
+				withMachineStatusModifier(func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.Maintenance = true
+					res.TypedSpec().Value.TalosVersion = maintenanceMachineVersion
+					res.TypedSpec().Value.Schematic.Invalid = true
+
+					return nil
+				}),
+				withMachineStatusSnapshotModifier(func(res *omni.MachineStatusSnapshot) error {
+					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+					res.TypedSpec().Value.BootId = "boot-wiped"
+
+					return nil
+				}),
+				withGenOptionsModifier(func(res *omni.MachineConfigGenOptions) error {
+					res.TypedSpec().Value.InstallImage.TalosVersion = maintenanceMachineVersion
+
+					return nil
+				}),
+				withMachineConfigModifier(stripInstallImage),
+			)
+
+			id := machines[0].Metadata().ID()
+
+			machineConfig, err := safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, id)
+			require.NoError(t, err)
+
+			// the reconcile of this config version completed without an apply
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal(machineConfig.Metadata().Version().String(), res.TypedSpec().Value.ClusterMachineConfigVersion)
+				a.Empty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			require.Empty(t, machineServices.Get(id).GetApplyRequests())
+
+			// Talos is on the disk now, and a change of the snapshot triggers the next reconcile
+			require.NoError(t, machineServices.Get(id).State.Create(ctx, block.NewSystemDisk(block.NamespaceName, block.SystemDiskID)))
+
+			// the preset of the mock resets the stage, so it is set again to keep the apply in maintenance
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+				res.TypedSpec().Value.BootId = "boot-installed"
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			require.NotEmpty(t, machineServices.Get(id).GetApplyRequests())
+		},
+	)
+}
+
+// stripInstallImage removes the install image from the config, as the config generation does for the machines installed over the
+// LifecycleService.
+func stripInstallImage(res *omni.ClusterMachineConfig) error {
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return err
+	}
+
+	defer buffer.Free()
+
+	cfg, err := configloader.NewFromBytes(buffer.Data())
+	if err != nil {
+		return err
+	}
+
+	cfg, err = cfg.PatchV1Alpha1(func(c *v1alpha1.Config) error {
+		c.MachineConfig.MachineInstall.InstallImage = "" //nolint:staticcheck
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	data, err := cfg.Bytes()
+	if err != nil {
+		return err
+	}
+
+	return res.TypedSpec().Value.SetUncompressedData(data)
 }
 
 // TestBuildReconciliationContextHeldWithoutDisk pins the recorded-disk check directly, without

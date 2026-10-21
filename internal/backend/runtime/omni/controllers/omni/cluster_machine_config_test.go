@@ -924,6 +924,69 @@ func TestClusterMachineConfigInstallDiskOverride(t *testing.T) {
 	}
 }
 
+// TestClusterMachineConfigInstallImageFollowsLifecycleSupport checks that the config carries no install image once Talos is installed, or
+// when the machine is installed over the LifecycleService, i.e., when both the Talos version it runs and the one it installs support it.
+func TestClusterMachineConfigInstallImageFollowsLifecycleSupport(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			// created at 1.11, so the config has an install section
+			_, machines := createConfigTestCluster(ctx, t, tc.State, "install-image-lifecycle", 0, "1.11.0")
+			machineID := machines[0].Metadata().ID()
+
+			setVersions := func(running, target string, installed bool) {
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, tc.State, options.WithID(machineID), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+					res.TypedSpec().Value.TalosVersion = running
+					res.TypedSpec().Value.InstallImage.TalosVersion = target
+					res.TypedSpec().Value.TalosInstalled = installed
+
+					return nil
+				}))
+
+				rmock.Mock[*omni.ClusterMachineTalosVersion](ctx, t, tc.State, options.WithID(machineID))
+			}
+
+			// imageVersion is the Talos version of the expected install image, empty when no image is expected
+			assertImage := func(imageVersion string) {
+				rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+					image := machineConfigOf(t, res).Machine().Install().Image()
+
+					if imageVersion == "" {
+						assertions.Empty(image)
+
+						return
+					}
+
+					assertions.Contains(image, "/"+defaultSchematic+":v"+imageVersion)
+				})
+			}
+
+			for _, tt := range []struct {
+				running, target string
+				imageVersion    string
+				installed       bool
+			}{
+				// every case expects a different image than the one before it, so each assertion waits for a regenerated config
+				{running: "1.12.0", target: "1.12.0", imageVersion: "1.12.0"},            // not installed yet, the install comes from the config
+				{running: "1.12.0", target: "1.12.0", imageVersion: "", installed: true}, // installed
+				{running: "1.12.0", target: "1.12.0", imageVersion: "1.12.0"},            // wiped, the image comes back
+				{running: "", target: "1.13.0", imageVersion: "1.13.0"},                  // the running version is not known yet
+				{running: "1.13.0", target: "1.13.0", imageVersion: ""},                  // installed over the LifecycleService
+				{running: "1.12.0", target: "1.13.0", imageVersion: "1.13.0"},            // the machine runs a version without the LifecycleService
+				{running: "1.13.0", target: "1.12.0", imageVersion: "1.12.0"},            // the target version has no LifecycleService
+			} {
+				setVersions(tt.running, tt.target, tt.installed)
+				assertImage(tt.imageVersion)
+			}
+		},
+	)
+}
+
 // TestClusterMachineConfigRegistryAuthFollowsRunningVersion checks that the image factory registry auth
 // document is generated when both the Talos version the machine runs and the one it installs support it,
 // regardless of the version the cluster was created with.
@@ -1027,7 +1090,13 @@ func TestClusterMachineConfigJoinConfigFollowsRunningVersion(t *testing.T) {
 				rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 					cfg := machineConfigOf(t, res)
 
-					assertions.Contains(cfg.Machine().Install().Image(), ":v"+installVersion)
+					// a machine installed over the LifecycleService gets no install image
+					if installVersion == "" {
+						assertions.Empty(cfg.Machine().Install().Image())
+					} else {
+						assertions.Contains(cfg.Machine().Install().Image(), ":v"+installVersion)
+					}
+
 					assertions.Equal(expectDocument, cfg.SideroLink() != nil)
 				})
 			}
@@ -1040,7 +1109,7 @@ func TestClusterMachineConfigJoinConfigFollowsRunningVersion(t *testing.T) {
 
 			// the machine runs 1.13 now, the documents are added although the cluster was created at 1.4
 			setVersions("1.13.10", "1.13.10")
-			assertJoinConfig("1.13.10", true)
+			assertJoinConfig("", true)
 
 			// not installed yet, the target version decides
 			setVersions("", "1.4.8")

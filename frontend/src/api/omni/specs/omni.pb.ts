@@ -869,6 +869,7 @@ export type MachineConfigGenOptionsSpec = {
   install_image?: MachineConfigGenOptionsSpecInstallImage
   talos_version?: string
   accepted_ids?: string[]
+  talos_installed?: boolean
 }
 
 export type EtcdAuditResultSpec = {

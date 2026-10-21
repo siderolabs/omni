@@ -1352,6 +1352,9 @@ message MachineConfigGenOptionsSpec {
 
   // AcceptedIds are the schematic ids accepted as up to date next to InstallImage.SchematicId.
   repeated string accepted_ids = 4;
+
+  // TalosInstalled is true when the machine has Talos installed on a disk.
+  bool talos_installed = 5;
 }
 
 // EtcdAuditResult is updated when the etcd audit removes a member.

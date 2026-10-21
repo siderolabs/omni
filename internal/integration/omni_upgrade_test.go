@@ -10,6 +10,8 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,7 +124,8 @@ func AssertNoPendingMachineUpdates(testCtx context.Context, options *TestOptions
 }
 
 type assertClusterSnapshotOptions struct {
-	configChanged bool
+	configChanged       bool
+	installImageRemoval bool
 }
 
 type assertClusterSnapshotOption func(*assertClusterSnapshotOptions)
@@ -131,6 +134,15 @@ type assertClusterSnapshotOption func(*assertClusterSnapshotOptions)
 func withConfigChanged() assertClusterSnapshotOption {
 	return func(o *assertClusterSnapshotOptions) {
 		o.configChanged = true
+	}
+}
+
+// withInstallImageRemoval allows the one-time config change of an upgrade from an Omni version that still put the install image into
+// the config of the machines installed over the LifecycleService: the install image is removed and nothing else changes.
+// The configs themselves are checked by AssertAppliedConfigsOnlyLoseInstallImage.
+func withInstallImageRemoval() assertClusterSnapshotOption {
+	return func(o *assertClusterSnapshotOptions) {
+		o.installImageRemoval = true
 	}
 }
 
@@ -173,6 +185,10 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 
 			assert.True(ok)
 
+			if snapshotOptions.installImageRemoval {
+				return
+			}
+
 			if snapshotOptions.configChanged {
 				assert.NotEqual(shaSum, res.TypedSpec().Value.ClusterMachineConfigSha256, "ClusterMachineConfigStatus sha sum did not change")
 
@@ -205,10 +221,16 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 
 // AssertClusterSnapshotHolds watches the cluster for the given duration and asserts that the snapshot stays valid: no machine config changes,
 // no update gets pending, and finally no machine rebooted.
-func AssertClusterSnapshotHolds(testCtx context.Context, options *TestOptions, clusterName string, duration time.Duration) TestFunc {
+func AssertClusterSnapshotHolds(testCtx context.Context, options *TestOptions, clusterName string, duration time.Duration, opts ...assertClusterSnapshotOption) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, duration+time.Minute)
 		defer cancel()
+
+		var snapshotOptions assertClusterSnapshotOptions
+
+		for _, o := range opts {
+			o(&snapshotOptions)
+		}
 
 		st := options.omniClient.Omni().State()
 
@@ -244,6 +266,10 @@ func AssertClusterSnapshotHolds(testCtx context.Context, options *TestOptions, c
 			}
 
 			for res := range pendingUpdates.All() {
+				if res.TypedSpec().Value.Upgrade == nil && snapshotOptions.installImageRemoval && removesOnlyInstallImage(res) {
+					continue
+				}
+
 				if res.TypedSpec().Value.Upgrade != nil || res.TypedSpec().Value.HasConfigDiff() {
 					t.Logf("machine %q has a pending update", res.Metadata().ID())
 
@@ -270,4 +296,119 @@ func readTalosMachineStatus(ctx context.Context, t *testing.T, c *talosclient.Cl
 	}, time.Minute, 2*time.Second, "machine %q status", machineID)
 
 	return ms
+}
+
+// SaveAppliedConfigs records the config every machine of the cluster runs, in the redacted form recorded on its config status.
+func SaveAppliedConfigs(testCtx context.Context, options *TestOptions, clusterName string, appliedConfigs map[string]string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
+		defer cancel()
+
+		configStatuses, err := safe.ReaderListAll[*omni.ClusterMachineConfigStatus](ctx, options.omniClient.Omni().State(),
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		require.NoError(t, err)
+
+		for res := range configStatuses.All() {
+			appliedConfigs[res.Metadata().ID()], err = appliedConfig(res)
+			require.NoError(t, err)
+		}
+	}
+}
+
+// AssertAppliedConfigsOnlyLoseInstallImage waits until every machine of the cluster runs its recorded config without the install image line,
+// and has no pending update. A recorded config without an install image has to stay as it is. A config with an install image keeps it until
+// the change is applied, so this cannot pass before that.
+func AssertAppliedConfigsOnlyLoseInstallImage(testCtx context.Context, options *TestOptions, clusterName string, appliedConfigs map[string]string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
+		defer cancel()
+
+		st := options.omniClient.Omni().State()
+		clusterQuery := state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			configStatuses, err := safe.ReaderListAll[*omni.ClusterMachineConfigStatus](ctx, st, clusterQuery)
+			require.NoError(collect, err)
+
+			for res := range configStatuses.All() {
+				recorded, ok := appliedConfigs[res.Metadata().ID()]
+				if !assert.True(collect, ok, "machine %q has no recorded config", res.Metadata().ID()) {
+					continue
+				}
+
+				applied, configErr := appliedConfig(res)
+				require.NoError(collect, configErr)
+
+				assert.Equal(collect, withoutInstallImage(recorded), applied, "machine %q", res.Metadata().ID())
+			}
+
+			pendingUpdates, err := safe.ReaderListAll[*omni.MachinePendingUpdates](ctx, st, clusterQuery)
+			require.NoError(collect, err)
+
+			for res := range pendingUpdates.All() {
+				assert.Fail(collect, "pending update", "machine %q has a pending update", res.Metadata().ID())
+			}
+		}, 5*time.Minute, 2*time.Second)
+	}
+}
+
+// removesOnlyInstallImage reports whether the pending config diff removes the install image line and changes nothing else.
+func removesOnlyInstallImage(res *omni.MachinePendingUpdates) bool {
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return false
+	}
+
+	defer buffer.Free()
+
+	removed := 0
+
+	for line := range strings.Lines(string(buffer.Data())) {
+		switch {
+		case strings.HasPrefix(line, "+"):
+			return false
+		case strings.HasPrefix(line, "-"):
+			if !isInstallImageLine(line[1:]) {
+				return false
+			}
+
+			removed++
+		}
+	}
+
+	return removed == 1
+}
+
+// withoutInstallImage returns the config without its install image line.
+func withoutInstallImage(config string) string {
+	var result strings.Builder
+
+	for line := range strings.Lines(config) {
+		if !isInstallImageLine(line) {
+			result.WriteString(line)
+		}
+	}
+
+	return result.String()
+}
+
+// isInstallImageLine reports whether the config line sets the install image (the image key of the installer).
+func isInstallImageLine(line string) bool {
+	return strings.HasPrefix(strings.TrimSpace(line), "image: ") && strings.Contains(line, "installer")
+}
+
+// appliedConfig returns the config the machine runs, in the redacted form recorded on its config status.
+func appliedConfig(res *omni.ClusterMachineConfigStatus) (string, error) {
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return "", err
+	}
+
+	defer buffer.Free()
+
+	if len(buffer.Data()) == 0 {
+		return "", errors.New("no config is applied")
+	}
+
+	return string(buffer.Data()), nil
 }

@@ -60,14 +60,26 @@ With the setting on, Omni logs a warning when an OIDC or SAML identity provider 
 login. Additionally, with OIDC, Omni now only accepts an ID token issued in the last few minutes to confirm a new key.
 """
 
+[notes.install-image]
+title = "Install Image in the Machine Configuration"
+description = """\
+Omni no longer sets `.machine.install.image` in the configuration of machines with Talos installed, nor of the machines it installs \
+over the Talos LifecycleService (Talos 1.13 or later), where the install request carries the image. \
+Talos reads the field only when it installs from the configuration, and upgrades always get their image from Omni, so it was never used for these machines. \
+It looked like the image Talos upgrades with, which it is not. \
+Deploying this release removes the field from the configuration of the cluster members, a config update without a reboot.
+
+Config patches can no longer set `machine.install.image`. New patches carrying it are rejected. \
+The existing ones keep working, and the field has to be removed the next time such a patch is edited.
+"""
+
 [notes.join-config-in-schematic]
 title = "SideroLink Join Configuration in the Schematic"
 description = """\
 Every machine's schematic now carries its SideroLink join configuration, so an install or a Talos upgrade no longer loses the connection to Omni \
 when the join args were only on the machine's kernel command line. From Talos 1.12 on, the join configuration is embedded machine configuration \
 instead of kernel args, also in new installation media. Existing machines move to the new schematic at their next install or upgrade. \
-Deploying this release does not install, upgrade or reboot any machine. Each cluster member gets one config update without a reboot, \
-as the install image in its config changes to the new schematic.
+Deploying this release does not install, upgrade or reboot any machine.
 
 If you give Talos 1.12+ machines their configuration through another source, such as cloud user-data, the `talos.config` URL, \
 or the `talos.config.early` and `talos.config.inline` kernel args, include the join documents in it (`omnictl jointoken machine-config` prints them), \
