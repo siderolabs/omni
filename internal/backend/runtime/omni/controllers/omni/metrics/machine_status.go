@@ -37,6 +37,11 @@ type nodeInfo struct {
 	connected    bool
 }
 
+type invalidSchematicInfo struct {
+	connected bool
+	allocated bool
+}
+
 const (
 	// NonImageFactoryNotificationEnabled controls whether a notification is shown for non-ImageFactory machines.
 	// This will be flipped to true in a future release.
@@ -84,7 +89,7 @@ type MachineStatusMetricsController struct {
 
 	metricNumMachines                                    prometheus.Gauge
 	metricNumConnectedMachines                           prometheus.Gauge
-	metricNumInvalidSchematicMachines                    prometheus.Gauge
+	metricNumInvalidSchematicMachines                    *prometheus.GaugeVec
 	metricNumApproachingTalosVersionEndOfSupportMachines prometheus.Gauge
 	metricNumCores                                       prometheus.Gauge
 	metricNumTalosVersionEndOfSupportMachines            prometheus.Gauge
@@ -148,10 +153,12 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 			Help: "Number of machines in the instance that are connected.",
 		})
 
-		ctrl.metricNumInvalidSchematicMachines = prometheus.NewGauge(prometheus.GaugeOpts{
+		ctrl.metricNumInvalidSchematicMachines = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "omni_machines_invalid_schematic",
 			Help: "Number of machines in the instance that were provisioned without using ImageFactory.",
-		})
+		}, []string{"connected", "allocated"})
+
+		ctrl.setInvalidSchematicMetrics(newInvalidSchematicMetrics())
 
 		ctrl.metricNumApproachingTalosVersionEndOfSupportMachines = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_machines_approaching_talos_version_end_of_support",
@@ -381,6 +388,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		joinConfigUnknown:       0,
 	}
 
+	invalidSchematicMetrics := newInvalidSchematicMetrics()
+
 	minTalosVer := semver.MustParse(constants.MinTalosVersion)
 	// Machines at MinTalosVersion or 1 minor above are "approaching talos end of support"
 	approachingThreshold := semver.Version{Major: minTalosVer.Major, Minor: minTalosVer.Minor + 2}
@@ -430,6 +439,11 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 		if ms.TypedSpec().Value.SchematicReady() && ms.TypedSpec().Value.GetSchematic().GetInvalid() {
 			invalidSchematicMachines++
+
+			invalidSchematicMetrics[invalidSchematicInfo{
+				connected: ms.TypedSpec().Value.Connected,
+				allocated: ms.TypedSpec().Value.Cluster != "",
+			}]++
 		}
 
 		platform := ms.TypedSpec().Value.PlatformMetadata.GetPlatform()
@@ -462,9 +476,9 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	ctrl.metricNumMachines.Set(float64(machines))
 	ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
-	ctrl.metricNumInvalidSchematicMachines.Set(float64(invalidSchematicMachines))
 	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Set(float64(approachingEndOfSupportMachines))
 	ctrl.metricNumTalosVersionEndOfSupportMachines.Set(float64(endOfSupportTalosVersionMachines))
+	ctrl.setInvalidSchematicMetrics(invalidSchematicMetrics)
 
 	for key, num := range platformMetrics {
 		ctrl.metricMachinePlatforms.WithLabelValues(key).Set(float64(num))
@@ -532,6 +546,21 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)
 	ctrl.metricMachineJoinConfig.Collect(ch)
+}
+
+func newInvalidSchematicMetrics() map[invalidSchematicInfo]int {
+	return map[invalidSchematicInfo]int{
+		{connected: false, allocated: false}: 0,
+		{connected: false, allocated: true}:  0,
+		{connected: true, allocated: false}:  0,
+		{connected: true, allocated: true}:   0,
+	}
+}
+
+func (ctrl *MachineStatusMetricsController) setInvalidSchematicMetrics(invalidSchematicMetrics map[invalidSchematicInfo]int) {
+	for info, num := range invalidSchematicMetrics {
+		ctrl.metricNumInvalidSchematicMachines.WithLabelValues(strconv.FormatBool(info.connected), strconv.FormatBool(info.allocated)).Set(float64(num))
+	}
 }
 
 var _ prometheus.Collector = &MachineStatusMetricsController{}

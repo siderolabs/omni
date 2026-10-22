@@ -354,6 +354,77 @@ func TestMachineStatusMetricsController_JoinConfigLocation(t *testing.T) {
 	)
 }
 
+func TestMachineStatusMetricsController_InvalidSchematic(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	ctrl := metrics.NewMachineStatusMetricsController(0)
+
+	registry := prometheus.NewRegistry()
+	require.NoError(t, registry.Register(ctrl))
+
+	invalid := &specs.MachineStatusSpec_Schematic{FullId: "a", Invalid: true}
+	valid := &specs.MachineStatusSpec_Schematic{FullId: "b"}
+
+	machines := map[string]*specs.MachineStatusSpec{
+		"connected-allocated-1":  {Schematic: invalid, Connected: true, Cluster: "c1"},
+		"connected-allocated-2":  {Schematic: invalid, Connected: true, Cluster: "c2"},
+		"connected-unallocated":  {Schematic: invalid, Connected: true},
+		"disconnected-allocated": {Schematic: invalid, Cluster: "c1"},
+		"valid":                  {Schematic: valid, Connected: true, Cluster: "c1"},
+		"no-schematic":           {Connected: true},
+	}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(ctrl))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, spec := range machines {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value = spec
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.MachineStatusMetricsID, func(res *omni.MachineStatusMetrics, a *assert.Assertions) {
+				a.EqualValues(len(machines), res.TypedSpec().Value.RegisteredMachinesCount)
+				a.EqualValues(4, res.TypedSpec().Value.InvalidSchematicMachinesCount)
+			})
+
+			families, err := registry.Gather()
+			require.NoError(t, err)
+
+			byLabels := map[string]float64{}
+
+			for _, family := range families {
+				if family.GetName() != "omni_machines_invalid_schematic" {
+					continue
+				}
+
+				for _, m := range family.GetMetric() {
+					labels := map[string]string{}
+					for _, label := range m.GetLabel() {
+						labels[label.GetName()] = label.GetValue()
+					}
+
+					byLabels["connected="+labels["connected"]+",allocated="+labels["allocated"]] = m.GetGauge().GetValue()
+				}
+			}
+
+			assert.Equal(t, map[string]float64{
+				"connected=true,allocated=true":   2,
+				"connected=true,allocated=false":  1,
+				"connected=false,allocated=true":  1,
+				"connected=false,allocated=false": 0,
+			}, byLabels)
+		},
+	)
+}
+
 func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testing.T) {
 	t.Parallel()
 

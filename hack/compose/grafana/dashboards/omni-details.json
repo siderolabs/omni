@@ -2330,7 +2330,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "omni_machines_invalid_schematic",
+          "expr": "sum(omni_machines_invalid_schematic)",
           "legendFormat": "Invalid Schematic",
           "range": true,
           "refId": "C"
