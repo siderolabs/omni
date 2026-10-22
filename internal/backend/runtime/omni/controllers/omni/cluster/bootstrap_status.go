@@ -244,6 +244,14 @@ func (ctrl *BootstrapStatusController) bootstrapCluster(
 
 	etcdRunning, err := ctrl.isEtcdRunning(ctx, talosCli)
 	if err != nil {
+		// the control plane is not reachable yet, e.g., while it is being installed: an error would back off longer with every
+		// failed check, delaying the bootstrap long after the control plane comes up
+		if code := status.Code(err); code == codes.Unavailable || code == codes.DeadlineExceeded {
+			logger.Info("control plane is not reachable yet", zap.String("cluster_id", clusterID), zap.Error(err))
+
+			return controller.NewRequeueInterval(bootstrapCheckInterval)
+		}
+
 		return fmt.Errorf("error checking etcd on cluster '%s': %w", clusterID, err)
 	}
 
