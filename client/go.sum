@@ -222,8 +222,8 @@ github.com/siderolabs/crypto v0.6.5 h1:Elq5tpWP2ApZ4Y+Kg+eIDiiWbmriCPI1mjYIMwvsY
 github.com/siderolabs/crypto v0.6.5/go.mod h1:QjVcrdJQE1sxhjHqieCgwGdlIYq/xCP2DL53Up8nbU4=
 github.com/siderolabs/gen v0.8.8 h1:wDDlHAT7q4JYr1nD6I8iJml2jUgMKKuCpd05W5UoM+A=
 github.com/siderolabs/gen v0.8.8/go.mod h1:iOCzLzCgiHas+4KIJ0KaLJUjIXL/SVH1ZXZUXBt04tc=
-github.com/siderolabs/go-api-signature v0.3.13 h1:1u3vOWpn4PJJcQZCQXXXxeZk+HcoRdXCpvojE3q5Q9k=
-github.com/siderolabs/go-api-signature v0.3.13/go.mod h1:gfAm/sYbkxAR6YAH+72dhK46nGwNM/O985y8btLjMhQ=
+github.com/siderolabs/go-api-signature v0.4.0 h1:rlDNzVwRfG6et8DbqCEZEX4h46tBHMtYinSvjpYVYXQ=
+github.com/siderolabs/go-api-signature v0.4.0/go.mod h1:zWCUc4Yk9FCd8QaHqWaD1uZPLLY6JsoN547cjp7Hjy0=
 github.com/siderolabs/go-kubeconfig v0.1.2 h1:0D0v3lXUKon+A2qRFwOnc9m4qSB+e+5WDmvGjiJPH8Y=
 github.com/siderolabs/go-kubeconfig v0.1.2/go.mod h1:FMl17PHjjAJjdeUTMN+gBzGH0lhsCbj2IX9/HNMpMh0=
 github.com/siderolabs/go-pointer v1.0.1 h1:f7Yi4IK1jptS8yrT9GEbwhmGcVxvPQgBUG/weH3V3DM=

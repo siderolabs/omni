@@ -29,7 +29,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/siderolabs/crypto v0.6.5
 	github.com/siderolabs/gen v0.8.8
-	github.com/siderolabs/go-api-signature v0.3.13
+	github.com/siderolabs/go-api-signature v0.4.0
 	github.com/siderolabs/go-kubeconfig v0.1.2
 	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/image-factory v1.7.2

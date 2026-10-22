@@ -449,8 +449,8 @@ github.com/siderolabs/discovery-service v1.1.3 h1:rVOGgIRQOtvOw8CCiL9+0LEOf9gYTZ
 github.com/siderolabs/discovery-service v1.1.3/go.mod h1:90C7uo3dPrBSFHih9WiCwD43CWMyzbSgyKb/igB8B2s=
 github.com/siderolabs/gen v0.8.8 h1:wDDlHAT7q4JYr1nD6I8iJml2jUgMKKuCpd05W5UoM+A=
 github.com/siderolabs/gen v0.8.8/go.mod h1:iOCzLzCgiHas+4KIJ0KaLJUjIXL/SVH1ZXZUXBt04tc=
-github.com/siderolabs/go-api-signature v0.3.13 h1:1u3vOWpn4PJJcQZCQXXXxeZk+HcoRdXCpvojE3q5Q9k=
-github.com/siderolabs/go-api-signature v0.3.13/go.mod h1:gfAm/sYbkxAR6YAH+72dhK46nGwNM/O985y8btLjMhQ=
+github.com/siderolabs/go-api-signature v0.4.0 h1:rlDNzVwRfG6et8DbqCEZEX4h46tBHMtYinSvjpYVYXQ=
+github.com/siderolabs/go-api-signature v0.4.0/go.mod h1:zWCUc4Yk9FCd8QaHqWaD1uZPLLY6JsoN547cjp7Hjy0=
 github.com/siderolabs/go-debug v0.6.3 h1:muDxyQ7SJxooq0QYT05m6Re6kRi9DwTR8/+I71Hz508=
 github.com/siderolabs/go-debug v0.6.3/go.mod h1:rEHJoPrkxhnSlLtr3XIkpq/r9aql4oRKL7WJ5h7ZhOU=
 github.com/siderolabs/go-kubeconfig v0.1.2 h1:0D0v3lXUKon+A2qRFwOnc9m4qSB+e+5WDmvGjiJPH8Y=
