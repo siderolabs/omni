@@ -501,11 +501,11 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate pending updates tab', async () => {
     await page.getByRole('tab', { name: 'Pending Updates', exact: true }).click()
-    await expect(page.getByText('No pending config updates found for this machine')).toBeVisible()
+    await expect(page.getByText('No pending updates found for this machine')).toBeVisible()
   })
 
-  await test.step('Validate config history tab', async () => {
-    await page.getByRole('tab', { name: 'Config History', exact: true }).click()
+  await test.step('Validate change history tab', async () => {
+    await page.getByRole('tab', { name: 'Change History', exact: true }).click()
     await expect(
       page.locator('[data-line-type="change-addition"]').filter({ hasText: 'variables:' }),
     ).toBeVisible()

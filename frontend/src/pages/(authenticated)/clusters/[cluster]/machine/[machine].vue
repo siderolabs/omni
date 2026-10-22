@@ -87,7 +87,7 @@ const routes = computed(() => {
       disabled: !canReadMachinePendingUpdates.value,
     },
     {
-      name: 'Config History',
+      name: 'Change History',
       to: { name: 'NodeConfigDiffs', params: { machine: machineId.value } },
       disabled: !canReadMachineConfig.value,
     },

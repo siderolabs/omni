@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/diff"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -150,7 +151,8 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 	}
 
 	err := safe.WriterModify(ctx, r, omni.NewRedactedClusterMachineConfig(cmc.Metadata().ID()), func(res *omni.RedactedClusterMachineConfig) error {
-		if !helpers.UpdateInputsVersions(res, cmc) { // config input hasn't changed, skip the update
+		// a resource created before the install image was recorded is reconciled once more to record it
+		if !helpers.UpdateInputsVersions(res, cmc) && res.TypedSpec().Value.InstallImage != nil {
 			return nil
 		}
 
@@ -184,9 +186,12 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 
 		helpers.CopyAllLabels(cmc, res)
 
+		previousImage := res.TypedSpec().Value.InstallImage
+		res.TypedSpec().Value.InstallImage = installImageInfo(cmc)
+
 		previousConfigData := previousConfig.Data()
 		if len(previousConfigData) > 0 { // compute and store the diff
-			if err = ctrl.saveDiff(ctx, r, res, previousConfigData, redactedData, logger); err != nil {
+			if err = ctrl.saveDiff(ctx, r, res, previousConfigData, redactedData, previousImage, logger); err != nil {
 				return fmt.Errorf("failed to save diff: %w", err)
 			}
 		}
@@ -232,14 +237,17 @@ func (ctrl *Controller) reconcileTearingDown(ctx context.Context, r controller.R
 const modifiedAtFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
 func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
-	cmcr *omni.RedactedClusterMachineConfig, previousData, newData []byte, logger *zap.Logger,
+	cmcr *omni.RedactedClusterMachineConfig, previousData, newData []byte, previousImage *specs.InstallImageInfo, logger *zap.Logger,
 ) error {
 	diffStr, err := diff.Compute(previousData, newData)
 	if err != nil {
 		return fmt.Errorf("failed to compute diff: %w", err)
 	}
 
-	if diffStr == "" {
+	currentImage := cmcr.TypedSpec().Value.InstallImage
+	imageChanged := installImageChanged(previousImage, currentImage)
+
+	if diffStr == "" && !imageChanged {
 		return nil
 	}
 
@@ -253,6 +261,11 @@ func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
 		res.Metadata().Labels().Set(omni.LabelMachine, cmcr.Metadata().ID())
 
 		helpers.CopyAllLabels(cmcr, res)
+
+		if imageChanged {
+			res.TypedSpec().Value.FromInstallImage = previousImage
+			res.TypedSpec().Value.ToInstallImage = currentImage
+		}
 
 		return res.TypedSpec().Value.SetUncompressedData([]byte(diffStr))
 	}); err != nil {
@@ -305,4 +318,22 @@ func (ctrl *Controller) cleanup(ctx context.Context, r controller.ReaderWriter, 
 	}
 
 	return nil
+}
+
+func installImageInfo(cmc *omni.ClusterMachineConfigStatus) *specs.InstallImageInfo {
+	return &specs.InstallImageInfo{
+		TalosVersion:     cmc.TypedSpec().Value.TalosVersion,
+		SchematicId:      cmc.TypedSpec().Value.SchematicId,
+		ImageFactoryHost: cmc.TypedSpec().Value.ImageFactoryHost,
+	}
+}
+
+// installImageChanged ignores the image factory host, as a host change alone does not upgrade the machine.
+func installImageChanged(previous, current *specs.InstallImageInfo) bool {
+	// nothing recorded yet, so the first image seen is not a change.
+	if previous.GetTalosVersion() == "" {
+		return false
+	}
+
+	return previous.GetTalosVersion() != current.GetTalosVersion() || previous.GetSchematicId() != current.GetSchematicId()
 }

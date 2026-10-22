@@ -127,9 +127,18 @@ type ConfigPatch struct {
 
 // MachineConfigDiff struct contains information about the machine configuration diff.
 type MachineConfigDiff struct {
-	ID        resource.ID `json:"id,omitempty"`
-	Diff      string      `json:"diff,omitempty"`
-	ClusterID string      `json:"cluster_id,omitempty"`
+	FromInstallImage *InstallImage `json:"from_install_image,omitempty"`
+	ToInstallImage   *InstallImage `json:"to_install_image,omitempty"`
+	ID               resource.ID   `json:"id,omitempty"`
+	Diff             string        `json:"diff,omitempty"`
+	ClusterID        string        `json:"cluster_id,omitempty"`
+}
+
+// InstallImage contains the install image information of a machine.
+type InstallImage struct {
+	TalosVersion     string `json:"talos_version,omitempty"`
+	SchematicID      string `json:"schematic_id,omitempty"`
+	ImageFactoryHost string `json:"image_factory_host,omitempty"`
 }
 
 // EulaAcceptance contains information about the EULA acceptance.

@@ -15,6 +15,7 @@ import DiffRenderer, { type DiffEntry } from '@/components/DiffRenderer'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { installImageDiff } from '@/methods/installimage'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
@@ -33,9 +34,35 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
   },
 }))
 
-const diffEntries = computed<DiffEntry[]>(() =>
-  data.value?.spec.config_diff ? [{ id: machineId.value, diff: data.value.spec.config_diff }] : [],
-)
+const diffEntries = computed<DiffEntry[]>(() => {
+  const spec = data.value?.spec
+  const entries: DiffEntry[] = []
+
+  if (spec?.upgrade) {
+    entries.push({
+      id: `${machineId.value}-install-image`,
+      diff: installImageDiff(
+        {
+          talos_version: spec.upgrade.from_version,
+          schematic_id: spec.upgrade.from_schematic,
+          image_factory_host: spec.upgrade.from_image_factory_host,
+        },
+        {
+          talos_version: spec.upgrade.to_version,
+          schematic_id: spec.upgrade.to_schematic,
+          image_factory_host: spec.upgrade.to_image_factory_host,
+        },
+      ),
+      label: 'Install image',
+    })
+  }
+
+  if (spec?.config_diff) {
+    entries.push({ id: machineId.value, diff: spec.config_diff, label: 'Machine config' })
+  }
+
+  return entries
+})
 
 useTitle('Pending Updates')
 </script>
@@ -44,7 +71,7 @@ useTitle('Pending Updates')
   <PageContainer class="flex h-full flex-col gap-compact">
     <template v-if="!loading">
       <TAlert v-if="!diffEntries.length" type="info" title="No Records">
-        No pending config updates found for this machine
+        No pending updates found for this machine
       </TAlert>
 
       <DiffRenderer v-else class="h-full" :diffs="diffEntries" with-search />

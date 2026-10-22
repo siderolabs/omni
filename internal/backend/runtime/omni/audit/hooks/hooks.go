@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
@@ -546,8 +547,22 @@ func machineConfigDiffCreate(_ context.Context, data *auditlog.Data, res resourc
 	defer buffer.Free()
 
 	data.MachineConfigDiff.Diff = string(buffer.Data())
+	data.MachineConfigDiff.FromInstallImage = toAuditInstallImage(machineConfigDiff.TypedSpec().Value.FromInstallImage)
+	data.MachineConfigDiff.ToInstallImage = toAuditInstallImage(machineConfigDiff.TypedSpec().Value.ToInstallImage)
 
 	return nil
+}
+
+func toAuditInstallImage(installImage *specs.InstallImageInfo) *auditlog.InstallImage {
+	if installImage == nil {
+		return nil
+	}
+
+	return &auditlog.InstallImage{
+		TalosVersion:     installImage.TalosVersion,
+		SchematicID:      installImage.SchematicId,
+		ImageFactoryHost: installImage.ImageFactoryHost,
+	}
 }
 
 func initPtrField[T any](v **T) {

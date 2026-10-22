@@ -22,8 +22,11 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/redactedmachineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
@@ -285,4 +288,202 @@ func sleep(ctx context.Context, t *testing.T, duration time.Duration) {
 		require.Fail(t, "timed out waiting during sleep")
 	case <-time.After(duration):
 	}
+}
+
+func TestInstallImageHistory(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{})))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			id := "test-install-image-history"
+
+			setImage := func(res *omni.ClusterMachineConfigStatus, version, schematic, host string) {
+				res.TypedSpec().Value.TalosVersion = version
+				res.TypedSpec().Value.SchematicId = schematic
+				res.TypedSpec().Value.ImageFactoryHost = host
+			}
+
+			cmc := omni.NewClusterMachineConfigStatus(id)
+			setImage(cmc, "1.14.0", "A", "factory-a.talos.dev")
+			require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
+			require.NoError(t, st.Create(ctx, cmc))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.RedactedClusterMachineConfig, a *assert.Assertions) {
+				a.Equal("1.14.0", res.TypedSpec().Value.GetInstallImage().GetTalosVersion())
+			})
+
+			_, err := safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+				setImage(res, "1.14.1", "A", "factory-b.talos.dev")
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertLength[*omni.MachineConfigDiff](ctx, t, st, 1)
+			rtestutils.AssertAll(ctx, t, st, func(res *omni.MachineConfigDiff, a *assert.Assertions) {
+				a.False(hasDiff(t, res))
+				a.True(proto.Equal(&specs.InstallImageInfo{TalosVersion: "1.14.0", SchematicId: "A", ImageFactoryHost: "factory-a.talos.dev"}, res.TypedSpec().Value.GetFromInstallImage()))
+				a.True(proto.Equal(&specs.InstallImageInfo{TalosVersion: "1.14.1", SchematicId: "A", ImageFactoryHost: "factory-b.talos.dev"}, res.TypedSpec().Value.GetToInstallImage()))
+			})
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+				setImage(res, "1.14.1", "A", "factory-c.talos.dev")
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.RedactedClusterMachineConfig, a *assert.Assertions) {
+				a.Equal("factory-c.talos.dev", res.TypedSpec().Value.GetInstallImage().GetImageFactoryHost())
+			})
+			rtestutils.AssertLength[*omni.MachineConfigDiff](ctx, t, st, 1)
+
+			_, err = safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+				data, dataErr := res.TypedSpec().Value.GetUncompressedData()
+				if dataErr != nil {
+					return dataErr
+				}
+
+				defer data.Free()
+
+				return res.TypedSpec().Value.SetUncompressedData(updateConfig(t, data.Data(), map[string]string{"aaa": "bbb"}))
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertLength[*omni.MachineConfigDiff](ctx, t, st, 2)
+
+			diffs, err := safe.StateListAll[*omni.MachineConfigDiff](ctx, st)
+			require.NoError(t, err)
+
+			withDiff := 0
+
+			for res := range diffs.All() {
+				if !hasDiff(t, res) {
+					continue
+				}
+
+				withDiff++
+
+				assert.Nil(t, res.TypedSpec().Value.GetFromInstallImage())
+				assert.Nil(t, res.TypedSpec().Value.GetToInstallImage())
+			}
+
+			assert.Equal(t, 1, withDiff)
+		},
+	)
+}
+
+func TestInstallImageFirstRecorded(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{})))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+			id := "test-install-image-first-recorded"
+
+			cmc := omni.NewClusterMachineConfigStatus(id)
+			require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
+			require.NoError(t, st.Create(ctx, cmc))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.RedactedClusterMachineConfig, a *assert.Assertions) {
+				a.NotNil(res.TypedSpec().Value.GetInstallImage())
+				a.Empty(res.TypedSpec().Value.GetInstallImage().GetTalosVersion())
+			})
+
+			_, err := safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+				res.TypedSpec().Value.TalosVersion = "1.14.0"
+				res.TypedSpec().Value.SchematicId = "A"
+
+				data, dataErr := res.TypedSpec().Value.GetUncompressedData()
+				if dataErr != nil {
+					return dataErr
+				}
+
+				defer data.Free()
+
+				return res.TypedSpec().Value.SetUncompressedData(updateConfig(t, data.Data(), map[string]string{"aaa": "bbb"}))
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertLength[*omni.MachineConfigDiff](ctx, t, st, 1)
+			rtestutils.AssertAll(ctx, t, st, func(res *omni.MachineConfigDiff, a *assert.Assertions) {
+				a.True(hasDiff(t, res))
+				a.Nil(res.TypedSpec().Value.GetFromInstallImage())
+				a.Nil(res.TypedSpec().Value.GetToInstallImage())
+			})
+		},
+	)
+}
+
+func TestInstallImageRecordedForExistingResource(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	id := "test-install-image-existing-resource"
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+
+			cmc := omni.NewClusterMachineConfigStatus(id)
+			cmc.Metadata().Finalizers().Add(redactedmachineconfig.ControllerName)
+			cmc.TypedSpec().Value.TalosVersion = "1.14.0"
+			cmc.TypedSpec().Value.SchematicId = "A"
+			require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
+			require.NoError(t, st.Create(ctx, cmc))
+
+			cmc, err := safe.StateGetByID[*omni.ClusterMachineConfigStatus](ctx, st, id)
+			require.NoError(t, err)
+
+			redacted := omni.NewRedactedClusterMachineConfig(id)
+			helpers.UpdateInputsVersions(redacted, cmc)
+			require.NoError(t, redacted.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
+			require.NoError(t, st.Create(ctx, redacted, state.WithCreateOwner(redactedmachineconfig.ControllerName)))
+
+			require.NoError(t, testContext.Runtime.RegisterQController(redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{})))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			st := testContext.State
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.RedactedClusterMachineConfig, a *assert.Assertions) {
+				a.Equal("1.14.0", res.TypedSpec().Value.GetInstallImage().GetTalosVersion())
+			})
+
+			_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterMachineConfigStatus(id).Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
+				res.TypedSpec().Value.TalosVersion = "1.14.1"
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertLength[*omni.MachineConfigDiff](ctx, t, st, 1)
+			rtestutils.AssertAll(ctx, t, st, func(res *omni.MachineConfigDiff, a *assert.Assertions) {
+				a.Equal("1.14.0", res.TypedSpec().Value.GetFromInstallImage().GetTalosVersion())
+				a.Equal("1.14.1", res.TypedSpec().Value.GetToInstallImage().GetTalosVersion())
+			})
+		},
+	)
+}
+
+func hasDiff(t *testing.T, res *omni.MachineConfigDiff) bool {
+	t.Helper()
+
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	require.NoError(t, err)
+
+	defer buffer.Free()
+
+	return len(buffer.Data()) > 0
 }

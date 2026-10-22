@@ -3504,3 +3504,57 @@ func TestBuildReconciliationContextHeldWithoutDisk(t *testing.T) {
 		require.NotContains(t, err.Error(), "carries no install disk")
 	}
 }
+
+func TestPendingUpgradeImageFactoryHost(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(
+					testutils.NewLifecycleManager(t, tc.State, &testutils.FakeKubernetesProvider{}),
+					machineconfig.WithTryTimings(fastTryTimings),
+				),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			_, machines := createCluster(ctx, t, st, testutils.NewMachineServices(t, st), "cluster-pending-upgrade-host", 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+				a.NotEmpty(res.TypedSpec().Value.ImageFactoryHost)
+			})
+
+			configStatus, err := safe.StateGetByID[*omni.ClusterMachineConfigStatus](ctx, st, id)
+			require.NoError(t, err)
+
+			const (
+				targetVersion = "1.13.6"
+				targetHost    = "factory-new.talos.dev"
+			)
+
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
+				res.TypedSpec().Value.InstallImage.ImageFactoryHost = targetHost
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachinePendingUpdates, a *assert.Assertions) {
+				upgrade := res.TypedSpec().Value.GetUpgrade()
+
+				a.Equal(configStatus.TypedSpec().Value.TalosVersion, upgrade.GetFromVersion())
+				a.Equal(targetVersion, upgrade.GetToVersion())
+				a.Equal(configStatus.TypedSpec().Value.ImageFactoryHost, upgrade.GetFromImageFactoryHost())
+				a.Equal(targetHost, upgrade.GetToImageFactoryHost())
+			})
+		},
+	)
+}

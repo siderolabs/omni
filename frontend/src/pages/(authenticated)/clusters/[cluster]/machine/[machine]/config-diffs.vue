@@ -18,6 +18,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { installImageDiff } from '@/methods/installimage'
 import { formatISO } from '@/methods/time'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -53,21 +54,38 @@ const diffEntries = computed<DiffEntry[]>(() =>
         ? compareDesc(parseISO(a.metadata.created!), parseISO(b.metadata.created!))
         : compareAsc(parseISO(a.metadata.created!), parseISO(b.metadata.created!)),
     )
-    .map((d) => ({
-      id: d.metadata.id!,
-      diff: d.spec.diff ?? '',
-      label: d.metadata.created ? `Patch created on ${formatISO(d.metadata.created)}` : undefined,
-    })),
+    .flatMap((d) => {
+      const created = d.metadata.created ? formatISO(d.metadata.created) : undefined
+      const entries: DiffEntry[] = []
+
+      if (d.spec.from_install_image) {
+        entries.push({
+          id: `${d.metadata.id!}-install-image`,
+          diff: installImageDiff(d.spec.from_install_image, d.spec.to_install_image),
+          label: created ? `Install image changed on ${created}` : undefined,
+        })
+      }
+
+      if (d.spec.diff) {
+        entries.push({
+          id: d.metadata.id!,
+          diff: d.spec.diff,
+          label: created ? `Patch created on ${created}` : undefined,
+        })
+      }
+
+      return entries
+    }),
 )
 
-useTitle('Config Diffs')
+useTitle('Change History')
 </script>
 
 <template>
   <PageContainer class="h-full">
     <template v-if="!diffsLoading">
       <TAlert v-if="!diffEntries.length" type="info" title="No Records">
-        No previously applied config diffs found for this machine
+        No history found for this machine
       </TAlert>
 
       <DiffRenderer v-else class="h-full" :diffs="diffEntries" with-search>

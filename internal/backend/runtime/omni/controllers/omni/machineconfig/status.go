@@ -1818,15 +1818,17 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 	}
 
 	var (
-		upgradeDiff         bool
-		currentSchematicID  string
-		currentTalosVersion string
+		upgradeDiff             bool
+		currentSchematicID      string
+		currentTalosVersion     string
+		currentImageFactoryHost string
 	)
 
 	if rc.machineConfigStatus != nil && rc.installImage != nil &&
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" && rc.hasPendingLifecycleOperation() {
 		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
 		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
+		currentImageFactoryHost = rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost
 
 		upgradeDiff = !lifecycle.SchematicUpToDate(currentSchematicID, rc.installImage.SchematicId, rc.acceptedIDs) ||
 			currentTalosVersion != rc.installImage.TalosVersion
@@ -1849,6 +1851,9 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 
 				FromVersion: currentTalosVersion,
 				ToVersion:   rc.installImage.TalosVersion,
+
+				FromImageFactoryHost: currentImageFactoryHost,
+				ToImageFactoryHost:   rc.installImage.ImageFactoryHost,
 			}
 		} else {
 			res.TypedSpec().Value.Upgrade = nil

@@ -1279,7 +1279,7 @@ func (x SecretRotationSpec_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SecretRotationSpec_Status.Descriptor instead.
 func (SecretRotationSpec_Status) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{99, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{100, 0}
 }
 
 type SecretRotationSpec_Phase int32
@@ -1331,7 +1331,7 @@ func (x SecretRotationSpec_Phase) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SecretRotationSpec_Phase.Descriptor instead.
 func (SecretRotationSpec_Phase) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{99, 1}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{100, 1}
 }
 
 type SecretRotationSpec_Component int32
@@ -1380,7 +1380,7 @@ func (x SecretRotationSpec_Component) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SecretRotationSpec_Component.Descriptor instead.
 func (SecretRotationSpec_Component) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{99, 2}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{100, 2}
 }
 
 // Type describes the severity of a notification.
@@ -1430,7 +1430,7 @@ func (x NotificationSpec_Type) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NotificationSpec_Type.Descriptor instead.
 func (NotificationSpec_Type) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{104, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{105, 0}
 }
 
 type KubernetesManifestGroupSpec_Mode int32
@@ -1479,7 +1479,7 @@ func (x KubernetesManifestGroupSpec_Mode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use KubernetesManifestGroupSpec_Mode.Descriptor instead.
 func (KubernetesManifestGroupSpec_Mode) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{105, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106, 0}
 }
 
 type ClusterKubernetesManifestsStatusSpec_ManifestStatus_Phase int32
@@ -1531,7 +1531,7 @@ func (x ClusterKubernetesManifestsStatusSpec_ManifestStatus_Phase) Number() prot
 
 // Deprecated: Use ClusterKubernetesManifestsStatusSpec_ManifestStatus_Phase.Descriptor instead.
 func (ClusterKubernetesManifestsStatusSpec_ManifestStatus_Phase) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106, 0, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107, 0, 0}
 }
 
 type ClusterKubernetesManifestsStatusSpec_GroupStatus_Phase int32
@@ -1586,7 +1586,7 @@ func (x ClusterKubernetesManifestsStatusSpec_GroupStatus_Phase) Number() protore
 
 // Deprecated: Use ClusterKubernetesManifestsStatusSpec_GroupStatus_Phase.Descriptor instead.
 func (ClusterKubernetesManifestsStatusSpec_GroupStatus_Phase) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106, 1, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107, 1, 0}
 }
 
 type KubernetesHealthCheckStatusSpec_State int32
@@ -1641,7 +1641,7 @@ func (x KubernetesHealthCheckStatusSpec_State) Number() protoreflect.EnumNumber 
 
 // Deprecated: Use KubernetesHealthCheckStatusSpec_State.Descriptor instead.
 func (KubernetesHealthCheckStatusSpec_State) EnumDescriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{108, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{109, 0}
 }
 
 // MachineSpec describes a Machine.
@@ -3130,8 +3130,10 @@ type RedactedClusterMachineConfigSpec struct {
 	//
 	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
 	CompressedData []byte `protobuf:"bytes,2,opt,name=compressed_data,json=compressedData,proto3" json:"compressed_data,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// InstallImage is the install image recorded in the ClusterMachineConfigStatus along with Data.
+	InstallImage  *InstallImageInfo `protobuf:"bytes,3,opt,name=install_image,json=installImage,proto3" json:"install_image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RedactedClusterMachineConfigSpec) Reset() {
@@ -3174,6 +3176,13 @@ func (x *RedactedClusterMachineConfigSpec) GetData() string {
 func (x *RedactedClusterMachineConfigSpec) GetCompressedData() []byte {
 	if x != nil {
 		return x.CompressedData
+	}
+	return nil
+}
+
+func (x *RedactedClusterMachineConfigSpec) GetInstallImage() *InstallImageInfo {
+	if x != nil {
+		return x.InstallImage
 	}
 	return nil
 }
@@ -8208,8 +8217,11 @@ type MachineConfigDiffSpec struct {
 	//
 	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
 	CompressedDiff []byte `protobuf:"bytes,2,opt,name=compressed_diff,json=compressedDiff,proto3" json:"compressed_diff,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// FromInstallImage and ToInstallImage are set only when the Talos version or the schematic of the machine changed.
+	FromInstallImage *InstallImageInfo `protobuf:"bytes,3,opt,name=from_install_image,json=fromInstallImage,proto3" json:"from_install_image,omitempty"`
+	ToInstallImage   *InstallImageInfo `protobuf:"bytes,4,opt,name=to_install_image,json=toInstallImage,proto3" json:"to_install_image,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MachineConfigDiffSpec) Reset() {
@@ -8256,6 +8268,81 @@ func (x *MachineConfigDiffSpec) GetCompressedDiff() []byte {
 	return nil
 }
 
+func (x *MachineConfigDiffSpec) GetFromInstallImage() *InstallImageInfo {
+	if x != nil {
+		return x.FromInstallImage
+	}
+	return nil
+}
+
+func (x *MachineConfigDiffSpec) GetToInstallImage() *InstallImageInfo {
+	if x != nil {
+		return x.ToInstallImage
+	}
+	return nil
+}
+
+// InstallImageInfo contains the recorded Talos version and schematic ID of a machine, and the image factory host Omni builds its install image from.
+type InstallImageInfo struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TalosVersion     string                 `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	SchematicId      string                 `protobuf:"bytes,2,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	ImageFactoryHost string                 `protobuf:"bytes,3,opt,name=image_factory_host,json=imageFactoryHost,proto3" json:"image_factory_host,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *InstallImageInfo) Reset() {
+	*x = InstallImageInfo{}
+	mi := &file_omni_specs_omni_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallImageInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallImageInfo) ProtoMessage() {}
+
+func (x *InstallImageInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_omni_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallImageInfo.ProtoReflect.Descriptor instead.
+func (*InstallImageInfo) Descriptor() ([]byte, []int) {
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{97}
+}
+
+func (x *InstallImageInfo) GetTalosVersion() string {
+	if x != nil {
+		return x.TalosVersion
+	}
+	return ""
+}
+
+func (x *InstallImageInfo) GetSchematicId() string {
+	if x != nil {
+		return x.SchematicId
+	}
+	return ""
+}
+
+func (x *InstallImageInfo) GetImageFactoryHost() string {
+	if x != nil {
+		return x.ImageFactoryHost
+	}
+	return ""
+}
+
 type InstallationMediaConfigSpec struct {
 	state                 protoimpl.MessageState             `protogen:"open.v1"`
 	TalosVersion          string                             `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
@@ -8279,7 +8366,7 @@ type InstallationMediaConfigSpec struct {
 
 func (x *InstallationMediaConfigSpec) Reset() {
 	*x = InstallationMediaConfigSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[97]
+	mi := &file_omni_specs_omni_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8291,7 +8378,7 @@ func (x *InstallationMediaConfigSpec) String() string {
 func (*InstallationMediaConfigSpec) ProtoMessage() {}
 
 func (x *InstallationMediaConfigSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[97]
+	mi := &file_omni_specs_omni_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8304,7 +8391,7 @@ func (x *InstallationMediaConfigSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallationMediaConfigSpec.ProtoReflect.Descriptor instead.
 func (*InstallationMediaConfigSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{97}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *InstallationMediaConfigSpec) GetTalosVersion() string {
@@ -8407,7 +8494,7 @@ type RotateTalosCASpec struct {
 
 func (x *RotateTalosCASpec) Reset() {
 	*x = RotateTalosCASpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[98]
+	mi := &file_omni_specs_omni_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8419,7 +8506,7 @@ func (x *RotateTalosCASpec) String() string {
 func (*RotateTalosCASpec) ProtoMessage() {}
 
 func (x *RotateTalosCASpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[98]
+	mi := &file_omni_specs_omni_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8432,7 +8519,7 @@ func (x *RotateTalosCASpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RotateTalosCASpec.ProtoReflect.Descriptor instead.
 func (*RotateTalosCASpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{98}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{99}
 }
 
 type SecretRotationSpec struct {
@@ -8457,7 +8544,7 @@ type SecretRotationSpec struct {
 
 func (x *SecretRotationSpec) Reset() {
 	*x = SecretRotationSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[99]
+	mi := &file_omni_specs_omni_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8469,7 +8556,7 @@ func (x *SecretRotationSpec) String() string {
 func (*SecretRotationSpec) ProtoMessage() {}
 
 func (x *SecretRotationSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[99]
+	mi := &file_omni_specs_omni_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8482,7 +8569,7 @@ func (x *SecretRotationSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecretRotationSpec.ProtoReflect.Descriptor instead.
 func (*SecretRotationSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{99}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *SecretRotationSpec) GetStatus() SecretRotationSpec_Status {
@@ -8553,7 +8640,7 @@ type ClusterSecretsRotationStatusSpec struct {
 
 func (x *ClusterSecretsRotationStatusSpec) Reset() {
 	*x = ClusterSecretsRotationStatusSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[100]
+	mi := &file_omni_specs_omni_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8565,7 +8652,7 @@ func (x *ClusterSecretsRotationStatusSpec) String() string {
 func (*ClusterSecretsRotationStatusSpec) ProtoMessage() {}
 
 func (x *ClusterSecretsRotationStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[100]
+	mi := &file_omni_specs_omni_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8578,7 +8665,7 @@ func (x *ClusterSecretsRotationStatusSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClusterSecretsRotationStatusSpec.ProtoReflect.Descriptor instead.
 func (*ClusterSecretsRotationStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{100}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *ClusterSecretsRotationStatusSpec) GetPhase() SecretRotationSpec_Phase {
@@ -8629,7 +8716,7 @@ type ClusterMachineSecretsSpec struct {
 
 func (x *ClusterMachineSecretsSpec) Reset() {
 	*x = ClusterMachineSecretsSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[101]
+	mi := &file_omni_specs_omni_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8641,7 +8728,7 @@ func (x *ClusterMachineSecretsSpec) String() string {
 func (*ClusterMachineSecretsSpec) ProtoMessage() {}
 
 func (x *ClusterMachineSecretsSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[101]
+	mi := &file_omni_specs_omni_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8654,7 +8741,7 @@ func (x *ClusterMachineSecretsSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClusterMachineSecretsSpec.ProtoReflect.Descriptor instead.
 func (*ClusterMachineSecretsSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{101}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *ClusterMachineSecretsSpec) GetData() []byte {
@@ -8680,7 +8767,7 @@ type RotateKubernetesCASpec struct {
 
 func (x *RotateKubernetesCASpec) Reset() {
 	*x = RotateKubernetesCASpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[102]
+	mi := &file_omni_specs_omni_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8692,7 +8779,7 @@ func (x *RotateKubernetesCASpec) String() string {
 func (*RotateKubernetesCASpec) ProtoMessage() {}
 
 func (x *RotateKubernetesCASpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[102]
+	mi := &file_omni_specs_omni_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8705,7 +8792,7 @@ func (x *RotateKubernetesCASpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RotateKubernetesCASpec.ProtoReflect.Descriptor instead.
 func (*RotateKubernetesCASpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{102}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{103}
 }
 
 // UpgradeRolloutSpec describes the rollout for the cluster upgrade process.
@@ -8718,7 +8805,7 @@ type UpgradeRolloutSpec struct {
 
 func (x *UpgradeRolloutSpec) Reset() {
 	*x = UpgradeRolloutSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[103]
+	mi := &file_omni_specs_omni_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8730,7 +8817,7 @@ func (x *UpgradeRolloutSpec) String() string {
 func (*UpgradeRolloutSpec) ProtoMessage() {}
 
 func (x *UpgradeRolloutSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[103]
+	mi := &file_omni_specs_omni_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8743,7 +8830,7 @@ func (x *UpgradeRolloutSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpgradeRolloutSpec.ProtoReflect.Descriptor instead.
 func (*UpgradeRolloutSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{103}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *UpgradeRolloutSpec) GetMachineSetsUpgradeQuota() map[string]int32 {
@@ -8765,7 +8852,7 @@ type NotificationSpec struct {
 
 func (x *NotificationSpec) Reset() {
 	*x = NotificationSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[104]
+	mi := &file_omni_specs_omni_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8777,7 +8864,7 @@ func (x *NotificationSpec) String() string {
 func (*NotificationSpec) ProtoMessage() {}
 
 func (x *NotificationSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[104]
+	mi := &file_omni_specs_omni_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8790,7 +8877,7 @@ func (x *NotificationSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationSpec.ProtoReflect.Descriptor instead.
 func (*NotificationSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{104}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *NotificationSpec) GetTitle() string {
@@ -8828,7 +8915,7 @@ type KubernetesManifestGroupSpec struct {
 
 func (x *KubernetesManifestGroupSpec) Reset() {
 	*x = KubernetesManifestGroupSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[105]
+	mi := &file_omni_specs_omni_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8840,7 +8927,7 @@ func (x *KubernetesManifestGroupSpec) String() string {
 func (*KubernetesManifestGroupSpec) ProtoMessage() {}
 
 func (x *KubernetesManifestGroupSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[105]
+	mi := &file_omni_specs_omni_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8853,7 +8940,7 @@ func (x *KubernetesManifestGroupSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KubernetesManifestGroupSpec.ProtoReflect.Descriptor instead.
 func (*KubernetesManifestGroupSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{105}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *KubernetesManifestGroupSpec) GetCompressedData() []byte {
@@ -8889,7 +8976,7 @@ type ClusterKubernetesManifestsStatusSpec struct {
 
 func (x *ClusterKubernetesManifestsStatusSpec) Reset() {
 	*x = ClusterKubernetesManifestsStatusSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[106]
+	mi := &file_omni_specs_omni_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8901,7 +8988,7 @@ func (x *ClusterKubernetesManifestsStatusSpec) String() string {
 func (*ClusterKubernetesManifestsStatusSpec) ProtoMessage() {}
 
 func (x *ClusterKubernetesManifestsStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[106]
+	mi := &file_omni_specs_omni_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8914,7 +9001,7 @@ func (x *ClusterKubernetesManifestsStatusSpec) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ClusterKubernetesManifestsStatusSpec.ProtoReflect.Descriptor instead.
 func (*ClusterKubernetesManifestsStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *ClusterKubernetesManifestsStatusSpec) GetGroups() map[string]*ClusterKubernetesManifestsStatusSpec_GroupStatus {
@@ -8962,7 +9049,7 @@ type KubernetesHealthCheckSpec struct {
 
 func (x *KubernetesHealthCheckSpec) Reset() {
 	*x = KubernetesHealthCheckSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[107]
+	mi := &file_omni_specs_omni_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8974,7 +9061,7 @@ func (x *KubernetesHealthCheckSpec) String() string {
 func (*KubernetesHealthCheckSpec) ProtoMessage() {}
 
 func (x *KubernetesHealthCheckSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[107]
+	mi := &file_omni_specs_omni_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8987,7 +9074,7 @@ func (x *KubernetesHealthCheckSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KubernetesHealthCheckSpec.ProtoReflect.Descriptor instead.
 func (*KubernetesHealthCheckSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *KubernetesHealthCheckSpec) GetJob() string {
@@ -9026,7 +9113,7 @@ type KubernetesHealthCheckStatusSpec struct {
 
 func (x *KubernetesHealthCheckStatusSpec) Reset() {
 	*x = KubernetesHealthCheckStatusSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[108]
+	mi := &file_omni_specs_omni_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9038,7 +9125,7 @@ func (x *KubernetesHealthCheckStatusSpec) String() string {
 func (*KubernetesHealthCheckStatusSpec) ProtoMessage() {}
 
 func (x *KubernetesHealthCheckStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[108]
+	mi := &file_omni_specs_omni_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9051,7 +9138,7 @@ func (x *KubernetesHealthCheckStatusSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KubernetesHealthCheckStatusSpec.ProtoReflect.Descriptor instead.
 func (*KubernetesHealthCheckStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{108}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *KubernetesHealthCheckStatusSpec) GetState() KubernetesHealthCheckStatusSpec_State {
@@ -9102,7 +9189,7 @@ type MachineConfigExtractionStatusSpec struct {
 
 func (x *MachineConfigExtractionStatusSpec) Reset() {
 	*x = MachineConfigExtractionStatusSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[109]
+	mi := &file_omni_specs_omni_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9114,7 +9201,7 @@ func (x *MachineConfigExtractionStatusSpec) String() string {
 func (*MachineConfigExtractionStatusSpec) ProtoMessage() {}
 
 func (x *MachineConfigExtractionStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[109]
+	mi := &file_omni_specs_omni_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9127,7 +9214,7 @@ func (x *MachineConfigExtractionStatusSpec) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use MachineConfigExtractionStatusSpec.ProtoReflect.Descriptor instead.
 func (*MachineConfigExtractionStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{109}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *MachineConfigExtractionStatusSpec) GetInitialized() bool {
@@ -9166,7 +9253,7 @@ type ImageFactoryAuthSpec struct {
 
 func (x *ImageFactoryAuthSpec) Reset() {
 	*x = ImageFactoryAuthSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[110]
+	mi := &file_omni_specs_omni_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9178,7 +9265,7 @@ func (x *ImageFactoryAuthSpec) String() string {
 func (*ImageFactoryAuthSpec) ProtoMessage() {}
 
 func (x *ImageFactoryAuthSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[110]
+	mi := &file_omni_specs_omni_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9191,7 +9278,7 @@ func (x *ImageFactoryAuthSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageFactoryAuthSpec.ProtoReflect.Descriptor instead.
 func (*ImageFactoryAuthSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{110}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *ImageFactoryAuthSpec) GetUsername() string {
@@ -9236,7 +9323,7 @@ type MachineInstallDiskConfigSpec struct {
 
 func (x *MachineInstallDiskConfigSpec) Reset() {
 	*x = MachineInstallDiskConfigSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[111]
+	mi := &file_omni_specs_omni_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9248,7 +9335,7 @@ func (x *MachineInstallDiskConfigSpec) String() string {
 func (*MachineInstallDiskConfigSpec) ProtoMessage() {}
 
 func (x *MachineInstallDiskConfigSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[111]
+	mi := &file_omni_specs_omni_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9261,7 +9348,7 @@ func (x *MachineInstallDiskConfigSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineInstallDiskConfigSpec.ProtoReflect.Descriptor instead.
 func (*MachineInstallDiskConfigSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{111}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *MachineInstallDiskConfigSpec) GetDiskSelector() string {
@@ -9304,7 +9391,7 @@ type MachineInstallDiskStatusSpec struct {
 
 func (x *MachineInstallDiskStatusSpec) Reset() {
 	*x = MachineInstallDiskStatusSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[112]
+	mi := &file_omni_specs_omni_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9316,7 +9403,7 @@ func (x *MachineInstallDiskStatusSpec) String() string {
 func (*MachineInstallDiskStatusSpec) ProtoMessage() {}
 
 func (x *MachineInstallDiskStatusSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[112]
+	mi := &file_omni_specs_omni_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9329,7 +9416,7 @@ func (x *MachineInstallDiskStatusSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineInstallDiskStatusSpec.ProtoReflect.Descriptor instead.
 func (*MachineInstallDiskStatusSpec) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{112}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *MachineInstallDiskStatusSpec) GetDisk() string {
@@ -9377,7 +9464,7 @@ type MachineStatusSpec_HardwareStatus struct {
 
 func (x *MachineStatusSpec_HardwareStatus) Reset() {
 	*x = MachineStatusSpec_HardwareStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[113]
+	mi := &file_omni_specs_omni_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9389,7 +9476,7 @@ func (x *MachineStatusSpec_HardwareStatus) String() string {
 func (*MachineStatusSpec_HardwareStatus) ProtoMessage() {}
 
 func (x *MachineStatusSpec_HardwareStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[113]
+	mi := &file_omni_specs_omni_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9452,7 +9539,7 @@ type MachineStatusSpec_NetworkStatus struct {
 
 func (x *MachineStatusSpec_NetworkStatus) Reset() {
 	*x = MachineStatusSpec_NetworkStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[114]
+	mi := &file_omni_specs_omni_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9464,7 +9551,7 @@ func (x *MachineStatusSpec_NetworkStatus) String() string {
 func (*MachineStatusSpec_NetworkStatus) ProtoMessage() {}
 
 func (x *MachineStatusSpec_NetworkStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[114]
+	mi := &file_omni_specs_omni_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9542,7 +9629,7 @@ type MachineStatusSpec_PlatformMetadata struct {
 
 func (x *MachineStatusSpec_PlatformMetadata) Reset() {
 	*x = MachineStatusSpec_PlatformMetadata{}
-	mi := &file_omni_specs_omni_proto_msgTypes[115]
+	mi := &file_omni_specs_omni_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9554,7 +9641,7 @@ func (x *MachineStatusSpec_PlatformMetadata) String() string {
 func (*MachineStatusSpec_PlatformMetadata) ProtoMessage() {}
 
 func (x *MachineStatusSpec_PlatformMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[115]
+	mi := &file_omni_specs_omni_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9659,7 +9746,7 @@ type MachineStatusSpec_Schematic struct {
 
 func (x *MachineStatusSpec_Schematic) Reset() {
 	*x = MachineStatusSpec_Schematic{}
-	mi := &file_omni_specs_omni_proto_msgTypes[116]
+	mi := &file_omni_specs_omni_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9671,7 +9758,7 @@ func (x *MachineStatusSpec_Schematic) String() string {
 func (*MachineStatusSpec_Schematic) ProtoMessage() {}
 
 func (x *MachineStatusSpec_Schematic) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[116]
+	mi := &file_omni_specs_omni_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9754,7 +9841,7 @@ type MachineStatusSpec_Diagnostic struct {
 
 func (x *MachineStatusSpec_Diagnostic) Reset() {
 	*x = MachineStatusSpec_Diagnostic{}
-	mi := &file_omni_specs_omni_proto_msgTypes[117]
+	mi := &file_omni_specs_omni_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9766,7 +9853,7 @@ func (x *MachineStatusSpec_Diagnostic) String() string {
 func (*MachineStatusSpec_Diagnostic) ProtoMessage() {}
 
 func (x *MachineStatusSpec_Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[117]
+	mi := &file_omni_specs_omni_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9822,7 +9909,7 @@ type MachineStatusSpec_HardwareStatus_Processor struct {
 
 func (x *MachineStatusSpec_HardwareStatus_Processor) Reset() {
 	*x = MachineStatusSpec_HardwareStatus_Processor{}
-	mi := &file_omni_specs_omni_proto_msgTypes[119]
+	mi := &file_omni_specs_omni_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9834,7 +9921,7 @@ func (x *MachineStatusSpec_HardwareStatus_Processor) String() string {
 func (*MachineStatusSpec_HardwareStatus_Processor) ProtoMessage() {}
 
 func (x *MachineStatusSpec_HardwareStatus_Processor) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[119]
+	mi := &file_omni_specs_omni_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9898,7 +9985,7 @@ type MachineStatusSpec_HardwareStatus_MemoryModule struct {
 
 func (x *MachineStatusSpec_HardwareStatus_MemoryModule) Reset() {
 	*x = MachineStatusSpec_HardwareStatus_MemoryModule{}
-	mi := &file_omni_specs_omni_proto_msgTypes[120]
+	mi := &file_omni_specs_omni_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9910,7 +9997,7 @@ func (x *MachineStatusSpec_HardwareStatus_MemoryModule) String() string {
 func (*MachineStatusSpec_HardwareStatus_MemoryModule) ProtoMessage() {}
 
 func (x *MachineStatusSpec_HardwareStatus_MemoryModule) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[120]
+	mi := &file_omni_specs_omni_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9995,7 +10082,7 @@ type MachineStatusSpec_HardwareStatus_BlockDevice struct {
 
 func (x *MachineStatusSpec_HardwareStatus_BlockDevice) Reset() {
 	*x = MachineStatusSpec_HardwareStatus_BlockDevice{}
-	mi := &file_omni_specs_omni_proto_msgTypes[121]
+	mi := &file_omni_specs_omni_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10007,7 +10094,7 @@ func (x *MachineStatusSpec_HardwareStatus_BlockDevice) String() string {
 func (*MachineStatusSpec_HardwareStatus_BlockDevice) ProtoMessage() {}
 
 func (x *MachineStatusSpec_HardwareStatus_BlockDevice) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[121]
+	mi := &file_omni_specs_omni_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10203,7 +10290,7 @@ type MachineStatusSpec_NetworkStatus_NetworkLinkStatus struct {
 
 func (x *MachineStatusSpec_NetworkStatus_NetworkLinkStatus) Reset() {
 	*x = MachineStatusSpec_NetworkStatus_NetworkLinkStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[122]
+	mi := &file_omni_specs_omni_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10215,7 +10302,7 @@ func (x *MachineStatusSpec_NetworkStatus_NetworkLinkStatus) String() string {
 func (*MachineStatusSpec_NetworkStatus_NetworkLinkStatus) ProtoMessage() {}
 
 func (x *MachineStatusSpec_NetworkStatus_NetworkLinkStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[122]
+	mi := &file_omni_specs_omni_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10275,7 +10362,7 @@ type MachineStatusSpec_Schematic_InitialState struct {
 
 func (x *MachineStatusSpec_Schematic_InitialState) Reset() {
 	*x = MachineStatusSpec_Schematic_InitialState{}
-	mi := &file_omni_specs_omni_proto_msgTypes[124]
+	mi := &file_omni_specs_omni_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10287,7 +10374,7 @@ func (x *MachineStatusSpec_Schematic_InitialState) String() string {
 func (*MachineStatusSpec_Schematic_InitialState) ProtoMessage() {}
 
 func (x *MachineStatusSpec_Schematic_InitialState) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[124]
+	mi := &file_omni_specs_omni_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10333,7 +10420,7 @@ type ClusterSpec_Features struct {
 
 func (x *ClusterSpec_Features) Reset() {
 	*x = ClusterSpec_Features{}
-	mi := &file_omni_specs_omni_proto_msgTypes[125]
+	mi := &file_omni_specs_omni_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10345,7 +10432,7 @@ func (x *ClusterSpec_Features) String() string {
 func (*ClusterSpec_Features) ProtoMessage() {}
 
 func (x *ClusterSpec_Features) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[125]
+	mi := &file_omni_specs_omni_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10406,7 +10493,7 @@ type ClusterMachineStatusSpec_ProvisionStatus struct {
 
 func (x *ClusterMachineStatusSpec_ProvisionStatus) Reset() {
 	*x = ClusterMachineStatusSpec_ProvisionStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[126]
+	mi := &file_omni_specs_omni_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10418,7 +10505,7 @@ func (x *ClusterMachineStatusSpec_ProvisionStatus) String() string {
 func (*ClusterMachineStatusSpec_ProvisionStatus) ProtoMessage() {}
 
 func (x *ClusterMachineStatusSpec_ProvisionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[126]
+	mi := &file_omni_specs_omni_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10449,18 +10536,20 @@ func (x *ClusterMachineStatusSpec_ProvisionStatus) GetRequestId() string {
 }
 
 type MachinePendingUpdatesSpec_Upgrade struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromSchematic string                 `protobuf:"bytes,1,opt,name=from_schematic,json=fromSchematic,proto3" json:"from_schematic,omitempty"`
-	ToSchematic   string                 `protobuf:"bytes,2,opt,name=to_schematic,json=toSchematic,proto3" json:"to_schematic,omitempty"`
-	FromVersion   string                 `protobuf:"bytes,3,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
-	ToVersion     string                 `protobuf:"bytes,4,opt,name=to_version,json=toVersion,proto3" json:"to_version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	FromSchematic        string                 `protobuf:"bytes,1,opt,name=from_schematic,json=fromSchematic,proto3" json:"from_schematic,omitempty"`
+	ToSchematic          string                 `protobuf:"bytes,2,opt,name=to_schematic,json=toSchematic,proto3" json:"to_schematic,omitempty"`
+	FromVersion          string                 `protobuf:"bytes,3,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
+	ToVersion            string                 `protobuf:"bytes,4,opt,name=to_version,json=toVersion,proto3" json:"to_version,omitempty"`
+	FromImageFactoryHost string                 `protobuf:"bytes,5,opt,name=from_image_factory_host,json=fromImageFactoryHost,proto3" json:"from_image_factory_host,omitempty"`
+	ToImageFactoryHost   string                 `protobuf:"bytes,6,opt,name=to_image_factory_host,json=toImageFactoryHost,proto3" json:"to_image_factory_host,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *MachinePendingUpdatesSpec_Upgrade) Reset() {
 	*x = MachinePendingUpdatesSpec_Upgrade{}
-	mi := &file_omni_specs_omni_proto_msgTypes[127]
+	mi := &file_omni_specs_omni_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10472,7 +10561,7 @@ func (x *MachinePendingUpdatesSpec_Upgrade) String() string {
 func (*MachinePendingUpdatesSpec_Upgrade) ProtoMessage() {}
 
 func (x *MachinePendingUpdatesSpec_Upgrade) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[127]
+	mi := &file_omni_specs_omni_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10516,6 +10605,20 @@ func (x *MachinePendingUpdatesSpec_Upgrade) GetToVersion() string {
 	return ""
 }
 
+func (x *MachinePendingUpdatesSpec_Upgrade) GetFromImageFactoryHost() string {
+	if x != nil {
+		return x.FromImageFactoryHost
+	}
+	return ""
+}
+
+func (x *MachinePendingUpdatesSpec_Upgrade) GetToImageFactoryHost() string {
+	if x != nil {
+		return x.ToImageFactoryHost
+	}
+	return ""
+}
+
 type ClusterSecretsSpec_Certs struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Os holds the cluster OS CA.
@@ -10528,7 +10631,7 @@ type ClusterSecretsSpec_Certs struct {
 
 func (x *ClusterSecretsSpec_Certs) Reset() {
 	*x = ClusterSecretsSpec_Certs{}
-	mi := &file_omni_specs_omni_proto_msgTypes[128]
+	mi := &file_omni_specs_omni_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10540,7 +10643,7 @@ func (x *ClusterSecretsSpec_Certs) String() string {
 func (*ClusterSecretsSpec_Certs) ProtoMessage() {}
 
 func (x *ClusterSecretsSpec_Certs) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[128]
+	mi := &file_omni_specs_omni_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10580,7 +10683,7 @@ type ClusterSecretsSpec_Certs_CA struct {
 
 func (x *ClusterSecretsSpec_Certs_CA) Reset() {
 	*x = ClusterSecretsSpec_Certs_CA{}
-	mi := &file_omni_specs_omni_proto_msgTypes[129]
+	mi := &file_omni_specs_omni_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10592,7 +10695,7 @@ func (x *ClusterSecretsSpec_Certs_CA) String() string {
 func (*ClusterSecretsSpec_Certs_CA) ProtoMessage() {}
 
 func (x *ClusterSecretsSpec_Certs_CA) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[129]
+	mi := &file_omni_specs_omni_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10637,7 +10740,7 @@ type MachineSetSpec_MachineClass struct {
 
 func (x *MachineSetSpec_MachineClass) Reset() {
 	*x = MachineSetSpec_MachineClass{}
-	mi := &file_omni_specs_omni_proto_msgTypes[130]
+	mi := &file_omni_specs_omni_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10649,7 +10752,7 @@ func (x *MachineSetSpec_MachineClass) String() string {
 func (*MachineSetSpec_MachineClass) ProtoMessage() {}
 
 func (x *MachineSetSpec_MachineClass) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[130]
+	mi := &file_omni_specs_omni_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10701,7 +10804,7 @@ type MachineSetSpec_MachineAllocation struct {
 
 func (x *MachineSetSpec_MachineAllocation) Reset() {
 	*x = MachineSetSpec_MachineAllocation{}
-	mi := &file_omni_specs_omni_proto_msgTypes[131]
+	mi := &file_omni_specs_omni_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10713,7 +10816,7 @@ func (x *MachineSetSpec_MachineAllocation) String() string {
 func (*MachineSetSpec_MachineAllocation) ProtoMessage() {}
 
 func (x *MachineSetSpec_MachineAllocation) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[131]
+	mi := &file_omni_specs_omni_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10764,7 +10867,7 @@ type MachineSetSpec_BootstrapSpec struct {
 
 func (x *MachineSetSpec_BootstrapSpec) Reset() {
 	*x = MachineSetSpec_BootstrapSpec{}
-	mi := &file_omni_specs_omni_proto_msgTypes[132]
+	mi := &file_omni_specs_omni_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10776,7 +10879,7 @@ func (x *MachineSetSpec_BootstrapSpec) String() string {
 func (*MachineSetSpec_BootstrapSpec) ProtoMessage() {}
 
 func (x *MachineSetSpec_BootstrapSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[132]
+	mi := &file_omni_specs_omni_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10818,7 +10921,7 @@ type MachineSetSpec_RollingUpdateStrategyConfig struct {
 
 func (x *MachineSetSpec_RollingUpdateStrategyConfig) Reset() {
 	*x = MachineSetSpec_RollingUpdateStrategyConfig{}
-	mi := &file_omni_specs_omni_proto_msgTypes[133]
+	mi := &file_omni_specs_omni_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10830,7 +10933,7 @@ func (x *MachineSetSpec_RollingUpdateStrategyConfig) String() string {
 func (*MachineSetSpec_RollingUpdateStrategyConfig) ProtoMessage() {}
 
 func (x *MachineSetSpec_RollingUpdateStrategyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[133]
+	mi := &file_omni_specs_omni_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10865,7 +10968,7 @@ type MachineSetSpec_UpdateStrategyConfig struct {
 
 func (x *MachineSetSpec_UpdateStrategyConfig) Reset() {
 	*x = MachineSetSpec_UpdateStrategyConfig{}
-	mi := &file_omni_specs_omni_proto_msgTypes[134]
+	mi := &file_omni_specs_omni_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10877,7 +10980,7 @@ func (x *MachineSetSpec_UpdateStrategyConfig) String() string {
 func (*MachineSetSpec_UpdateStrategyConfig) ProtoMessage() {}
 
 func (x *MachineSetSpec_UpdateStrategyConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[134]
+	mi := &file_omni_specs_omni_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10912,7 +11015,7 @@ type ControlPlaneStatusSpec_Condition struct {
 
 func (x *ControlPlaneStatusSpec_Condition) Reset() {
 	*x = ControlPlaneStatusSpec_Condition{}
-	mi := &file_omni_specs_omni_proto_msgTypes[135]
+	mi := &file_omni_specs_omni_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10924,7 +11027,7 @@ func (x *ControlPlaneStatusSpec_Condition) String() string {
 func (*ControlPlaneStatusSpec_Condition) ProtoMessage() {}
 
 func (x *ControlPlaneStatusSpec_Condition) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[135]
+	mi := &file_omni_specs_omni_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10980,7 +11083,7 @@ type KubernetesStatusSpec_NodeStatus struct {
 
 func (x *KubernetesStatusSpec_NodeStatus) Reset() {
 	*x = KubernetesStatusSpec_NodeStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[136]
+	mi := &file_omni_specs_omni_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10992,7 +11095,7 @@ func (x *KubernetesStatusSpec_NodeStatus) String() string {
 func (*KubernetesStatusSpec_NodeStatus) ProtoMessage() {}
 
 func (x *KubernetesStatusSpec_NodeStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[136]
+	mi := &file_omni_specs_omni_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11047,7 +11150,7 @@ type KubernetesStatusSpec_StaticPodStatus struct {
 
 func (x *KubernetesStatusSpec_StaticPodStatus) Reset() {
 	*x = KubernetesStatusSpec_StaticPodStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[137]
+	mi := &file_omni_specs_omni_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11059,7 +11162,7 @@ func (x *KubernetesStatusSpec_StaticPodStatus) String() string {
 func (*KubernetesStatusSpec_StaticPodStatus) ProtoMessage() {}
 
 func (x *KubernetesStatusSpec_StaticPodStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[137]
+	mi := &file_omni_specs_omni_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11106,7 +11209,7 @@ type KubernetesStatusSpec_NodeStaticPods struct {
 
 func (x *KubernetesStatusSpec_NodeStaticPods) Reset() {
 	*x = KubernetesStatusSpec_NodeStaticPods{}
-	mi := &file_omni_specs_omni_proto_msgTypes[138]
+	mi := &file_omni_specs_omni_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11118,7 +11221,7 @@ func (x *KubernetesStatusSpec_NodeStaticPods) String() string {
 func (*KubernetesStatusSpec_NodeStaticPods) ProtoMessage() {}
 
 func (x *KubernetesStatusSpec_NodeStaticPods) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[138]
+	mi := &file_omni_specs_omni_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11162,7 +11265,7 @@ type MachineClassSpec_Provision struct {
 
 func (x *MachineClassSpec_Provision) Reset() {
 	*x = MachineClassSpec_Provision{}
-	mi := &file_omni_specs_omni_proto_msgTypes[139]
+	mi := &file_omni_specs_omni_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11174,7 +11277,7 @@ func (x *MachineClassSpec_Provision) String() string {
 func (*MachineClassSpec_Provision) ProtoMessage() {}
 
 func (x *MachineClassSpec_Provision) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[139]
+	mi := &file_omni_specs_omni_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11246,7 +11349,7 @@ type MachineConfigGenOptionsSpec_InstallImage struct {
 
 func (x *MachineConfigGenOptionsSpec_InstallImage) Reset() {
 	*x = MachineConfigGenOptionsSpec_InstallImage{}
-	mi := &file_omni_specs_omni_proto_msgTypes[140]
+	mi := &file_omni_specs_omni_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11258,7 +11361,7 @@ func (x *MachineConfigGenOptionsSpec_InstallImage) String() string {
 func (*MachineConfigGenOptionsSpec_InstallImage) ProtoMessage() {}
 
 func (x *MachineConfigGenOptionsSpec_InstallImage) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[140]
+	mi := &file_omni_specs_omni_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11327,7 +11430,7 @@ type KubernetesUsageSpec_Quantity struct {
 
 func (x *KubernetesUsageSpec_Quantity) Reset() {
 	*x = KubernetesUsageSpec_Quantity{}
-	mi := &file_omni_specs_omni_proto_msgTypes[141]
+	mi := &file_omni_specs_omni_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11339,7 +11442,7 @@ func (x *KubernetesUsageSpec_Quantity) String() string {
 func (*KubernetesUsageSpec_Quantity) ProtoMessage() {}
 
 func (x *KubernetesUsageSpec_Quantity) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[141]
+	mi := &file_omni_specs_omni_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11386,7 +11489,7 @@ type KubernetesUsageSpec_Pod struct {
 
 func (x *KubernetesUsageSpec_Pod) Reset() {
 	*x = KubernetesUsageSpec_Pod{}
-	mi := &file_omni_specs_omni_proto_msgTypes[142]
+	mi := &file_omni_specs_omni_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11398,7 +11501,7 @@ func (x *KubernetesUsageSpec_Pod) String() string {
 func (*KubernetesUsageSpec_Pod) ProtoMessage() {}
 
 func (x *KubernetesUsageSpec_Pod) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[142]
+	mi := &file_omni_specs_omni_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11438,7 +11541,7 @@ type ImagePullRequestSpec_NodeImageList struct {
 
 func (x *ImagePullRequestSpec_NodeImageList) Reset() {
 	*x = ImagePullRequestSpec_NodeImageList{}
-	mi := &file_omni_specs_omni_proto_msgTypes[143]
+	mi := &file_omni_specs_omni_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11450,7 +11553,7 @@ func (x *ImagePullRequestSpec_NodeImageList) String() string {
 func (*ImagePullRequestSpec_NodeImageList) ProtoMessage() {}
 
 func (x *ImagePullRequestSpec_NodeImageList) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[143]
+	mi := &file_omni_specs_omni_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11495,7 +11598,7 @@ type TalosExtensionsSpec_Info struct {
 
 func (x *TalosExtensionsSpec_Info) Reset() {
 	*x = TalosExtensionsSpec_Info{}
-	mi := &file_omni_specs_omni_proto_msgTypes[144]
+	mi := &file_omni_specs_omni_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11507,7 +11610,7 @@ func (x *TalosExtensionsSpec_Info) String() string {
 func (*TalosExtensionsSpec_Info) ProtoMessage() {}
 
 func (x *TalosExtensionsSpec_Info) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[144]
+	mi := &file_omni_specs_omni_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11576,7 +11679,7 @@ type MachineExtensionsStatusSpec_Item struct {
 
 func (x *MachineExtensionsStatusSpec_Item) Reset() {
 	*x = MachineExtensionsStatusSpec_Item{}
-	mi := &file_omni_specs_omni_proto_msgTypes[145]
+	mi := &file_omni_specs_omni_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11588,7 +11691,7 @@ func (x *MachineExtensionsStatusSpec_Item) String() string {
 func (*MachineExtensionsStatusSpec_Item) ProtoMessage() {}
 
 func (x *MachineExtensionsStatusSpec_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[145]
+	mi := &file_omni_specs_omni_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11635,7 +11738,7 @@ type ClusterDiagnosticsSpec_Node struct {
 
 func (x *ClusterDiagnosticsSpec_Node) Reset() {
 	*x = ClusterDiagnosticsSpec_Node{}
-	mi := &file_omni_specs_omni_proto_msgTypes[151]
+	mi := &file_omni_specs_omni_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11647,7 +11750,7 @@ func (x *ClusterDiagnosticsSpec_Node) String() string {
 func (*ClusterDiagnosticsSpec_Node) ProtoMessage() {}
 
 func (x *ClusterDiagnosticsSpec_Node) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[151]
+	mi := &file_omni_specs_omni_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11689,7 +11792,7 @@ type InfraMachineBMCConfigSpec_IPMI struct {
 
 func (x *InfraMachineBMCConfigSpec_IPMI) Reset() {
 	*x = InfraMachineBMCConfigSpec_IPMI{}
-	mi := &file_omni_specs_omni_proto_msgTypes[152]
+	mi := &file_omni_specs_omni_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11701,7 +11804,7 @@ func (x *InfraMachineBMCConfigSpec_IPMI) String() string {
 func (*InfraMachineBMCConfigSpec_IPMI) ProtoMessage() {}
 
 func (x *InfraMachineBMCConfigSpec_IPMI) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[152]
+	mi := &file_omni_specs_omni_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11754,7 +11857,7 @@ type InfraMachineBMCConfigSpec_API struct {
 
 func (x *InfraMachineBMCConfigSpec_API) Reset() {
 	*x = InfraMachineBMCConfigSpec_API{}
-	mi := &file_omni_specs_omni_proto_msgTypes[153]
+	mi := &file_omni_specs_omni_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11766,7 +11869,7 @@ func (x *InfraMachineBMCConfigSpec_API) String() string {
 func (*InfraMachineBMCConfigSpec_API) ProtoMessage() {}
 
 func (x *InfraMachineBMCConfigSpec_API) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[153]
+	mi := &file_omni_specs_omni_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11800,7 +11903,7 @@ type InfraProviderCombinedStatusSpec_Health struct {
 
 func (x *InfraProviderCombinedStatusSpec_Health) Reset() {
 	*x = InfraProviderCombinedStatusSpec_Health{}
-	mi := &file_omni_specs_omni_proto_msgTypes[154]
+	mi := &file_omni_specs_omni_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11812,7 +11915,7 @@ func (x *InfraProviderCombinedStatusSpec_Health) String() string {
 func (*InfraProviderCombinedStatusSpec_Health) ProtoMessage() {}
 
 func (x *InfraProviderCombinedStatusSpec_Health) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[154]
+	mi := &file_omni_specs_omni_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11858,7 +11961,7 @@ type InstallationMediaConfigSpec_Cloud struct {
 
 func (x *InstallationMediaConfigSpec_Cloud) Reset() {
 	*x = InstallationMediaConfigSpec_Cloud{}
-	mi := &file_omni_specs_omni_proto_msgTypes[155]
+	mi := &file_omni_specs_omni_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11870,7 +11973,7 @@ func (x *InstallationMediaConfigSpec_Cloud) String() string {
 func (*InstallationMediaConfigSpec_Cloud) ProtoMessage() {}
 
 func (x *InstallationMediaConfigSpec_Cloud) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[155]
+	mi := &file_omni_specs_omni_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11883,7 +11986,7 @@ func (x *InstallationMediaConfigSpec_Cloud) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use InstallationMediaConfigSpec_Cloud.ProtoReflect.Descriptor instead.
 func (*InstallationMediaConfigSpec_Cloud) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{97, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{98, 0}
 }
 
 func (x *InstallationMediaConfigSpec_Cloud) GetPlatform() string {
@@ -11903,7 +12006,7 @@ type InstallationMediaConfigSpec_SBC struct {
 
 func (x *InstallationMediaConfigSpec_SBC) Reset() {
 	*x = InstallationMediaConfigSpec_SBC{}
-	mi := &file_omni_specs_omni_proto_msgTypes[156]
+	mi := &file_omni_specs_omni_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11915,7 +12018,7 @@ func (x *InstallationMediaConfigSpec_SBC) String() string {
 func (*InstallationMediaConfigSpec_SBC) ProtoMessage() {}
 
 func (x *InstallationMediaConfigSpec_SBC) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[156]
+	mi := &file_omni_specs_omni_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11928,7 +12031,7 @@ func (x *InstallationMediaConfigSpec_SBC) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallationMediaConfigSpec_SBC.ProtoReflect.Descriptor instead.
 func (*InstallationMediaConfigSpec_SBC) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{97, 1}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{98, 1}
 }
 
 func (x *InstallationMediaConfigSpec_SBC) GetOverlay() string {
@@ -11963,7 +12066,7 @@ type ClusterMachineSecretsSpec_Rotation struct {
 
 func (x *ClusterMachineSecretsSpec_Rotation) Reset() {
 	*x = ClusterMachineSecretsSpec_Rotation{}
-	mi := &file_omni_specs_omni_proto_msgTypes[158]
+	mi := &file_omni_specs_omni_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11975,7 +12078,7 @@ func (x *ClusterMachineSecretsSpec_Rotation) String() string {
 func (*ClusterMachineSecretsSpec_Rotation) ProtoMessage() {}
 
 func (x *ClusterMachineSecretsSpec_Rotation) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[158]
+	mi := &file_omni_specs_omni_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11988,7 +12091,7 @@ func (x *ClusterMachineSecretsSpec_Rotation) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ClusterMachineSecretsSpec_Rotation.ProtoReflect.Descriptor instead.
 func (*ClusterMachineSecretsSpec_Rotation) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{101, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{102, 0}
 }
 
 func (x *ClusterMachineSecretsSpec_Rotation) GetStatus() SecretRotationSpec_Status {
@@ -12039,7 +12142,7 @@ type ClusterKubernetesManifestsStatusSpec_ManifestStatus struct {
 
 func (x *ClusterKubernetesManifestsStatusSpec_ManifestStatus) Reset() {
 	*x = ClusterKubernetesManifestsStatusSpec_ManifestStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[160]
+	mi := &file_omni_specs_omni_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12051,7 +12154,7 @@ func (x *ClusterKubernetesManifestsStatusSpec_ManifestStatus) String() string {
 func (*ClusterKubernetesManifestsStatusSpec_ManifestStatus) ProtoMessage() {}
 
 func (x *ClusterKubernetesManifestsStatusSpec_ManifestStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[160]
+	mi := &file_omni_specs_omni_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12064,7 +12167,7 @@ func (x *ClusterKubernetesManifestsStatusSpec_ManifestStatus) ProtoReflect() pro
 
 // Deprecated: Use ClusterKubernetesManifestsStatusSpec_ManifestStatus.ProtoReflect.Descriptor instead.
 func (*ClusterKubernetesManifestsStatusSpec_ManifestStatus) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107, 0}
 }
 
 func (x *ClusterKubernetesManifestsStatusSpec_ManifestStatus) GetPhase() ClusterKubernetesManifestsStatusSpec_ManifestStatus_Phase {
@@ -12113,7 +12216,7 @@ type ClusterKubernetesManifestsStatusSpec_GroupStatus struct {
 
 func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) Reset() {
 	*x = ClusterKubernetesManifestsStatusSpec_GroupStatus{}
-	mi := &file_omni_specs_omni_proto_msgTypes[161]
+	mi := &file_omni_specs_omni_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12125,7 +12228,7 @@ func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) String() string {
 func (*ClusterKubernetesManifestsStatusSpec_GroupStatus) ProtoMessage() {}
 
 func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[161]
+	mi := &file_omni_specs_omni_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12138,7 +12241,7 @@ func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) ProtoReflect() protor
 
 // Deprecated: Use ClusterKubernetesManifestsStatusSpec_GroupStatus.ProtoReflect.Descriptor instead.
 func (*ClusterKubernetesManifestsStatusSpec_GroupStatus) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{106, 1}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{107, 1}
 }
 
 func (x *ClusterKubernetesManifestsStatusSpec_GroupStatus) GetPhase() ClusterKubernetesManifestsStatusSpec_GroupStatus_Phase {
@@ -12181,7 +12284,7 @@ type MachineInstallDiskStatusSpec_Disk struct {
 
 func (x *MachineInstallDiskStatusSpec_Disk) Reset() {
 	*x = MachineInstallDiskStatusSpec_Disk{}
-	mi := &file_omni_specs_omni_proto_msgTypes[164]
+	mi := &file_omni_specs_omni_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12193,7 +12296,7 @@ func (x *MachineInstallDiskStatusSpec_Disk) String() string {
 func (*MachineInstallDiskStatusSpec_Disk) ProtoMessage() {}
 
 func (x *MachineInstallDiskStatusSpec_Disk) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_omni_proto_msgTypes[164]
+	mi := &file_omni_specs_omni_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12206,7 +12309,7 @@ func (x *MachineInstallDiskStatusSpec_Disk) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use MachineInstallDiskStatusSpec_Disk.ProtoReflect.Descriptor instead.
 func (*MachineInstallDiskStatusSpec_Disk) Descriptor() ([]byte, []int) {
-	return file_omni_specs_omni_proto_rawDescGZIP(), []int{112, 0}
+	return file_omni_specs_omni_proto_rawDescGZIP(), []int{113, 0}
 }
 
 func (x *MachineInstallDiskStatusSpec_Disk) GetDevPath() string {
@@ -12475,10 +12578,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0fcompressed_data\x18\x04 \x01(\fR\x0ecompressedData\x12)\n" +
 	"\x10without_comments\x18\x05 \x01(\bR\x0fwithoutComments\x12/\n" +
 	"\x14grub_use_uki_cmdline\x18\x06 \x01(\bR\x11grubUseUkiCmdline\x12!\n" +
-	"\finstall_disk\x18\a \x01(\tR\vinstallDiskJ\x04\b\x02\x10\x03\"_\n" +
+	"\finstall_disk\x18\a \x01(\tR\vinstallDiskJ\x04\b\x02\x10\x03\"\x9d\x01\n" +
 	" RedactedClusterMachineConfigSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\tR\x04data\x12'\n" +
-	"\x0fcompressed_data\x18\x02 \x01(\fR\x0ecompressedData\"\x9c\x02\n" +
+	"\x0fcompressed_data\x18\x02 \x01(\fR\x0ecompressedData\x12<\n" +
+	"\rinstall_image\x18\x03 \x01(\v2\x17.specs.InstallImageInfoR\finstallImage\"\x9c\x02\n" +
 	"\x1aClusterMachineIdentitySpec\x12#\n" +
 	"\rnode_identity\x18\x01 \x01(\tR\fnodeIdentity\x12$\n" +
 	"\x0eetcd_member_id\x18\x02 \x01(\x04R\fetcdMemberId\x12\x1a\n" +
@@ -12568,18 +12672,20 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\battempts\x18\x02 \x01(\rR\battempts\x129\n" +
 	"\n" +
 	"started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12\x17\n" +
-	"\aboot_id\x18\x04 \x01(\tR\x06bootId\"\xce\x02\n" +
+	"\aboot_id\x18\x04 \x01(\tR\x06bootId\"\xb8\x03\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +
 	"configDiff\x124\n" +
-	"\x16compressed_config_diff\x18\x03 \x01(\fR\x14compressedConfigDiff\x1a\x95\x01\n" +
+	"\x16compressed_config_diff\x18\x03 \x01(\fR\x14compressedConfigDiff\x1a\xff\x01\n" +
 	"\aUpgrade\x12%\n" +
 	"\x0efrom_schematic\x18\x01 \x01(\tR\rfromSchematic\x12!\n" +
 	"\fto_schematic\x18\x02 \x01(\tR\vtoSchematic\x12!\n" +
 	"\ffrom_version\x18\x03 \x01(\tR\vfromVersion\x12\x1d\n" +
 	"\n" +
-	"to_version\x18\x04 \x01(\tR\ttoVersion\"\x92\x01\n" +
+	"to_version\x18\x04 \x01(\tR\ttoVersion\x125\n" +
+	"\x17from_image_factory_host\x18\x05 \x01(\tR\x14fromImageFactoryHost\x121\n" +
+	"\x15to_image_factory_host\x18\x06 \x01(\tR\x12toImageFactoryHost\"\x92\x01\n" +
 	"\x1aClusterBootstrapStatusSpec\x12\"\n" +
 	"\fbootstrapped\x18\x01 \x01(\bR\fbootstrapped\x12P\n" +
 	"\x16last_bootstrap_attempt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14lastBootstrapAttempt\"\xa4\x02\n" +
@@ -13060,10 +13166,16 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x06Health\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +
-	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"T\n" +
+	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"\xde\x01\n" +
 	"\x15MachineConfigDiffSpec\x12\x12\n" +
 	"\x04diff\x18\x01 \x01(\tR\x04diff\x12'\n" +
-	"\x0fcompressed_diff\x18\x02 \x01(\fR\x0ecompressedDiff\"\xfc\x06\n" +
+	"\x0fcompressed_diff\x18\x02 \x01(\fR\x0ecompressedDiff\x12E\n" +
+	"\x12from_install_image\x18\x03 \x01(\v2\x17.specs.InstallImageInfoR\x10fromInstallImage\x12A\n" +
+	"\x10to_install_image\x18\x04 \x01(\v2\x17.specs.InstallImageInfoR\x0etoInstallImage\"\x88\x01\n" +
+	"\x10InstallImageInfo\x12#\n" +
+	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
+	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x12,\n" +
+	"\x12image_factory_host\x18\x03 \x01(\tR\x10imageFactoryHost\"\xfc\x06\n" +
 	"\x1bInstallationMediaConfigSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12B\n" +
 	"\farchitecture\x18\x02 \x01(\x0e2\x1e.specs.PlatformConfigSpec.ArchR\farchitecture\x12-\n" +
@@ -13267,7 +13379,7 @@ func file_omni_specs_omni_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_omni_proto_enumTypes = make([]protoimpl.EnumInfo, 31)
-var file_omni_specs_omni_proto_msgTypes = make([]protoimpl.MessageInfo, 165)
+var file_omni_specs_omni_proto_msgTypes = make([]protoimpl.MessageInfo, 166)
 var file_omni_specs_omni_proto_goTypes = []any{
 	(ConfigApplyStatus)(0),                                         // 0: specs.ConfigApplyStatus
 	(MachineSetPhase)(0),                                           // 1: specs.MachineSetPhase
@@ -13397,227 +13509,231 @@ var file_omni_specs_omni_proto_goTypes = []any{
 	(*DiscoveryAffiliateDeleteTaskSpec)(nil),                       // 125: specs.DiscoveryAffiliateDeleteTaskSpec
 	(*InfraProviderCombinedStatusSpec)(nil),                        // 126: specs.InfraProviderCombinedStatusSpec
 	(*MachineConfigDiffSpec)(nil),                                  // 127: specs.MachineConfigDiffSpec
-	(*InstallationMediaConfigSpec)(nil),                            // 128: specs.InstallationMediaConfigSpec
-	(*RotateTalosCASpec)(nil),                                      // 129: specs.RotateTalosCASpec
-	(*SecretRotationSpec)(nil),                                     // 130: specs.SecretRotationSpec
-	(*ClusterSecretsRotationStatusSpec)(nil),                       // 131: specs.ClusterSecretsRotationStatusSpec
-	(*ClusterMachineSecretsSpec)(nil),                              // 132: specs.ClusterMachineSecretsSpec
-	(*RotateKubernetesCASpec)(nil),                                 // 133: specs.RotateKubernetesCASpec
-	(*UpgradeRolloutSpec)(nil),                                     // 134: specs.UpgradeRolloutSpec
-	(*NotificationSpec)(nil),                                       // 135: specs.NotificationSpec
-	(*KubernetesManifestGroupSpec)(nil),                            // 136: specs.KubernetesManifestGroupSpec
-	(*ClusterKubernetesManifestsStatusSpec)(nil),                   // 137: specs.ClusterKubernetesManifestsStatusSpec
-	(*KubernetesHealthCheckSpec)(nil),                              // 138: specs.KubernetesHealthCheckSpec
-	(*KubernetesHealthCheckStatusSpec)(nil),                        // 139: specs.KubernetesHealthCheckStatusSpec
-	(*MachineConfigExtractionStatusSpec)(nil),                      // 140: specs.MachineConfigExtractionStatusSpec
-	(*ImageFactoryAuthSpec)(nil),                                   // 141: specs.ImageFactoryAuthSpec
-	(*MachineInstallDiskConfigSpec)(nil),                           // 142: specs.MachineInstallDiskConfigSpec
-	(*MachineInstallDiskStatusSpec)(nil),                           // 143: specs.MachineInstallDiskStatusSpec
-	(*MachineStatusSpec_HardwareStatus)(nil),                       // 144: specs.MachineStatusSpec.HardwareStatus
-	(*MachineStatusSpec_NetworkStatus)(nil),                        // 145: specs.MachineStatusSpec.NetworkStatus
-	(*MachineStatusSpec_PlatformMetadata)(nil),                     // 146: specs.MachineStatusSpec.PlatformMetadata
-	(*MachineStatusSpec_Schematic)(nil),                            // 147: specs.MachineStatusSpec.Schematic
-	(*MachineStatusSpec_Diagnostic)(nil),                           // 148: specs.MachineStatusSpec.Diagnostic
-	nil,                                                            // 149: specs.MachineStatusSpec.ImageLabelsEntry
-	(*MachineStatusSpec_HardwareStatus_Processor)(nil),             // 150: specs.MachineStatusSpec.HardwareStatus.Processor
-	(*MachineStatusSpec_HardwareStatus_MemoryModule)(nil),          // 151: specs.MachineStatusSpec.HardwareStatus.MemoryModule
-	(*MachineStatusSpec_HardwareStatus_BlockDevice)(nil),           // 152: specs.MachineStatusSpec.HardwareStatus.BlockDevice
-	(*MachineStatusSpec_NetworkStatus_NetworkLinkStatus)(nil),      // 153: specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
-	nil, // 154: specs.MachineStatusSpec.PlatformMetadata.TagsEntry
-	(*MachineStatusSpec_Schematic_InitialState)(nil),   // 155: specs.MachineStatusSpec.Schematic.InitialState
-	(*ClusterSpec_Features)(nil),                       // 156: specs.ClusterSpec.Features
-	(*ClusterMachineStatusSpec_ProvisionStatus)(nil),   // 157: specs.ClusterMachineStatusSpec.ProvisionStatus
-	(*MachinePendingUpdatesSpec_Upgrade)(nil),          // 158: specs.MachinePendingUpdatesSpec.Upgrade
-	(*ClusterSecretsSpec_Certs)(nil),                   // 159: specs.ClusterSecretsSpec.Certs
-	(*ClusterSecretsSpec_Certs_CA)(nil),                // 160: specs.ClusterSecretsSpec.Certs.CA
-	(*MachineSetSpec_MachineClass)(nil),                // 161: specs.MachineSetSpec.MachineClass
-	(*MachineSetSpec_MachineAllocation)(nil),           // 162: specs.MachineSetSpec.MachineAllocation
-	(*MachineSetSpec_BootstrapSpec)(nil),               // 163: specs.MachineSetSpec.BootstrapSpec
-	(*MachineSetSpec_RollingUpdateStrategyConfig)(nil), // 164: specs.MachineSetSpec.RollingUpdateStrategyConfig
-	(*MachineSetSpec_UpdateStrategyConfig)(nil),        // 165: specs.MachineSetSpec.UpdateStrategyConfig
-	(*ControlPlaneStatusSpec_Condition)(nil),           // 166: specs.ControlPlaneStatusSpec.Condition
-	(*KubernetesStatusSpec_NodeStatus)(nil),            // 167: specs.KubernetesStatusSpec.NodeStatus
-	(*KubernetesStatusSpec_StaticPodStatus)(nil),       // 168: specs.KubernetesStatusSpec.StaticPodStatus
-	(*KubernetesStatusSpec_NodeStaticPods)(nil),        // 169: specs.KubernetesStatusSpec.NodeStaticPods
-	(*MachineClassSpec_Provision)(nil),                 // 170: specs.MachineClassSpec.Provision
-	(*MachineConfigGenOptionsSpec_InstallImage)(nil),   // 171: specs.MachineConfigGenOptionsSpec.InstallImage
-	(*KubernetesUsageSpec_Quantity)(nil),               // 172: specs.KubernetesUsageSpec.Quantity
-	(*KubernetesUsageSpec_Pod)(nil),                    // 173: specs.KubernetesUsageSpec.Pod
-	(*ImagePullRequestSpec_NodeImageList)(nil),         // 174: specs.ImagePullRequestSpec.NodeImageList
-	(*TalosExtensionsSpec_Info)(nil),                   // 175: specs.TalosExtensionsSpec.Info
-	(*MachineExtensionsStatusSpec_Item)(nil),           // 176: specs.MachineExtensionsStatusSpec.Item
-	nil,                                                // 177: specs.MachineStatusMetricsSpec.PlatformsEntry
-	nil,                                                // 178: specs.MachineStatusMetricsSpec.SecureBootStatusEntry
-	nil,                                                // 179: specs.MachineStatusMetricsSpec.UkiStatusEntry
-	nil,                                                // 180: specs.ClusterMetricsSpec.FeaturesEntry
-	nil,                                                // 181: specs.ClusterStatusMetricsSpec.PhasesEntry
-	(*ClusterDiagnosticsSpec_Node)(nil),                // 182: specs.ClusterDiagnosticsSpec.Node
-	(*InfraMachineBMCConfigSpec_IPMI)(nil),             // 183: specs.InfraMachineBMCConfigSpec.IPMI
-	(*InfraMachineBMCConfigSpec_API)(nil),              // 184: specs.InfraMachineBMCConfigSpec.API
-	(*InfraProviderCombinedStatusSpec_Health)(nil),     // 185: specs.InfraProviderCombinedStatusSpec.Health
-	(*InstallationMediaConfigSpec_Cloud)(nil),          // 186: specs.InstallationMediaConfigSpec.Cloud
-	(*InstallationMediaConfigSpec_SBC)(nil),            // 187: specs.InstallationMediaConfigSpec.SBC
-	nil,                                                // 188: specs.InstallationMediaConfigSpec.MachineLabelsEntry
-	(*ClusterMachineSecretsSpec_Rotation)(nil),         // 189: specs.ClusterMachineSecretsSpec.Rotation
-	nil, // 190: specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntry
-	(*ClusterKubernetesManifestsStatusSpec_ManifestStatus)(nil), // 191: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
-	(*ClusterKubernetesManifestsStatusSpec_GroupStatus)(nil),    // 192: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
-	nil, // 193: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
-	nil, // 194: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
-	(*MachineInstallDiskStatusSpec_Disk)(nil), // 195: specs.MachineInstallDiskStatusSpec.Disk
-	(*durationpb.Duration)(nil),               // 196: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),             // 197: google.protobuf.Timestamp
-	(*machine.MachineStatusEvent)(nil),        // 198: machine.MachineStatusEvent
-	(PlatformConfigSpec_Arch)(0),              // 199: specs.PlatformConfigSpec.Arch
-	(management.SchematicBootloader)(0),       // 200: management.SchematicBootloader
+	(*InstallImageInfo)(nil),                                       // 128: specs.InstallImageInfo
+	(*InstallationMediaConfigSpec)(nil),                            // 129: specs.InstallationMediaConfigSpec
+	(*RotateTalosCASpec)(nil),                                      // 130: specs.RotateTalosCASpec
+	(*SecretRotationSpec)(nil),                                     // 131: specs.SecretRotationSpec
+	(*ClusterSecretsRotationStatusSpec)(nil),                       // 132: specs.ClusterSecretsRotationStatusSpec
+	(*ClusterMachineSecretsSpec)(nil),                              // 133: specs.ClusterMachineSecretsSpec
+	(*RotateKubernetesCASpec)(nil),                                 // 134: specs.RotateKubernetesCASpec
+	(*UpgradeRolloutSpec)(nil),                                     // 135: specs.UpgradeRolloutSpec
+	(*NotificationSpec)(nil),                                       // 136: specs.NotificationSpec
+	(*KubernetesManifestGroupSpec)(nil),                            // 137: specs.KubernetesManifestGroupSpec
+	(*ClusterKubernetesManifestsStatusSpec)(nil),                   // 138: specs.ClusterKubernetesManifestsStatusSpec
+	(*KubernetesHealthCheckSpec)(nil),                              // 139: specs.KubernetesHealthCheckSpec
+	(*KubernetesHealthCheckStatusSpec)(nil),                        // 140: specs.KubernetesHealthCheckStatusSpec
+	(*MachineConfigExtractionStatusSpec)(nil),                      // 141: specs.MachineConfigExtractionStatusSpec
+	(*ImageFactoryAuthSpec)(nil),                                   // 142: specs.ImageFactoryAuthSpec
+	(*MachineInstallDiskConfigSpec)(nil),                           // 143: specs.MachineInstallDiskConfigSpec
+	(*MachineInstallDiskStatusSpec)(nil),                           // 144: specs.MachineInstallDiskStatusSpec
+	(*MachineStatusSpec_HardwareStatus)(nil),                       // 145: specs.MachineStatusSpec.HardwareStatus
+	(*MachineStatusSpec_NetworkStatus)(nil),                        // 146: specs.MachineStatusSpec.NetworkStatus
+	(*MachineStatusSpec_PlatformMetadata)(nil),                     // 147: specs.MachineStatusSpec.PlatformMetadata
+	(*MachineStatusSpec_Schematic)(nil),                            // 148: specs.MachineStatusSpec.Schematic
+	(*MachineStatusSpec_Diagnostic)(nil),                           // 149: specs.MachineStatusSpec.Diagnostic
+	nil,                                                            // 150: specs.MachineStatusSpec.ImageLabelsEntry
+	(*MachineStatusSpec_HardwareStatus_Processor)(nil),             // 151: specs.MachineStatusSpec.HardwareStatus.Processor
+	(*MachineStatusSpec_HardwareStatus_MemoryModule)(nil),          // 152: specs.MachineStatusSpec.HardwareStatus.MemoryModule
+	(*MachineStatusSpec_HardwareStatus_BlockDevice)(nil),           // 153: specs.MachineStatusSpec.HardwareStatus.BlockDevice
+	(*MachineStatusSpec_NetworkStatus_NetworkLinkStatus)(nil),      // 154: specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
+	nil, // 155: specs.MachineStatusSpec.PlatformMetadata.TagsEntry
+	(*MachineStatusSpec_Schematic_InitialState)(nil),   // 156: specs.MachineStatusSpec.Schematic.InitialState
+	(*ClusterSpec_Features)(nil),                       // 157: specs.ClusterSpec.Features
+	(*ClusterMachineStatusSpec_ProvisionStatus)(nil),   // 158: specs.ClusterMachineStatusSpec.ProvisionStatus
+	(*MachinePendingUpdatesSpec_Upgrade)(nil),          // 159: specs.MachinePendingUpdatesSpec.Upgrade
+	(*ClusterSecretsSpec_Certs)(nil),                   // 160: specs.ClusterSecretsSpec.Certs
+	(*ClusterSecretsSpec_Certs_CA)(nil),                // 161: specs.ClusterSecretsSpec.Certs.CA
+	(*MachineSetSpec_MachineClass)(nil),                // 162: specs.MachineSetSpec.MachineClass
+	(*MachineSetSpec_MachineAllocation)(nil),           // 163: specs.MachineSetSpec.MachineAllocation
+	(*MachineSetSpec_BootstrapSpec)(nil),               // 164: specs.MachineSetSpec.BootstrapSpec
+	(*MachineSetSpec_RollingUpdateStrategyConfig)(nil), // 165: specs.MachineSetSpec.RollingUpdateStrategyConfig
+	(*MachineSetSpec_UpdateStrategyConfig)(nil),        // 166: specs.MachineSetSpec.UpdateStrategyConfig
+	(*ControlPlaneStatusSpec_Condition)(nil),           // 167: specs.ControlPlaneStatusSpec.Condition
+	(*KubernetesStatusSpec_NodeStatus)(nil),            // 168: specs.KubernetesStatusSpec.NodeStatus
+	(*KubernetesStatusSpec_StaticPodStatus)(nil),       // 169: specs.KubernetesStatusSpec.StaticPodStatus
+	(*KubernetesStatusSpec_NodeStaticPods)(nil),        // 170: specs.KubernetesStatusSpec.NodeStaticPods
+	(*MachineClassSpec_Provision)(nil),                 // 171: specs.MachineClassSpec.Provision
+	(*MachineConfigGenOptionsSpec_InstallImage)(nil),   // 172: specs.MachineConfigGenOptionsSpec.InstallImage
+	(*KubernetesUsageSpec_Quantity)(nil),               // 173: specs.KubernetesUsageSpec.Quantity
+	(*KubernetesUsageSpec_Pod)(nil),                    // 174: specs.KubernetesUsageSpec.Pod
+	(*ImagePullRequestSpec_NodeImageList)(nil),         // 175: specs.ImagePullRequestSpec.NodeImageList
+	(*TalosExtensionsSpec_Info)(nil),                   // 176: specs.TalosExtensionsSpec.Info
+	(*MachineExtensionsStatusSpec_Item)(nil),           // 177: specs.MachineExtensionsStatusSpec.Item
+	nil,                                                // 178: specs.MachineStatusMetricsSpec.PlatformsEntry
+	nil,                                                // 179: specs.MachineStatusMetricsSpec.SecureBootStatusEntry
+	nil,                                                // 180: specs.MachineStatusMetricsSpec.UkiStatusEntry
+	nil,                                                // 181: specs.ClusterMetricsSpec.FeaturesEntry
+	nil,                                                // 182: specs.ClusterStatusMetricsSpec.PhasesEntry
+	(*ClusterDiagnosticsSpec_Node)(nil),                // 183: specs.ClusterDiagnosticsSpec.Node
+	(*InfraMachineBMCConfigSpec_IPMI)(nil),             // 184: specs.InfraMachineBMCConfigSpec.IPMI
+	(*InfraMachineBMCConfigSpec_API)(nil),              // 185: specs.InfraMachineBMCConfigSpec.API
+	(*InfraProviderCombinedStatusSpec_Health)(nil),     // 186: specs.InfraProviderCombinedStatusSpec.Health
+	(*InstallationMediaConfigSpec_Cloud)(nil),          // 187: specs.InstallationMediaConfigSpec.Cloud
+	(*InstallationMediaConfigSpec_SBC)(nil),            // 188: specs.InstallationMediaConfigSpec.SBC
+	nil,                                                // 189: specs.InstallationMediaConfigSpec.MachineLabelsEntry
+	(*ClusterMachineSecretsSpec_Rotation)(nil),         // 190: specs.ClusterMachineSecretsSpec.Rotation
+	nil, // 191: specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntry
+	(*ClusterKubernetesManifestsStatusSpec_ManifestStatus)(nil), // 192: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
+	(*ClusterKubernetesManifestsStatusSpec_GroupStatus)(nil),    // 193: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
+	nil, // 194: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
+	nil, // 195: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
+	(*MachineInstallDiskStatusSpec_Disk)(nil), // 196: specs.MachineInstallDiskStatusSpec.Disk
+	(*durationpb.Duration)(nil),               // 197: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),             // 198: google.protobuf.Timestamp
+	(*machine.MachineStatusEvent)(nil),        // 199: machine.MachineStatusEvent
+	(PlatformConfigSpec_Arch)(0),              // 200: specs.PlatformConfigSpec.Arch
+	(management.SchematicBootloader)(0),       // 201: management.SchematicBootloader
 }
 var file_omni_specs_omni_proto_depIdxs = []int32{
 	4,   // 0: specs.SecurityState.fips_state:type_name -> specs.SecurityState.FIPSState
-	144, // 1: specs.MachineStatusSpec.hardware:type_name -> specs.MachineStatusSpec.HardwareStatus
-	145, // 2: specs.MachineStatusSpec.network:type_name -> specs.MachineStatusSpec.NetworkStatus
+	145, // 1: specs.MachineStatusSpec.hardware:type_name -> specs.MachineStatusSpec.HardwareStatus
+	146, // 2: specs.MachineStatusSpec.network:type_name -> specs.MachineStatusSpec.NetworkStatus
 	5,   // 3: specs.MachineStatusSpec.role:type_name -> specs.MachineStatusSpec.Role
-	146, // 4: specs.MachineStatusSpec.platform_metadata:type_name -> specs.MachineStatusSpec.PlatformMetadata
-	149, // 5: specs.MachineStatusSpec.image_labels:type_name -> specs.MachineStatusSpec.ImageLabelsEntry
-	147, // 6: specs.MachineStatusSpec.schematic:type_name -> specs.MachineStatusSpec.Schematic
-	148, // 7: specs.MachineStatusSpec.diagnostics:type_name -> specs.MachineStatusSpec.Diagnostic
+	147, // 4: specs.MachineStatusSpec.platform_metadata:type_name -> specs.MachineStatusSpec.PlatformMetadata
+	150, // 5: specs.MachineStatusSpec.image_labels:type_name -> specs.MachineStatusSpec.ImageLabelsEntry
+	148, // 6: specs.MachineStatusSpec.schematic:type_name -> specs.MachineStatusSpec.Schematic
+	149, // 7: specs.MachineStatusSpec.diagnostics:type_name -> specs.MachineStatusSpec.Diagnostic
 	6,   // 8: specs.MachineStatusSpec.power_state:type_name -> specs.MachineStatusSpec.PowerState
 	32,  // 9: specs.MachineStatusSpec.security_state:type_name -> specs.SecurityState
-	156, // 10: specs.ClusterSpec.features:type_name -> specs.ClusterSpec.Features
+	157, // 10: specs.ClusterSpec.features:type_name -> specs.ClusterSpec.Features
 	39,  // 11: specs.ClusterSpec.backup_configuration:type_name -> specs.EtcdBackupConf
-	196, // 12: specs.EtcdBackupConf.interval:type_name -> google.protobuf.Duration
-	197, // 13: specs.EtcdBackupSpec.created_at:type_name -> google.protobuf.Timestamp
-	196, // 14: specs.BackupDataSpec.interval:type_name -> google.protobuf.Duration
+	197, // 12: specs.EtcdBackupConf.interval:type_name -> google.protobuf.Duration
+	198, // 13: specs.EtcdBackupSpec.created_at:type_name -> google.protobuf.Timestamp
+	197, // 14: specs.BackupDataSpec.interval:type_name -> google.protobuf.Duration
 	7,   // 15: specs.EtcdBackupStatusSpec.status:type_name -> specs.EtcdBackupStatusSpec.Status
-	197, // 16: specs.EtcdBackupStatusSpec.last_backup_time:type_name -> google.protobuf.Timestamp
-	197, // 17: specs.EtcdBackupStatusSpec.last_backup_attempt:type_name -> google.protobuf.Timestamp
-	197, // 18: specs.EtcdManualBackupSpec.backup_at:type_name -> google.protobuf.Timestamp
+	198, // 16: specs.EtcdBackupStatusSpec.last_backup_time:type_name -> google.protobuf.Timestamp
+	198, // 17: specs.EtcdBackupStatusSpec.last_backup_attempt:type_name -> google.protobuf.Timestamp
+	198, // 18: specs.EtcdManualBackupSpec.backup_at:type_name -> google.protobuf.Timestamp
 	45,  // 19: specs.EtcdBackupOverallStatusSpec.last_backup_status:type_name -> specs.EtcdBackupStatusSpec
-	8,   // 20: specs.ClusterMachineStatusSpec.stage:type_name -> specs.ClusterMachineStatusSpec.Stage
-	0,   // 21: specs.ClusterMachineStatusSpec.config_apply_status:type_name -> specs.ConfigApplyStatus
-	157, // 22: specs.ClusterMachineStatusSpec.provision_status:type_name -> specs.ClusterMachineStatusSpec.ProvisionStatus
-	56,  // 23: specs.ClusterStatusSpec.machines:type_name -> specs.Machines
-	9,   // 24: specs.ClusterStatusSpec.phase:type_name -> specs.ClusterStatusSpec.Phase
-	61,  // 25: specs.ClusterMachineConfigStatusSpec.config_try:type_name -> specs.ConfigTryStatus
-	197, // 26: specs.ConfigTryStatus.started_at:type_name -> google.protobuf.Timestamp
-	158, // 27: specs.MachinePendingUpdatesSpec.upgrade:type_name -> specs.MachinePendingUpdatesSpec.Upgrade
-	197, // 28: specs.ClusterBootstrapStatusSpec.last_bootstrap_attempt:type_name -> google.protobuf.Timestamp
-	159, // 29: specs.ClusterSecretsSpec.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
-	10,  // 30: specs.MachineSetSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
-	162, // 31: specs.MachineSetSpec.machine_class:type_name -> specs.MachineSetSpec.MachineAllocation
-	163, // 32: specs.MachineSetSpec.bootstrap_spec:type_name -> specs.MachineSetSpec.BootstrapSpec
-	10,  // 33: specs.MachineSetSpec.delete_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
-	165, // 34: specs.MachineSetSpec.update_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
-	165, // 35: specs.MachineSetSpec.delete_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
-	162, // 36: specs.MachineSetSpec.machine_allocation:type_name -> specs.MachineSetSpec.MachineAllocation
-	10,  // 37: specs.MachineSetSpec.upgrade_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
-	165, // 38: specs.MachineSetSpec.upgrade_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
-	13,  // 39: specs.TalosUpgradeStatusSpec.phase:type_name -> specs.TalosUpgradeStatusSpec.Phase
-	1,   // 40: specs.MachineSetStatusSpec.phase:type_name -> specs.MachineSetPhase
-	56,  // 41: specs.MachineSetStatusSpec.machines:type_name -> specs.Machines
-	162, // 42: specs.MachineSetStatusSpec.machine_allocation:type_name -> specs.MachineSetSpec.MachineAllocation
-	10,  // 43: specs.MachineSetConfigStatusSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
-	165, // 44: specs.MachineSetConfigStatusSpec.update_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
-	198, // 45: specs.MachineStatusSnapshotSpec.machine_status:type_name -> machine.MachineStatusEvent
-	14,  // 46: specs.MachineStatusSnapshotSpec.power_stage:type_name -> specs.MachineStatusSnapshotSpec.PowerStage
-	166, // 47: specs.ControlPlaneStatusSpec.conditions:type_name -> specs.ControlPlaneStatusSpec.Condition
-	167, // 48: specs.KubernetesStatusSpec.nodes:type_name -> specs.KubernetesStatusSpec.NodeStatus
-	169, // 49: specs.KubernetesStatusSpec.static_pods:type_name -> specs.KubernetesStatusSpec.NodeStaticPods
-	17,  // 50: specs.KubernetesUpgradeStatusSpec.phase:type_name -> specs.KubernetesUpgradeStatusSpec.Phase
-	73,  // 51: specs.OngoingTaskSpec.talos_upgrade:type_name -> specs.TalosUpgradeStatusSpec
-	82,  // 52: specs.OngoingTaskSpec.kubernetes_upgrade:type_name -> specs.KubernetesUpgradeStatusSpec
-	84,  // 53: specs.OngoingTaskSpec.destroy:type_name -> specs.DestroyStatusSpec
-	108, // 54: specs.OngoingTaskSpec.machine_upgrade:type_name -> specs.MachineUpgradeStatusSpec
-	131, // 55: specs.OngoingTaskSpec.secrets_rotation:type_name -> specs.ClusterSecretsRotationStatusSpec
-	94,  // 56: specs.FeaturesConfigSpec.etcd_backup_settings:type_name -> specs.EtcdBackupSettings
-	90,  // 57: specs.FeaturesConfigSpec.user_pilot_settings:type_name -> specs.UserPilotSettings
-	92,  // 58: specs.FeaturesConfigSpec.stripe_settings:type_name -> specs.StripeSettings
-	93,  // 59: specs.FeaturesConfigSpec.account:type_name -> specs.Account
-	91,  // 60: specs.FeaturesConfigSpec.posthog_settings:type_name -> specs.PosthogSettings
-	196, // 61: specs.EtcdBackupSettings.tick_interval:type_name -> google.protobuf.Duration
-	196, // 62: specs.EtcdBackupSettings.min_interval:type_name -> google.protobuf.Duration
-	196, // 63: specs.EtcdBackupSettings.max_interval:type_name -> google.protobuf.Duration
-	170, // 64: specs.MachineClassSpec.auto_provision:type_name -> specs.MachineClassSpec.Provision
-	171, // 65: specs.MachineConfigGenOptionsSpec.install_image:type_name -> specs.MachineConfigGenOptionsSpec.InstallImage
-	172, // 66: specs.KubernetesUsageSpec.cpu:type_name -> specs.KubernetesUsageSpec.Quantity
-	172, // 67: specs.KubernetesUsageSpec.mem:type_name -> specs.KubernetesUsageSpec.Quantity
-	172, // 68: specs.KubernetesUsageSpec.storage:type_name -> specs.KubernetesUsageSpec.Quantity
-	173, // 69: specs.KubernetesUsageSpec.pods:type_name -> specs.KubernetesUsageSpec.Pod
-	174, // 70: specs.ImagePullRequestSpec.node_image_list:type_name -> specs.ImagePullRequestSpec.NodeImageList
-	175, // 71: specs.TalosExtensionsSpec.items:type_name -> specs.TalosExtensionsSpec.Info
-	18,  // 72: specs.MachineUpgradeStatusSpec.phase:type_name -> specs.MachineUpgradeStatusSpec.Phase
-	176, // 73: specs.MachineExtensionsStatusSpec.extensions:type_name -> specs.MachineExtensionsStatusSpec.Item
-	177, // 74: specs.MachineStatusMetricsSpec.platforms:type_name -> specs.MachineStatusMetricsSpec.PlatformsEntry
-	178, // 75: specs.MachineStatusMetricsSpec.secure_boot_status:type_name -> specs.MachineStatusMetricsSpec.SecureBootStatusEntry
-	179, // 76: specs.MachineStatusMetricsSpec.uki_status:type_name -> specs.MachineStatusMetricsSpec.UkiStatusEntry
-	180, // 77: specs.ClusterMetricsSpec.features:type_name -> specs.ClusterMetricsSpec.FeaturesEntry
-	181, // 78: specs.ClusterStatusMetricsSpec.phases:type_name -> specs.ClusterStatusMetricsSpec.PhasesEntry
-	34,  // 79: specs.MachineRequestSetSpec.meta_values:type_name -> specs.MetaValue
-	3,   // 80: specs.MachineRequestSetSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	182, // 81: specs.ClusterDiagnosticsSpec.nodes:type_name -> specs.ClusterDiagnosticsSpec.Node
-	20,  // 82: specs.ClusterMachineRequestStatusSpec.stage:type_name -> specs.ClusterMachineRequestStatusSpec.Stage
-	22,  // 83: specs.InfraMachineConfigSpec.power_state:type_name -> specs.InfraMachineConfigSpec.MachinePowerState
-	21,  // 84: specs.InfraMachineConfigSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
-	183, // 85: specs.InfraMachineBMCConfigSpec.ipmi:type_name -> specs.InfraMachineBMCConfigSpec.IPMI
-	184, // 86: specs.InfraMachineBMCConfigSpec.api:type_name -> specs.InfraMachineBMCConfigSpec.API
-	61,  // 87: specs.MaintenanceConfigStatusSpec.config_try:type_name -> specs.ConfigTryStatus
-	185, // 88: specs.InfraProviderCombinedStatusSpec.health:type_name -> specs.InfraProviderCombinedStatusSpec.Health
-	199, // 89: specs.InstallationMediaConfigSpec.architecture:type_name -> specs.PlatformConfigSpec.Arch
-	186, // 90: specs.InstallationMediaConfigSpec.cloud:type_name -> specs.InstallationMediaConfigSpec.Cloud
-	187, // 91: specs.InstallationMediaConfigSpec.sbc:type_name -> specs.InstallationMediaConfigSpec.SBC
-	3,   // 92: specs.InstallationMediaConfigSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	188, // 93: specs.InstallationMediaConfigSpec.machine_labels:type_name -> specs.InstallationMediaConfigSpec.MachineLabelsEntry
-	200, // 94: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
-	23,  // 95: specs.SecretRotationSpec.status:type_name -> specs.SecretRotationSpec.Status
-	24,  // 96: specs.SecretRotationSpec.phase:type_name -> specs.SecretRotationSpec.Phase
-	25,  // 97: specs.SecretRotationSpec.component:type_name -> specs.SecretRotationSpec.Component
-	159, // 98: specs.SecretRotationSpec.certs:type_name -> specs.ClusterSecretsSpec.Certs
-	159, // 99: specs.SecretRotationSpec.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
-	160, // 100: specs.SecretRotationSpec.backup_certs_os:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	160, // 101: specs.SecretRotationSpec.backup_certs_k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	24,  // 102: specs.ClusterSecretsRotationStatusSpec.phase:type_name -> specs.SecretRotationSpec.Phase
-	25,  // 103: specs.ClusterSecretsRotationStatusSpec.component:type_name -> specs.SecretRotationSpec.Component
-	189, // 104: specs.ClusterMachineSecretsSpec.rotation:type_name -> specs.ClusterMachineSecretsSpec.Rotation
-	190, // 105: specs.UpgradeRolloutSpec.machine_sets_upgrade_quota:type_name -> specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntry
-	26,  // 106: specs.NotificationSpec.type:type_name -> specs.NotificationSpec.Type
-	27,  // 107: specs.KubernetesManifestGroupSpec.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
-	193, // 108: specs.ClusterKubernetesManifestsStatusSpec.groups:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
-	196, // 109: specs.KubernetesHealthCheckSpec.interval:type_name -> google.protobuf.Duration
-	30,  // 110: specs.KubernetesHealthCheckStatusSpec.state:type_name -> specs.KubernetesHealthCheckStatusSpec.State
-	195, // 111: specs.MachineInstallDiskStatusSpec.disks:type_name -> specs.MachineInstallDiskStatusSpec.Disk
-	150, // 112: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
-	151, // 113: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
-	152, // 114: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
-	153, // 115: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
-	154, // 116: specs.MachineStatusSpec.PlatformMetadata.tags:type_name -> specs.MachineStatusSpec.PlatformMetadata.TagsEntry
-	155, // 117: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
-	160, // 118: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	160, // 119: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	11,  // 120: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
-	12,  // 121: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
-	164, // 122: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
-	2,   // 123: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
-	15,  // 124: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
-	16,  // 125: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
-	168, // 126: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
-	34,  // 127: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
-	3,   // 128: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	32,  // 129: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
-	19,  // 130: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
-	23,  // 131: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
-	24,  // 132: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
-	25,  // 133: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
-	159, // 134: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
-	28,  // 135: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
-	29,  // 136: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
-	27,  // 137: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
-	194, // 138: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
-	192, // 139: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
-	191, // 140: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
-	141, // [141:141] is the sub-list for method output_type
-	141, // [141:141] is the sub-list for method input_type
-	141, // [141:141] is the sub-list for extension type_name
-	141, // [141:141] is the sub-list for extension extendee
-	0,   // [0:141] is the sub-list for field type_name
+	128, // 20: specs.RedactedClusterMachineConfigSpec.install_image:type_name -> specs.InstallImageInfo
+	8,   // 21: specs.ClusterMachineStatusSpec.stage:type_name -> specs.ClusterMachineStatusSpec.Stage
+	0,   // 22: specs.ClusterMachineStatusSpec.config_apply_status:type_name -> specs.ConfigApplyStatus
+	158, // 23: specs.ClusterMachineStatusSpec.provision_status:type_name -> specs.ClusterMachineStatusSpec.ProvisionStatus
+	56,  // 24: specs.ClusterStatusSpec.machines:type_name -> specs.Machines
+	9,   // 25: specs.ClusterStatusSpec.phase:type_name -> specs.ClusterStatusSpec.Phase
+	61,  // 26: specs.ClusterMachineConfigStatusSpec.config_try:type_name -> specs.ConfigTryStatus
+	198, // 27: specs.ConfigTryStatus.started_at:type_name -> google.protobuf.Timestamp
+	159, // 28: specs.MachinePendingUpdatesSpec.upgrade:type_name -> specs.MachinePendingUpdatesSpec.Upgrade
+	198, // 29: specs.ClusterBootstrapStatusSpec.last_bootstrap_attempt:type_name -> google.protobuf.Timestamp
+	160, // 30: specs.ClusterSecretsSpec.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
+	10,  // 31: specs.MachineSetSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
+	163, // 32: specs.MachineSetSpec.machine_class:type_name -> specs.MachineSetSpec.MachineAllocation
+	164, // 33: specs.MachineSetSpec.bootstrap_spec:type_name -> specs.MachineSetSpec.BootstrapSpec
+	10,  // 34: specs.MachineSetSpec.delete_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
+	166, // 35: specs.MachineSetSpec.update_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
+	166, // 36: specs.MachineSetSpec.delete_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
+	163, // 37: specs.MachineSetSpec.machine_allocation:type_name -> specs.MachineSetSpec.MachineAllocation
+	10,  // 38: specs.MachineSetSpec.upgrade_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
+	166, // 39: specs.MachineSetSpec.upgrade_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
+	13,  // 40: specs.TalosUpgradeStatusSpec.phase:type_name -> specs.TalosUpgradeStatusSpec.Phase
+	1,   // 41: specs.MachineSetStatusSpec.phase:type_name -> specs.MachineSetPhase
+	56,  // 42: specs.MachineSetStatusSpec.machines:type_name -> specs.Machines
+	163, // 43: specs.MachineSetStatusSpec.machine_allocation:type_name -> specs.MachineSetSpec.MachineAllocation
+	10,  // 44: specs.MachineSetConfigStatusSpec.update_strategy:type_name -> specs.MachineSetSpec.UpdateStrategy
+	166, // 45: specs.MachineSetConfigStatusSpec.update_strategy_config:type_name -> specs.MachineSetSpec.UpdateStrategyConfig
+	199, // 46: specs.MachineStatusSnapshotSpec.machine_status:type_name -> machine.MachineStatusEvent
+	14,  // 47: specs.MachineStatusSnapshotSpec.power_stage:type_name -> specs.MachineStatusSnapshotSpec.PowerStage
+	167, // 48: specs.ControlPlaneStatusSpec.conditions:type_name -> specs.ControlPlaneStatusSpec.Condition
+	168, // 49: specs.KubernetesStatusSpec.nodes:type_name -> specs.KubernetesStatusSpec.NodeStatus
+	170, // 50: specs.KubernetesStatusSpec.static_pods:type_name -> specs.KubernetesStatusSpec.NodeStaticPods
+	17,  // 51: specs.KubernetesUpgradeStatusSpec.phase:type_name -> specs.KubernetesUpgradeStatusSpec.Phase
+	73,  // 52: specs.OngoingTaskSpec.talos_upgrade:type_name -> specs.TalosUpgradeStatusSpec
+	82,  // 53: specs.OngoingTaskSpec.kubernetes_upgrade:type_name -> specs.KubernetesUpgradeStatusSpec
+	84,  // 54: specs.OngoingTaskSpec.destroy:type_name -> specs.DestroyStatusSpec
+	108, // 55: specs.OngoingTaskSpec.machine_upgrade:type_name -> specs.MachineUpgradeStatusSpec
+	132, // 56: specs.OngoingTaskSpec.secrets_rotation:type_name -> specs.ClusterSecretsRotationStatusSpec
+	94,  // 57: specs.FeaturesConfigSpec.etcd_backup_settings:type_name -> specs.EtcdBackupSettings
+	90,  // 58: specs.FeaturesConfigSpec.user_pilot_settings:type_name -> specs.UserPilotSettings
+	92,  // 59: specs.FeaturesConfigSpec.stripe_settings:type_name -> specs.StripeSettings
+	93,  // 60: specs.FeaturesConfigSpec.account:type_name -> specs.Account
+	91,  // 61: specs.FeaturesConfigSpec.posthog_settings:type_name -> specs.PosthogSettings
+	197, // 62: specs.EtcdBackupSettings.tick_interval:type_name -> google.protobuf.Duration
+	197, // 63: specs.EtcdBackupSettings.min_interval:type_name -> google.protobuf.Duration
+	197, // 64: specs.EtcdBackupSettings.max_interval:type_name -> google.protobuf.Duration
+	171, // 65: specs.MachineClassSpec.auto_provision:type_name -> specs.MachineClassSpec.Provision
+	172, // 66: specs.MachineConfigGenOptionsSpec.install_image:type_name -> specs.MachineConfigGenOptionsSpec.InstallImage
+	173, // 67: specs.KubernetesUsageSpec.cpu:type_name -> specs.KubernetesUsageSpec.Quantity
+	173, // 68: specs.KubernetesUsageSpec.mem:type_name -> specs.KubernetesUsageSpec.Quantity
+	173, // 69: specs.KubernetesUsageSpec.storage:type_name -> specs.KubernetesUsageSpec.Quantity
+	174, // 70: specs.KubernetesUsageSpec.pods:type_name -> specs.KubernetesUsageSpec.Pod
+	175, // 71: specs.ImagePullRequestSpec.node_image_list:type_name -> specs.ImagePullRequestSpec.NodeImageList
+	176, // 72: specs.TalosExtensionsSpec.items:type_name -> specs.TalosExtensionsSpec.Info
+	18,  // 73: specs.MachineUpgradeStatusSpec.phase:type_name -> specs.MachineUpgradeStatusSpec.Phase
+	177, // 74: specs.MachineExtensionsStatusSpec.extensions:type_name -> specs.MachineExtensionsStatusSpec.Item
+	178, // 75: specs.MachineStatusMetricsSpec.platforms:type_name -> specs.MachineStatusMetricsSpec.PlatformsEntry
+	179, // 76: specs.MachineStatusMetricsSpec.secure_boot_status:type_name -> specs.MachineStatusMetricsSpec.SecureBootStatusEntry
+	180, // 77: specs.MachineStatusMetricsSpec.uki_status:type_name -> specs.MachineStatusMetricsSpec.UkiStatusEntry
+	181, // 78: specs.ClusterMetricsSpec.features:type_name -> specs.ClusterMetricsSpec.FeaturesEntry
+	182, // 79: specs.ClusterStatusMetricsSpec.phases:type_name -> specs.ClusterStatusMetricsSpec.PhasesEntry
+	34,  // 80: specs.MachineRequestSetSpec.meta_values:type_name -> specs.MetaValue
+	3,   // 81: specs.MachineRequestSetSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	183, // 82: specs.ClusterDiagnosticsSpec.nodes:type_name -> specs.ClusterDiagnosticsSpec.Node
+	20,  // 83: specs.ClusterMachineRequestStatusSpec.stage:type_name -> specs.ClusterMachineRequestStatusSpec.Stage
+	22,  // 84: specs.InfraMachineConfigSpec.power_state:type_name -> specs.InfraMachineConfigSpec.MachinePowerState
+	21,  // 85: specs.InfraMachineConfigSpec.acceptance_status:type_name -> specs.InfraMachineConfigSpec.AcceptanceStatus
+	184, // 86: specs.InfraMachineBMCConfigSpec.ipmi:type_name -> specs.InfraMachineBMCConfigSpec.IPMI
+	185, // 87: specs.InfraMachineBMCConfigSpec.api:type_name -> specs.InfraMachineBMCConfigSpec.API
+	61,  // 88: specs.MaintenanceConfigStatusSpec.config_try:type_name -> specs.ConfigTryStatus
+	186, // 89: specs.InfraProviderCombinedStatusSpec.health:type_name -> specs.InfraProviderCombinedStatusSpec.Health
+	128, // 90: specs.MachineConfigDiffSpec.from_install_image:type_name -> specs.InstallImageInfo
+	128, // 91: specs.MachineConfigDiffSpec.to_install_image:type_name -> specs.InstallImageInfo
+	200, // 92: specs.InstallationMediaConfigSpec.architecture:type_name -> specs.PlatformConfigSpec.Arch
+	187, // 93: specs.InstallationMediaConfigSpec.cloud:type_name -> specs.InstallationMediaConfigSpec.Cloud
+	188, // 94: specs.InstallationMediaConfigSpec.sbc:type_name -> specs.InstallationMediaConfigSpec.SBC
+	3,   // 95: specs.InstallationMediaConfigSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	189, // 96: specs.InstallationMediaConfigSpec.machine_labels:type_name -> specs.InstallationMediaConfigSpec.MachineLabelsEntry
+	201, // 97: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
+	23,  // 98: specs.SecretRotationSpec.status:type_name -> specs.SecretRotationSpec.Status
+	24,  // 99: specs.SecretRotationSpec.phase:type_name -> specs.SecretRotationSpec.Phase
+	25,  // 100: specs.SecretRotationSpec.component:type_name -> specs.SecretRotationSpec.Component
+	160, // 101: specs.SecretRotationSpec.certs:type_name -> specs.ClusterSecretsSpec.Certs
+	160, // 102: specs.SecretRotationSpec.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
+	161, // 103: specs.SecretRotationSpec.backup_certs_os:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	161, // 104: specs.SecretRotationSpec.backup_certs_k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	24,  // 105: specs.ClusterSecretsRotationStatusSpec.phase:type_name -> specs.SecretRotationSpec.Phase
+	25,  // 106: specs.ClusterSecretsRotationStatusSpec.component:type_name -> specs.SecretRotationSpec.Component
+	190, // 107: specs.ClusterMachineSecretsSpec.rotation:type_name -> specs.ClusterMachineSecretsSpec.Rotation
+	191, // 108: specs.UpgradeRolloutSpec.machine_sets_upgrade_quota:type_name -> specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntry
+	26,  // 109: specs.NotificationSpec.type:type_name -> specs.NotificationSpec.Type
+	27,  // 110: specs.KubernetesManifestGroupSpec.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
+	194, // 111: specs.ClusterKubernetesManifestsStatusSpec.groups:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry
+	197, // 112: specs.KubernetesHealthCheckSpec.interval:type_name -> google.protobuf.Duration
+	30,  // 113: specs.KubernetesHealthCheckStatusSpec.state:type_name -> specs.KubernetesHealthCheckStatusSpec.State
+	196, // 114: specs.MachineInstallDiskStatusSpec.disks:type_name -> specs.MachineInstallDiskStatusSpec.Disk
+	151, // 115: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
+	152, // 116: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
+	153, // 117: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
+	154, // 118: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
+	155, // 119: specs.MachineStatusSpec.PlatformMetadata.tags:type_name -> specs.MachineStatusSpec.PlatformMetadata.TagsEntry
+	156, // 120: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
+	161, // 121: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	161, // 122: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	11,  // 123: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
+	12,  // 124: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
+	165, // 125: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
+	2,   // 126: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
+	15,  // 127: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
+	16,  // 128: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
+	169, // 129: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
+	34,  // 130: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
+	3,   // 131: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	32,  // 132: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
+	19,  // 133: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
+	23,  // 134: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
+	24,  // 135: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
+	25,  // 136: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
+	160, // 137: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
+	28,  // 138: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
+	29,  // 139: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
+	27,  // 140: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
+	195, // 141: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
+	193, // 142: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
+	192, // 143: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
+	144, // [144:144] is the sub-list for method output_type
+	144, // [144:144] is the sub-list for method input_type
+	144, // [144:144] is the sub-list for extension type_name
+	144, // [144:144] is the sub-list for extension extendee
+	0,   // [0:144] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_omni_proto_init() }
@@ -13639,7 +13755,7 @@ func file_omni_specs_omni_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_omni_proto_rawDesc), len(file_omni_specs_omni_proto_rawDesc)),
 			NumEnums:      31,
-			NumMessages:   165,
+			NumMessages:   166,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

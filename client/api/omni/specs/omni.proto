@@ -519,6 +519,9 @@ message RedactedClusterMachineConfigSpec {
   //
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes compressed_data = 2;
+
+  // InstallImage is the install image recorded in the ClusterMachineConfigStatus along with Data.
+  InstallImageInfo install_image = 3;
 }
 
 // ClusterMachineIdentity keeps ClusterMachine related node information.
@@ -731,6 +734,9 @@ message MachinePendingUpdatesSpec {
 
     string from_version = 3;
     string to_version = 4;
+
+    string from_image_factory_host = 5;
+    string to_image_factory_host = 6;
   }
 
   // Upgrade represents pending machine upgrade.
@@ -1703,6 +1709,17 @@ message MachineConfigDiffSpec {
   //
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes compressed_diff = 2;
+
+  // FromInstallImage and ToInstallImage are set only when the Talos version or the schematic of the machine changed.
+  InstallImageInfo from_install_image = 3;
+  InstallImageInfo to_install_image = 4;
+}
+
+// InstallImageInfo contains the recorded Talos version and schematic ID of a machine, and the image factory host Omni builds its install image from.
+message InstallImageInfo {
+  string talos_version = 1;
+  string schematic_id = 2;
+  string image_factory_host = 3;
 }
 
 message InstallationMediaConfigSpec {

@@ -25,6 +25,7 @@ import (
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
@@ -201,6 +202,28 @@ func TestEulaAcceptanceAudit(t *testing.T) {
 	events := readAuditEvents(t, l)
 	assert.Contains(t, events, `"eula_acceptance":{"name":"Test User","email":"test-user@example.com"}`)
 	assert.Contains(t, events, `"eula_acceptance":{"name":"Another User","email":"another-user@example.com"}`)
+}
+
+func TestMachineConfigDiffInstallImageAudit(t *testing.T) {
+	t.Parallel()
+
+	db := testDB(t)
+
+	cfg := config.LogsAudit{Enabled: new(true)}
+	l, err := audit.NewLog(t.Context(), cfg, db, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	hooks.Init(l)
+
+	res := omni.NewMachineConfigDiff("machine-1-diff")
+	res.TypedSpec().Value.FromInstallImage = &specs.InstallImageInfo{TalosVersion: "1.13.10", SchematicId: "A", ImageFactoryHost: "factory.talos.dev"}
+	res.TypedSpec().Value.ToInstallImage = &specs.InstallImageInfo{TalosVersion: "1.13.11", SchematicId: "A", ImageFactoryHost: "factory.talos.dev"}
+
+	require.NoError(t, l.LogCreate(res)(t.Context(), res))
+
+	events := readAuditEvents(t, l)
+	assert.Contains(t, events, `"from_install_image":{"talos_version":"1.13.10","schematic_id":"A","image_factory_host":"factory.talos.dev"}`)
+	assert.Contains(t, events, `"to_install_image":{"talos_version":"1.13.11","schematic_id":"A","image_factory_host":"factory.talos.dev"}`)
 }
 
 func readAuditEvents(t *testing.T, l *audit.Log) string {

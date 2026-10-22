@@ -481,6 +481,7 @@ export type ClusterMachineConfigSpec = {
 export type RedactedClusterMachineConfigSpec = {
   data?: string
   compressed_data?: Uint8Array
+  install_image?: InstallImageInfo
 }
 
 export type ClusterMachineIdentitySpec = {
@@ -564,6 +565,8 @@ export type MachinePendingUpdatesSpecUpgrade = {
   to_schematic?: string
   from_version?: string
   to_version?: string
+  from_image_factory_host?: string
+  to_image_factory_host?: string
 }
 
 export type MachinePendingUpdatesSpec = {
@@ -1105,6 +1108,14 @@ export type InfraProviderCombinedStatusSpec = {
 export type MachineConfigDiffSpec = {
   diff?: string
   compressed_diff?: Uint8Array
+  from_install_image?: InstallImageInfo
+  to_install_image?: InstallImageInfo
+}
+
+export type InstallImageInfo = {
+  talos_version?: string
+  schematic_id?: string
+  image_factory_host?: string
 }
 
 export type InstallationMediaConfigSpecCloud = {
