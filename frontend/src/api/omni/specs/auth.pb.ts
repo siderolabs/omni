@@ -58,7 +58,6 @@ export type SAMLAssertionSpec = {
 }
 
 export type UserSpec = {
-  scopes?: string[]
   role?: string
 }
 
@@ -72,11 +71,9 @@ export type Identity = {
 
 export type PublicKeySpec = {
   public_key?: Uint8Array
-  scopes?: string[]
   expiration?: GoogleProtobufTimestamp.Timestamp
   confirmed?: boolean
   identity?: Identity
-  role?: string
   type?: PublicKeySpecType
 }
 

@@ -171,29 +171,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		return nil, err
 	}
 
-	userID := identity.TypedSpec().Value.GetUserId()
-
-	user, err := safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(userID).Metadata())
-	if state.IsNotFoundError(err) {
-		s.logger.Error(
-			"public key not registered, user not found",
-			zap.String("email", email),
-			zap.String("user_id", userID),
-			zap.String("fingerprint", pubKey.id),
-		)
-
-		// we do not fail explicitly to prevent user enumeration
-		return result, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	newPubKey.Metadata().Labels().Set(authres.LabelPublicKeyUserID, userID)
-
-	// unused, will be removed in a later release
-	newPubKey.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
+	newPubKey.Metadata().Labels().Set(authres.LabelPublicKeyUserID, identity.TypedSpec().Value.GetUserId())
 
 	s.pending.add(newPubKey) // stored once it is confirmed
 

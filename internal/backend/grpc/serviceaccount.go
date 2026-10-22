@@ -68,11 +68,6 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	user, err := safe.StateGet[*authres.User](ctx, s.omniState, authres.NewUser(identity.TypedSpec().Value.UserId).Metadata())
-	if err != nil {
-		return nil, err
-	}
-
 	key, err := pkgaccess.ValidatePGPPublicKey(
 		[]byte(req.GetArmoredPgpPublicKey()),
 		pgp.WithMaxAllowedLifetime(auth.ServiceAccountMaxAllowedLifetime),
@@ -86,10 +81,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
 	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.Expiration)
-
-	// unused, will be removed in a later release
-	publicKeyResource.TypedSpec().Value.Role = user.TypedSpec().Value.GetRole() //nolint:staticcheck
-	publicKeyResource.TypedSpec().Value.Confirmed = true                        //nolint:staticcheck
+	publicKeyResource.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 
 	publicKeyResource.TypedSpec().Value.Identity = &specs.Identity{
 		Email: id,

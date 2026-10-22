@@ -66,12 +66,8 @@ message SAMLAssertionSpec {
 
 // UserSpec describes a user.
 message UserSpec {
-  reserved 1;
-  // Scopes are deprecated, use roles instead.
-  //
-  // Deprecated: will be removed once all environments are migrated to use roles.
-  // TODO: remove after all environments are migrated to use roles.
-  repeated string scopes = 2;
+  reserved 1, 2;
+  reserved "scopes";
   string role = 3;
 }
 
@@ -92,21 +88,15 @@ message PublicKeySpec {
     PLAIN = 2;
   }
 
+  reserved 2, 6;
+  reserved "scopes", "role";
+
   bytes public_key = 1;
-  // Scopes are deprecated, use roles instead.
-  //
-  // Deprecated: will be removed once all environments are migrated to use roles.
-  // TODO: remove after all environments are migrated to use roles.
-  repeated string scopes = 2;
   google.protobuf.Timestamp expiration = 3;
   // Confirmed is always true for keys written by this version.
   // TODO: reserve the field number once no unconfirmed keys from earlier versions can exist.
   bool confirmed = 4 [deprecated = true];
   Identity identity = 5;
-  // Role is deprecated, the role of the user behind the key is used instead.
-  //
-  // Deprecated: unused. Reserve the field number when it is removed.
-  string role = 6;
   Type type = 7;
 }
 

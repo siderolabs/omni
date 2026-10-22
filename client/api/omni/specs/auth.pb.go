@@ -232,13 +232,8 @@ func (x *SAMLAssertionSpec) GetUsed() bool {
 
 // UserSpec describes a user.
 type UserSpec struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Scopes are deprecated, use roles instead.
-	//
-	// Deprecated: will be removed once all environments are migrated to use roles.
-	// TODO: remove after all environments are migrated to use roles.
-	Scopes        []string `protobuf:"bytes,2,rep,name=scopes,proto3" json:"scopes,omitempty"`
-	Role          string   `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,13 +266,6 @@ func (x *UserSpec) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UserSpec.ProtoReflect.Descriptor instead.
 func (*UserSpec) Descriptor() ([]byte, []int) {
 	return file_omni_specs_auth_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *UserSpec) GetScopes() []string {
-	if x != nil {
-		return x.Scopes
-	}
-	return nil
 }
 
 func (x *UserSpec) GetRole() string {
@@ -378,24 +366,15 @@ func (x *Identity) GetEmail() string {
 
 // PublicKeySpec describes a user or service account public key.
 type PublicKeySpec struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	PublicKey []byte                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	// Scopes are deprecated, use roles instead.
-	//
-	// Deprecated: will be removed once all environments are migrated to use roles.
-	// TODO: remove after all environments are migrated to use roles.
-	Scopes     []string               `protobuf:"bytes,2,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey  []byte                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	Expiration *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
 	// Confirmed is always true for keys written by this version.
 	// TODO: reserve the field number once no unconfirmed keys from earlier versions can exist.
 	//
 	// Deprecated: Marked as deprecated in omni/specs/auth.proto.
-	Confirmed bool      `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
-	Identity  *Identity `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
-	// Role is deprecated, the role of the user behind the key is used instead.
-	//
-	// Deprecated: unused. Reserve the field number when it is removed.
-	Role          string             `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
+	Confirmed     bool               `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	Identity      *Identity          `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"`
 	Type          PublicKeySpec_Type `protobuf:"varint,7,opt,name=type,proto3,enum=specs.PublicKeySpec_Type" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -438,13 +417,6 @@ func (x *PublicKeySpec) GetPublicKey() []byte {
 	return nil
 }
 
-func (x *PublicKeySpec) GetScopes() []string {
-	if x != nil {
-		return x.Scopes
-	}
-	return nil
-}
-
 func (x *PublicKeySpec) GetExpiration() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Expiration
@@ -465,13 +437,6 @@ func (x *PublicKeySpec) GetIdentity() *Identity {
 		return x.Identity
 	}
 	return nil
-}
-
-func (x *PublicKeySpec) GetRole() string {
-	if x != nil {
-		return x.Role
-	}
-	return ""
 }
 
 func (x *PublicKeySpec) GetType() PublicKeySpec_Type {
@@ -1963,29 +1928,26 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\x11SAMLAssertionSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
-	"\x04used\x18\x03 \x01(\bR\x04used\"<\n" +
-	"\bUserSpec\x12\x16\n" +
-	"\x06scopes\x18\x02 \x03(\tR\x06scopes\x12\x12\n" +
-	"\x04role\x18\x03 \x01(\tR\x04roleJ\x04\b\x01\x10\x02\"'\n" +
+	"\x04used\x18\x03 \x01(\bR\x04used\"2\n" +
+	"\bUserSpec\x12\x12\n" +
+	"\x04role\x18\x03 \x01(\tR\x04roleJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x06scopes\"'\n" +
 	"\fIdentitySpec\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\" \n" +
 	"\bIdentity\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\xbd\x02\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\xab\x02\n" +
 	"\rPublicKeySpec\x12\x1d\n" +
 	"\n" +
-	"public_key\x18\x01 \x01(\fR\tpublicKey\x12\x16\n" +
-	"\x06scopes\x18\x02 \x03(\tR\x06scopes\x12:\n" +
+	"public_key\x18\x01 \x01(\fR\tpublicKey\x12:\n" +
 	"\n" +
 	"expiration\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"expiration\x12 \n" +
 	"\tconfirmed\x18\x04 \x01(\bB\x02\x18\x01R\tconfirmed\x12+\n" +
-	"\bidentity\x18\x05 \x01(\v2\x0f.specs.IdentityR\bidentity\x12\x12\n" +
-	"\x04role\x18\x06 \x01(\tR\x04role\x12-\n" +
+	"\bidentity\x18\x05 \x01(\v2\x0f.specs.IdentityR\bidentity\x12-\n" +
 	"\x04type\x18\a \x01(\x0e2\x19.specs.PublicKeySpec.TypeR\x04type\"'\n" +
 	"\x04Type\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\a\n" +
 	"\x03PGP\x10\x01\x12\t\n" +
-	"\x05PLAIN\x10\x02\"\xab\x01\n" +
+	"\x05PLAIN\x10\x02J\x04\b\x02\x10\x03J\x04\b\x06\x10\aR\x06scopesR\x04role\"\xab\x01\n" +
 	"\x15AccessPolicyUserGroup\x127\n" +
 	"\x05users\x18\x01 \x03(\v2!.specs.AccessPolicyUserGroup.UserR\x05users\x1aY\n" +
 	"\x04User\x12\x12\n" +

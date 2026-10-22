@@ -89,8 +89,6 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
 	publicKeyResource.TypedSpec().Value.Expiration = timestamppb.New(key.Expiration)
 
-	// unused, will be removed in a later release
-	publicKeyResource.TypedSpec().Value.Role = string(saRole) //nolint:staticcheck
 	// register the public key of the service account as "confirmed" because we are already authenticated
 	publicKeyResource.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 

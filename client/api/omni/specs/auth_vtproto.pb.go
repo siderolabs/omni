@@ -171,11 +171,6 @@ func (m *UserSpec) CloneVT() *UserSpec {
 	}
 	r := new(UserSpec)
 	r.Role = m.Role
-	if rhs := m.Scopes; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Scopes = tmpContainer
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -229,17 +224,11 @@ func (m *PublicKeySpec) CloneVT() *PublicKeySpec {
 	r.Expiration = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.Expiration).CloneVT())
 	r.Confirmed = m.Confirmed
 	r.Identity = m.Identity.CloneVT()
-	r.Role = m.Role
 	r.Type = m.Type
 	if rhs := m.PublicKey; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
 		r.PublicKey = tmpBytes
-	}
-	if rhs := m.Scopes; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Scopes = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -914,15 +903,6 @@ func (this *UserSpec) EqualVT(that *UserSpec) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if len(this.Scopes) != len(that.Scopes) {
-		return false
-	}
-	for i, vx := range this.Scopes {
-		vy := that.Scopes[i]
-		if vx != vy {
-			return false
-		}
-	}
 	if this.Role != that.Role {
 		return false
 	}
@@ -983,15 +963,6 @@ func (this *PublicKeySpec) EqualVT(that *PublicKeySpec) bool {
 	if string(this.PublicKey) != string(that.PublicKey) {
 		return false
 	}
-	if len(this.Scopes) != len(that.Scopes) {
-		return false
-	}
-	for i, vx := range this.Scopes {
-		vy := that.Scopes[i]
-		if vx != vy {
-			return false
-		}
-	}
 	if !(*timestamppb1.Timestamp)(this.Expiration).EqualVT((*timestamppb1.Timestamp)(that.Expiration)) {
 		return false
 	}
@@ -999,9 +970,6 @@ func (this *PublicKeySpec) EqualVT(that *PublicKeySpec) bool {
 		return false
 	}
 	if !this.Identity.EqualVT(that.Identity) {
-		return false
-	}
-	if this.Role != that.Role {
 		return false
 	}
 	if this.Type != that.Type {
@@ -2135,15 +2103,6 @@ func (m *UserSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Scopes) > 0 {
-		for iNdEx := len(m.Scopes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Scopes[iNdEx])
-			copy(dAtA[i:], m.Scopes[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Scopes[iNdEx])))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -2262,13 +2221,6 @@ func (m *PublicKeySpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x38
 	}
-	if len(m.Role) > 0 {
-		i -= len(m.Role)
-		copy(dAtA[i:], m.Role)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Role)))
-		i--
-		dAtA[i] = 0x32
-	}
 	if m.Identity != nil {
 		size, err := m.Identity.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2298,15 +2250,6 @@ func (m *PublicKeySpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x1a
-	}
-	if len(m.Scopes) > 0 {
-		for iNdEx := len(m.Scopes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Scopes[iNdEx])
-			copy(dAtA[i:], m.Scopes[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Scopes[iNdEx])))
-			i--
-			dAtA[i] = 0x12
-		}
 	}
 	if len(m.PublicKey) > 0 {
 		i -= len(m.PublicKey)
@@ -3635,12 +3578,6 @@ func (m *UserSpec) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
-	}
 	l = len(m.Role)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -3687,12 +3624,6 @@ func (m *PublicKeySpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
-	}
 	if m.Expiration != nil {
 		l = (*timestamppb1.Timestamp)(m.Expiration).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -3702,10 +3633,6 @@ func (m *PublicKeySpec) SizeVT() (n int) {
 	}
 	if m.Identity != nil {
 		l = m.Identity.SizeVT()
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Role)
-	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.Type != 0 {
@@ -5443,38 +5370,6 @@ func (m *UserSpec) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: UserSpec: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Scopes", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Scopes = append(m.Scopes, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
@@ -5758,38 +5653,6 @@ func (m *PublicKeySpec) UnmarshalVT(dAtA []byte) error {
 				m.PublicKey = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Scopes", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Scopes = append(m.Scopes, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Expiration", wireType)
@@ -5881,38 +5744,6 @@ func (m *PublicKeySpec) UnmarshalVT(dAtA []byte) error {
 			if err := m.Identity.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Role = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 7:
 			if wireType != 0 {
