@@ -239,7 +239,6 @@ func (s *Server) Run(ctx context.Context) error {
 		s.state.Auditor(),
 		s.cfg,
 		s.kubernetesRuntime,
-		s.talosRuntime,
 		s.talosClientFactory,
 		runtimes,
 		s.lifecycleManager,

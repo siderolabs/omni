@@ -14,7 +14,6 @@ import (
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,17 +37,13 @@ var Name = common.Runtime_Talos.String()
 type Runtime struct {
 	clientFactory *ClientFactory
 	logger        *zap.Logger
-	accountName   string
-	apiURL        string
 }
 
 // New creates a new Talos runtime.
-func New(clientFactory *ClientFactory, logger *zap.Logger, accountName string, apiURL string) *Runtime {
+func New(clientFactory *ClientFactory, logger *zap.Logger) *Runtime {
 	return &Runtime{
 		clientFactory: clientFactory,
 		logger:        logger.With(logging.Component("talos_runtime")),
-		accountName:   accountName,
-		apiURL:        apiURL,
 	}
 }
 
@@ -233,43 +228,6 @@ func (r *Runtime) Update(context.Context, cosiresource.Resource, ...runtime.Quer
 // Delete implements runtime.Runtime.
 func (r *Runtime) Delete(context.Context, ...runtime.QueryOption) error {
 	return status.Error(codes.Unimplemented, "not implemented")
-}
-
-// GetTalosconfigRaw returns raw talosconfig for the cluster (or for whole instance if the cluster is not specified).
-func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([]byte, error) {
-	auth := clientconfig.Auth{}
-
-	auth.SideroV1 = &clientconfig.SideroV1{
-		Identity: identity,
-	}
-
-	contextName := r.accountName
-	apiURL := r.apiURL
-
-	cluster := ""
-
-	if context != nil {
-		cluster = context.Name
-	}
-
-	if cluster != "" {
-		contextName = contextName + "-" + cluster
-	}
-
-	talosconfig := clientconfig.Config{
-		Context: contextName,
-		Contexts: map[string]*clientconfig.Context{
-			contextName: {
-				Endpoints: []string{
-					apiURL,
-				},
-				Auth:    auth,
-				Cluster: cluster,
-			},
-		},
-	}
-
-	return talosconfig.Bytes()
 }
 
 // callerState returns the resource state of the target for a request made on behalf of the caller in the context:

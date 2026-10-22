@@ -162,7 +162,7 @@ func TestRuntimeCallerRoles(t *testing.T) {
 		fake := startFakeTalos(ctx, t)
 
 		clientFactory := talos.NewClientFactory(st, testContext.Logger)
-		talosRuntime := talos.New(clientFactory, testContext.Logger, "omni", "https://omni.example.org")
+		talosRuntime := talos.New(clientFactory, testContext.Logger)
 
 		cluster := omni.NewCluster("alpha")
 		cluster.TypedSpec().Value.TalosVersion = "1.11.0"
@@ -319,7 +319,7 @@ func TestRuntimeSensitivity(t *testing.T) {
 		fake := startFakeTalos(ctx, t)
 
 		clientFactory := talos.NewClientFactory(st, testContext.Logger)
-		talosRuntime := talos.New(clientFactory, testContext.Logger, "omni", "https://omni.example.org")
+		talosRuntime := talos.New(clientFactory, testContext.Logger)
 
 		// allocated to the cluster, but still in maintenance mode, so it is reached over the maintenance API
 		machineStatus := omni.NewMachineStatus("allocated")

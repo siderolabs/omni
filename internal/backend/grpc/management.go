@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 	"go.yaml.in/yaml/v4"
@@ -75,11 +76,6 @@ type KubernetesRuntime interface {
 	GetOIDCKubeconfig(context *commonOmni.Context, identity string, extraOptions ...string) ([]byte, error)
 	BreakGlassKubeconfig(ctx context.Context, id string) ([]byte, error)
 	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
-}
-
-// TalosRuntime generates talosconfigs.
-type TalosRuntime interface {
-	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
 }
 
 // TalosClientFactory provides Talos clients for clusters and machines.
@@ -154,7 +150,7 @@ type LifecycleManager interface {
 
 func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
 	dnsService *dns.Service, imageFactoryClients *imagefactory.Clients, auditor AuditLogger, omniconfigDest string,
-	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosClientFactory TalosClientFactory, talosconfigProvider TalosconfigProvider,
+	kubernetesRuntime KubernetesRuntime, talosClientFactory TalosClientFactory, talosconfigProvider TalosconfigProvider,
 	lifecycleManager LifecycleManager,
 ) *managementServer {
 	return &managementServer{
@@ -168,7 +164,6 @@ func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKe
 		auditor:               auditor,
 		omniconfigDest:        omniconfigDest,
 		kubernetesRuntime:     kubernetesRuntime,
-		talosRuntime:          talosRuntime,
 		talosClientFactory:    talosClientFactory,
 		talosconfigProvider:   talosconfigProvider,
 		lifecycleManager:      lifecycleManager,
@@ -194,7 +189,6 @@ type managementServer struct {
 	jwtSigningKeyProvider JWTSigningKeyProvider
 	auditor               AuditLogger
 	talosconfigProvider   TalosconfigProvider
-	talosRuntime          TalosRuntime
 	talosClientFactory    TalosClientFactory
 	logHandler            *siderolinkinternal.LogHandler
 	logger                *zap.Logger
@@ -327,7 +321,7 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 		return s.breakGlassTalosconfig(ctx, false)
 	}
 
-	talosconfig, err := s.talosRuntime.GetTalosconfigRaw(routerContext, authResult.Identity)
+	talosconfig, err := generateTalosconfig(s.cfg.Account.GetName(), s.cfg.Services.Api.URL(), clusterName, authResult.Identity)
 	if err != nil {
 		return nil, err
 	}
@@ -335,6 +329,31 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 	return &management.TalosconfigResponse{
 		Talosconfig: talosconfig,
 	}, nil
+}
+
+// generateTalosconfig returns a talosconfig for the cluster, or for the whole instance if clusterName is empty.
+func generateTalosconfig(accountName, apiURL, clusterName, identity string) ([]byte, error) {
+	contextName := accountName
+	if clusterName != "" {
+		contextName += "-" + clusterName
+	}
+
+	talosconfig := clientconfig.Config{
+		Context: contextName,
+		Contexts: map[string]*clientconfig.Context{
+			contextName: {
+				Endpoints: []string{apiURL},
+				Auth: clientconfig.Auth{
+					SideroV1: &clientconfig.SideroV1{
+						Identity: identity,
+					},
+				},
+				Cluster: clusterName,
+			},
+		},
+	}
+
+	return talosconfig.Bytes()
 }
 
 func (s *managementServer) Omniconfig(ctx context.Context, _ *emptypb.Empty) (*management.OmniconfigResponse, error) {

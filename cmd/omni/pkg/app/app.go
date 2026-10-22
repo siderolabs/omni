@@ -50,7 +50,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	}
 
 	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
-	talosRuntime := talos.New(talosClientFactory, logger, cfg.Account.GetName(), cfg.Services.Api.URL())
+	talosRuntime := talos.New(talosClientFactory, logger)
 
 	// Wire controller-runtime logging to the global zap logger instead of discarding it.
 	log.SetLogger(zapr.NewLogger(logger))
