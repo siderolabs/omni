@@ -95,7 +95,7 @@ const supportedK8sVersions = computed(() =>
 
 interface VersionGroup {
   clusterSupportsGroup: boolean
-  minTalosVersion: string
+  minTalosVersion?: string
   upgradeable: boolean
   versions: {
     upgradeable: boolean
@@ -124,10 +124,9 @@ const groupedK8sVersions = computed(() => {
           clusterTalosVersion?.spec.compatible_kubernetes_versions?.some((v) =>
             satisfies(v, majorMinor),
           ) ?? false,
-        minTalosVersion:
-          allTalosVersions.value.findLast((v) =>
-            v.spec.compatible_kubernetes_versions?.some((v) => satisfies(v, majorMinor)),
-          )?.spec.version ?? 'unknown',
+        minTalosVersion: allTalosVersions.value.findLast((v) =>
+          v.spec.compatible_kubernetes_versions?.some((v) => satisfies(v, majorMinor)),
+        )?.spec.version,
         upgradeable: supportedK8sVersions.value.some((v) => satisfies(v, majorMinor)),
         versions: [],
       }
@@ -236,7 +235,9 @@ const upgradeClick = async () => {
               ? ''
               : clusterSupportsGroup
                 ? " - Can't skip minor version upgrades"
-                : ` - Requires Talos version ${minTalosVersion}`
+                : minTalosVersion
+                  ? ` - Requires Talos version ${minTalosVersion}`
+                  : ' - No known Talos version supports this Kubernetes version'
           }}
         </RadioGroupLabel>
         <div class="flex flex-col gap-micro">
