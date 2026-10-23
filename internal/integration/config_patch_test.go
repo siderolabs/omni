@@ -216,7 +216,7 @@ contents: test`, name)
 		err = retry.Constant(2*time.Minute, retry.WithUnits(1*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 			exists, existsErr := talosFileExists(ctx, talosClient, node.talosIP, file)
 			if existsErr != nil {
-				if strings.Contains(existsErr.Error(), "not reachable") || status.Code(existsErr) == codes.Unavailable {
+				if status.Code(existsErr) == codes.Unavailable {
 					return retry.ExpectedError(existsErr)
 				}
 
