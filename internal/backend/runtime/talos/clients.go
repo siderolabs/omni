@@ -673,7 +673,7 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID string) (*Client, error) {
-	return factory.getForMachine(ctx, machineID, false, false)
+	return factory.getForMachine(ctx, machineID, anyMode, false)
 }
 
 // GetReaderForMachine constructs a reader client connected directly to a specific node's SideroLink address.
@@ -682,7 +682,7 @@ func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID strin
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetReaderForMachine(ctx context.Context, machineID string) (*Client, error) {
-	return factory.getForMachine(ctx, machineID, false, true)
+	return factory.getForMachine(ctx, machineID, anyMode, true)
 }
 
 // GetMaintenance constructs a Talos client connected directly to a specific node's SideroLink address over the insecure
@@ -695,11 +695,28 @@ func (factory *ClientFactory) GetReaderForMachine(ctx context.Context, machineID
 //
 // The returned client must be closed by the caller.
 func (factory *ClientFactory) GetMaintenance(ctx context.Context, machineID string) (*Client, error) {
-	return factory.getForMachine(ctx, machineID, true, false)
+	return factory.getForMachine(ctx, machineID, maintenanceMode, false)
 }
 
-func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly, reader bool) (*Client, error) {
-	_, clusterID, err := factory.resolveMachine(ctx, machineID, maintenanceOnly)
+// GetSecure constructs a Talos client connected directly to a specific node's SideroLink address over its cluster's
+// secure connection. It returns an error if the machine is in maintenance mode.
+//
+// The returned client must be closed by the caller.
+func (factory *ClientFactory) GetSecure(ctx context.Context, machineID string) (*Client, error) {
+	return factory.getForMachine(ctx, machineID, secureMode, false)
+}
+
+// machineMode is the mode of the client asked for a machine.
+type machineMode int
+
+const (
+	anyMode         machineMode = iota // maintenance or secure, as the machine status says
+	maintenanceMode                    // only a maintenance client
+	secureMode                         // only a secure client
+)
+
+func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, mode machineMode, reader bool) (*Client, error) {
+	_, clusterID, err := factory.resolveMachine(ctx, machineID, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -714,7 +731,7 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 	}
 
 	// cache miss: the machine status is read again under the mutex, as the one read above might be stale (see publishLocked)
-	machineStatus, clusterID, err := factory.resolveMachine(ctx, machineID, maintenanceOnly)
+	machineStatus, clusterID, err := factory.resolveMachine(ctx, machineID, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -735,7 +752,7 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 
 // resolveMachine reads the machine status and returns the cluster the machine is reachable through: its own cluster over
 // the secure connection, or none in maintenance mode.
-func (factory *ClientFactory) resolveMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*omni.MachineStatus, string, error) {
+func (factory *ClientFactory) resolveMachine(ctx context.Context, machineID string, mode machineMode) (*omni.MachineStatus, string, error) {
 	machineStatus, err := safe.StateGet[*omni.MachineStatus](
 		ctx, factory.omniState,
 		omni.NewMachineStatus(machineID).Metadata(),
@@ -750,10 +767,13 @@ func (factory *ClientFactory) resolveMachine(ctx context.Context, machineID stri
 
 	spec := machineStatus.TypedSpec().Value
 
-	// when only a maintenance client was asked for, refuse to build (or return a cached) cluster client. checked before
-	// touching the cache so a concurrently cached cluster client can never leak through either.
-	if maintenanceOnly && !spec.Maintenance {
+	// when only one mode was asked for, refuse to build (or return a cached) client of the other mode. checked before
+	// touching the cache so a concurrently cached client of the other mode can never leak through either.
+	switch {
+	case mode == maintenanceMode && !spec.Maintenance:
 		return nil, "", fmt.Errorf("machine %q is not in maintenance mode", machineID)
+	case mode == secureMode && spec.Maintenance:
+		return nil, "", fmt.Errorf("machine %q is in maintenance mode", machineID)
 	}
 
 	// A machine in maintenance mode is reachable only over the insecure maintenance connection, even when already
