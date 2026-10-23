@@ -27,6 +27,7 @@ import (
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -169,6 +170,20 @@ func (c *Client) Connected(ctx context.Context, r controller.Reader) (bool, erro
 	}
 
 	return clusterStatus.TypedSpec().Value.GetAvailable(), nil
+}
+
+// ConnectParams returns the gRPC connection parameters for the connections to the Talos API of the machines.
+//
+// The reconnect backoff is capped at 15 seconds instead of the gRPC default of 2 minutes, so that a connection becomes
+// usable soon after its machine is back, e.g., from a reboot.
+func ConnectParams() grpc.ConnectParams {
+	backoffConfig := backoff.DefaultConfig
+	backoffConfig.MaxDelay = 15 * time.Second
+
+	return grpc.ConnectParams{
+		Backoff:           backoffConfig,
+		MinConnectTimeout: 20 * time.Second,
+	}
 }
 
 // NewMaintenanceClient opens an insecure Talos client to a machine's maintenance API.
@@ -348,6 +363,7 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 			grpc.WithDefaultCallOptions(
 				grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize),
 			),
+			grpc.WithConnectParams(ConnectParams()),
 		),
 	}, nil
 }
@@ -808,6 +824,7 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 		client.WithEndpoints(managementAddress),
 		client.WithGRPCDialOptions(
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
+			grpc.WithConnectParams(ConnectParams()),
 		),
 	)
 }

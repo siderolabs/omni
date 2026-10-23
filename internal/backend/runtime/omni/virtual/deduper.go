@@ -154,6 +154,14 @@ func (d *DedupScheduler) Start(ctx context.Context, ptr resource.Pointer) error 
 	}
 
 	ch := d.sf.DoChan(id, func() (any, error) {
+		d.producersMu.Lock()
+		_, started := d.producers[id] // started by a call which finished after our ref check
+		d.producersMu.Unlock()
+
+		if started {
+			return nil, nil //nolint:nilnil
+		}
+
 		d.logger.Debug("starting producer", zap.String("type", ptr.Type()), zap.String("id", ptr.ID()))
 
 		p, err := d.factory(ctx, d.state, ptr, d.logger)
@@ -184,7 +192,9 @@ func (d *DedupScheduler) Start(ctx context.Context, ptr resource.Pointer) error 
 			return v.Err
 		}
 
-		d.ref(ptr)
+		if !d.ref(ptr) { // stopped by the cleanup in between
+			return d.Start(ctx, ptr)
+		}
 
 		return nil
 	}

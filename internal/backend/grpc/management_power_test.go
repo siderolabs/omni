@@ -113,6 +113,10 @@ func (c *capturingTalosClientFactory) GetForCluster(context.Context, string) (*t
 	return nil, errors.New("not implemented")
 }
 
+func (c *capturingTalosClientFactory) GetMaintenance(context.Context, string) (*talosruntime.Client, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (c *capturingTalosClientFactory) GetForMachine(ctx context.Context, _ string) (*talosruntime.Client, error) {
 	c.machineCtx = captureContext(ctx)
 

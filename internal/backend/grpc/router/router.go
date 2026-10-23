@@ -32,7 +32,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -44,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/certs"
@@ -443,17 +443,11 @@ func (r *Router) dialTalosWithCreds(creds credentials.TransportCredentials, endp
 		strings.Join(endpoints, ","),
 	)
 
-	backoffConfig := backoff.DefaultConfig
-	backoffConfig.MaxDelay = 15 * time.Second
-
 	return grpc.NewClient(
 		target,
 		grpc.WithInitialWindowSize(65535*32),
 		grpc.WithInitialConnWindowSize(65535*16),
-		grpc.WithConnectParams(grpc.ConnectParams{
-			Backoff:           backoffConfig,
-			MinConnectTimeout: 20 * time.Second,
-		}),
+		grpc.WithConnectParams(talos.ConnectParams()),
 		grpc.WithTransportCredentials(creds),
 		grpc.WithDefaultCallOptions(grpc.ForceCodecV2(proxy.Codec())),
 		grpc.WithChainStreamInterceptor(sensitiveReadGuard()),

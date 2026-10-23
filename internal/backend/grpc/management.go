@@ -8,7 +8,6 @@ package grpc
 import (
 	"cmp"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -84,6 +83,7 @@ type KubernetesRuntime interface {
 type TalosClientFactory interface {
 	GetForCluster(ctx context.Context, clusterID string) (*talos.Client, error)
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+	GetMaintenance(ctx context.Context, machineID string) (*talos.Client, error)
 }
 
 // talosClientGroup obtains Talos clients and closes all of them at once.
@@ -964,14 +964,12 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	s.logger.Info("built maintenance upgrade image", zap.String("image", installImageStr))
 
-	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
-	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(address))
-
-	talosClient, err := client.New(authCtx, opts...)
+	talosClient, err := s.talosClientFactory.GetMaintenance(ctx, req.MachineId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create talos client: %w", err)
+		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}
+
+	defer talosClient.Close() //nolint:errcheck
 
 	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Upgrade_FullMethodName, clusterName, req.MachineId); err != nil {
 		return nil, err

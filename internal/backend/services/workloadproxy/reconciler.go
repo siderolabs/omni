@@ -274,7 +274,7 @@ func (registry *Reconciler) GetProxy(alias string) (http.Handler, resource.ID, e
 			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 				return registry.dialProxy(ctx, network, address)
 			},
-			IdleConnTimeout:       90 * time.Second,
+			DisableKeepAlives:     true, // the transport is per request, idle connections would never be reused
 			ResponseHeaderTimeout: 10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},

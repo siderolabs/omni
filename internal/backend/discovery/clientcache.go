@@ -72,6 +72,10 @@ func (cache *ClientCache) get(ctx context.Context, endpoint string) (*discovery.
 	}
 
 	ch := cache.sf.DoChan(endpoint, func() (any, error) {
+		if cli, ok := cache.cache.Get(endpoint); ok { // created by a call which finished after our check
+			return cli, nil
+		}
+
 		cache.logger.Debug("cache miss, creating new Discovery client", zap.String("endpoint", endpoint))
 
 		cache.metricCacheMisses.Inc()
@@ -82,6 +86,7 @@ func (cache *ClientCache) get(ctx context.Context, endpoint string) (*discovery.
 		}
 
 		cache.metricActiveClients.Inc()
+		cache.cache.Remove(endpoint) // an expired entry can still be stored, Add would replace it without closing it
 		cache.cache.Add(endpoint, cli)
 
 		return cli, nil

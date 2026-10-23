@@ -73,6 +73,8 @@ func (c *Store) Download(ctx context.Context, encryptionKey []byte, clusterUUID,
 
 	decryptedData, decryptedReader, err := Decrypt(encryptedReader, encryptionKey)
 	if err != nil {
+		encryptedReader.Close() //nolint:errcheck
+
 		return etcdbackup.BackupData{}, nil, fmt.Errorf("error decrypting backup: %w", err)
 	}
 

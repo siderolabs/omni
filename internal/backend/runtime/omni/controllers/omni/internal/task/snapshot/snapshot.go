@@ -259,6 +259,8 @@ retry:
 	// if the request failed retry once again with the insecure client
 	_, err = c.Version(ctx)
 	if err != nil {
+		c.Close() //nolint:errcheck
+
 		talosConfig = nil
 
 		goto retry
