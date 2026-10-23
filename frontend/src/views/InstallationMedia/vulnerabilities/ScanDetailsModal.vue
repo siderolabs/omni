@@ -73,7 +73,7 @@ async function downloadReport(filename: VulnerabilityReportFormat) {
 </script>
 
 <template>
-  <Modal v-model:open="open" title="Scan details" cancel-label="Close">
+  <Modal v-model:open="open" title="Scan details" cancel-label="Close" class="w-screen max-w-5xl">
     <template #description>
       <SeverityBadges
         :matches

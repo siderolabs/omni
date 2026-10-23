@@ -5,14 +5,32 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
+import { reactiveOmit } from '@vueuse/core'
+import {
+  CollapsibleContent,
+  CollapsibleRoot,
+  type CollapsibleRootEmits,
+  type CollapsibleRootProps,
+  CollapsibleTrigger,
+  useForwardPropsEmits,
+} from 'reka-ui'
+import type { ClassValue } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
+import { cn } from '@/methods/utils'
 
-const { isDefaultOpened } = defineProps<{
-  isDefaultOpened?: boolean
-  disableBorderOnExpand?: boolean
-}>()
+const props = defineProps<
+  CollapsibleRootProps & {
+    class?: ClassValue
+    disableBorderOnExpand?: boolean
+  }
+>()
+
+const emit = defineEmits<CollapsibleRootEmits>()
+
+const collapsibleRootProps = reactiveOmit(props, 'class', 'disableBorderOnExpand')
+
+const forwarded = useForwardPropsEmits(collapsibleRootProps, emit)
 
 defineSlots<{
   default(): unknown
@@ -23,21 +41,24 @@ defineSlots<{
 
 <template>
   <CollapsibleRoot
-    v-slot="{ open }"
-    class="group flex w-full flex-col rounded-t-sm border-b border-border-strong px-tight py-compact text-xs text-content-default transition-all duration-500 last-of-type:border-none"
+    v-slot="{ open: slotOpen }"
     :class="
-      !disableBorderOnExpand &&
-      'data-[state=open]:mt-micro data-[state=open]:rounded data-[state=open]:last-of-type:border-border-strong'
+      cn(
+        'group flex w-full flex-col rounded-t-sm border-b border-border-strong px-tight py-compact text-xs text-content-default transition-all duration-500 last-of-type:border-none',
+        !disableBorderOnExpand &&
+          'data-[state=open]:mt-micro data-[state=open]:rounded data-[state=open]:last-of-type:border-border-strong',
+        props.class,
+      )
     "
     role="row"
-    :default-open="isDefaultOpened"
+    v-bind="forwarded"
   >
     <div class="flex flex-col gap-micro">
       <div class="flex items-center gap-micro">
         <CollapsibleTrigger
           v-if="$slots.details"
           class="cursor-pointer rounded transition-colors hover:bg-surface-inert"
-          :aria-label="open ? 'Collapse details' : 'Expand details'"
+          :aria-label="slotOpen ? 'Collapse details' : 'Expand details'"
         >
           <TIcon
             class="size-6 cursor-pointer text-content-secondary transition-transform duration-300 group-data-[state=open]:-rotate-180"

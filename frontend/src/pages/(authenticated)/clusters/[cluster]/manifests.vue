@@ -170,7 +170,7 @@ useTitle('Bootstrap Manifests')
       <TListItem
         v-for="item in syncResults"
         :key="itemID(item)"
-        :is-default-opened="itemImportant(item)"
+        :default-open="itemImportant(item)"
       >
         <template #default>
           <span class="label">
