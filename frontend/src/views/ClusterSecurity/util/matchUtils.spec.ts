@@ -5,8 +5,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
+import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
 
-import { diffMatches } from './matchUtils'
+import { diffMatches, getVexNotes } from './matchUtils'
 
 function match(cve: string, pkg: string): Match {
   return {
@@ -41,5 +42,55 @@ describe('diffMatches', () => {
     expect(diff.resolved).toHaveLength(1)
     expect(diff.introduced).toHaveLength(1)
     expect(diff.remaining).toHaveLength(0)
+  })
+})
+
+describe('getVexNotes', () => {
+  function withStatements(...statements: Record<string, string>[]): Match {
+    return {
+      ...match('CVE-1', 'a'),
+      matchDetails: [
+        { matcher: 'stock-matcher', found: { vulnerabilityID: 'CVE-1' } },
+        ...statements.map((Statement) => ({ matcher: 'openvex-matcher', found: { Statement } })),
+      ],
+    } as unknown as Match
+  }
+
+  it('extracts and humanises openvex statements', () => {
+    const m = withStatements({
+      status: 'not_affected',
+      justification: 'vulnerable_code_not_present',
+      impact_statement: 'Talos does not ship this code',
+    })
+
+    expect(getVexNotes(m)).toEqual([
+      {
+        status: 'not affected',
+        justification: 'vulnerable code not present',
+        impact: 'Talos does not ship this code',
+        action: undefined,
+      },
+    ])
+  })
+
+  it('deduplicates identical statements', () => {
+    const statement = { status: 'affected', action_statement: 'Upgrade' }
+
+    expect(getVexNotes(withStatements(statement, { ...statement }))).toHaveLength(1)
+  })
+
+  it('handles matches without vex statements', () => {
+    expect(getVexNotes(withStatements())).toEqual([])
+  })
+
+  it('reads statements from a real report', () => {
+    const m = (report.matches as Match[]).find((m) => m.vulnerability.id === 'CVE-2025-71313')!
+
+    expect(getVexNotes(m)).toEqual([
+      expect.objectContaining({
+        status: 'affected',
+        action: expect.stringContaining('CONFIG_PCI_EPF_NTB'),
+      }),
+    ])
   })
 })

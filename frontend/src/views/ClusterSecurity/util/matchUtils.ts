@@ -5,7 +5,9 @@
 import type { StatusTone } from '@/components/Status/StatusPill.vue'
 import type {
   Match,
+  MatchDetail,
   RelatedVulnerability,
+  VexMatchDetail,
   Vulnerability,
 } from '@/views/ClusterSecurity/util/ReportTypes'
 
@@ -33,7 +35,7 @@ export function getCveId(m: Match): string {
   return m.relatedVulnerabilities.find((r) => r.id.startsWith('CVE-'))?.id || m.vulnerability.id
 }
 
-function compileVulnURLs(v: Vulnerability) {
+function compileVulnURLs(v: Vulnerability | RelatedVulnerability) {
   return [v.dataSource, ...(v.urls ?? [])].filter((s): s is string => !!s)
 }
 
@@ -53,6 +55,39 @@ export function getPreferredVulnURL(
   if (!pool.length) pool.push(...compileVulnURLs(v))
 
   return pool.find((p) => p.includes('nvd.nist.gov')) || pool[0] || ''
+}
+
+export interface VexNote {
+  status: string
+  justification?: string
+  impact?: string
+  action?: string
+}
+
+/** The OpenVEX statements grype attached to a match, deduplicated. */
+export function getVexNotes(m: Match): VexNote[] {
+  const notes = new Map<string, VexNote>()
+
+  for (const d of m.matchDetails ?? []) {
+    if (!isVexMatchDetail(d)) continue
+
+    const st = d.found.Statement
+
+    const note: VexNote = {
+      status: st.status.replaceAll('_', ' '),
+      justification: st.justification?.replaceAll('_', ' '),
+      impact: st.impact_statement,
+      action: st.action_statement,
+    }
+
+    notes.set(JSON.stringify(note), note)
+  }
+
+  return [...notes.values()]
+}
+
+function isVexMatchDetail(d: MatchDetail): d is VexMatchDetail {
+  return d.matcher === 'openvex-matcher'
 }
 
 /**

@@ -29,6 +29,7 @@ export interface Vulnerability {
   fix: Fix
   advisories: unknown[]
   risk: number
+  knownExploited?: KnownExploited[]
 }
 
 export interface RelatedVulnerability {
@@ -41,9 +42,20 @@ export interface RelatedVulnerability {
   cvss: Cvss[]
   epss?: Epss[]
   cwes?: Cwe[]
-  fix: Fix
-  advisories: unknown[]
-  risk: number
+}
+
+/** An entry from the CISA Known Exploited Vulnerabilities catalog. */
+export interface KnownExploited {
+  cve: string
+  vendorProject: string
+  product: string
+  dateAdded: string
+  requiredAction: string
+  dueDate: string
+  knownRansomwareCampaignUse: string
+  notes: string
+  urls: string[]
+  cwes: string[]
 }
 
 export interface Cvss {
@@ -87,11 +99,23 @@ export interface FixAvailable {
   kind: string
 }
 
-export interface MatchDetail {
+export type MatchDetail = PackageMatchDetail | VexMatchDetail
+
+/** A match detail from a package matcher, e.g. "stock-matcher" or "go-module-matcher". */
+export interface PackageMatchDetail {
   type: string
   matcher: string
   searchedBy: SearchedBy
   found: Found
+  fix?: MatchDetailFix
+}
+
+/** A match detail added when an OpenVEX statement applies to the vulnerability. */
+export interface VexMatchDetail {
+  type: string
+  matcher: 'openvex-matcher'
+  searchedBy: VexSearchedBy
+  found: VexFound
   fix?: MatchDetailFix
 }
 
@@ -111,6 +135,26 @@ export interface Found {
   vulnerabilityID: string
   versionConstraint: string
   cpes?: string[]
+}
+
+export interface VexSearchedBy {
+  Vulnerability: string
+  Product: string
+  Subcomponents: string[]
+}
+
+export interface VexFound {
+  Statement: VexStatement
+}
+
+export interface VexStatement {
+  vulnerability: { name: string }
+  timestamp: string
+  products: { identifiers: { purl: string } }[]
+  status: string
+  justification?: string
+  impact_statement?: string
+  action_statement?: string
 }
 
 export interface MatchDetailFix {

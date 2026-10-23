@@ -6,6 +6,7 @@ import { faker } from '@faker-js/faker'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
 
 import report from './sample-report.json'
 import ScanDetailsModal from './ScanDetailsModal.vue'
@@ -28,6 +29,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    matches: report.matches,
+    // JSON imports merge the shapes of array elements, so the MatchDetail union can't be inferred
+    matches: report.matches as Match[],
   },
 }
