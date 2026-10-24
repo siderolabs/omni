@@ -184,6 +184,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/neticdk/go-stdlib v1.0.1 h1:3P6tJIICo8kvMMEFWSZCk+iRh+HoN8P/51WwMO+Ka2k=
 github.com/neticdk/go-stdlib v1.0.1/go.mod h1:KP9nLuDoanLbM8Wturn+hage2FtcrJaF1+1Znu+MKEw=
+github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260709220509-c4a5514d019f h1:AA4dZWUr0UTmTE/yU2iI0jROo1a+iiA1UOy988J2S88=
+github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260709220509-c4a5514d019f/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
 github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a h1:yvECMRkpMB7l/yipbBvloe7ECd5/FR5JwQcpXGodxg8=
 github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
 github.com/onsi/ginkgo/v2 v2.32.0 h1:Hw7s2pVrQo/8Yz5N77qdnpHaoc+c6cC9WIV1Jce+J6E=
