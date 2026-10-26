@@ -40,6 +40,7 @@ func (suite *ProviderJoinConfigSuite) TestReconcile() {
 	apiConfig.TypedSpec().Value.EventsPort = 8091
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1"
+	apiConfig.TypedSpec().Value.TrustedRoots = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
 
 	defaultToken := siderolink.NewDefaultJoinToken()
 	defaultToken.TypedSpec().Value.TokenId = "jtoken"
@@ -86,6 +87,14 @@ apiVersion: v1alpha1
 kind: KmsgLogConfig
 name: omni-kmsg
 url: tcp://[fdae:41e4:649b:9303::1]:8092
+---
+apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: omni-trusted-roots
+certificates: |
+    -----BEGIN CERTIFICATE-----
+    MIIB
+    -----END CERTIFICATE-----
 `, expectedToken)
 
 	expectedKernelArgs := []string{

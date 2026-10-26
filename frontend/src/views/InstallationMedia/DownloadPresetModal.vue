@@ -29,6 +29,7 @@ import TableRow from '@/components/Table/TableRow.vue'
 import TAlert from '@/components/TAlert.vue'
 import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import TrustedRootsVersionWarning from '@/components/TrustedRootsVersionWarning.vue'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
@@ -185,6 +186,8 @@ const orphanedError = 'The factory used to create this preset is no longer confi
           overhead-title
         />
       </div>
+
+      <TrustedRootsVersionWarning :talos-version="talosVersion" />
 
       <TableRoot class="w-full">
         <template #head>

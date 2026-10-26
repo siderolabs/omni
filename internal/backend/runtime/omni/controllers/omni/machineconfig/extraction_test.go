@@ -281,6 +281,31 @@ func TestBuildConfigPatchKeepsMachineKmsgLogDocuments(t *testing.T) {
 	require.NotContains(t, data, "omni-kmsg")
 }
 
+func TestBuildConfigPatchSkipsOmniTrustedRoots(t *testing.T) {
+	t.Parallel()
+
+	// the trusted roots Omni delivers in the join config, next to the machine's own ones
+	omniRoots := security.NewTrustedRootsConfigV1Alpha1()
+	omniRoots.MetaName = "omni-trusted-roots"
+	omniRoots.Certificates = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+
+	observed := encodeDocuments(t, omniRoots, trustedRootsDocument())
+
+	patch, reason, err := (&machineconfig.ExtractionController{}).BuildConfigPatch("machine-1", observed)
+	require.NoError(t, err)
+	require.Empty(t, reason)
+	require.NotNil(t, patch)
+
+	buffer, err := patch.TypedSpec().Value.GetUncompressedData()
+	require.NoError(t, err)
+
+	data := string(buffer.Data())
+	buffer.Free()
+
+	require.Contains(t, data, "my-enterprise-ca")
+	require.NotContains(t, data, "omni-trusted-roots")
+}
+
 func mustParseURL(t *testing.T, raw string) *url.URL {
 	t.Helper()
 

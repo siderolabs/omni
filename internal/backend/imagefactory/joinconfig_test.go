@@ -9,10 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
@@ -165,4 +169,130 @@ func TestWithJoinConfigEmpty(t *testing.T) {
 
 	_, err = imagefactoryinternal.WithJoinConfig(base, []string{"siderolink.api=grpc://new"}, nil, "1.11.6")
 	require.Error(t, err)
+}
+
+// newCA returns a fresh CA certificate (PEM).
+func newCA(t *testing.T) string {
+	t.Helper()
+
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	require.NoError(t, err)
+
+	return string(ca.CrtPEM)
+}
+
+// renderJoinDocuments returns the join documents Omni renders, with the given trusted roots, if any.
+func renderJoinDocuments(t *testing.T, trustedRoots string) string {
+	t.Helper()
+
+	opts, err := siderolink.NewJoinOptions(
+		siderolink.WithoutMachineAPIURL(),
+		siderolink.WithEventSinkPort(8091),
+		siderolink.WithLogServerPort(8092),
+		siderolink.WithTrustedRoots(trustedRoots),
+	)
+	require.NoError(t, err)
+
+	documents, err := opts.RenderJoinConfig()
+	require.NoError(t, err)
+
+	return string(documents)
+}
+
+// requireTrustedRoots checks that the embedded config loads and carries exactly the given Omni trusted roots, if any.
+func requireTrustedRoots(t *testing.T, embedded, wantCertificates string) {
+	t.Helper()
+
+	cfg, err := configloader.NewFromBytes([]byte(embedded))
+	require.NoError(t, err)
+
+	var found []string
+
+	for _, document := range cfg.Documents() {
+		if trustedRoots, ok := document.(*security.TrustedRootsConfigV1Alpha1); ok && siderolink.IsJoinConfigDocument(document) {
+			found = append(found, trustedRoots.Certificates)
+		}
+	}
+
+	if wantCertificates == "" {
+		require.Empty(t, found)
+
+		return
+	}
+
+	require.Equal(t, []string{wantCertificates}, found)
+}
+
+func TestWithJoinConfigReplacesTrustedRoots(t *testing.T) {
+	t.Parallel()
+
+	joinArgs := []string{"siderolink.api=grpc://127.0.0.1:8090?jointoken=new"}
+	userDocument := "apiVersion: v1alpha1\nkind: KmsgLogConfig\nname: remote-siem\nurl: tcp://192.168.1.10:5000\n"
+
+	newCertificate := newCA(t)
+
+	base := schematic.Schematic{Customization: schematic.Customization{EmbeddedMachineConfiguration: userDocument + "---\n" + renderJoinDocuments(t, newCA(t))}}
+
+	rotated, err := imagefactoryinternal.WithJoinConfig(base, joinArgs, []byte(renderJoinDocuments(t, newCertificate)), "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, rotated.Customization.EmbeddedMachineConfiguration, newCertificate)
+	assert.Contains(t, rotated.Customization.EmbeddedMachineConfiguration, "name: remote-siem")
+
+	removed, err := imagefactoryinternal.WithJoinConfig(rotated, joinArgs, []byte(renderJoinDocuments(t, "")), "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, removed.Customization.EmbeddedMachineConfiguration, "")
+	assert.Contains(t, removed.Customization.EmbeddedMachineConfiguration, "name: remote-siem")
+}
+
+func TestWithTrustedRoots(t *testing.T) {
+	t.Parallel()
+
+	providerDocuments := "apiVersion: v1alpha1\nkind: SideroLinkConfig\napiUrl: grpc://127.0.0.1:8090?jointoken=provider\n"
+
+	oldCertificate := newCA(t)
+	newCertificate := newCA(t)
+
+	base := schematic.Schematic{Customization: schematic.Customization{EmbeddedMachineConfiguration: providerDocuments}}
+
+	withOld, err := imagefactoryinternal.WithTrustedRoots(base, oldCertificate, "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, withOld.Customization.EmbeddedMachineConfiguration, oldCertificate)
+
+	withNew, err := imagefactoryinternal.WithTrustedRoots(withOld, newCertificate, "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, withNew.Customization.EmbeddedMachineConfiguration, newCertificate)
+	assert.Contains(t, withNew.Customization.EmbeddedMachineConfiguration, "jointoken=provider", "the provider's own join documents must stay")
+
+	withoutRoots, err := imagefactoryinternal.WithTrustedRoots(withNew, "", "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, withoutRoots.Customization.EmbeddedMachineConfiguration, "")
+	assert.Contains(t, withoutRoots.Customization.EmbeddedMachineConfiguration, "jointoken=provider", "the provider's own join documents must stay")
+
+	kernelArgsJoin := schematic.Schematic{Customization: schematic.Customization{ExtraKernelArgs: []string{"siderolink.api=grpc://127.0.0.1:8090?jointoken=provider"}}}
+
+	withKernelArgsJoin, err := imagefactoryinternal.WithTrustedRoots(kernelArgsJoin, newCertificate, "1.12.0")
+	require.NoError(t, err)
+
+	requireTrustedRoots(t, withKernelArgsJoin.Customization.EmbeddedMachineConfiguration, newCertificate)
+
+	noJoin := schematic.Schematic{Customization: schematic.Customization{ExtraKernelArgs: []string{"console=ttyS0"}}}
+
+	for _, unchanged := range []struct {
+		name, trustedRoots, talosVersion string
+		base                             schematic.Schematic
+	}{
+		{name: "below 1.12", base: base, trustedRoots: newCertificate, talosVersion: "1.11.6"},
+		{name: "no trusted roots", base: base, talosVersion: "1.12.0"},
+		{name: "no SideroLink config", base: noJoin, trustedRoots: newCertificate, talosVersion: "1.12.0"},
+	} {
+		result, err := imagefactoryinternal.WithTrustedRoots(unchanged.base, unchanged.trustedRoots, unchanged.talosVersion)
+		require.NoError(t, err)
+
+		assert.Equal(t, unchanged.base, result, unchanged.name)
+	}
 }

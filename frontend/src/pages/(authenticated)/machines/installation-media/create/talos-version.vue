@@ -20,6 +20,7 @@ import GrpcTunnelCheckbox from '@/components/GrpcTunnelCheckbox/GrpcTunnelCheckb
 import Labels from '@/components/Labels/Labels.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TalosVersionSelect from '@/components/TalosVersionSelect/TalosVersionSelect.vue'
+import TrustedRootsVersionWarning from '@/components/TrustedRootsVersionWarning.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useTitle } from '@/methods/title'
@@ -107,6 +108,8 @@ useTitle('Talos Version')
       overhead-title
       include-automatic
     />
+
+    <TrustedRootsVersionWarning :talos-version="resolvedTalosVersion" />
 
     <p class="text-xs">
       The latest recommended version of Talos Linux is ({{ DefaultTalosVersion }}).

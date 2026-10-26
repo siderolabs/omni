@@ -8,8 +8,11 @@ data:
     issuer: ${DEX_HELM_ISSUER}
     storage:
       type: memory
+    # Served with a certificate signed by the test CA, so that Omni can reach Dex only if it trusts that CA.
     web:
-      http: 0.0.0.0:5556
+      https: 0.0.0.0:5556
+      tlsCert: /etc/dex/tls/tls.crt
+      tlsKey: /etc/dex/tls/tls.key
     oauth2:
       skipApprovalScreen: true
     staticClients:
@@ -50,22 +53,29 @@ spec:
             - serve
             - /etc/dex/config.yaml
           ports:
-            - name: http
+            - name: https
               containerPort: 5556
           readinessProbe:
             httpGet:
               path: /dex/.well-known/openid-configuration
               port: 5556
+              scheme: HTTPS
             initialDelaySeconds: 2
             periodSeconds: 2
           volumeMounts:
             - name: config
               mountPath: /etc/dex
               readOnly: true
+            - name: tls
+              mountPath: /etc/dex/tls
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: dex
+        - name: tls
+          secret:
+            secretName: dex-tls
 ---
 apiVersion: v1
 kind: Service
@@ -76,6 +86,6 @@ spec:
   selector:
     app: dex
   ports:
-    - name: http
+    - name: https
       port: 5556
       targetPort: 5556

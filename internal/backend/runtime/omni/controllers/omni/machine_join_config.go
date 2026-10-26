@@ -7,9 +7,11 @@ package omni
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
@@ -55,6 +57,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 					siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 					siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 					siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+					siderolink.WithTrustedRoots(siderolinkAPIConfig.TypedSpec().Value.TrustedRoots),
 					siderolink.WithMachine(machine),
 				}
 
@@ -82,7 +85,16 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machines, err := safe.ReaderListAll[*omni.Machine](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(machines.Pointers()), nil
+			},
+		),
 		qtransform.WithExtraMappedInput[*siderolinkres.JoinTokenUsage](qtransform.MapperSameID[*omni.Machine]()),
 		qtransform.WithExtraMappedInput[*siderolinkres.GRPCTunnelConfig](qtransform.MapperSameID[*omni.Machine]()),
 		qtransform.WithConcurrency(4),

@@ -121,11 +121,11 @@ func WithMaintenanceTryTimings(timings configtry.Timings) MaintenanceConfigStatu
 
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
 func NewMaintenanceConfigStatusController(
-	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
+	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, trustedRoots string,
 	state state.State, registryMirrors []string,
 	opts ...MaintenanceConfigStatusOption,
 ) *MaintenanceConfigStatusController {
-	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, state, registryMirrors)
+	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, trustedRoots, state, registryMirrors)
 
 	for _, opt := range opts {
 		opt(helper)
@@ -187,7 +187,7 @@ type maintenanceConfigStatusControllerHelper struct {
 	tryTimings                configtry.Timings
 }
 
-func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
+func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, trustedRoots string,
 	state state.State, registryMirrors []string,
 ) *maintenanceConfigStatusControllerHelper {
 	buildPatch := func(extraDocs ...talosconfig.Document) (maintenanceBasePatch, error) {
@@ -195,6 +195,7 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 			siderolink.WithoutMachineAPIURL(),
 			siderolink.WithEventSinkPort(eventSinkPort),
 			siderolink.WithLogServerPort(logServerPort),
+			siderolink.WithTrustedRoots(trustedRoots),
 		)
 		if err != nil {
 			return maintenanceBasePatch{}, err
