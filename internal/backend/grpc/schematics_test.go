@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/stretchr/testify/require"
@@ -32,11 +33,14 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
+	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // The credentials the installation media tests configure on both sides: the ImageFactoryAuth resource Omni reads
@@ -488,10 +492,14 @@ func (suite *GrpcSuite) TestSchematicJoin() {
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	suite.Require().NoError(err)
+
 	apiConfig := siderolink.NewAPIConfig()
 	apiConfig.TypedSpec().Value.EventsPort = 8091
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "grpc://127.0.0.1:8090"
+	apiConfig.TypedSpec().Value.TrustedRoots = string(ca.CrtPEM)
 
 	suite.Require().NoError(suite.state.Create(ctx, apiConfig))
 
@@ -540,6 +548,7 @@ url: tcp://192.168.1.10:5000
 	suite.Require().Equal(1, strings.Count(embedded, "kind: SideroLinkConfig"))
 	suite.Require().Equal(1, strings.Count(embedded, "kind: EventSinkConfig"))
 	suite.Require().Equal(1, strings.Count(embedded, "name: omni-kmsg"))
+	suite.Require().Equal(1, strings.Count(embedded, "name: omni-trusted-roots"))
 	suite.Require().Contains(embedded, "jointoken=abcd")
 	suite.Require().NotContains(embedded, "jointoken=old")
 	suite.Require().Contains(embedded, "name: remote-siem")
@@ -616,6 +625,66 @@ apiUrl: grpc://127.0.0.1:8090?grpc_tunnel=true&jointoken=machine-token
 	id, _, err = server.EnsureSchematic(ctx, "", machineStatus)
 	suite.Require().NoError(err)
 	suite.Require().Contains(stored(id).EmbeddedMachineConfiguration, "jointoken=machine-token")
+}
+
+// TestRawSchematicCA checks that a raw schematic gets Omni's trusted roots only when it carries a SideroLink config.
+// Cluster import registers the schematic a node already runs through the same call, and needs the ID of exactly that schematic back.
+func (suite *GrpcSuite) TestRawSchematicCA() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	suite.Require().NoError(err)
+
+	apiConfig := siderolink.NewAPIConfig()
+	apiConfig.TypedSpec().Value.TrustedRoots = string(ca.CrtPEM)
+
+	suite.Require().NoError(suite.state.Create(ctx, apiConfig))
+
+	imageFactoryClient, err := imagefactory.NewClient(suite.imageFactory.address, imagefactory.Auth{Username: testFactoryUsername, Password: testFactoryPassword})
+	suite.Require().NoError(err)
+
+	server := grpcomni.NewManagementServer(suite.state, imageFactoryClient, zaptest.NewLogger(suite.T()), false, nil, nil)
+
+	const (
+		withJoinConfig    = "customization:\n  extraKernelArgs:\n    - siderolink.api=grpc://127.0.0.1:8090?jointoken=provider\n"
+		withoutJoinConfig = "customization:\n  extraKernelArgs:\n    - console=ttyS0\n"
+	)
+
+	for _, tt := range []struct {
+		name            string
+		raw             string
+		role            role.Role
+		getTrustedRoots bool
+	}{
+		{name: "infra provider media with a SideroLink config", raw: withJoinConfig, role: role.InfraProvider, getTrustedRoots: true},
+		{name: "infra provider media without a SideroLink config", raw: withoutJoinConfig, role: role.InfraProvider},
+		{name: "a node's own schematic, as cluster import registers it", raw: withoutJoinConfig, role: role.Operator},
+	} {
+		suite.Run(tt.name, func() {
+			request := &management.CreateSchematicFromRawRequest{
+				RawSchematic: []byte(tt.raw),
+				TalosVersion: "1.13.0",
+			}
+
+			resp, err := server.CreateSchematicFromRaw(ctxstore.WithValue(ctx, auth.RoleContextKey{Role: tt.role}), request)
+			suite.Require().NoError(err)
+
+			suite.imageFactory.schematicMu.Lock()
+			defer suite.imageFactory.schematicMu.Unlock()
+
+			stored, ok := suite.imageFactory.schematics[resp.SchematicId]
+			suite.Require().Truef(ok, "the schematic id %q doesn't exist in the image factory", resp.SchematicId)
+
+			if !tt.getTrustedRoots {
+				suite.Require().Empty(stored.Customization.EmbeddedMachineConfiguration)
+
+				return
+			}
+
+			suite.Require().Contains(stored.Customization.EmbeddedMachineConfiguration, "name: omni-trusted-roots")
+		})
+	}
 }
 
 // TestMediaURL pins the server-side installation media build against a factory that needs no

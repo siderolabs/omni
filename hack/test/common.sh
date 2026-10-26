@@ -493,7 +493,8 @@ function generate_non_masquerade_cidrs() {
 }
 
 function create_machines() {
-  # args: name, count, cidr, secure_boot (true/false), uki (true/false), use_partial_config (true/false), talos_version, kernel_args_schematic_id, partial_config_schematic_id
+  # args: name, count, cidr, secure_boot (true/false), uki (true/false), use_partial_config (true/false), talos_version, kernel_args_schematic_id, partial_config_schematic_id,
+  # iso_path (an ISO to boot instead of the one downloaded for the schematic, without secure boot)
   declare -A args
   for arg in "$@"; do
     key="${arg%%=*}"
@@ -510,6 +511,7 @@ function create_machines() {
   local talos_version="${args[talos_version]}"
   local kernel_args_schematic_id="${args[kernel_args_schematic_id]}"
   local partial_config_schematic_id="${args[partial_config_schematic_id]}"
+  local iso_path="${args[iso_path]:-}"
 
   local schematic_id="${kernel_args_schematic_id}"
   if [[ "${use_partial_config}" == "true" ]]; then
@@ -556,6 +558,8 @@ function create_machines() {
       "--disk-encryption-key-types=tpm"
       "--iso-path=$(download_factory_image "${schematic_id}" "${talos_version}" metal-amd64-secureboot.iso)"
     )
+  elif [[ -n "${iso_path}" ]]; then
+    cluster_create_args+=("--iso-path=${iso_path}")
   else
     cluster_create_args+=("--iso-path=$(download_factory_image "${schematic_id}" "${talos_version}" metal-amd64.iso)")
   fi

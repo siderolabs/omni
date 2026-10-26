@@ -1238,6 +1238,17 @@ func (s *OfficeHours) SetSummary(v string) {
 	s.Summary = &v
 }
 
+func (s *Params) GetTrustedRootsFile() string {
+	if s == nil || s.TrustedRootsFile == nil {
+		return *new(string)
+	}
+	return *s.TrustedRootsFile
+}
+
+func (s *Params) SetTrustedRootsFile(v string) {
+	s.TrustedRootsFile = &v
+}
+
 func (s *Posthog) GetApiHost() string {
 	if s == nil || s.ApiHost == nil {
 		return *new(string)

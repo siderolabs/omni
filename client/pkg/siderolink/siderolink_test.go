@@ -201,6 +201,7 @@ func TestConnectionParamsJoinConfig(t *testing.T) {
 		apiURL         string
 		name           string
 		providerID     string
+		trustedRoots   string
 		extraDocs      []config.Document
 		eventSinkPort  int
 		logServerPort  int
@@ -316,6 +317,35 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 			logServerPort: 8092,
 		},
 		{
+			joinToken:    "abcd",
+			name:         "with trusted roots",
+			apiURL:       "https://127.0.0.1:8099",
+			trustedRoots: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
+			expectedConfig: `apiVersion: v1alpha1
+kind: SideroLinkConfig
+apiUrl: https://127.0.0.1:8099?jointoken=abcd
+---
+apiVersion: v1alpha1
+kind: EventSinkConfig
+endpoint: '[fdae:41e4:649b:9303::1]:8091'
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: omni-kmsg
+url: tcp://[fdae:41e4:649b:9303::1]:8092
+---
+apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: omni-trusted-roots
+certificates: |
+    -----BEGIN CERTIFICATE-----
+    MIIB
+    -----END CERTIFICATE-----
+`,
+			eventSinkPort: 8091,
+			logServerPort: 8092,
+		},
+		{
 			expectError: true,
 		},
 		{
@@ -376,6 +406,10 @@ certificates: ""
 
 			if tt.grpcTunnel == specs.GrpcTunnelMode_ENABLED {
 				options = append(options, siderolink.WithGRPCTunnel(true))
+			}
+
+			if tt.trustedRoots != "" {
+				options = append(options, siderolink.WithTrustedRoots(tt.trustedRoots))
 			}
 
 			opts, err := siderolink.NewJoinOptions(options...)
@@ -532,4 +566,15 @@ func TestMachineLabels(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "reserved for the system labels")
 	})
+}
+
+func TestIsJoinConfigDocumentTrustedRoots(t *testing.T) {
+	omniRoots := security.NewTrustedRootsConfigV1Alpha1()
+	omniRoots.MetaName = "omni-trusted-roots"
+
+	userRoots := security.NewTrustedRootsConfigV1Alpha1()
+	userRoots.MetaName = "my-enterprise-ca"
+
+	require.True(t, siderolink.IsJoinConfigDocument(omniRoots))
+	require.False(t, siderolink.IsJoinConfigDocument(userRoots))
 }

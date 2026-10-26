@@ -7,9 +7,11 @@ package omni
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"go.uber.org/zap"
 
@@ -56,6 +58,7 @@ func NewProviderJoinConfigController() *ProviderJoinConfigController {
 					siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 					siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 					siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+					siderolink.WithTrustedRoots(siderolinkAPIConfig.TypedSpec().Value.TrustedRoots),
 					siderolink.WithProvider(provider),
 				)
 				if err != nil {
@@ -79,7 +82,16 @@ func NewProviderJoinConfigController() *ProviderJoinConfigController {
 				return nil
 			},
 		},
-		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*siderolinkres.APIConfig](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				providers, err := safe.ReaderListAll[*infra.Provider](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(providers.Pointers()), nil
+			},
+		),
 		qtransform.WithConcurrency(4),
 	)
 }

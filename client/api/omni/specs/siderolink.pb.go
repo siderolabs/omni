@@ -669,7 +669,9 @@ type SiderolinkAPIConfigSpec struct {
 	// EventsPort is the siderolink events port.
 	EventsPort int32 `protobuf:"varint,4,opt,name=events_port,json=eventsPort,proto3" json:"events_port,omitempty"`
 	// LogsPort is the logs port.
-	LogsPort      int32 `protobuf:"varint,5,opt,name=logs_port,json=logsPort,proto3" json:"logs_port,omitempty"`
+	LogsPort int32 `protobuf:"varint,5,opt,name=logs_port,json=logsPort,proto3" json:"logs_port,omitempty"`
+	// TrustedRoots are the extra CA certificates (PEM) every machine trusts, delivered with its join config.
+	TrustedRoots  string `protobuf:"bytes,6,opt,name=trusted_roots,json=trustedRoots,proto3" json:"trusted_roots,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -737,6 +739,13 @@ func (x *SiderolinkAPIConfigSpec) GetLogsPort() int32 {
 		return x.LogsPort
 	}
 	return 0
+}
+
+func (x *SiderolinkAPIConfigSpec) GetTrustedRoots() string {
+	if x != nil {
+		return x.TrustedRoots
+	}
+	return ""
 }
 
 type ProviderJoinConfigSpec struct {
@@ -1323,14 +1332,15 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"JoinConfig\x12\x1f\n" +
 	"\vkernel_args\x18\x01 \x03(\tR\n" +
 	"kernelArgs\x12\x16\n" +
-	"\x06config\x18\x02 \x01(\tR\x06config\"\x88\x02\n" +
+	"\x06config\x18\x02 \x01(\tR\x06config\"\xad\x02\n" +
 	"\x17SiderolinkAPIConfigSpec\x12;\n" +
 	"\x1amachine_api_advertised_url\x18\x01 \x01(\tR\x17machineApiAdvertisedUrl\x12B\n" +
 	"\x1dwireguard_advertised_endpoint\x18\x02 \x01(\tR\x1bwireguardAdvertisedEndpoint\x12.\n" +
 	"\x13enforce_grpc_tunnel\x18\x03 \x01(\bR\x11enforceGrpcTunnel\x12\x1f\n" +
 	"\vevents_port\x18\x04 \x01(\x05R\n" +
 	"eventsPort\x12\x1b\n" +
-	"\tlogs_port\x18\x05 \x01(\x05R\blogsPort\"b\n" +
+	"\tlogs_port\x18\x05 \x01(\x05R\blogsPort\x12#\n" +
+	"\rtrusted_roots\x18\x06 \x01(\tR\ftrustedRoots\"b\n" +
 	"\x16ProviderJoinConfigSpec\x12)\n" +
 	"\x06config\x18\x01 \x01(\v2\x11.specs.JoinConfigR\x06config\x12\x1d\n" +
 	"\n" +

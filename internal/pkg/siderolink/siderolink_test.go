@@ -152,7 +152,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.PendingMachine](peers)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.Link](peers)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewConnectionParamsController(defaultCfg.Services.MachineAPIURL(), defaultCfg.Services.Siderolink)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(defaultCfg.Services.MachineAPIURL(), defaultCfg.Services.Siderolink)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(defaultCfg.Services.MachineAPIURL(), defaultCfg.Services.Siderolink, "")))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewJoinTokenStatusController()))
 
 	go func() {

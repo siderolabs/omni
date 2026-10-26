@@ -132,10 +132,13 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 
 	dec := yaml.NewDecoder(bytes.NewBufferString(pctx.ConnectionParams.JoinConfig))
 
+	var trustedRoots bool
+
 	for {
 		var d struct {
 			APIVersion     string `yaml:"apiVersion"`
 			Kind           string `yaml:"kind"`
+			Name           string `yaml:"name"`
 			APIURL         string `yaml:"apiUrl"`
 			EventsEndpoint string `yaml:"endpoint"`
 			LogsURL        string `yaml:"url"`
@@ -167,7 +170,13 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 			if d.LogsURL != "tcp://[fdae:41e4:649b:9303::1]:8092" {
 				return fmt.Errorf("logs config is invalid: %q", d.LogsURL)
 			}
+		case "TrustedRootsConfig":
+			trustedRoots = d.Name == "omni-trusted-roots"
 		}
+	}
+
+	if !trustedRoots {
+		return errors.New("join config is missing the trusted roots")
 	}
 
 	return nil
@@ -472,6 +481,7 @@ func createSiderolinkConfigs(ctx context.Context, t *testing.T, st state.State) 
 	siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1:8099"
 	siderolinkAPIConfig.TypedSpec().Value.LogsPort = 8092
 	siderolinkAPIConfig.TypedSpec().Value.EventsPort = 8091
+	siderolinkAPIConfig.TypedSpec().Value.TrustedRoots = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
 
 	require.NoError(t, st.Create(ctx, siderolinkAPIConfig))
 }

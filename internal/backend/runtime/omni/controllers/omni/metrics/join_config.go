@@ -7,11 +7,13 @@ package metrics
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	siderolinkconfig "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 )
 
@@ -52,4 +54,15 @@ func joinConfigLocation(ms *omni.MachineStatus) string {
 	default:
 		return joinConfigMachineConfig
 	}
+}
+
+// trustedRootsPresent returns whether the schematic the machine runs carries the trusted roots document Omni generates.
+// A machine without it loses its connection to Omni after a reset when Omni's machine API certificate is signed by those roots.
+func trustedRootsPresent(ms *omni.MachineStatus) string {
+	spec := ms.TypedSpec().Value
+	if !spec.SchematicReady() || spec.GetSchematic().GetRaw() == "" {
+		return joinConfigUnknown
+	}
+
+	return strconv.FormatBool(strings.Contains(spec.GetSchematic().GetRaw(), "name: "+siderolink.TrustedRootsConfigName))
 }

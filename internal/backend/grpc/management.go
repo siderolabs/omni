@@ -1270,6 +1270,7 @@ func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *ma
 	// If the tunnel is enabled instance-wide or in the request, the final state is enabled
 	opts, err := siderolink.NewJoinOptions(
 		siderolink.WithMachineAPIURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+		siderolink.WithTrustedRoots(apiConfig.TypedSpec().Value.TrustedRoots),
 		siderolink.WithJoinToken(request.JoinToken),
 		siderolink.WithGRPCTunnel(request.UseGrpcTunnel),
 		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),

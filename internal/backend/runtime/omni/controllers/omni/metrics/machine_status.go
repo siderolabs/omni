@@ -99,6 +99,7 @@ type MachineStatusMetricsController struct {
 	metricMachineSecureBootStatus                        *prometheus.GaugeVec
 	metricMachineUKIStatus                               *prometheus.GaugeVec
 	metricMachineJoinConfig                              *prometheus.GaugeVec
+	metricMachineTrustedRoots                            *prometheus.GaugeVec
 }
 
 // Name implements controller.Controller interface.
@@ -203,6 +204,11 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 			Name: "omni_machine_siderolink_join_config",
 			Help: "Number of machines in the instance by where their SideroLink join config is.",
 		}, []string{"location"})
+
+		ctrl.metricMachineTrustedRoots = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "omni_machine_schematic_trusted_roots",
+			Help: "Number of machines in the instance by whether the schematic they run carries Omni's trusted roots.",
+		}, []string{"present"})
 
 		allPlatforms := platforms.CloudPlatforms()
 		allPlatforms = append(allPlatforms, platforms.MetalPlatform())
@@ -388,6 +394,12 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		joinConfigUnknown:       0,
 	}
 
+	trustedRootsMetrics := map[string]uint32{
+		statusUnknown: 0,
+		"true":        0,
+		"false":       0,
+	}
+
 	invalidSchematicMetrics := newInvalidSchematicMetrics()
 
 	minTalosVer := semver.MustParse(constants.MinTalosVersion)
@@ -461,6 +473,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		ctrl.coresMap[machineCores]++
 
 		joinConfigMetrics[joinConfigLocation(ms)]++
+		trustedRootsMetrics[trustedRootsPresent(ms)]++
 
 		securityState := ms.TypedSpec().Value.SecurityState
 		if securityState != nil {
@@ -480,21 +493,11 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 	ctrl.metricNumTalosVersionEndOfSupportMachines.Set(float64(endOfSupportTalosVersionMachines))
 	ctrl.setInvalidSchematicMetrics(invalidSchematicMetrics)
 
-	for key, num := range platformMetrics {
-		ctrl.metricMachinePlatforms.WithLabelValues(key).Set(float64(num))
-	}
-
-	for key, num := range secureBootStatusMetrics {
-		ctrl.metricMachineSecureBootStatus.WithLabelValues(key).Set(float64(num))
-	}
-
-	for key, num := range ukiMetrics {
-		ctrl.metricMachineUKIStatus.WithLabelValues(key).Set(float64(num))
-	}
-
-	for key, num := range joinConfigMetrics {
-		ctrl.metricMachineJoinConfig.WithLabelValues(key).Set(float64(num))
-	}
+	setByLabel(ctrl.metricMachinePlatforms, platformMetrics)
+	setByLabel(ctrl.metricMachineSecureBootStatus, secureBootStatusMetrics)
+	setByLabel(ctrl.metricMachineUKIStatus, ukiMetrics)
+	setByLabel(ctrl.metricMachineJoinConfig, joinConfigMetrics)
+	setByLabel(ctrl.metricMachineTrustedRoots, trustedRootsMetrics)
 
 	ctrl.metricNumCores.Set(float64(cores))
 
@@ -512,6 +515,13 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		ApproachingTalosVersionEndOfSupportMachinesCount: uint32(approachingEndOfSupportMachines),
 		TalosVersionEndOfSupportMachinesCount:            uint32(endOfSupportTalosVersionMachines),
 		CoresCount:                                       cores,
+	}
+}
+
+// setByLabel sets the gauge of each label value to its count.
+func setByLabel(vec *prometheus.GaugeVec, counts map[string]uint32) {
+	for key, num := range counts {
+		vec.WithLabelValues(key).Set(float64(num))
 	}
 }
 
@@ -546,6 +556,7 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)
 	ctrl.metricMachineJoinConfig.Collect(ch)
+	ctrl.metricMachineTrustedRoots.Collect(ch)
 }
 
 func newInvalidSchematicMetrics() map[invalidSchematicInfo]int {

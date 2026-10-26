@@ -22,6 +22,7 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TAlert from '@/components/TAlert.vue'
+import TrustedRootsVersionWarning from '@/components/TrustedRootsVersionWarning.vue'
 import { talosUpgradeTargets } from '@/methods/talosUpgradeTargets'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -124,6 +125,11 @@ const upgradeClick = async () => {
     <TAlert v-if="inProgress" type="warn" title="Upgrade in progress">
       {{ inProgressMessage }}
     </TAlert>
+
+    <TrustedRootsVersionWarning
+      :talos-version="selectedVersion !== currentVersion ? selectedVersion : undefined"
+      message="Talos below 1.12 cannot keep it in the installed image. If Omni's machine API uses a certificate signed by this CA, this machine cannot reconnect to Omni after the update."
+    />
 
     <template v-if="!talosVersionsLoading && machine">
       <span v-if="!Object.keys(upgradeVersions).length">No versions found</span>

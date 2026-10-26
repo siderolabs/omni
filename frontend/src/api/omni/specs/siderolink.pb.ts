@@ -80,6 +80,7 @@ export type SiderolinkAPIConfigSpec = {
   enforce_grpc_tunnel?: boolean
   events_port?: number
   logs_port?: number
+  trusted_roots?: string
 }
 
 export type ProviderJoinConfigSpec = {

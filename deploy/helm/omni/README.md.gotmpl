@@ -60,6 +60,26 @@ Additionally, at least one initial admin user must be specified in `config.auth.
 
 Omni does not start until the [End User License Agreement](https://siderolabs.com/eula/) is accepted. Set `config.eulaAccept.name` and `config.eulaAccept.email` to accept it on behalf of your Omni instance. Once accepted, it stays accepted, so they are only required on the first start.
 
+## Custom Certificate Authority (Optional)
+
+When Omni or the Image Factory serve certificates signed by your organization's CA, give Omni that CA with `config.trustedRootsFile`, so that it delivers it to the machines. Mount the file as a single file under `/etc/ssl/certs/`, so that Omni itself trusts it too, next to the public CAs:
+
+```yaml
+config:
+  trustedRootsFile: /etc/ssl/certs/omni-trusted-roots.pem
+
+extraVolumes:
+  - name: trusted-roots
+    secret:
+      secretName: omni-trusted-roots # contains the PEM file under the key ca.crt
+
+extraVolumeMounts:
+  - name: trusted-roots
+    mountPath: /etc/ssl/certs/omni-trusted-roots.pem
+    subPath: ca.crt
+    readOnly: true
+```
+
 ## Example
 
 For Omni configuration reference, see the [Omni config schema](https://github.com/siderolabs/omni/blob/main/internal/pkg/config/schema.json).

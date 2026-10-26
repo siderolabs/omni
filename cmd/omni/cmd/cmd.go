@@ -157,6 +157,8 @@ func buildRootCommand() (*cobra.Command, error) {
 	defineEulaFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 	defineSupportFlags(rootCmdFlagBinder, flagConfig)
 
+	rootCmdFlagBinder.StringVar("trustedRootsFile", &flagConfig.TrustedRootsFile)
+
 	return rootCmd, nil
 }
 

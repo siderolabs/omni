@@ -104,6 +104,19 @@ ingress:
   siderolinkApi:
     enabled: false
 
+# Omni trusts the test CA through its own trust store, which Dex's certificate needs. A single file under /etc/ssl/certs/
+# adds the CA to the public ones, so that Omni still reaches the public image factory.
+extraVolumes:
+  - name: trusted-roots
+    secret:
+      secretName: omni-trusted-roots
+
+extraVolumeMounts:
+  - name: trusted-roots
+    mountPath: /etc/ssl/certs/omni-trusted-roots.pem
+    subPath: ca.crt
+    readOnly: true
+
 # Traefik IngressRoute for workload proxy wildcard domain.
 # With useOmniSubdomain: true and empty subdomain, services are direct subdomains of Omni (*.omni.example.org).
 # Uses the default TLS store (which has the wildcard cert covering *.omni.example.org).

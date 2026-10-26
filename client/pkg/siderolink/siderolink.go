@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/meta"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	siderolinkmachinery "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 
@@ -34,6 +35,7 @@ type JoinConfigOptions struct {
 	machineLabels               map[string]string
 	joinToken                   string
 	machineAPIURL               string
+	trustedRoots                string
 	version                     string
 	useGRPCTunnel               bool
 	withoutSiderolinkJoinConfig bool
@@ -149,6 +151,13 @@ func WithProvider(provider *infra.Provider) JoinConfigOption {
 	}
 }
 
+// WithTrustedRoots adds the extra CA certificates (PEM) the machine trusts, rendered as a TrustedRootsConfig document.
+func WithTrustedRoots(pem string) JoinConfigOption {
+	return func(opts *JoinConfigOptions) {
+		opts.trustedRoots = pem
+	}
+}
+
 // WithJoinToken adds the join token to the machine API URL.
 // Without the token it will try to use tokenless access to Omni.
 func WithJoinToken(token string) JoinConfigOption {
@@ -162,6 +171,7 @@ type JoinOptions struct {
 	apiURL            *url.URL
 	logServerURL      *url.URL
 	eventSinkEndpoint string
+	trustedRoots      string
 }
 
 // NewJoinOptions creates the new JoinOptions.
@@ -229,6 +239,7 @@ func NewJoinOptions(opts ...JoinConfigOption) (*JoinOptions, error) {
 	}
 
 	res.logServerURL = kmsgLogURL
+	res.trustedRoots = options.trustedRoots
 
 	return &res, nil
 }
@@ -262,7 +273,7 @@ func (opts *JoinOptions) RenderJoinConfig(extraDocuments ...config.Document) ([]
 	docs = append(docs, extraDocuments...)
 
 	if len(docs) == 0 {
-		return nil, fmt.Errorf("no documents were added, the args should have either of the following options: WithMachineAPIURL, WithEventSinkPort, WithLogServerPort")
+		return nil, fmt.Errorf("no documents were added, the args should have either of the following options: WithMachineAPIURL, WithEventSinkPort, WithLogServerPort, WithTrustedRoots")
 	}
 
 	configContainer, err := container.New(docs...)
@@ -301,11 +312,29 @@ func (opts *JoinOptions) JoinConfigDocuments() ([]config.Document, error) {
 		docs = append(docs, kmsgLogConfig)
 	}
 
+	if opts.trustedRoots != "" {
+		docs = append(docs, TrustedRootsDocument(opts.trustedRoots))
+	}
+
 	return docs, nil
 }
 
-// kmsgLogConfigName is the name of the kmsg log document Omni generates, Talos supports multiple kmsg log destinations.
-const kmsgLogConfigName = "omni-kmsg"
+// TrustedRootsDocument returns the TrustedRootsConfig document Omni generates for the given CA certificates (PEM).
+func TrustedRootsDocument(trustedRoots string) *security.TrustedRootsConfigV1Alpha1 {
+	document := security.NewTrustedRootsConfigV1Alpha1()
+	document.MetaName = TrustedRootsConfigName
+	document.Certificates = trustedRoots
+
+	return document
+}
+
+const (
+	// kmsgLogConfigName is the name of the kmsg log document Omni generates, Talos supports multiple kmsg log destinations.
+	kmsgLogConfigName = "omni-kmsg"
+
+	// TrustedRootsConfigName is the name of the trusted roots document Omni generates, next to any the user adds.
+	TrustedRootsConfigName = "omni-trusted-roots"
+)
 
 // IsJoinConfigDocument reports whether the document is one of the connection documents Omni manages for a machine:
 // the ones JoinConfigDocuments generates, and the SideroLink document which Omni leaves to the machine in maintenance mode.
@@ -317,6 +346,10 @@ func IsJoinConfigDocument(document config.Document) bool {
 		named, ok := document.(config.NamedDocument)
 
 		return ok && named.Name() == kmsgLogConfigName
+	case security.TrustedRootsConfig:
+		named, ok := document.(config.NamedDocument)
+
+		return ok && named.Name() == TrustedRootsConfigName
 	default:
 		return false
 	}

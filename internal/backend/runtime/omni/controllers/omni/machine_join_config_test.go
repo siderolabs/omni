@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -71,6 +72,21 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 		func(res *siderolink.MachineJoinConfig, assert *assert.Assertions) {
 			assert.Equal(expectedConfig, res.TypedSpec().Value.Config.Config)
 			assert.Equal(expectedKernelArgs, res.TypedSpec().Value.Config.KernelArgs)
+		},
+	)
+
+	// a changed API config alone, like a restart that adds trusted roots, re-renders the join config
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, apiConfig.Metadata(), func(res *siderolink.APIConfig) error {
+		res.TypedSpec().Value.TrustedRoots = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machine.Metadata().ID()},
+		func(res *siderolink.MachineJoinConfig, assert *assert.Assertions) {
+			assert.Contains(res.TypedSpec().Value.Config.Config, "kind: TrustedRootsConfig\nname: omni-trusted-roots\n")
 		},
 	)
 }
