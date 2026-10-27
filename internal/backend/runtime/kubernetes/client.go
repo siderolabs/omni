@@ -213,11 +213,20 @@ func (c *Client) discoverGVR(resource string) (*schema.GroupVersionResource, err
 	return gvr, nil
 }
 
+// clientTimeout bounds a single request to the Kubernetes API of a cluster. A list of every object of a type grows
+// with the cluster, so it is well above the 1 minute kube-apiserver applies to a request on its own.
+const clientTimeout = 5 * time.Minute
+
 // NewClient creates new Kubernetes client.
 func NewClient(config *rest.Config) (*Client, error) {
 	dialerRef := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
 	dialer := connrotation.NewDialer(dialerRef.DialContext)
 	config.Dial = dialer.DialContext
+
+	// set before building the HTTP client, which the mapper uses for discovery without any context
+	if config.Timeout == 0 {
+		config.Timeout = clientTimeout
+	}
 
 	client, err := rest.HTTPClientFor(config)
 	if err != nil {
@@ -227,10 +236,6 @@ func NewClient(config *rest.Config) (*Client, error) {
 	mapper, err := apiutil.NewDynamicRESTMapper(config, client)
 	if err != nil {
 		return nil, err
-	}
-
-	if config.Timeout == 0 {
-		config.Timeout = 30 * time.Second
 	}
 
 	c, err := dynamic.NewForConfig(config)

@@ -9,6 +9,7 @@ package registry
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/github"
@@ -17,8 +18,14 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 )
 
+// listTimeout bounds listing the tags of a repository, which can take a few paginated requests.
+const listTimeout = time.Minute
+
 // UpgradeCandidates fetches all tags from the given container registry source and returns them as a list of strings.
 func UpgradeCandidates(ctx context.Context, source string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, listTimeout)
+	defer cancel()
+
 	repo, err := name.NewRepository(source)
 	if err != nil {
 		return nil, err

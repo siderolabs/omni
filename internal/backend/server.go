@@ -199,7 +199,10 @@ func (s *Server) Run(ctx context.Context) error {
 	var oidcVerifier *oidcauth.IDTokenVerifier
 
 	if s.cfg.Auth.Oidc.GetEnabled() {
-		s.oidcProvider, err = coidc.NewProvider(ctx, s.cfg.Auth.Oidc.GetProviderURL())
+		// the provider keeps this client for fetching the signing keys later, the default one has no timeout
+		providerCtx := coidc.ClientContext(ctx, &http.Client{Timeout: 30 * time.Second})
+
+		s.oidcProvider, err = coidc.NewProvider(providerCtx, s.cfg.Auth.Oidc.GetProviderURL())
 		if err != nil {
 			return err
 		}

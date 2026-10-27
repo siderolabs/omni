@@ -357,8 +357,11 @@ func (ctrl *StatusController) legacyUpgrade(ctx context.Context, logger *zap.Log
 
 	defer talosClient.Close() //nolint:errcheck
 
+	upgradeCtx, upgradeCancel := context.WithTimeout(ctx, lifecycle.LegacyUpgradeTimeout)
+	defer upgradeCancel()
+
 	//nolint:staticcheck
-	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImageStr)); err != nil {
+	if _, err = talosClient.UpgradeWithOptions(upgradeCtx, client.WithUpgradeImage(installImageStr)); err != nil {
 		return fmt.Errorf("failed to do Talos upgrade: %w", err)
 	}
 

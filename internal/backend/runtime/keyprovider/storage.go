@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"time"
 
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/cosi-project/runtime/pkg/keystorage"
@@ -27,9 +28,15 @@ type KeyProvider struct {
 	version    int64
 }
 
+// storeTimeout bounds a single read or write of the key storage in etcd.
+const storeTimeout = time.Minute
+
 // ProvideKey imlements KeyProvider.
 func (s *KeyProvider) ProvideKey() ([]byte, error) {
-	got, err := s.recstore.Get(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+	defer cancel()
+
+	got, err := s.recstore.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +59,10 @@ func New(
 ) (*KeyProvider, error) {
 	recStore := recstore.New(client, name, "keystore-omni", storageMarshal, storageUnmarshal)
 
-	res, err := recStore.Get(context.Background())
+	getCtx, getCancel := context.WithTimeout(context.Background(), storeTimeout)
+	defer getCancel()
+
+	res, err := recStore.Get(getCtx)
 	if err != nil {
 		ok := xerrors.TagIs[recstore.NotFoundTag](err)
 		if !ok {
@@ -78,7 +88,10 @@ func New(
 			return nil, err
 		}
 
-		err = recStore.Update(context.Background(), keyStorage, version)
+		updateCtx, updateCancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer updateCancel()
+
+		err = recStore.Update(updateCtx, keyStorage, version)
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +204,10 @@ func initKeyProvider(name string, recStore *recstore.RecStore[*keystorage.KeySto
 
 	version := int64(0)
 
-	err = recStore.Update(context.Background(), ks, version)
+	ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+	defer cancel()
+
+	err = recStore.Update(ctx, ks, version)
 	if err != nil {
 		return nil, err
 	}

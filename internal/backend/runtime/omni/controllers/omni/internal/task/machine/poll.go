@@ -12,6 +12,7 @@ import (
 	"maps"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -77,11 +78,17 @@ func merged[K comparable, V any](m1, m2 map[K]V) map[K]V {
 	return res
 }
 
+// pollTimeout bounds one poller, which makes a few unary Talos API calls.
+const pollTimeout = 30 * time.Second
+
 func poll(ctx context.Context, poller string, c *client.Client, info *Info) error {
 	f, ok := allPollers[poller]
 	if !ok {
 		panic(fmt.Sprintf("unknown poller %q", poller))
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, pollTimeout)
+	defer cancel()
 
 	return f(ctx, c, info)
 }

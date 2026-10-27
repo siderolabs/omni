@@ -51,6 +51,14 @@ const (
 	// a broken etcd data directory behind, from which the cluster does not recover on its own. Waiting
 	// too long only delays the recovery from a lost request.
 	bootstrapRetryInterval = 5 * time.Minute
+
+	// bootstrapRequestTimeout bounds the bootstrap request, which returns once the etcd service is started on the node.
+	bootstrapRequestTimeout = time.Minute
+
+	// etcdRestoreTimeout bounds downloading the backup and uploading it to the node. It only catches a stalled stream:
+	// the restore takes as long as the etcd database size over the download throughput, which can be capped, so it is
+	// far above what a real restore needs (an 8 GB database at 10 Mbps takes about 2 hours).
+	etcdRestoreTimeout = 24 * time.Hour
 )
 
 // NewBootstrapStatusController initializes BootstrapStatusController.
@@ -190,6 +198,10 @@ func (ctrl *BootstrapStatusController) recoverEtcdFromBackup(
 		return fmt.Errorf("failed to get backup store: %w", err)
 	}
 
+	// the download streams into the upload to the node, so one deadline covers both
+	ctx, cancel := context.WithTimeout(ctx, etcdRestoreTimeout)
+	defer cancel()
+
 	downloadedBackupData, readCloser, err := backupStore.Download(ctx, backupData.TypedSpec().Value.GetEncryptionKey(), bootstrapSpec.GetClusterUuid(), bootstrapSpec.GetSnapshot())
 	if err != nil {
 		return fmt.Errorf("failed to download backup: %w", err)
@@ -288,7 +300,10 @@ func (ctrl *BootstrapStatusController) bootstrapCluster(
 
 	bootstrapStatus.TypedSpec().Value.LastBootstrapAttempt = timestamppb.Now()
 
-	if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
+	bootstrapCtx, bootstrapCancel := context.WithTimeout(ctx, bootstrapRequestTimeout)
+	defer bootstrapCancel()
+
+	if err = talosCli.Bootstrap(bootstrapCtx, &machine.BootstrapRequest{
 		RecoverEtcd: recoverEtcd,
 	}); err != nil {
 		// The node rejected the request without starting anything, e.g. because it is still coming up. A rejected

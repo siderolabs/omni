@@ -13,6 +13,7 @@ import (
 	"iter"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
@@ -83,9 +84,16 @@ func (s *Store) Download(ctx context.Context, _ []byte, clusterUUID, snapshotNam
 	return etcdbackup.BackupData{}, newReaderLimiter(result.Body, s.downloadRate), nil
 }
 
+// listTimeout bounds listing the backups of a cluster.
+const listTimeout = time.Minute
+
 // ListBackups returns a list of backups. Implements [EtcdBackupStore].
 func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
-	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	// only the list request, the returned iterator opens the backups with the caller's context
+	listCtx, cancel := context.WithTimeout(ctx, listTimeout)
+	defer cancel()
+
+	result, err := s.client.ListObjectsV2(listCtx, &s3.ListObjectsV2Input{
 		Bucket: new(s.bucket),
 		Prefix: new(fmt.Sprintf("%s/", clusterUUID)),
 	})

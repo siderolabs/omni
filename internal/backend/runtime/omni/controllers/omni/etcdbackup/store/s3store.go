@@ -143,6 +143,9 @@ func (sf *S3StoreFactory) updateStore(ctx context.Context, st state.State, resou
 	return updateS3Status(ctx, st, "")
 }
 
+// bucketCheckTimeout bounds checking that the configured bucket can be listed.
+const bucketCheckTimeout = time.Minute
+
 // S3ClientFromResource returns an S3 client and a bucket name.
 func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*s3.Client, string, error) {
 	bucket := s3Conf.TypedSpec().Value.GetBucket()
@@ -206,7 +209,11 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 		o.DisableLogOutputChecksumValidationSkipped = true
 	})
 
-	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: new(bucket)})
+	// only the bucket check, the returned client must not keep this deadline
+	listCtx, cancel := context.WithTimeout(ctx, bucketCheckTimeout)
+	defer cancel()
+
+	_, err = client.ListObjects(listCtx, &s3.ListObjectsInput{Bucket: new(bucket)})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to list objects in bucket %q: %w", bucket, err)
 	}

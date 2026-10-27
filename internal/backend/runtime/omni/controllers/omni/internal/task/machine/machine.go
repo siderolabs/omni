@@ -287,7 +287,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	info := Info{}
 
-	if err = pollVersion(ctx, c, &info); err != nil {
+	if err = poll(ctx, "version", c, &info); err != nil {
 		return err
 	}
 

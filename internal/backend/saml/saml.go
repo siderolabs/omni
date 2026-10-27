@@ -458,7 +458,7 @@ func readMetadata(cfg *specs.AuthConfigSpec_SAML) (*saml.EntityDescriptor, error
 			return nil, err
 		}
 
-		return samlsp.FetchMetadata(context.Background(), http.DefaultClient,
+		return samlsp.FetchMetadata(context.Background(), &http.Client{Timeout: 30 * time.Second},
 			*idpMetadataURL)
 	}
 

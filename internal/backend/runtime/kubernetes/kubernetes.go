@@ -414,7 +414,15 @@ func (r *Runtime) GetKubeconfig(ctx context.Context, context *common.Context) (*
 		return nil, err
 	}
 
-	return clientcmd.RESTConfigFromKubeConfig(kubeconfig.TypedSpec().Value.Data)
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig.TypedSpec().Value.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	// the kubeconfig carries no timeout, so every client built from it would wait forever on a hung request
+	config.Timeout = clientTimeout
+
+	return config, nil
 }
 
 // GetClient returns K8s client.

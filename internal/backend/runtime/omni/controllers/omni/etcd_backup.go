@@ -72,7 +72,9 @@ func NewEtcdBackupController(s EtcdBackupControllerSettings) (*EtcdBackupControl
 		settings:      s,
 		manualBackups: map[resource.ID]time.Time{},
 		parallel:      5,
-		maxBackupTime: 30 * time.Minute,
+		// A backup takes as long as the etcd database size over the upload throughput, which can be capped. A round of
+		// backups waits for all of them, so a stalled one delays the next backup of every cluster for this long.
+		maxBackupTime: 2 * time.Hour,
 	}, nil
 }
 

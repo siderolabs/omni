@@ -616,7 +616,7 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		zap.String("machine", rc.ID()))
 
 	// give the Upgrade API longer timeout, as it pulls the installer image before returning
-	upgradeCtx, upgradeCancel := context.WithTimeout(inputCtx, 5*time.Minute)
+	upgradeCtx, upgradeCancel := context.WithTimeout(inputCtx, lifecycle.LegacyUpgradeTimeout)
 	defer upgradeCancel()
 
 	stageUpgrade, err := ctrl.stageUpgrade(installed.version)
@@ -661,7 +661,13 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 		// point, so an explicit reboot applies it. Talos acknowledges the reboot request before
 		// running the sequence, so an error here only means the request did not reach the machine.
 		// The next reconcile then stages and reboots again.
-		if rebootErr := nodeClient.Reboot(upgradeCtx); rebootErr != nil {
+		rebootCtx, rebootCancel := context.WithTimeout(inputCtx, lifecycle.RebootTimeout)
+
+		rebootErr := nodeClient.Reboot(rebootCtx)
+
+		rebootCancel()
+
+		if rebootErr != nil {
 			logger.Warn("reboot request after staged upgrade failed, retrying on the next reconcile",
 				zap.String("machine", rc.ID()), zap.Error(rebootErr))
 		}
@@ -901,10 +907,16 @@ type installedImage struct {
 	atTarget    bool
 }
 
+// installedImageCheckTimeout bounds reading the installed Talos version and schematic from the machine.
+const installedImageCheckTimeout = 30 * time.Second
+
 // checkInstalledImage reads the node's running version and schematic live and compares them to the target.
 func (ctrl *StatusController) checkInstalledImage(
 	ctx context.Context, rc *ReconciliationContext,
 ) (installedImage, error) {
+	ctx, cancel := context.WithTimeout(ctx, installedImageCheckTimeout)
+	defer cancel()
+
 	nodeClient, err := ctrl.lifecycleManager.GetForMachine(ctx, rc.ID())
 	if err != nil {
 		return installedImage{}, fmt.Errorf("failed to get talos client: %w", err)

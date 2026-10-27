@@ -32,6 +32,10 @@ const InstallTimeout = 5 * time.Minute
 // PreRebootHookTimeout bounds each pre-reboot hook.
 const PreRebootHookTimeout = time.Minute
 
+// LegacyUpgradeTimeout bounds the legacy MachineService.Upgrade call. Talos pulls and validates the installer image
+// before it returns, which can take minutes when the image factory builds the installer for the first time.
+const LegacyUpgradeTimeout = 10 * time.Minute
+
 // RebootTimeout is the deadline for the post-operation reboot RPC.
 const RebootTimeout = time.Minute
 
