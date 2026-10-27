@@ -19,10 +19,10 @@ import (
 // that already took the new version, a control plane cannot cross a Talos minor downward, and the upgrade
 // cancellation test skips itself on a cross-minor pair, so letting these versions drift apart would
 // silently drop that coverage from every suite.
-const AnotherTalosVersion = "1.14.1"
+const AnotherTalosVersion = "1.14.4"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
-const StableTalosVersion = "1.13.11"
+const StableTalosVersion = "1.13.12"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
