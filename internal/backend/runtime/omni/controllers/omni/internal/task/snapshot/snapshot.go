@@ -17,6 +17,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	cosiclient "github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -234,7 +235,8 @@ func (spec CollectTaskSpec) readBootID(ctx context.Context, c *client.Client) (s
 }
 
 func (spec CollectTaskSpec) getClient(ctx context.Context) (*client.Client, error) {
-	opts := talos.GetSocketOptions(spec.Endpoint)
+	// a broken watch ends the task, which restarts with the client that matches the machine's current mode
+	opts := append(talos.GetSocketOptions(spec.Endpoint), client.WithStateOptions(cosiclient.WithDisableWatchRetry()))
 
 	talosConfig := spec.TalosConfig
 

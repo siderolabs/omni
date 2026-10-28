@@ -16,6 +16,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	cosiclient "github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/go-pointer"
@@ -171,6 +172,9 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		Timeout: 6 * time.Minute,
 	})))
 
+	// a broken watch ends the task, which restarts with the client that matches the machine's current mode
+	opts = append(opts, client.WithStateOptions(cosiclient.WithDisableWatchRetry()))
+
 	if spec.MaintenanceMode {
 		opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(spec.Endpoint))
 
@@ -214,9 +218,8 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	// as Talos < 1.3.0 doesn't support Bootstrapped event, we use a mixed approach:
 	// watch is used to trigger polling on changes to the resources
 	watchers := map[resource.Type]struct {
-		filterFunc             func(r resource.Resource) bool
-		namespace              resource.Namespace
-		handlePermissionDenied bool
+		filterFunc func(r resource.Resource) bool
+		namespace  resource.Namespace
 	}{
 		// NB: keep in sync with machinePollers
 		network.HostnameStatusType: {
@@ -275,12 +278,6 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		}
 
 		if err = c.COSI.WatchKind(ctx, resource.NewMetadata(watcher.namespace, resourceType, "", resource.VersionUndefined), watchCh); err != nil {
-			if code := status.Code(err); code == codes.PermissionDenied && watcher.handlePermissionDenied {
-				logger.Info("permission denied when watching resource, ignoring", zap.String("resource_type", resourceType))
-
-				continue
-			}
-
 			return fmt.Errorf("error watching COSI resource: %w", err)
 		}
 	}

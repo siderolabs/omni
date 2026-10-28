@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	cosiclient "github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
@@ -321,6 +322,10 @@ func newClientFactory(omniState state.State, logger *zap.Logger, openClients *pp
 // A regular client authenticates with the `os:admin` certificate of the TalosConfig resource. A reader client
 // authenticates with an `os:reader` certificate issued from the cluster secrets instead: whatever it is used for, Talos
 // lets it only read the non-sensitive resources.
+//
+// Watches are not retried. A watch breaks when its machine reboots, or switches between maintenance and normal mode and
+// then requires other credentials, and reopening it with the same client fails or gets silent for up to 15 minutes, so
+// the error goes to the caller at once.
 func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, endpoints []string, reader bool) ([]client.OptionFunc, error) {
 	if len(endpoints) > 0 {
 		opts := GetSocketOptions(endpoints[0])
@@ -365,6 +370,7 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 			),
 			grpc.WithConnectParams(ConnectParams()),
 		),
+		client.WithStateOptions(cosiclient.WithDisableWatchRetry()),
 	}, nil
 }
 
@@ -826,6 +832,7 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
 			grpc.WithConnectParams(ConnectParams()),
 		),
+		client.WithStateOptions(cosiclient.WithDisableWatchRetry()), // see connectionOptions
 	)
 }
 

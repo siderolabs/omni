@@ -22,6 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	cosiclient "github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
@@ -380,7 +381,8 @@ func (spec IdentityCollectorTaskSpec) getClient(ctx context.Context) (*client.Cl
 		opts = append(opts, client.WithEndpoints(spec.managementAddress))
 	}
 
-	opts = append(opts, client.WithConfig(spec.config))
+	// a broken watch ends the task, which restarts with a new client
+	opts = append(opts, client.WithConfig(spec.config), client.WithStateOptions(cosiclient.WithDisableWatchRetry()))
 
 	c, err := client.New(ctx, opts...)
 	if err != nil {
