@@ -145,6 +145,9 @@ func RegisterGateway(
 	runtimeMux := gateway.NewServeMux(
 		gateway.WithMarshalerOption(gateway.MIMEWildcard, marshaller),
 		gateway.WithForwardResponseOption(cookies.Handler),
+		// The frontend sends its gRPC metadata (the runtime, the request signature, the context) as `Grpc-Metadata-*`
+		// headers, which grpc-gateway forwards as metadata only with the legacy header matching.
+		gateway.WithLegacyHeaderMatching(),
 	)
 	memtrans := memconn.NewTransport("gateway-conn")
 	opts := []grpc.DialOption{
