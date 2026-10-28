@@ -10,9 +10,11 @@ import { ref } from 'vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { downloadOmniconfig } from '@/methods'
+import { useFeatures } from '@/methods/features'
 import DownloadOmnictlModal from '@/views/Home/components/DownloadOmnictlModal.vue'
 
 const downloadOmnictlModalOpen = ref(false)
+const { data: features } = useFeatures()
 </script>
 
 <template>
@@ -37,7 +39,7 @@ const downloadOmnictlModalOpen = ref(false)
         variant="primary"
         icon="talos-config"
         icon-position="left"
-        @click="downloadOmniconfig"
+        @click="downloadOmniconfig(features?.spec.account?.name)"
       >
         Download
         <code>omniconfig</code>

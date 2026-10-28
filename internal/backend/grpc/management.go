@@ -321,7 +321,7 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 		return s.breakGlassTalosconfig(ctx, false)
 	}
 
-	talosconfig, err := generateTalosconfig(s.cfg.Account.GetName(), s.cfg.Services.Api.URL(), clusterName, authResult.Identity)
+	talosconfig, err := generateTalosconfig(instanceContextName(&s.cfg.Account), s.cfg.Services.Api.URL(), clusterName, authResult.Identity)
 	if err != nil {
 		return nil, err
 	}
@@ -331,9 +331,18 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 	}, nil
 }
 
+// instanceContextName returns the name of the client config context of the Omni instance.
+//
+// The clients store their keys as <context>-<identity>.pgp, so naming the context after the account keeps
+// the keys of different instances apart. omnictl falls back to the talosctl keys, so omniconfig and
+// the instance talosconfig must use the same name.
+func instanceContextName(account *config.Account) string {
+	return account.GetName()
+}
+
 // generateTalosconfig returns a talosconfig for the cluster, or for the whole instance if clusterName is empty.
-func generateTalosconfig(accountName, apiURL, clusterName, identity string) ([]byte, error) {
-	contextName := accountName
+func generateTalosconfig(instanceContext, apiURL, clusterName, identity string) ([]byte, error) {
+	contextName := instanceContext
 	if clusterName != "" {
 		contextName += "-" + clusterName
 	}
@@ -363,7 +372,7 @@ func (s *managementServer) Omniconfig(ctx context.Context, _ *emptypb.Empty) (*m
 		return nil, err
 	}
 
-	cfg, err := generateConfig(authResult, s.omniconfigDest)
+	cfg, err := generateConfig(authResult, s.omniconfigDest, instanceContextName(&s.cfg.Account))
 	if err != nil {
 		return nil, err
 	}
@@ -1628,11 +1637,11 @@ func handleError(err error) error {
 	return err
 }
 
-func generateConfig(authResult auth.CheckResult, contextURL string) ([]byte, error) {
+func generateConfig(authResult auth.CheckResult, contextURL, contextName string) ([]byte, error) {
 	// This is safe to do, since omnictl config pkg doesn't import anything from the backend
 	cfg := &ctlcfg.Config{
 		Contexts: map[string]*ctlcfg.Context{
-			"default": {
+			contextName: {
 				URL: contextURL,
 				Auth: ctlcfg.Auth{
 					SideroV1: ctlcfg.SideroV1{
@@ -1641,7 +1650,7 @@ func generateConfig(authResult auth.CheckResult, contextURL string) ([]byte, err
 				},
 			},
 		},
-		Context: "default",
+		Context: contextName,
 	}
 
 	result, err := yaml.Marshal(cfg)

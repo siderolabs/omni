@@ -8,7 +8,7 @@ import { test } from 'vitest'
 
 import { DefaultTalosVersion } from '@/api/resources'
 
-import { getDocsLink, majorMinorVersion } from '.'
+import { getConfigFileName, getDocsLink, majorMinorVersion } from '.'
 
 const { major, minor } = parse(DefaultTalosVersion, false, true)
 const defaultVersion = `${major}.${minor}`
@@ -57,4 +57,16 @@ test.each`
   ${'this is not a version'} | ${'0.0'}
 `('majorMinorVersion: $version returns $expected', ({ version, expected }) => {
   expect(majorMinorVersion(version)).toBe(expected)
+})
+
+test.each`
+  kind             | parts                       | expected
+  ${'omniconfig'}  | ${['instance']}             | ${'instance-omniconfig.yaml'}
+  ${'omniconfig'}  | ${[undefined]}              | ${'omniconfig.yaml'}
+  ${'talosconfig'} | ${['instance', 'cluster1']} | ${'instance-cluster1-talosconfig.yaml'}
+  ${'talosconfig'} | ${['instance', undefined]}  | ${'instance-talosconfig.yaml'}
+  ${'talosconfig'} | ${[undefined, 'cluster1']}  | ${'cluster1-talosconfig.yaml'}
+  ${'talosconfig'} | ${[undefined, undefined]}   | ${'talosconfig.yaml'}
+`('getConfigFileName($kind, $parts) = $expected', ({ kind, parts, expected }) => {
+  expect(getConfigFileName(kind, ...parts)).toBe(expected)
 })

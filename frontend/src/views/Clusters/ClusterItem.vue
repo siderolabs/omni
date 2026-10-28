@@ -22,6 +22,7 @@ import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
 import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
+import { useFeatures } from '@/methods/features'
 import type { Label } from '@/methods/labels'
 import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
 import ClusterStatus from '@/views/Clusters/ClusterStatus.vue'
@@ -59,6 +60,7 @@ const regionId = useId()
 const labelId = useId()
 
 const clusterDestroyDialogOpen = ref(false)
+const { data: features } = useFeatures()
 </script>
 
 <template>
@@ -165,7 +167,7 @@ const clusterDestroyDialogOpen = ref(false)
           <TActionsBoxItem
             v-if="canDownloadTalosconfig"
             icon="talos-config"
-            @select="downloadTalosconfig(item.metadata.id)"
+            @select="downloadTalosconfig(item.metadata.id, features?.spec.account?.name)"
           >
             Download
             <code>talosconfig</code>

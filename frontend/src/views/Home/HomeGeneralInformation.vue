@@ -155,7 +155,7 @@ const {
         variant="primary"
         icon="document"
         icon-position="left"
-        @click="downloadTalosconfig()"
+        @click="downloadTalosconfig(undefined, features.data.value?.spec.account?.name)"
       >
         Download
         <code>talosconfig</code>
@@ -170,7 +170,12 @@ const {
         Download talosctl
       </TButton>
 
-      <TButton variant="primary" icon="document" icon-position="left" @click="downloadOmniconfig">
+      <TButton
+        variant="primary"
+        icon="document"
+        icon-position="left"
+        @click="downloadOmniconfig(features.data.value?.spec.account?.name)"
+      >
         Download
         <code>omniconfig</code>
       </TButton>

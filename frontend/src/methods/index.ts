@@ -91,7 +91,11 @@ export const downloadKubeconfig = async (cluster: string) => {
   }
 }
 
-export const downloadTalosconfig = async (cluster?: string) => {
+export const getConfigFileName = (kind: string, ...parts: (string | undefined)[]) =>
+  [...parts.filter(Boolean), `${kind}.yaml`].join('-')
+
+// accountName is the Omni instance name, used to make the downloaded config file names unique per instance.
+export const downloadTalosconfig = async (cluster?: string, accountName?: string) => {
   const opts: fetchOption[] = []
 
   if (cluster) {
@@ -103,20 +107,20 @@ export const downloadTalosconfig = async (cluster?: string) => {
 
     downloadFile(
       `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`,
-      cluster ? `${cluster}-talosconfig.yaml` : 'talosconfig.yaml',
+      getConfigFileName('talosconfig', accountName, cluster),
     )
   } catch (e) {
     showError('Failed to download Talosconfig', e.message || e.toString())
   }
 }
 
-export const downloadOmniconfig = async () => {
+export const downloadOmniconfig = async (accountName?: string) => {
   try {
     const response = await ManagementService.Omniconfig({})
 
     downloadFile(
       `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`,
-      'omniconfig.yaml',
+      getConfigFileName('omniconfig', accountName),
     )
   } catch (e) {
     showError('Failed to download omniconfig', e.message || e.toString())

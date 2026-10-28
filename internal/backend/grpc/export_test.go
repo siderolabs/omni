@@ -31,6 +31,15 @@ const AuditLogFollowBatchSize = auditLogFollowBatchSize
 // EncryptedOutput is exported for testing.
 var EncryptedOutput = encryptedOutput
 
+// GenerateConfig is exported for testing.
+var GenerateConfig = generateConfig
+
+// GenerateTalosconfig is exported for testing.
+var GenerateTalosconfig = generateTalosconfig
+
+// InstanceContextName is exported for testing.
+var InstanceContextName = instanceContextName
+
 type AuthServer = authServer
 
 // ManagementServerOption configures a test management server.
