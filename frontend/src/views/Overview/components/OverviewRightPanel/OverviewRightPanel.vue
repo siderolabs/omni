@@ -45,6 +45,7 @@ import type { BackupsStatus } from '@/methods'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
 import { triggerEtcdBackup, updateClusterLock } from '@/methods/cluster'
+import { useFeatures } from '@/methods/features'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -137,6 +138,8 @@ const backupTime = computed(() => {
 
   return formatISO(t, 'yyyy-LL-dd HH:mm:ss')
 })
+
+const { data: features } = useFeatures()
 
 const startingEtcdBackup = ref(false)
 
@@ -451,7 +454,9 @@ const exportClusterTemplateModalOpen = ref(false)
           variant="primary"
           icon="talos-config"
           icon-position="left"
-          @click="() => downloadTalosconfig(clusterStatus!.metadata.id!)"
+          @click="
+            () => downloadTalosconfig(clusterStatus!.metadata.id!, features?.spec.account?.name)
+          "
         >
           Download
           <code>talosconfig</code>
