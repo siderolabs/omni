@@ -301,7 +301,7 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 
 	emitf(cfg.progress, "[omni] cordoning node %s", target.nodeName)
 
-	if err = nodedrain.Cordon(cordonCtx, clientset, target.nodeName); err != nil {
+	if err = nodedrain.Cordon(cordonCtx, clientset, target.nodeName, omni.KubernetesNodeCordoned); err != nil {
 		if target.bestEffort {
 			emitf(cfg.progress, "[omni] failed to cordon node %s, proceeding to reboot: %s", target.nodeName, err)
 
@@ -363,7 +363,7 @@ func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
 
 	emitf(cfg.progress, "[omni] uncordoning node %s", target.nodeName)
 
-	if err = nodedrain.Uncordon(uncordonCtx, clientset, target.nodeName); err != nil {
+	if err = nodedrain.Uncordon(uncordonCtx, clientset, target.nodeName, omni.KubernetesNodeCordoned); err != nil {
 		return WrapErr(err, "failed to uncordon node")
 	}
 

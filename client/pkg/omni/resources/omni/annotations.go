@@ -112,4 +112,8 @@ const (
 	// not be deleted by the KubernetesNodeAuditController even if it has no corresponding ClusterMachine.
 	// Use this for virtual nodes such as those created by VirtualKubelet.
 	KubernetesNodeAuditSkip = SystemLabelPrefix + "node-audit-skip"
+
+	// KubernetesNodeCordoned is set on a Kubernetes node cordoned by Omni before a reboot.
+	// Omni uncordons only the nodes carrying it, so that a cordon set by someone else survives the reboot.
+	KubernetesNodeCordoned = SystemLabelPrefix + "cordoned"
 )

@@ -25,6 +25,7 @@ import (
 	ktesting "k8s.io/client-go/testing"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
@@ -150,5 +151,53 @@ func TestCordonAndDrain(t *testing.T) {
 		require.NoError(t, err, "nothing may abort a recovery operation")
 
 		assert.Contains(t, joined(messages), "failed to cordon")
+	})
+}
+
+func TestFinalizeRebootUncordon(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	const (
+		clusterName = "cluster-1"
+		nodeName    = "node-1"
+	)
+
+	runReboot := func(t *testing.T, node *corev1.Node) *corev1.Node {
+		t.Helper()
+
+		clientset := fake.NewSimpleClientset(node)
+		manager := newDrainTestManager(t, clientset)
+
+		require.NoError(t, manager.RunCordonAndDrainForTest(ctx, clusterName, nodeName, false, func(string) {}))
+		require.NoError(t, manager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)))
+
+		got, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+		require.NoError(t, err)
+
+		return got
+	}
+
+	t.Run("uncordonsNodeCordonedByOmni", func(t *testing.T) {
+		t.Parallel()
+
+		node := runReboot(t, &corev1.Node{Name: nodeName})
+
+		assert.False(t, node.Spec.Unschedulable)
+		assert.NotContains(t, node.Annotations, omni.KubernetesNodeCordoned)
+	})
+
+	t.Run("keepsNodeCordonedByOperator", func(t *testing.T) {
+		t.Parallel()
+
+		node := runReboot(t, &corev1.Node{
+			Name: nodeName,
+			Spec: corev1.NodeSpec{Unschedulable: true},
+		})
+
+		assert.True(t, node.Spec.Unschedulable, "a node cordoned by an operator must stay cordoned after the reboot")
+		assert.NotContains(t, node.Annotations, omni.KubernetesNodeCordoned)
 	})
 }

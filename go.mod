@@ -76,7 +76,7 @@ require (
 	github.com/siderolabs/gen v0.8.8
 	github.com/siderolabs/go-api-signature v0.4.0
 	github.com/siderolabs/go-debug v0.6.3
-	github.com/siderolabs/go-kubernetes v0.2.43
+	github.com/siderolabs/go-kubernetes v0.2.44
 	github.com/siderolabs/go-loadbalancer v0.5.1
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-retry v0.3.3
@@ -104,7 +104,7 @@ require (
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6.0.20260809190231-643e93b9c9be
 	golang.org/x/crypto v0.58.0
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.24.0
 	golang.org/x/text v0.43.0
