@@ -32,8 +32,8 @@ import (
 const (
 	// bootIDProbeInterval is how often the collect task checks whether the machine bootID is stale.
 	bootIDProbeInterval = 30 * time.Second
-	// bootIDCheckTimeout is how long the collect task waits for the machine bootID to be available.
-	bootIDCheckTimeout = 5 * time.Second
+	// apiCallTimeout is how long the collect task waits for a unary Talos API call.
+	apiCallTimeout = 5 * time.Second
 	// minTalosVersionForRead is the earliest Talos version whose maintenance mode serves the Read RPC
 	// (below it, maintenance mode answers Unimplemented), so boot ID collection is skipped below it.
 	minTalosVersionForRead = "1.13"
@@ -112,12 +112,20 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	}
 
 	var (
-		bootID         string
-		bootIDTickerCh <-chan time.Time
+		bootID, currentBootID string
+		bootIDTickerCh        <-chan time.Time
 	)
 
-	if spec.talosSupportsBootID(ctx, client, logger) {
-		bootID = spec.readBootID(ctx, client, logger)
+	talosSupportsBootID, err := spec.talosSupportsBootID(ctx, client)
+	if err != nil {
+		return err
+	}
+
+	if talosSupportsBootID {
+		bootID, err = spec.readBootID(ctx, client)
+		if err != nil {
+			return err
+		}
 
 		bootIDTicker := time.NewTicker(bootIDProbeInterval)
 		defer bootIDTicker.Stop()
@@ -138,7 +146,10 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		case <-ctx.Done():
 			return nil
 		case <-bootIDTickerCh:
-			currentBootID := spec.readBootID(ctx, client, logger)
+			if currentBootID, err = spec.readBootID(ctx, client); err != nil {
+				return err
+			}
+
 			if bootID != currentBootID {
 				return fmt.Errorf("boot id changed, restarting the task (old: %s, new: %s)", bootID, currentBootID)
 			}
@@ -173,64 +184,53 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 }
 
 // talosSupportsBootID reports whether the connected machine's Talos version serves the Read RPC used to fetch
-// boot_id in maintenance mode. Older versions answer Unimplemented there, so callers skip the attempt entirely
-// rather than pay the RPC round trip (and its timeout) on every probe.
-func (spec CollectTaskSpec) talosSupportsBootID(ctx context.Context, c *client.Client, logger *zap.Logger) bool {
-	ctx, cancel := context.WithTimeout(ctx, bootIDCheckTimeout)
+// boot_id in maintenance mode. Older versions answer Unimplemented there, so callers skip the attempt entirely.
+//
+// A failed version check is an error rather than a "no": installs and upgrades of a Talos 1.13+ machine wait for its
+// boot ID, so a skipped boot ID would hold them back until the task restarts for another reason.
+func (spec CollectTaskSpec) talosSupportsBootID(ctx context.Context, c *client.Client) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, apiCallTimeout)
 	defer cancel()
 
 	versionResp, err := c.Version(ctx)
 	if err != nil {
-		logger.Debug("failed to read talos version for boot id support check", zap.Error(err))
-
-		return false
+		return false, fmt.Errorf("failed to read talos version for boot id support check: %w", err)
 	}
 
 	minVersion := semver.MustParse(minTalosVersionForRead + ".0")
 
 	for _, msg := range versionResp.GetMessages() {
-		version, err := semver.ParseTolerant(msg.GetVersion().GetTag())
-		if err != nil {
-			continue
+		version, versionErr := semver.ParseTolerant(msg.GetVersion().GetTag())
+		if versionErr != nil {
+			return false, fmt.Errorf("failed to parse talos version for boot id support check: %w", versionErr)
 		}
 
 		if version.GTE(minVersion) {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
-// readBootID reads the machine's kernel boot identifier from the node. It is best-effort: on certain scenarios boot_id might not be available, instead of failing with error it returns "".
-func (spec CollectTaskSpec) readBootID(ctx context.Context, c *client.Client, logger *zap.Logger) string {
-	ctx, cancel := context.WithTimeout(ctx, bootIDCheckTimeout)
+// readBootID reads the machine's kernel boot identifier from the node.
+func (spec CollectTaskSpec) readBootID(ctx context.Context, c *client.Client) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, apiCallTimeout)
 	defer cancel()
 
-	read := func() (string, error) {
-		r, err := c.Read(ctx, "/proc/sys/kernel/random/boot_id")
-		if err != nil {
-			return "", err
-		}
-
-		defer r.Close() //nolint:errcheck
-
-		data, err := io.ReadAll(r)
-		if err != nil {
-			return "", err
-		}
-
-		return strings.TrimSpace(string(data)), nil
-	}
-
-	bootID, err := read()
+	r, err := c.Read(ctx, "/proc/sys/kernel/random/boot_id")
 	if err != nil {
-		logger.Debug("failed to read boot id", zap.Error(err))
-
-		return ""
+		return "", fmt.Errorf("failed to read boot id: %w", err)
 	}
 
-	return bootID
+	defer r.Close() //nolint:errcheck
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return "", fmt.Errorf("failed to read boot id: %w", err)
+	}
+
+	return strings.TrimSpace(string(data)), nil
 }
 
 func (spec CollectTaskSpec) getClient(ctx context.Context) (*client.Client, error) {
@@ -257,7 +257,11 @@ retry:
 	}
 
 	// if the request failed retry once again with the insecure client
-	_, err = c.Version(ctx)
+	versionCtx, versionCancel := context.WithTimeout(ctx, apiCallTimeout)
+	_, err = c.Version(versionCtx)
+
+	versionCancel()
+
 	if err != nil {
 		c.Close() //nolint:errcheck
 
