@@ -66,6 +66,8 @@ export type VirtualMachineDomainSpecSpec = {
   disks?: string[]
   cloudInit?: string
   observedGeneration?: string
+  stopMode?: string
+  stopRequest?: string
 }
 
 export type VirtualMachineGuestInterfaceSpec = {
@@ -83,6 +85,29 @@ export type VirtualMachineDomainStatusSpec = {
   memoryKiB?: number
   vCPUs?: number
   interfaces?: VirtualMachineGuestInterfaceSpec[]
+}
+
+export type VirtualMachinePowerOverrideSpec = {
+  powerState?: string
+  stopRequest?: string
+}
+
+export type VirtualMachineProfileCPUFeatureSpec = {
+  name?: string
+  policy?: string
+}
+
+export type VirtualMachineProfileCPUSpec = {
+  mode?: string
+  model?: string
+  fallback?: string
+  features?: VirtualMachineProfileCPUFeatureSpec[]
+}
+
+export type VirtualMachineProfileSpecSpec = {
+  builtin?: boolean
+  machine?: string
+  cpu?: VirtualMachineProfileCPUSpec
 }
 
 export type VirtualMachineVCPUPinSpec = {
@@ -183,6 +208,7 @@ export type VirtualMachineSpecSpec = {
   cloudInit?: VirtualMachineCloudInitSpec
   guest?: VirtualMachineGuestSpec
   video?: VirtualMachineVideoSpec
+  profile?: string
 }
 
 export type VirtualMachineStatusSpec = {
@@ -191,4 +217,5 @@ export type VirtualMachineStatusSpec = {
   error?: string
   addresses?: string[]
   interfaces?: VirtualMachineGuestInterfaceSpec[]
+  observedGeneration?: string
 }

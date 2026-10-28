@@ -103,11 +103,18 @@ export type EthernetChannelsSpec = {
   combined?: number
 }
 
+export type EthernetFlowControlSpec = {
+  rx?: boolean
+  tx?: boolean
+  autoneg?: boolean
+}
+
 export type EthernetSpecSpec = {
   rings?: EthernetRingsSpec
   features?: {[key: string]: boolean}
   channels?: EthernetChannelsSpec
   wakeOnLan?: string[]
+  flowControl?: EthernetFlowControlSpec
 }
 
 export type EthernetRingsStatus = {
@@ -144,6 +151,12 @@ export type EthernetChannelsStatus = {
   combined?: number
 }
 
+export type EthernetFlowControlStatus = {
+  rx?: boolean
+  tx?: boolean
+  autoneg?: boolean
+}
+
 export type EthernetStatusSpec = {
   linkState?: boolean
   speedMbit?: number
@@ -155,6 +168,7 @@ export type EthernetStatusSpec = {
   features?: EthernetFeatureStatus[]
   channels?: EthernetChannelsStatus
   wakeOnLAN?: string[]
+  flowControl?: EthernetFlowControlStatus
 }
 
 export type HardwareAddrSpec = {

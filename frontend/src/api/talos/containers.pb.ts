@@ -19,6 +19,7 @@ export type ContainerMountSpec = {
   destination?: string
   size?: number
   options?: string[]
+  volumeName?: string
 }
 
 export type ContainerSecuritySpec = {
@@ -35,6 +36,7 @@ export type ContainerNetworkSpec = {
 export type ContainerResourcesSpec = {
   memoryLimit?: number
   cpuLimit?: number
+  swapLimit?: number
 }
 
 export type ContainerDependsOnSpec = {
@@ -76,6 +78,7 @@ export type ResolvedMountSpec = {
   size?: number
   options?: string[]
   volumeID?: string
+  volumeName?: string
 }
 
 export type ContainerInstanceSpecSpec = {
