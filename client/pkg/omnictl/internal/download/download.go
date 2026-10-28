@@ -696,11 +696,11 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 
 	if isDir {
 		dest = filepath.Join(params.Output, fmt.Sprintf(
-			"%s-%s-%s%s",
+			"%s-%s-%s.%s",
 			image.DestFilePrefix,
 			params.TalosVersion,
 			schematicResp.SchematicId[:6],
-			filepath.Ext(spec.Filename()),
+			image.Extension,
 		))
 	}
 
