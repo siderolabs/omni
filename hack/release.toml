@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v1.12.0"
 
 [notes.aaa-boltdb-deprecation]
@@ -222,8 +222,8 @@ The UI marks the Talos versions served from an enterprise image factory. The ent
 update, upgrade and install dialogs.
 
 The cluster security page now says why scans are not available: either the cluster does not run enterprise images, or the factory has no scan report \
-for its schematic yet. Installation media downloads show a loading state, and a message when the enterprise factory does not support the selected \
-Talos version.
+for its schematic yet. Its scan results show the VEX annotations next to the CVE descriptions. Installation media downloads show a loading state, \
+and a message when the enterprise factory does not support the selected Talos version.
 
 Every page has its own browser tab title, e.g., "Overview · my-cluster · Clusters · Omni". The version selectors group Talos versions by minor \
 version. Users with no avatar from the identity provider get one generated from their name or email.
