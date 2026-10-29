@@ -339,5 +339,5 @@ func configApplyStatus(spec *specs.ClusterMachineStatusSpec) specs.ConfigApplySt
 }
 
 func isOutdated(machinePendingUpdates *omni.MachinePendingUpdates, configStatus *omni.ClusterMachineConfigStatus) bool {
-	return machinePendingUpdates != nil || configStatus.TypedSpec().Value.LastConfigError != ""
+	return (machinePendingUpdates != nil && machinePendingUpdates.TypedSpec().Value.HasConfigDiff()) || configStatus.TypedSpec().Value.LastConfigError != ""
 }
