@@ -98,6 +98,9 @@ func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 
 	rmock.Mock[*omni.MachinePendingUpdates](
 		suite.ctx, suite.T(), suite.state, options.WithID(testID),
+		options.Modify(func(res *omni.MachinePendingUpdates) error {
+			return res.TypedSpec().Value.SetUncompressedData([]byte("config diff"))
+		}),
 	)
 
 	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
@@ -119,6 +122,27 @@ func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 		return nil
 	})
 	suite.Assert().NoError(err)
+}
+
+func (suite *ClusterMachineStatusSuite) TestPendingUpgradeOnly() {
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
+
+	rmock.Mock[*omni.MachinePendingUpdates](
+		suite.ctx, suite.T(), suite.state, options.WithID(testID),
+		options.Modify(func(res *omni.MachinePendingUpdates) error {
+			res.TypedSpec().Value.Upgrade = &specs.MachinePendingUpdatesSpec_Upgrade{
+				FromVersion: "1.13.0",
+				ToVersion:   "1.14.0",
+			}
+
+			return nil
+		}),
+	)
+
+	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, testID, func(res *omni.ClusterMachineStatus, assertion *assert.Assertions) {
+		assertion.True(res.TypedSpec().Value.ConfigUpToDate)
+		assertion.Equal(specs.ConfigApplyStatus_APPLIED, res.TypedSpec().Value.ConfigApplyStatus)
+	})
 }
 
 func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machineapi.MachineStatusEvent, connected bool) {
