@@ -3,7 +3,7 @@ module github.com/siderolabs/omni/client
 go 1.27.0
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
-replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260709220509-c4a5514d019f
 
 require (
 	filippo.io/age v1.3.2
@@ -31,11 +31,11 @@ require (
 	github.com/siderolabs/gen v0.8.8
 	github.com/siderolabs/go-api-signature v0.4.0
 	github.com/siderolabs/go-kubeconfig v0.1.2
-	github.com/siderolabs/go-talos-support v0.3.1
+	github.com/siderolabs/go-talos-support v0.3.2
 	github.com/siderolabs/image-factory v1.7.2
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.18
-	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261028085643-3ba3d6a5e784
+	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261029102713-bfac82405ccc
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xlab/treeprint v1.2.0
@@ -46,9 +46,9 @@ require (
 	golang.org/x/term v0.47.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
-	k8s.io/apimachinery v0.37.1
-	k8s.io/client-go v0.37.1
-	k8s.io/kubectl v0.37.1
+	k8s.io/apimachinery v0.37.2
+	k8s.io/client-go v0.37.2
+	k8s.io/kubectl v0.37.2
 	sigs.k8s.io/cli-utils v0.37.2
 )
 
@@ -150,9 +150,9 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.37.1 // indirect
-	k8s.io/cli-runtime v0.37.1 // indirect
-	k8s.io/component-base v0.37.1 // indirect
+	k8s.io/api v0.37.2 // indirect
+	k8s.io/cli-runtime v0.37.2 // indirect
+	k8s.io/component-base v0.37.2 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098 // indirect
 	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab // indirect
