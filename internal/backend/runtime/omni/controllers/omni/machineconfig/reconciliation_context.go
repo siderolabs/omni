@@ -123,7 +123,26 @@ func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *
 		return true, nil
 	}
 
-	return false, nil
+	clusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, r, clusterName)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster status doesn't exist")
+		}
+
+		return false, err
+	}
+
+	// the machines leave Omni without a reset, so they must keep the config they run
+	return importAbortOrExport(cluster, clusterStatus), nil
+}
+
+// importAbortOrExport reports whether the cluster is being torn down by an import abort or export.
+func importAbortOrExport(cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) bool {
+	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+	_, importing := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
+	_, exporting := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting)
+
+	return locked && (importing || exporting) && cluster.Metadata().Phase() == resource.PhaseTearingDown
 }
 
 func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus) error {

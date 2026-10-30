@@ -1653,6 +1653,8 @@ func TestClusterImport(t *testing.T) {
 	cluster := omnires.NewCluster(clusterID)
 	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
 	cluster.Metadata().Annotations().Set(omnires.ClusterImportIsInProgress, "")
+	cluster.Metadata().Annotations().Set(omnires.ClusterImportInitialTalosVersion, "1.10.6")
+	cluster.Metadata().Annotations().Set(omnires.ClusterImportInitialKubernetesVersion, "1.32.7")
 	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
 	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
 	clusterStatus := omnires.NewClusterStatus(clusterID)
@@ -1686,6 +1688,72 @@ func TestClusterImport(t *testing.T) {
 	assert.ErrorContains(err, fmt.Sprintf("removing machine set node from the machine set \"%s\" is not allowed: the cluster \"%s\" is locked", machineSetID, clusterID))
 
 	assert.NoError(st.Destroy(ctx, cluster.Metadata()))
+}
+
+func TestClusterImportInitialVersions(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, config.EmbeddedDiscoveryService{})...)
+
+	talosVersion := omnires.NewTalosVersion("1.10.6")
+	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7"}
+
+	require.NoError(t, st.Create(ctx, talosVersion))
+
+	newImportedCluster := func(id string, annotations map[string]string) *omnires.Cluster {
+		cluster := omnires.NewCluster(id)
+		cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
+		cluster.Metadata().Annotations().Set(omnires.ClusterImportIsInProgress, "")
+		cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
+		cluster.TypedSpec().Value.TalosVersion = "1.10.6"
+
+		for key, value := range annotations {
+			cluster.Metadata().Annotations().Set(key, value)
+		}
+
+		return cluster
+	}
+
+	for _, tc := range []struct {
+		annotations map[string]string
+		name        string
+		expectedErr string
+	}{
+		{
+			name:        "no initial versions",
+			expectedErr: fmt.Sprintf("the %q annotation is required", omnires.ClusterImportInitialTalosVersion),
+		},
+		{
+			name:        "no initial Kubernetes version",
+			annotations: map[string]string{omnires.ClusterImportInitialTalosVersion: "1.10.6"},
+			expectedErr: fmt.Sprintf("the %q annotation is required", omnires.ClusterImportInitialKubernetesVersion),
+		},
+		{
+			name: "both initial versions",
+			annotations: map[string]string{
+				omnires.ClusterImportInitialTalosVersion:      "1.10.6",
+				omnires.ClusterImportInitialKubernetesVersion: "1.32.7",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := st.Create(ctx, newImportedCluster(strings.ReplaceAll(tc.name, " ", "-"), tc.annotations))
+			if tc.expectedErr == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			require.True(t, validated.IsValidationError(err), "expected validation error, got: %v", err)
+			require.ErrorContains(t, err, tc.expectedErr)
+		})
+	}
 }
 
 func TestCreateIdentityValidation(t *testing.T) {

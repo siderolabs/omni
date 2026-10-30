@@ -575,7 +575,7 @@ function version_at_least() {
   ((major > want_major || (major == want_major && minor >= want_minor)))
 }
 
-function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version, skip_kubeconfig (true/false), allow_scheduling_on_control_planes (true/false)
+function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version, kubernetes_version, skip_kubeconfig (true/false), allow_scheduling_on_control_planes (true/false)
   declare -A args
   for arg in "$@"; do
     key="${arg%%=*}"
@@ -588,6 +588,7 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
   local wk_count="${args[wk_count]:-0}"
   local cidr="${args[cidr]}"
   local talos_version="${args[talos_version]}"
+  local kubernetes_version="${args[kubernetes_version]:-${KUBERNETES_VERSION}}"
   local skip_kubeconfig="${args[skip_kubeconfig]:-false}"
   local allow_scheduling_on_control_planes="${args[allow_scheduling_on_control_planes]:-false}"
 
@@ -615,7 +616,7 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--skip-injecting-extra-cmdline"
     "--with-apply-config"
     "--with-bootloader"
-    "--kubernetes-version=${KUBERNETES_VERSION}"
+    "--kubernetes-version=${kubernetes_version}"
     "--talos-version=${talos_version}"
     "--install-image=factory.talos.dev/metal-installer/${schematic_id}:v${talos_version}"
     "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso"
@@ -636,6 +637,45 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
 
   IMPORTED_CLUSTER_ARGS+=("--talos.config-path=${TEST_OUTPUTS_DIR}/${name}/talosconfig")
   IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=${HOME}/.talos/clusters/${name}/state.yaml")
+}
+
+function upgrade_talos_cluster { # args: name, talos_version
+  declare -A args
+  for arg in "$@"; do
+    key="${arg%%=*}"
+    val="${arg#*=}"
+    args["$key"]="$val"
+  done
+
+  local name="${args[name]}"
+  local talos_version="${args[talos_version]}"
+
+  local schematic_id
+  schematic_id=$(prepare_talos_image)
+
+  local cluster_show
+  cluster_show=$("${ARTIFACTS}/talosctl" cluster show --provisioner=qemu --name="${name}")
+
+  # control planes first, one node at a time, to keep the etcd quorum
+  local node_ips
+  node_ips=$(awk '$2 == "controlplane" { print $3 } $2 == "worker" { workers = workers $3 "\n" } END { printf "%s", workers }' <<<"${cluster_show}")
+
+  if [[ -z "${node_ips}" ]]; then
+    echo "no nodes found for the Talos cluster ${name}"
+
+    return 1
+  fi
+
+  local nodes
+  mapfile -t nodes <<<"${node_ips}"
+
+  for node in "${nodes[@]}"; do
+    "${ARTIFACTS}/talosctl" upgrade \
+      --talosconfig="${TEST_OUTPUTS_DIR}/${name}/talosconfig" \
+      --nodes="${node}" \
+      --image="factory.talos.dev/metal-installer/${schematic_id}:v${talos_version}" \
+      --wait
+  done
 }
 
 function set_factory_curl_args() {

@@ -196,6 +196,10 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
+			if err := validateImportInitialVersions(res); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
 			return multiErr
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, existingRes *omni.Cluster, newRes *omni.Cluster, _ ...state.UpdateOption) error {
@@ -284,4 +288,18 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			return nil
 		})),
 	}
+}
+
+func validateImportInitialVersions(res *omni.Cluster) error {
+	if _, importing := res.Metadata().Annotations().Get(omni.ClusterImportIsInProgress); !importing {
+		return nil
+	}
+
+	for _, annotation := range []string{omni.ClusterImportInitialTalosVersion, omni.ClusterImportInitialKubernetesVersion} {
+		if _, ok := omni.GetImportInitialVersion(res, annotation); !ok {
+			return fmt.Errorf("the %q annotation is required to import a cluster, make sure omnictl has the same version as Omni", annotation)
+		}
+	}
+
+	return nil
 }

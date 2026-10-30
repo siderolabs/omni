@@ -1553,11 +1553,7 @@ func (ctrl *StatusController) shouldReset(
 		return false, nil
 	}
 
-	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
-	_, importing := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting)
-	_, exporting := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByExporting)
-
-	if locked && (importing || exporting) && cluster.Metadata().Phase() == resource.PhaseTearingDown {
+	if importAbortOrExport(cluster, clusterStatus) {
 		return false, nil
 	}
 
