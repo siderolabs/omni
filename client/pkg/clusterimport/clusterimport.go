@@ -472,11 +472,11 @@ func (c *Context) importClusterToOmni(ctx context.Context) error {
 		return err
 	}
 
-	if err := c.createMachineSetNodes(ctx); err != nil {
+	if err := c.createConfigPatches(ctx); err != nil {
 		return err
 	}
 
-	if err := c.createConfigPatches(ctx); err != nil {
+	if err := c.createMachineSetNodes(ctx); err != nil {
 		return err
 	}
 

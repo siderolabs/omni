@@ -859,6 +859,66 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
+	t.Run("importAbortKeepsConfigPending", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
+			clusterName := "import-abort"
+			machineServices := testutils.NewMachineServices(t, testContext.State)
+			cluster, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0)
+			require.Len(t, machines, 1)
+
+			id := machines[0].Metadata().ID()
+
+			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
+
+			rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State, options.SameID(cluster), options.EmptyLabel(omni.LabelClusterTaintedByImporting))
+			rmock.Mock[*omni.Cluster](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.Cluster) error {
+				res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+				res.Metadata().Annotations().Set(omni.ClusterImportIsInProgress, "")
+
+				return nil
+			}))
+
+			setConfig := func(hostname string) {
+				rmock.Mock[*omni.ClusterMachineConfig](ctx, t, testContext.State, options.WithID(id), options.Modify(func(r *omni.ClusterMachineConfig) error {
+					return r.TypedSpec().Value.SetUncompressedData([]byte("machine:\n  network:\n    hostname: " + hostname))
+				}))
+			}
+
+			assertPendingHostname := func(hostname string) {
+				rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
+					diff, err := res.TypedSpec().Value.GetUncompressedData()
+					if !assert.NoError(err) {
+						return
+					}
+
+					defer diff.Free()
+
+					assert.Contains(string(diff.Data()), hostname)
+				})
+			}
+
+			setConfig("first-hostname")
+
+			assertPendingHostname("first-hostname")
+
+			appliedBeforeTeardown := len(machineServices.Get(id).GetApplyRequests())
+
+			_, err := testContext.State.Teardown(ctx, cluster.Metadata())
+			require.NoError(t, err)
+
+			setConfig("second-hostname")
+
+			assertPendingHostname("second-hostname")
+
+			require.Len(t, machineServices.Get(id).GetApplyRequests(), appliedBeforeTeardown, "the config of a cluster whose import is aborted must not be applied")
+		})
+	})
+
 	// A config big enough to make the plaintext diff outgrow the state backend's request
 	// limit must still produce a storable MachinePendingUpdates, otherwise every reconcile
 	// fails on the write and the machine never gets its config.

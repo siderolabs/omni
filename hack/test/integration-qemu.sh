@@ -112,7 +112,10 @@ fi
 
 # Create a Talos cluster to be imported.
 if [[ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]]; then
-  create_talos_cluster name=test-cluster-import cp_count=3 wk_count=3 cidr=172.28.0.0/24 talos_version="${QEMU_TALOS_VERSION}" skip_kubeconfig=true allow_scheduling_on_control_planes=false
+  # the stable Talos version might not support the latest Kubernetes version
+  create_talos_cluster name=test-cluster-import cp_count=3 wk_count=1 cidr=172.28.0.0/24 talos_version="${STABLE_TALOS_VERSION}" \
+    kubernetes_version="${ANOTHER_KUBERNETES_VERSION}" skip_kubeconfig=true allow_scheduling_on_control_planes=false
+  upgrade_talos_cluster name=test-cluster-import talos_version="${TALOS_VERSION}"
 fi
 
 if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then
