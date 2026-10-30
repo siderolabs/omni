@@ -128,6 +128,11 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 
 	etcdBackupStoreFactory := st.StoreFactory()
 
+	trustedRoots, err := cfg.ReadTrustedRoots()
+	if err != nil {
+		return nil, err
+	}
+
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
 	powerStageWatcher := powerstage.NewWatcher(defaultState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
@@ -268,6 +273,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			omnictrl.NewMaintenanceClientFactory(talosClientFactory),
 			cfg.Services.Siderolink.GetEventSinkPort(),
 			cfg.Services.Siderolink.GetLogServerPort(),
+			trustedRoots,
 			st.Default(),
 			cfg.Registries.Mirrors,
 		),
@@ -275,7 +281,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewServiceAccountStatusController(),
 		authctrl.NewIdentityStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),
-		omnictrl.NewSiderolinkAPIConfigController(cfg.Services.MachineAPIURL(), cfg.Services.Siderolink),
+		omnictrl.NewSiderolinkAPIConfigController(cfg.Services.MachineAPIURL(), cfg.Services.Siderolink, trustedRoots),
 		omnictrl.NewProviderJoinConfigController(),
 		omnictrl.NewMachineJoinConfigController(),
 		omnictrl.NewConnectionParamsController(cfg.Services.MachineAPIURL(), cfg.Services.Siderolink),

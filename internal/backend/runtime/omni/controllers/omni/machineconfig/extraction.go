@@ -149,7 +149,7 @@ func (ctrl *ExtractionController) transform(ctx context.Context, r controller.Re
 
 // BuildConfigPatch turns the observed machine config into a machine-level ConfigPatch carrying the documents worth keeping.
 //
-// The Omni-managed connection documents (SideroLink, event sink, kmsg log) are dropped, as Omni regenerates them. The rest
+// The Omni-managed connection documents (SideroLink, event sink, kmsg log, trusted roots) are dropped, as Omni regenerates them. The rest
 // is kept so it survives the machine lifecycle.
 //
 // It returns a nil patch and an empty reason when there is nothing to keep. It returns a nil patch and a non-empty reason

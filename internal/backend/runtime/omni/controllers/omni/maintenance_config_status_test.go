@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
@@ -72,8 +73,11 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 		return maintenanceClient, nil
 	}
 
+	ca, err := x509.NewSelfSignedCertificateAuthority(x509.ECDSA(true))
+	suite.Require().NoError(err)
+
 	// Register the controller and start the runtime
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, string(ca.CrtPEM), suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -123,12 +127,13 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	dataStr := string(applyConfigReq.Data)
 
 	suite.Contains(dataStr, "omni-kmsg")
+	suite.Contains(dataStr, "name: omni-trusted-roots")
 	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "123"))
 	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "456"))
 	suite.Equal(machine.ApplyConfigurationRequest_AUTO, applyConfigReq.GetMode())
 
 	// Change machine's siderolink public key to simulate a reboot
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, link.Metadata(), func(res *siderolinkres.Link) error {
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, link.Metadata(), func(res *siderolinkres.Link) error {
 		res.TypedSpec().Value.NodePublicKey = "test-public-key-2"
 
 		return nil
@@ -247,7 +252,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, auth))
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, "", suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -297,7 +302,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestRegistryMirrors() {
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state,
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, "", suite.state,
 		[]string{"docker.io=http://mirror.example.org:5000", "factory.talos.dev=http://mirror.example.org:5004", "docker.io=http://mirror-2.example.org:5000"})
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
@@ -365,7 +370,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPrese
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, "", suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -458,7 +463,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchDocum
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state, nil)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, "", suite.state, nil)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -612,7 +617,7 @@ func TestMaintenanceConfigStatusTryMode(t *testing.T) {
 				factory := func(context.Context, string) (omni.MaintenanceClient, error) { return maintenanceClient, nil }
 
 				require.NoError(t, tc.Runtime.RegisterQController(
-					omni.NewMaintenanceConfigStatusController(factory, 123, 456, tc.State, nil,
+					omni.NewMaintenanceConfigStatusController(factory, 123, 456, "", tc.State, nil,
 						omni.WithMaintenanceTryTimings(maintenanceTryTimings)),
 				))
 			},

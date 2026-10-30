@@ -458,6 +458,7 @@ func (ctrl *ProvisionController[T]) getConnectionArgs(ctx context.Context, r con
 		options = []siderolink.JoinConfigOption{
 			siderolink.WithJoinToken(providerJoinConfig.TypedSpec().Value.JoinToken),
 			siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+			siderolink.WithTrustedRoots(siderolinkAPIConfig.TypedSpec().Value.TrustedRoots),
 			siderolink.WithGRPCTunnel(request.TypedSpec().Value.GrpcTunnel == specs.GrpcTunnelMode_ENABLED),
 			siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 			siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),

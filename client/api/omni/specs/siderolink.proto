@@ -89,6 +89,8 @@ message SiderolinkAPIConfigSpec {
   int32 events_port = 4;
   // LogsPort is the logs port.
   int32 logs_port = 5;
+  // TrustedRoots are the extra CA certificates (PEM) every machine trusts, delivered with its join config.
+  string trusted_roots = 6;
 }
 
 message ProviderJoinConfigSpec {

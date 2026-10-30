@@ -99,6 +99,7 @@ func BuildContext(ctx context.Context, input Input, omniState state.State, ensur
 		siderolink.WithMachineAPIURL(apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
 		siderolink.WithEventSinkPort(int(apiConfig.TypedSpec().Value.EventsPort)),
 		siderolink.WithLogServerPort(int(apiConfig.TypedSpec().Value.LogsPort)),
+		siderolink.WithTrustedRoots(apiConfig.TypedSpec().Value.TrustedRoots),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create join input: %w", err)

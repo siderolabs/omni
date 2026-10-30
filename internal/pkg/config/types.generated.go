@@ -663,6 +663,20 @@ type Params struct {
 
 	// Support contains support-related configuration.
 	Support Support `json:"support" yaml:"support"`
+
+	// TrustedRootsFile is the path of a PEM file with the organization's own CA
+	// certificates. Omni adds them to the configuration of every machine, so that
+	// machines trust Omni, the Image Factory and other services serving certificates
+	// signed by these CAs. Boot media for Talos 1.12 and later carry them from the
+	// first boot. Boot media for older Talos versions cannot carry them, so machines
+	// booting from such media cannot connect to Omni while its machine API serves a
+	// certificate signed by these CAs. Put only the organization's CAs in the file,
+	// not a system CA bundle: Omni copies the whole file into every machine
+	// configuration. This setting does not make Omni itself trust these CAs. Add them
+	// to the trust store of the Omni container too, e.g., by mounting the file as a
+	// single file into /etc/ssl/certs/, which adds them to the public CAs instead of
+	// replacing them.
+	TrustedRootsFile *string `json:"trustedRootsFile,omitempty,omitzero" yaml:"trustedRootsFile,omitempty"`
 }
 
 type Posthog struct {

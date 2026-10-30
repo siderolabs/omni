@@ -155,7 +155,8 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 
 // CreateSchematicFromRaw implements managementServer.
 func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *management.CreateSchematicFromRawRequest) (*management.CreateSchematicResponse, error) {
-	if _, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin)); err != nil {
+	_, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin))
+	if err != nil {
 		return nil, err
 	}
 
@@ -167,6 +168,16 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 	talosVersion := request.TalosVersion
 	if talosVersion == "" {
 		talosVersion = constants.DefaultTalosVersion
+	}
+
+	apiConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the SideroLink API config: %w", err)
+	}
+
+	*schematicRequest, err = imagefactoryinternal.WithTrustedRoots(*schematicRequest, apiConfig.TypedSpec().Value.TrustedRoots, talosVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add the trusted roots to the schematic: %w", err)
 	}
 
 	factoryClient, err := s.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
@@ -343,6 +354,7 @@ func (s *managementServer) getJoinOptions(
 		siderolink.WithJoinToken(joinToken),
 		siderolink.WithGRPCTunnel(grpcTunnelEnabled),
 		siderolink.WithMachineAPIURL(siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl),
+		siderolink.WithTrustedRoots(siderolinkAPIConfig.TypedSpec().Value.TrustedRoots),
 		siderolink.WithEventSinkPort(int(siderolinkAPIConfig.TypedSpec().Value.EventsPort)),
 		siderolink.WithLogServerPort(int(siderolinkAPIConfig.TypedSpec().Value.LogsPort)),
 	)

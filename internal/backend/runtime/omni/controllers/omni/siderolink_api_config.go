@@ -23,7 +23,7 @@ type SiderolinkAPIConfigController = qtransform.QController[*siderolink.Config, 
 const SiderolinkAPIConfigControllerName = "SiderolinkAPIConfigController"
 
 // NewSiderolinkAPIConfigController instantiates the SiderolinkAPIConfig controller.
-func NewSiderolinkAPIConfigController(machineAPIURL string, siderolinkCfg config.SiderolinkService) *SiderolinkAPIConfigController {
+func NewSiderolinkAPIConfigController(machineAPIURL string, siderolinkCfg config.SiderolinkService, trustedRoots string) *SiderolinkAPIConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolink.Config, *siderolink.APIConfig]{
 			Name: SiderolinkAPIConfigControllerName,
@@ -41,6 +41,7 @@ func NewSiderolinkAPIConfigController(machineAPIURL string, siderolinkCfg config
 				spec.EnforceGrpcTunnel = siderolinkCfg.GetUseGRPCTunnel()
 				spec.LogsPort = int32(siderolinkCfg.GetLogServerPort())
 				spec.EventsPort = int32(siderolinkCfg.GetEventSinkPort())
+				spec.TrustedRoots = trustedRoots
 
 				return nil
 			},

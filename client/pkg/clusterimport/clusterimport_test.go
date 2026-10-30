@@ -38,6 +38,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	machinetype "github.com/siderolabs/talos/pkg/machinery/config/machine"
 	runtimecfg "github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	siderolinkmachinery "github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -517,6 +518,7 @@ func (data *testData) prepareOmniState(ctx context.Context, t *testing.T) {
 		siderolinkAPIConfig.TypedSpec().Value.LogsPort = 1234
 		siderolinkAPIConfig.TypedSpec().Value.EventsPort = 4321
 		siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "https://example.com:8443"
+		siderolinkAPIConfig.TypedSpec().Value.TrustedRoots = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
 
 		require.NoError(t, omniState.Create(ctx, siderolinkAPIConfig))
 
@@ -1021,7 +1023,7 @@ func assertAppliedMachineConfig(t *testing.T, node *mockNode) {
 		}
 	}
 
-	require.Len(t, extraConfMap, 3)
+	require.Len(t, extraConfMap, 4)
 
 	for _, doc := range extraConfMap {
 		switch configDoc := doc.(type) {
@@ -1033,6 +1035,8 @@ func assertAppliedMachineConfig(t *testing.T, node *mockNode) {
 			assert.Equal(t, "https://example.com:8443?jointoken=test-join-token", configDoc.APIUrlConfig.String())
 		case *runtimecfg.EventSinkV1Alpha1:
 			assert.Equal(t, "[fdae:41e4:649b:9303::1]:4321", configDoc.Endpoint)
+		case *security.TrustedRootsConfigV1Alpha1:
+			assert.Equal(t, "omni-trusted-roots", configDoc.Name())
 		default:
 			require.Failf(t, "unexpected document in applied config", "document: %T", doc)
 		}

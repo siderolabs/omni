@@ -354,6 +354,89 @@ func TestMachineStatusMetricsController_JoinConfigLocation(t *testing.T) {
 	)
 }
 
+func TestMachineStatusMetricsController_TrustedRoots(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	ctrl := metrics.NewMachineStatusMetricsController(0)
+
+	registry := prometheus.NewRegistry()
+	require.NoError(t, registry.Register(ctrl))
+
+	const (
+		withRootsRaw = `customization:
+  embeddedMachineConfiguration: |
+    apiVersion: v1alpha1
+    kind: SideroLinkConfig
+    apiUrl: https://omni.example.com:8090/?jointoken=abc
+    ---
+    apiVersion: v1alpha1
+    kind: TrustedRootsConfig
+    name: omni-trusted-roots
+    certificates: |
+      -----BEGIN CERTIFICATE-----
+`
+		userRootsRaw = `customization:
+  embeddedMachineConfiguration: |
+    apiVersion: v1alpha1
+    kind: TrustedRootsConfig
+    name: user-roots
+    certificates: |
+      -----BEGIN CERTIFICATE-----
+`
+	)
+
+	machines := map[string]*specs.MachineStatusSpec{
+		"with-roots": {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "a", Raw: withRootsRaw}},
+		"user-roots": {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "b", Raw: userRootsRaw}},
+		"no-roots":   {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "c", Raw: "customization: {}\n"}},
+		"no-raw":     {Schematic: &specs.MachineStatusSpec_Schematic{FullId: "d"}},
+		"unknown":    {},
+	}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(ctrl))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, spec := range machines {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value = spec
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.MachineStatusMetricsID, func(res *omni.MachineStatusMetrics, a *assert.Assertions) {
+				a.EqualValues(len(machines), res.TypedSpec().Value.RegisteredMachinesCount)
+			})
+
+			families, err := registry.Gather()
+			require.NoError(t, err)
+
+			byPresence := map[string]float64{}
+
+			for _, family := range families {
+				if family.GetName() != "omni_machine_schematic_trusted_roots" {
+					continue
+				}
+
+				for _, m := range family.GetMetric() {
+					byPresence[m.GetLabel()[0].GetValue()] = m.GetGauge().GetValue()
+				}
+			}
+
+			assert.Equal(t, map[string]float64{
+				"true":    1,
+				"false":   2,
+				"unknown": 2,
+			}, byPresence)
+		},
+	)
+}
+
 func TestMachineStatusMetricsController_InvalidSchematic(t *testing.T) {
 	t.Parallel()
 
