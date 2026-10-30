@@ -338,11 +338,11 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 
 	suite.Require().NoError(
 		suite.state.Create(ctx, cmcpRunning,
-			state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+			state.WithCreateOwner(omnictrl.NewMachineSetStatusController(nil).ControllerName)),
 	)
 	suite.Require().NoError(
 		suite.state.Create(ctx, cmcpTearingDown,
-			state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+			state.WithCreateOwner(omnictrl.NewMachineSetStatusController(nil).ControllerName)),
 	)
 
 	suite.manager.SetFilter(filterWith("changeClusterMachineConfigPatchesOwner"))

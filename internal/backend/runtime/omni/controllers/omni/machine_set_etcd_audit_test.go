@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -439,12 +440,18 @@ func TestEtcdStatus(t *testing.T) {
 
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
-				func(context.Context, testutils.TestContext) {},
+				func(_ context.Context, tc testutils.TestContext) {
+					require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
+				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					machineServices := testutils.NewMachineServices(t, tc.State)
 					clusterName := "etcd_status/" + tt.name
 
 					cluster, machineSet := setupEtcdAuditCluster(ctx, t, tc.State, machineServices, clusterName, machines)
+
+					rtestutils.AssertResource(ctx, t, tc.State, clusterName, func(res *omni.ClusterEndpoint, assert *assert.Assertions) {
+						assert.NotEmpty(res.TypedSpec().Value.ManagementAddresses)
+					})
 
 					machineServices.Get(machines[0]).SetEtcdMembers(&machine.EtcdMemberListResponse{
 						Messages: []*machine.EtcdMembers{{
@@ -456,7 +463,7 @@ func TestEtcdStatus(t *testing.T) {
 						tt.setup(ctx, t, tc.State, machineServices, cluster, machineSet)
 					}
 
-					status, err := check.EtcdStatus(ctx, tc.State, machineSet)
+					status, err := check.EtcdStatus(ctx, tc.State, talos.NewClientFactory(tc.State, tc.Logger), machineSet)
 					tt.check(t, status, err)
 				},
 			)
