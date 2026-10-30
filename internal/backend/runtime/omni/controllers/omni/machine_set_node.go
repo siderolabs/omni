@@ -699,9 +699,11 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 ) error {
 	usedMachineSetNodes := slices.Collect(machineSetNodes.All())
 
-	// filter only running used machines
+	// filter only running unlocked machines
 	usedMachineSetNodes = xslices.FilterInPlace(usedMachineSetNodes, func(r *omni.MachineSetNode) bool {
-		return r.Metadata().Phase() == resource.PhaseRunning
+		_, locked := r.Metadata().Annotations().Get(omni.MachineLocked)
+
+		return r.Metadata().Phase() == resource.PhaseRunning && !locked
 	})
 
 	slices.SortStableFunc(usedMachineSetNodes, getSortFunction(machineStatuses))

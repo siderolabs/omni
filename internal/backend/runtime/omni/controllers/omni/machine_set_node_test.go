@@ -346,6 +346,84 @@ func (suite *MachineSetNodeSuite) TestNoRaceBetweenCleanupAndMachineSetNodeContr
 		"MachineSetNode should not be recreated by MachineSetNodeController after MachineRequestStatus cleanup destroyed it")
 }
 
+func (suite *MachineSetNodeSuite) TestScaleDownSkipsLockedMachines() {
+	suite.startRuntime()
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+	defer cancel()
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetNodeController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
+	suite.Require().NoError(suite.runtime.RegisterQController(destroy.NewController[*omni.MachineSetNode](optional.Some[uint](4))))
+
+	cluster := omni.NewCluster("cluster-locked")
+	cluster.TypedSpec().Value.TalosVersion = "1.6.0"
+	suite.Require().NoError(suite.state.Create(ctx, cluster))
+
+	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch))
+	suite.Require().NoError(suite.state.Create(ctx, machineClass))
+
+	machines := suite.createMachines(
+		map[string]string{
+			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelDisconnected:    "",
+			omni.MachineStatusLabelReadyToUse:      "",
+			omni.MachineStatusLabelReportingEvents: "",
+		},
+		map[string]string{
+			omni.MachineStatusLabelArch:            "amd64",
+			omni.MachineStatusLabelAvailable:       "",
+			omni.MachineStatusLabelConnected:       "",
+			omni.MachineStatusLabelReadyToUse:      "",
+			omni.MachineStatusLabelReportingEvents: "",
+		},
+	)
+
+	// the disconnected machine is the first one to be removed on scale down, so it is the one to lock
+	lockedID := machines[0].Metadata().ID()
+	unlockedID := machines[1].Metadata().ID()
+
+	machineSet := omni.NewMachineSet("set-locked")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+	machineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+		Name:         machineClass.Metadata().ID(),
+		MachineCount: 2,
+	}
+	suite.Require().NoError(suite.state.Create(ctx, machineSet))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{lockedID, unlockedID}, func(*omni.MachineSetNode, *assert.Assertions) {})
+
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewMachineSetNode(lockedID, machineSet).Metadata(), func(res *omni.MachineSetNode) error {
+		res.Metadata().Annotations().Set(omni.MachineLocked, "")
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineSet.Metadata(), func(ms *omni.MachineSet) error {
+		ms.TypedSpec().Value.MachineAllocation.MachineCount = 0
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	rtestutils.AssertNoResource[*omni.MachineSetNode](ctx, suite.T(), suite.state, unlockedID)
+	rtestutils.AssertResource(ctx, suite.T(), suite.state, lockedID, func(res *omni.MachineSetNode, assert *assert.Assertions) {
+		assert.Equal(resource.PhaseRunning, res.Metadata().Phase())
+	})
+
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewMachineSetNode(lockedID, machineSet).Metadata(), func(res *omni.MachineSetNode) error {
+		res.Metadata().Annotations().Delete(omni.MachineLocked)
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	rtestutils.AssertNoResource[*omni.MachineSetNode](ctx, suite.T(), suite.state, lockedID)
+}
+
 func TestSortFunction(t *testing.T) {
 	machineStatuses := map[resource.ID]*system.ResourceLabels[*omni.MachineStatus]{}
 	machineSetNodes := make([]*omni.MachineSetNode, 0, 10)
