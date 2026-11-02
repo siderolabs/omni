@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -397,6 +398,10 @@ func getObject(ctx context.Context, client *kubernetes.Client, groupVersion stri
 
 	obj, err := dr.Get(ctx, metadata.Name, v1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil //nolint:nilnil
+		}
+
 		return nil, fmt.Errorf("failed to get resource %s/%s: %w", metadata.Namespace, metadata.Name, err)
 	}
 
