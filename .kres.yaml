@@ -45,6 +45,13 @@ spec:
           GOOS: darwin
           GOARCH: arm64
 ---
+kind: auto.JS
+spec:
+  extraDirectories:
+    - e2e
+    - msw
+    - .storybook
+---
 kind: js.Chromatic
 spec:
   enabled: true
