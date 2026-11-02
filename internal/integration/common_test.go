@@ -61,7 +61,7 @@ func nodes(ctx context.Context, t *testing.T, options *TestOptions, clusterName 
 
 	st := options.omniClient.Omni().State()
 
-	nodeIPs, err := talosNodeIPs(ctx, talosClient.COSI)
+	nodeIPs, err := talosNodeIPs(ctx, talosClient.State())
 	if err != nil {
 		return nil, err
 	}

@@ -288,13 +288,13 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 		return nil, nil, status.Errorf(codes.Unavailable, "machine %q changed its cluster", machineID)
 	}
 
-	if err = CheckSensitivity(ctx, c.COSI, resourceType); err != nil {
+	if err = CheckSensitivity(ctx, c.State(), resourceType); err != nil {
 		c.Close() //nolint:errcheck
 
 		return nil, nil, err
 	}
 
-	return c.COSI, func() { c.Close() }, nil //nolint:errcheck
+	return c.State(), func() { c.Close() }, nil //nolint:errcheck
 }
 
 type item struct {

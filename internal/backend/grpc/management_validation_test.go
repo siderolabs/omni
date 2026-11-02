@@ -53,7 +53,7 @@ func TestCreateJoinTokenValidation(t *testing.T) {
 func TestCreateSchematicFromRawAuthorization(t *testing.T) {
 	server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil)
 	request := &management.CreateSchematicFromRawRequest{
-		RawSchematic: []byte(":\n"),
+		RawSchematic: []byte("[\n"),
 	}
 
 	for _, tt := range []struct {

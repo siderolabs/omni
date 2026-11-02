@@ -230,7 +230,7 @@ func (c Candidate) talosAPIClientCertificateFromSecrets(secrets *omni.ClusterMac
 }
 
 func (c Candidate) checkOSRoot(ctx context.Context, talosClient *client.Client, cmSecrets *omni.ClusterMachineSecrets) (bool, error) {
-	osRoot, err := safe.ReaderGetByID[*secrets.OSRoot](ctx, talosClient.COSI, secrets.OSRootID)
+	osRoot, err := safe.ReaderGetByID[*secrets.OSRoot](ctx, talosClient.State(), secrets.OSRootID)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return false, fmt.Errorf("OSRoot resource not found: %w", err)

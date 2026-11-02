@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
 	"github.com/siderolabs/gen/xslices"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
@@ -27,6 +28,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -34,7 +36,14 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 )
 
-type machinePollFunction func(ctx context.Context, c *client.Client, info *Info) error
+type talosClient interface {
+	State() state.State
+	Read(ctx context.Context, path string) (io.ReadCloser, error)
+	Disks(ctx context.Context, callOptions ...grpc.CallOption) (*storage.DisksResponse, error)
+	Version(ctx context.Context, callOptions ...grpc.CallOption) (*machineapi.VersionResponse, error)
+}
+
+type machinePollFunction func(ctx context.Context, c talosClient, info *Info) error
 
 var resourcePollers = map[string]machinePollFunction{
 	network.HostnameStatusType:   pollHostname,
@@ -81,7 +90,7 @@ func merged[K comparable, V any](m1, m2 map[K]V) map[K]V {
 // pollTimeout bounds one poller, which makes a few unary Talos API calls.
 const pollTimeout = 30 * time.Second
 
-func poll(ctx context.Context, poller string, c *client.Client, info *Info) error {
+func poll(ctx context.Context, poller string, c talosClient, info *Info) error {
 	f, ok := allPollers[poller]
 	if !ok {
 		panic(fmt.Sprintf("unknown poller %q", poller))
@@ -93,7 +102,7 @@ func poll(ctx context.Context, poller string, c *client.Client, info *Info) erro
 	return f(ctx, c, info)
 }
 
-func pollVersion(ctx context.Context, c *client.Client, info *Info) error {
+func pollVersion(ctx context.Context, c talosClient, info *Info) error {
 	versionResp, err := c.Version(ctx)
 	if err != nil && client.StatusCode(err) != codes.Unimplemented {
 		return err
@@ -117,8 +126,8 @@ func pollVersion(ctx context.Context, c *client.Client, info *Info) error {
 //
 // If the resource is defined but not created yet (e.g. early on boot), the name is left untouched,
 // as the update on the resource creation triggers another poll.
-func pollVersionName(ctx context.Context, c *client.Client, info *Info) error {
-	if _, err := safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.VersionType)); err != nil {
+func pollVersionName(ctx context.Context, c talosClient, info *Info) error {
+	if _, err := safe.StateGetByID[*meta.ResourceDefinition](ctx, c.State(), strings.ToLower(runtime.VersionType)); err != nil {
 		if !state.IsNotFoundError(err) {
 			return fmt.Errorf("failed to get version rd: %w", err)
 		}
@@ -128,7 +137,7 @@ func pollVersionName(ctx context.Context, c *client.Client, info *Info) error {
 		return nil
 	}
 
-	version, err := safe.StateGetByID[*runtime.Version](ctx, c.COSI, runtime.NewVersion().Metadata().ID())
+	version, err := safe.StateGetByID[*runtime.Version](ctx, c.State(), runtime.NewVersion().Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -142,7 +151,7 @@ func pollVersionName(ctx context.Context, c *client.Client, info *Info) error {
 	return nil
 }
 
-func pollHostname(ctx context.Context, c *client.Client, info *Info) error {
+func pollHostname(ctx context.Context, c talosClient, info *Info) error {
 	info.Hostname = new("")
 	info.Domainname = new("")
 
@@ -172,7 +181,7 @@ func filterAddresses(maintenanceMode bool) func(r *network.NodeAddress) bool {
 	}
 }
 
-func pollAddresses(ctx context.Context, c *client.Client, info *Info) error {
+func pollAddresses(ctx context.Context, c talosClient, info *Info) error {
 	return forEachResource(
 		ctx,
 		c,
@@ -211,7 +220,7 @@ func filterRoutes(r *network.RouteStatus) bool {
 	return value.IsZero(r.TypedSpec().Destination) && r.TypedSpec().Gateway.IsValid() && r.TypedSpec().Scope == nethelpers.ScopeGlobal
 }
 
-func pollRoutes(ctx context.Context, c *client.Client, info *Info) error {
+func pollRoutes(ctx context.Context, c talosClient, info *Info) error {
 	info.DefaultGateways = nil
 
 	return forEachResource(
@@ -233,7 +242,7 @@ func filterNetworkLinks(r *network.LinkStatus) bool {
 	return r.TypedSpec().Physical()
 }
 
-func pollNetworkLinks(ctx context.Context, c *client.Client, info *Info) error {
+func pollNetworkLinks(ctx context.Context, c talosClient, info *Info) error {
 	info.NetworkLinks = nil
 
 	return forEachResource(
@@ -259,7 +268,7 @@ func pollNetworkLinks(ctx context.Context, c *client.Client, info *Info) error {
 	)
 }
 
-func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
+func pollProcessors(ctx context.Context, c talosClient, info *Info) error {
 	info.Processors = nil
 
 	return forEachResource(
@@ -289,7 +298,7 @@ func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
 //
 // Talos produces one resource per physical core, so the cores are aggregated back into one entry per socket.
 // The SMBIOS data still names the populated sockets, as the kernel view has no vendor or model on arm64 and never knows the rated clock speed.
-func pollCPUCores(ctx context.Context, c *client.Client, info *Info) error {
+func pollCPUCores(ctx context.Context, c talosClient, info *Info) error {
 	if err := pollProcessors(ctx, c, info); err != nil {
 		return err
 	}
@@ -338,7 +347,7 @@ func pollCPUCores(ctx context.Context, c *client.Client, info *Info) error {
 	return nil
 }
 
-func pollMemory(ctx context.Context, c *client.Client, info *Info) error {
+func pollMemory(ctx context.Context, c talosClient, info *Info) error {
 	info.MemoryModules = nil
 
 	return forEachResource(
@@ -361,7 +370,7 @@ func pollMemory(ctx context.Context, c *client.Client, info *Info) error {
 	)
 }
 
-func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) error {
+func pollPlatformMetadata(ctx context.Context, c talosClient, info *Info) error {
 	return forEachResource(
 		ctx,
 		c,
@@ -385,9 +394,9 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 	)
 }
 
-func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error {
+func pollSecurityState(ctx context.Context, c talosClient, info *Info) error {
 	probeSecurityState := func() (isSecureBoot, bootedWithUki bool, fipsState specs.SecurityState_FIPSState, err error) {
-		if _, err = safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.SecurityStateType)); err != nil {
+		if _, err = safe.StateGetByID[*meta.ResourceDefinition](ctx, c.State(), strings.ToLower(runtime.SecurityStateType)); err != nil {
 			if !state.IsNotFoundError(err) {
 				return false, false, specs.SecurityState_FIPS_STATE_DISABLED, fmt.Errorf("failed to get security state rd: %w", err)
 			}
@@ -395,7 +404,7 @@ func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error 
 			return false, false, specs.SecurityState_FIPS_STATE_DISABLED, nil
 		}
 
-		securityState, err := safe.StateGetByID[*runtime.SecurityState](ctx, c.COSI, runtime.SecurityStateID)
+		securityState, err := safe.StateGetByID[*runtime.SecurityState](ctx, c.State(), runtime.SecurityStateID)
 		if err != nil {
 			return false, false, specs.SecurityState_FIPS_STATE_DISABLED, fmt.Errorf("failed to get security state: %w", err)
 		}
@@ -429,10 +438,10 @@ func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error 
 	return nil
 }
 
-func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
+func pollDisks(ctx context.Context, c talosClient, info *Info) error {
 	info.Blockdevices = nil
 
-	systemDisk, err := safe.StateGetByID[*block.SystemDisk](ctx, c.COSI, block.SystemDiskID)
+	systemDisk, err := safe.StateGetByID[*block.SystemDisk](ctx, c.State(), block.SystemDiskID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
@@ -504,7 +513,7 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 	)
 }
 
-func pollDisksLegacy(ctx context.Context, c *client.Client, info *Info) error {
+func pollDisksLegacy(ctx context.Context, c talosClient, info *Info) error {
 	info.Blockdevices = nil
 
 	disksResp, err := c.Disks(ctx)
@@ -541,7 +550,7 @@ func pollDisksLegacy(ctx context.Context, c *client.Client, info *Info) error {
 	return nil
 }
 
-func pollMeta(ctx context.Context, c *client.Client, info *Info) error {
+func pollMeta(ctx context.Context, c talosClient, info *Info) error {
 	return forEachResource(
 		ctx,
 		c,
@@ -578,10 +587,10 @@ func pollMeta(ctx context.Context, c *client.Client, info *Info) error {
 	)
 }
 
-func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
+func pollExtensions(ctx context.Context, c talosClient, info *Info) error {
 	var err error
 
-	schematicInfo, err := talos.GetSchematicInfo(ctx, c.COSI, info.DefaultKernelArgs)
+	schematicInfo, err := talos.GetSchematicInfo(ctx, c.State(), info.DefaultKernelArgs)
 	if err != nil {
 		return err
 	}
@@ -591,7 +600,7 @@ func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 	return nil
 }
 
-func pollDiagnostics(ctx context.Context, c *client.Client, info *Info) error {
+func pollDiagnostics(ctx context.Context, c talosClient, info *Info) error {
 	info.Diagnostics = nil
 
 	if err := forEachResource(
@@ -621,7 +630,7 @@ func pollDiagnostics(ctx context.Context, c *client.Client, info *Info) error {
 
 // pollKernelCmdlineFile reads /proc/cmdline. The maintenance API does not serve file reads, so the command line of a machine
 // in maintenance is unknown.
-func pollKernelCmdlineFile(ctx context.Context, c *client.Client, info *Info) error {
+func pollKernelCmdlineFile(ctx context.Context, c talosClient, info *Info) error {
 	if info.MaintenanceMode {
 		info.KernelCmdline = new("")
 
@@ -645,7 +654,7 @@ func pollKernelCmdlineFile(ctx context.Context, c *client.Client, info *Info) er
 	return nil
 }
 
-func pollKernelCmdline(ctx context.Context, c *client.Client, info *Info) error {
+func pollKernelCmdline(ctx context.Context, c talosClient, info *Info) error {
 	info.KernelCmdline = new("")
 
 	return forEachResource(

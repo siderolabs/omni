@@ -84,7 +84,7 @@ type maintenanceClient struct {
 }
 
 func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.MachineConfig, error) {
-	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, c.client.COSI, configres.ActiveID)
+	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, c.client.State(), configres.ActiveID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, fmt.Errorf("error getting machine config: %w", err)
 	}
@@ -93,7 +93,7 @@ func (c maintenanceClient) GetMachineConfig(ctx context.Context) (*configres.Mac
 }
 
 func (c maintenanceClient) GetBootID(ctx context.Context) (string, error) {
-	return talosutils.GetBootID(ctx, c.client.COSI)
+	return talosutils.GetBootID(ctx, c.client.State())
 }
 
 func (c maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {

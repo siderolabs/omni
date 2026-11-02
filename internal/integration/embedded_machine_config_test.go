@@ -151,7 +151,7 @@ func AssertMachineConfigPatchAppliedInMaintenance(testCtx context.Context, optio
 		nodeCtx := talosclient.WithNode(ctx, machineID)
 
 		// the env var lands in the machine's Environment resource (fixed ID "machined") once Omni applies the patch in maintenance mode
-		rtestutils.AssertResource[*talosruntime.Environment](nodeCtx, t, talosClient.COSI, "machined",
+		rtestutils.AssertResource[*talosruntime.Environment](nodeCtx, t, talosClient.State(), "machined",
 			func(environment *talosruntime.Environment, assertion *assert.Assertions) {
 				assertion.Contains(strings.Join(environment.TypedSpec().Variables, " "), maintenanceApplyMarker,
 					"env var not propagated to maintenance machine %q", machineID)

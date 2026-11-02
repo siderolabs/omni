@@ -364,7 +364,7 @@ func (s *managementServer) prepareKubernetesSyncHelpers(ctx, authCtx context.Con
 
 	defer talosClient.Close() //nolint:errcheck
 
-	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
+	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.State(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifests: %w", err)
 	}

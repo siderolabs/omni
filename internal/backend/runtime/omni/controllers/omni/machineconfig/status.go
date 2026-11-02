@@ -936,7 +936,7 @@ func (ctrl *StatusController) checkInstalledImage(
 		// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
 		fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
 
-		schematicInfo, err = talosutils.GetSchematicInfo(ctx, nodeClient.COSI, fallbackKernelArgs)
+		schematicInfo, err = talosutils.GetSchematicInfo(ctx, nodeClient.State(), fallbackKernelArgs)
 		if err != nil {
 			return installedImage{}, err
 		}
@@ -1213,7 +1213,7 @@ func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 
 	// the stage above is Omni's view, which lags a machine that has just rebooted into maintenance
 	if opts.mode == machineapi.ApplyConfigurationRequest_TRY {
-		inMaintenance, maintenanceErr := talosutils.InMaintenance(ctx, c.COSI)
+		inMaintenance, maintenanceErr := talosutils.InMaintenance(ctx, c.State())
 		if maintenanceErr != nil {
 			return applyResult{}, fmt.Errorf("failed to read the stage of machine '%s': %w", rc.ID(), maintenanceErr)
 		}
@@ -1225,7 +1225,7 @@ func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 
 	// Omni's view of the system disk lags a wipe (the old disk is still listed), so the machine itself is checked.
 	if applyMaintenance && rc.installImageNotSet {
-		if _, err = safe.StateGetByID[*block.SystemDisk](ctx, c.COSI, block.SystemDiskID); err != nil {
+		if _, err = safe.StateGetByID[*block.SystemDisk](ctx, c.State(), block.SystemDiskID); err != nil {
 			if state.IsNotFoundError(err) {
 				logger.Info("waiting for Talos to be installed, the config has no install image", zap.String("machine", rc.ID()))
 
@@ -1247,8 +1247,8 @@ func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 
 	result.bootID, err = talosutils.CheckBeforeApply(
 		ctx,
-		func(ctx context.Context) (string, error) { return talosutils.GetBootID(ctx, c.COSI) },
-		func(ctx context.Context) (bool, error) { return talosutils.ConfigIsActive(ctx, c.COSI, data.Data()) },
+		func(ctx context.Context) (string, error) { return talosutils.GetBootID(ctx, c.State()) },
+		func(ctx context.Context) (bool, error) { return talosutils.ConfigIsActive(ctx, c.State(), data.Data()) },
 		opts.mode, opts.expectBootID,
 	)
 	if err != nil {

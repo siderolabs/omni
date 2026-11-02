@@ -210,7 +210,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	watchCh := make(chan state.Event)
 
-	registeredTypes, err := QueryRegisteredTypes(ctx, c.COSI)
+	registeredTypes, err := QueryRegisteredTypes(ctx, c.State())
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			continue
 		}
 
-		if err = c.COSI.WatchKind(ctx, resource.NewMetadata(watcher.namespace, resourceType, "", resource.VersionUndefined), watchCh); err != nil {
+		if err = c.State().WatchKind(ctx, resource.NewMetadata(watcher.namespace, resourceType, "", resource.VersionUndefined), watchCh); err != nil {
 			return fmt.Errorf("error watching COSI resource: %w", err)
 		}
 	}
@@ -393,7 +393,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	}
 }
 
-func (spec CollectTaskSpec) poll(ctx context.Context, c *client.Client, pollers []string) (Info, error) {
+func (spec CollectTaskSpec) poll(ctx context.Context, c talosClient, pollers []string) (Info, error) {
 	info := Info{
 		// set this early to make pollers act on the maintenance/normal mode
 		MaintenanceMode: spec.MaintenanceMode,

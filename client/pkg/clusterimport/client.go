@@ -269,7 +269,7 @@ func BuildTalosClient(ctx context.Context, config, context, sideroV1KeysDir stri
 	}
 
 	return &talosClient{
-		State:  c.COSI,
+		State:  c.State(),
 		Client: c,
 	}, nil
 }

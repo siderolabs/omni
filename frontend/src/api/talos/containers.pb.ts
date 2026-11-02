@@ -14,7 +14,6 @@ export type ContainerRunAsSpec = {
 
 export type ContainerMountSpec = {
   kind?: string
-  volumeID?: string
   source?: string
   destination?: string
   size?: number
@@ -27,6 +26,8 @@ export type ContainerSecuritySpec = {
   capabilitiesAdd?: string[]
   capabilitiesDrop?: string[]
   machinedAccess?: boolean
+  seccompUnconfined?: boolean
+  selinuxLevel?: string
 }
 
 export type ContainerNetworkSpec = {
@@ -46,6 +47,12 @@ export type ContainerDependsOnSpec = {
   containers?: string[]
 }
 
+export type ContainerDeviceSpec = {
+  kind?: string
+  volumeName?: string
+  destination?: string
+}
+
 export type ContainerSpecSpec = {
   image?: ContainerImageSpec
   entrypoint?: string[]
@@ -58,6 +65,7 @@ export type ContainerSpecSpec = {
   network?: ContainerNetworkSpec
   resources?: ContainerResourcesSpec
   dependsOn?: ContainerDependsOnSpec
+  devices?: ContainerDeviceSpec[]
 }
 
 export type ContainerDependencyStatusSpec = {
@@ -81,6 +89,14 @@ export type ResolvedMountSpec = {
   volumeName?: string
 }
 
+export type ResolvedDeviceSpec = {
+  kind?: string
+  source?: string
+  destination?: string
+  volumeID?: string
+  volumeName?: string
+}
+
 export type ContainerInstanceSpecSpec = {
   containerID?: string
   generation?: number
@@ -94,6 +110,7 @@ export type ContainerInstanceSpecSpec = {
   security?: ContainerSecuritySpec
   network?: ContainerNetworkSpec
   resources?: ContainerResourcesSpec
+  devices?: ResolvedDeviceSpec[]
 }
 
 export type ContainerInstanceStatusSpec = {
@@ -111,6 +128,7 @@ export type ContainerMountStatusSpec = {
   ready?: boolean
   mounts?: ResolvedMountSpec[]
   error?: string
+  devices?: ResolvedDeviceSpec[]
 }
 
 export type ContainerStatusSpec = {

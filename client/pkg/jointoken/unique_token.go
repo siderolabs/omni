@@ -27,7 +27,7 @@ type NodeUniqueToken struct {
 
 // GetMachineFingerprint gets all network devices and calculates the checksum out of their mac addresses.
 func GetMachineFingerprint(ctx context.Context, c *client.Client) (string, error) {
-	links, err := safe.ReaderListAll[*network.LinkStatus](ctx, c.COSI)
+	links, err := safe.ReaderListAll[*network.LinkStatus](ctx, c.State())
 	if err != nil {
 		return "", err
 	}

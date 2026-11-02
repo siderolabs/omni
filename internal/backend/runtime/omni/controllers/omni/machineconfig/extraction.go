@@ -226,7 +226,7 @@ func (r reader) ReadMachineConfig(ctx context.Context, machineID string) (*confi
 
 	defer client.Close() //nolint:errcheck
 
-	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, client.COSI, configres.ActiveID)
+	machineConfig, err := safe.ReaderGetByID[*configres.MachineConfig](ctx, client.State(), configres.ActiveID)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}

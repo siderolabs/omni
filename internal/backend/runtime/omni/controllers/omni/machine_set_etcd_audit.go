@@ -572,7 +572,7 @@ func (auditor *etcdAuditor) checkEphemeralMount(ctx context.Context, client *cli
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	_, err := safe.StateGet[*runtime.MountStatus](ctx, client.COSI, runtime.NewMountStatus(runtime.NamespaceName, constants.EphemeralPartitionLabel).Metadata())
+	_, err := safe.StateGet[*runtime.MountStatus](ctx, client.State(), runtime.NewMountStatus(runtime.NamespaceName, constants.EphemeralPartitionLabel).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return false, nil
@@ -588,7 +588,7 @@ func (auditor *etcdAuditor) getEtcdMember(ctx context.Context, client *client.Cl
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	member, err := safe.StateGet[*etcd.Member](ctx, client.COSI, etcd.NewMember(etcd.NamespaceName, etcd.LocalMemberID).Metadata())
+	member, err := safe.StateGet[*etcd.Member](ctx, client.State(), etcd.NewMember(etcd.NamespaceName, etcd.LocalMemberID).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, nil //nolint:nilnil

@@ -239,7 +239,7 @@ func (handler *pendingMachineStatusHandler) handleUUIDConflicts(
 
 // readMetaKey reads a META key from the machine, returning an empty value when the key is not set.
 func readMetaKey(ctx context.Context, c *client.Client, key uint8) (string, error) {
-	metaKey, err := safe.ReaderGetByID[*talosruntime.MetaKey](ctx, c.COSI, talosruntime.MetaKeyTagToID(key))
+	metaKey, err := safe.ReaderGetByID[*talosruntime.MetaKey](ctx, c.State(), talosruntime.MetaKeyTagToID(key))
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return "", nil
@@ -307,7 +307,7 @@ func (handler *pendingMachineStatusHandler) getClient(
 
 // inMaintenance returns true if the machine answers on the maintenance API in the maintenance stage.
 func inMaintenance(ctx context.Context, c *client.Client) bool {
-	machineStatus, err := safe.ReaderGetByID[*talosruntime.MachineStatus](ctx, c.COSI, talosruntime.MachineStatusID)
+	machineStatus, err := safe.ReaderGetByID[*talosruntime.MachineStatus](ctx, c.State(), talosruntime.MachineStatusID)
 	if err != nil {
 		return false
 	}

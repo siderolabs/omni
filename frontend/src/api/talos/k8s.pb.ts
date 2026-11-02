@@ -43,20 +43,29 @@ export type APIServerConfigSpec = {
   resources?: Resources
   startupProbesEnabled?: boolean
   useAuthenticationConfig?: boolean
+  selinuxLevel?: string
 }
 
 export type AuditPolicyConfigSpec = {
   config?: {[key: string]: unknown}
 }
 
+export type AuthenticationTokenWebhookSpec = {
+  kubeconfig?: string
+  version?: string
+  cacheTTL?: string
+}
+
 export type AuthenticationConfigSpec = {
   config?: {[key: string]: unknown}
+  tokenWebhook?: AuthenticationTokenWebhookSpec
 }
 
 export type AuthorizationAuthorizersSpec = {
   type?: string
   name?: string
   webhook?: {[key: string]: unknown}
+  kubeconfig?: string
 }
 
 export type AuthorizationConfigSpec = {
@@ -136,6 +145,7 @@ export type KubeletConfigSpec = {
   credentialProviderConfig?: {[key: string]: unknown}
   registerWithTaints?: {[key: string]: string}
   kubepodsMemoryLimit?: number
+  credentialProviderFiles?: {[key: string]: string}
 }
 
 export type KubeletCPUReservationSpec = {
@@ -154,6 +164,7 @@ export type KubeletSpecSpec = {
   expectedNodename?: string
   config?: {[key: string]: unknown}
   credentialProviderConfig?: {[key: string]: unknown}
+  credentialProviderFiles?: {[key: string]: string}
 }
 
 export type KubeletStatusSpec = {

@@ -98,7 +98,7 @@ func checkExtensions(ctx context.Context, talosClient *talosclient.Client, exten
 }
 
 func fetchExtensions(ctx context.Context, talosClient *talosclient.Client) ([]string, error) {
-	list, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosClient.COSI)
+	list, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosClient.State())
 	if err != nil {
 		return nil, err
 	}

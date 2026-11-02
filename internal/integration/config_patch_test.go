@@ -61,7 +61,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, options *TestOpt
 
 		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
 
-		nodeIPs, err := talosNodeIPs(ctx, talosClient.COSI)
+		nodeIPs, err := talosNodeIPs(ctx, talosClient.State())
 		require.NoError(t, err)
 
 		st := options.omniClient.Omni().State()
@@ -105,7 +105,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, options *TestOpt
 		linkStatus := network.NewLinkStatus(network.NamespaceName, "")
 
 		containsDummyIface := func(node string) (bool, error) {
-			links, linksErr := talosClient.COSI.List(talosclient.WithNode(ctx, node), linkStatus.Metadata())
+			links, linksErr := talosClient.State().List(talosclient.WithNode(ctx, node), linkStatus.Metadata())
 			if linksErr != nil {
 				return false, linksErr
 			}
@@ -408,7 +408,7 @@ func clusterMachinePatchesContainsString(t *testing.T, clusterMachineConfigPatch
 }
 
 func talosFileExists(ctx context.Context, talosClient *talosclient.Client, node, filePath string) (bool, error) {
-	resp, err := talosClient.MachineClient.List(talosclient.WithNode(ctx, node), &machine.ListRequest{Root: filePath})
+	resp, err := talosClient.MachineService().List(talosclient.WithNode(ctx, node), &machine.ListRequest{Root: filePath})
 	if err != nil {
 		return false, err
 	}

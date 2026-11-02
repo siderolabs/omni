@@ -174,7 +174,7 @@ func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientG
 				manifestStatus.TypedSpec().Value.OutOfSync = 0
 				manifestStatus.TypedSpec().Value.LastFatalError = ""
 
-				bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
+				bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.State(), nil)
 				if err != nil {
 					switch client.StatusCode(err) { //nolint:exhaustive
 					case codes.ResourceExhausted:

@@ -218,6 +218,7 @@ export type SecurityStateSpec = {
   moduleSignatureEnforced?: boolean
   lockdownState?: string
   secureBootAuthorityFingerprints?: string[]
+  selinuxCategories?: boolean
 }
 
 export type ServicePIDSpec = {

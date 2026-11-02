@@ -155,7 +155,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 	}
 
 	for _, watchedResource := range watchedResources {
-		if err = client.COSI.Watch(ctx, watchedResource.Metadata(), watchCh); err != nil {
+		if err = client.State().Watch(ctx, watchedResource.Metadata(), watchCh); err != nil {
 			return fmt.Errorf("error watching %s: %w", watchedResource.Metadata().ID(), err)
 		}
 	}
@@ -333,7 +333,7 @@ func (spec IdentityCollectorTaskSpec) getEtcdMemberID(ctx context.Context, clien
 }
 
 func (spec IdentityCollectorTaskSpec) getEtcdClient(ctx context.Context, client *client.Client) (*clientv3.Client, error) {
-	etcdResource, err := safe.StateGet[*secrets.Etcd](ctx, client.COSI, resource.NewMetadata(secrets.NamespaceName, secrets.EtcdType, secrets.EtcdID, resource.VersionUndefined))
+	etcdResource, err := safe.StateGet[*secrets.Etcd](ctx, client.State(), resource.NewMetadata(secrets.NamespaceName, secrets.EtcdType, secrets.EtcdID, resource.VersionUndefined))
 	if err != nil {
 		return nil, err
 	}

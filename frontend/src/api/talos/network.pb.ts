@@ -44,6 +44,7 @@ export type BGPNeighborConfigSpec = {
   bfd?: BGPBFDConfigSpec
   localASN?: number
   passive?: boolean
+  authPassword?: string
 }
 
 export type BGPImportRouteSpec = {

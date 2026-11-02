@@ -14,17 +14,16 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 )
 
 func forEachResource[T resource.Resource](
 	ctx context.Context,
-	c *client.Client,
+	c talosClient,
 	namespace resource.Namespace,
 	resourceType resource.Type,
 	callback func(T) error,
 ) error {
-	items, err := safe.StateList[T](ctx, c.COSI, resource.NewMetadata(namespace, resourceType, "", resource.VersionUndefined))
+	items, err := safe.StateList[T](ctx, c.State(), resource.NewMetadata(namespace, resourceType, "", resource.VersionUndefined))
 	if err != nil {
 		return err
 	}

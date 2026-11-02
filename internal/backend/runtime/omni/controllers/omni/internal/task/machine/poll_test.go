@@ -6,19 +6,50 @@
 package machine_test
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
-	"github.com/siderolabs/talos/pkg/machinery/client"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 )
+
+type fakeTalosClient struct {
+	st    state.State
+	files map[string]string
+}
+
+func (c *fakeTalosClient) State() state.State { return c.st }
+
+func (c *fakeTalosClient) Read(_ context.Context, path string) (io.ReadCloser, error) {
+	contents, ok := c.files[path]
+	if !ok {
+		return nil, fmt.Errorf("file not found: %s", path)
+	}
+
+	return io.NopCloser(strings.NewReader(contents)), nil
+}
+
+func (c *fakeTalosClient) Disks(context.Context, ...grpc.CallOption) (*storage.DisksResponse, error) {
+	return nil, errors.ErrUnsupported
+}
+
+func (c *fakeTalosClient) Version(context.Context, ...grpc.CallOption) (*machineapi.VersionResponse, error) {
+	return nil, errors.ErrUnsupported
+}
 
 func cpuCore(id, socket, vendor, model string, logicalCPUs ...uint32) *hardware.CPUCore {
 	core := hardware.NewCPUCore(id)
@@ -114,7 +145,7 @@ func TestPollCPUCores(t *testing.T) {
 
 			var info machine.Info
 
-			require.NoError(t, machine.PollCPUCores(t.Context(), &client.Client{COSI: st}, &info))
+			require.NoError(t, machine.PollCPUCores(t.Context(), &fakeTalosClient{st: st}, &info))
 			require.Equal(t, test.want, info.Processors)
 		})
 	}

@@ -303,6 +303,7 @@ export type VolumeStatusSpec = {
   partitionUUID?: string
   size?: number
   prettySize?: string
+  grow?: boolean
   filesystem?: string
   encryptionProvider?: string
   encryptionFailedSyncs?: string[]

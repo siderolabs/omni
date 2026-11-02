@@ -103,7 +103,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	defer client.Close() //nolint:errcheck
 
-	registeredTypes, err := machinetask.QueryRegisteredTypes(ctx, client.COSI)
+	registeredTypes, err := machinetask.QueryRegisteredTypes(ctx, client.State())
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 
 	watchCh := make(chan state.Event)
 
-	if err = client.COSI.Watch(ctx, runtime.NewMachineStatus().Metadata(), watchCh); err != nil {
+	if err = client.State().Watch(ctx, runtime.NewMachineStatus().Metadata(), watchCh); err != nil {
 		return err
 	}
 

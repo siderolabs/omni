@@ -291,7 +291,7 @@ func readTalosMachineStatus(ctx context.Context, t *testing.T, c *talosclient.Cl
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {
 		var err error
 
-		ms, err = safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
+		ms, err = safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.State(), runtime.MachineStatusID)
 		require.NoError(collect, err)
 	}, time.Minute, 2*time.Second, "machine %q status", machineID)
 

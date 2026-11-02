@@ -138,7 +138,7 @@ func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, options *Te
 		require.NoError(t, err)
 		require.Greater(t, machines.Len(), 0)
 
-		_, err = maintenanceClient.MachineClient.Version(talosclient.WithNode(ctx, machines.Get(0).Metadata().ID()), &emptypb.Empty{})
+		_, err = maintenanceClient.MachineService().Version(talosclient.WithNode(ctx, machines.Get(0).Metadata().ID()), &emptypb.Empty{})
 		require.NoError(t, err)
 	}
 }
@@ -218,13 +218,13 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 			)
 
 			// WithNode - using IP
-			hostname, err := c.MachineClient.Hostname(talosclient.WithNode(ctx, machineIPs[0]), &emptypb.Empty{})
+			hostname, err := c.MachineService().Hostname(talosclient.WithNode(ctx, machineIPs[0]), &emptypb.Empty{})
 			assert.NoError(t, err)
 			assert.Equal(t, machineNames[0], hostname.Messages[0].Hostname)
 			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname()) //nolint:staticcheck
 
 			// WithNode - using node name
-			hostname, err = c.MachineClient.Hostname(talosclient.WithNode(ctx, machineNames[0]), &emptypb.Empty{})
+			hostname, err = c.MachineService().Hostname(talosclient.WithNode(ctx, machineNames[0]), &emptypb.Empty{})
 			assert.NoError(t, err)
 			assert.Equal(t, machineNames[0], hostname.Messages[0].Hostname)
 			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname()) //nolint:staticcheck
@@ -383,12 +383,12 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, options *TestOptions, 
 		}
 
 		// check that every Omni machine is in Talos as a member
-		rtestutils.AssertResources(ctx, t, talosClient.COSI, maps.Keys(clusterMachines), func(member *cluster.Member, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, talosClient.State(), maps.Keys(clusterMachines), func(member *cluster.Member, asrt *assert.Assertions) {
 			asrt.Equal(clusterMachines[member.Metadata().ID()], member.TypedSpec().NodeID, resourceDetails(member))
 		})
 
 		// check that length of resources matches expectations (i.e. there are no extra members)
-		rtestutils.AssertLength[*cluster.Member](ctx, t, talosClient.COSI, len(clusterMachines))
+		rtestutils.AssertLength[*cluster.Member](ctx, t, talosClient.State(), len(clusterMachines))
 	}
 }
 
@@ -1360,7 +1360,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, options *TestOptions
 
 			t.Logf("Restarting service %q on node %q", service, nodeID)
 
-			_, err = talosClient.MachineClient.ServiceRestart(talosclient.WithNode(ctx, nodeID), &machine.ServiceRestartRequest{
+			_, err = talosClient.MachineService().ServiceRestart(talosclient.WithNode(ctx, nodeID), &machine.ServiceRestartRequest{
 				Id: service,
 			})
 			require.NoError(t, err)

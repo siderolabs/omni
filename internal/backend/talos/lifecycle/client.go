@@ -136,7 +136,7 @@ func (m *Manager) pullInstallerImage(
 
 // pullImage runs a single image pull and returns the resolved image reference reported by the machine.
 func (m *Manager) pullImage(ctx context.Context, talosClient *talosclient.Client, imageRef string) (string, error) {
-	pullClient, err := talosClient.ImageClient.Pull(ctx, &machineapi.ImageServicePullRequest{
+	pullClient, err := talosClient.ImageService().Pull(ctx, &machineapi.ImageServicePullRequest{
 		Containerd: m.containerdInstance,
 		ImageRef:   imageRef,
 	})
@@ -181,7 +181,7 @@ func (m *Manager) install(
 		return err
 	}
 
-	installClient, err := talosClient.LifecycleClient.Install(ctx, &machineapi.LifecycleServiceInstallRequest{
+	installClient, err := talosClient.LifecycleService().Install(ctx, &machineapi.LifecycleServiceInstallRequest{
 		Containerd: m.containerdInstance,
 		Source: &machineapi.InstallArtifactsSource{
 			ImageName: resolvedImage,
@@ -229,7 +229,7 @@ func (m *Manager) upgrade(
 		return err
 	}
 
-	upgradeClient, err := talosClient.LifecycleClient.Upgrade(ctx, &machineapi.LifecycleServiceUpgradeRequest{
+	upgradeClient, err := talosClient.LifecycleService().Upgrade(ctx, &machineapi.LifecycleServiceUpgradeRequest{
 		Containerd: m.containerdInstance,
 		Source: &machineapi.InstallArtifactsSource{
 			ImageName: resolvedImage,

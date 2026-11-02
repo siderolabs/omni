@@ -46,7 +46,7 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 
 	defer talosCli.Close() //nolint:errcheck
 
-	stream, err := talosCli.ImageClient.List(ctx, &machine.ImageServiceListRequest{
+	stream, err := talosCli.ImageService().List(ctx, &machine.ImageServiceListRequest{
 		Containerd: &common.ContainerdInstance{
 			Driver:    common.ContainerDriver_CRI,
 			Namespace: common.ContainerdNamespace_NS_CRI,
@@ -111,7 +111,7 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 
 	defer talosCli.Close() //nolint:errcheck
 
-	stream, err := talosCli.ImageClient.Pull(ctx, &machine.ImageServicePullRequest{
+	stream, err := talosCli.ImageService().Pull(ctx, &machine.ImageServicePullRequest{
 		ImageRef: image,
 		Containerd: &common.ContainerdInstance{
 			Driver:    common.ContainerDriver_CRI,

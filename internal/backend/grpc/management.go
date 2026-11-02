@@ -614,7 +614,7 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 			return nil, clientErr
 		}
 
-		return c.COSI, nil
+		return c.State(), nil
 	}, restConfig, controlplaneMachines, nil, func(format string, args ...any) {
 		fmt.Fprintf(&logBuffer, format, args...)
 		fmt.Fprintln(&logBuffer)
