@@ -6,3 +6,4 @@
 /frontend/**/*.pb.ts
 /frontend/**/*.proto
 /frontend/src/api/resources.ts
+/frontend/src/schemas/config_*.schema.json

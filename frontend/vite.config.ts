@@ -35,6 +35,12 @@ export default defineConfig(({ command }) => {
         },
       },
     },
+    // Pages are only reached through the vue-router/auto-routes virtual module, which the dependency scanner can't
+    // follow. Scanning the sources finds their dependencies up front, rather than reloading mid-run on a cold cache.
+    // Tests, stories and mocks are skipped: they aren't part of the app and import @msw, which only they alias.
+    optimizeDeps: {
+      entries: ['index.html', 'src/**/*.{vue,ts}', '!src/**/*.{spec,stories,mocks}.ts'],
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -52,6 +58,10 @@ export default defineConfig(({ command }) => {
       },
     },
     server: {
+      // Fix for 1Password mounted .env causing infinite reloads
+      watch: {
+        ignored: ['**/.env', '**/.env.*'],
+      },
       port: 8121,
       // Set HOST env to "true" or 0.0.0.0 to listen on all interfaces
       host: process.env.HOST === 'true' || process.env.HOST || '127.0.0.1',

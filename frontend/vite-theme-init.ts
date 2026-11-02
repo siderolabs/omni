@@ -57,7 +57,7 @@ export function themeInit(): Plugin {
           tag: 'script',
           attrs: { nonce: '{{.Nonce}}' },
           children: output.output[0].code,
-          injectTo: 'head-prepend',
+          injectTo: 'head',
         },
       ]
     },
