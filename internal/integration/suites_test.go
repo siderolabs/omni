@@ -1074,6 +1074,11 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
+			"ClusterBootstrapManifestSyncShouldRecreateDeletedObject",
+			AssertBootstrapManifestSyncRecreatesDeletedObject(t.Context(), options.omniClient.Omni().State(), options.omniClient.Management(), clusterName),
+		)
+
+		t.Run(
 			"FailedKubernetesUpgradeShouldBeRevertible",
 			AssertKubernetesUpgradeIsRevertible(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.KubernetesVersion),
 		)

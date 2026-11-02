@@ -13,6 +13,7 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"errors"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -326,6 +327,57 @@ func KubernetesBootstrapManifestSync(testCtx context.Context, managementClient *
 			return nil
 		})
 
+		require.NoError(t, err)
+	}
+}
+
+// AssertBootstrapManifestSyncRecreatesDeletedObject deletes an object created from the bootstrap manifests,
+// checks that a dry run sync reports it as to be created, then checks that a sync recreates it.
+func AssertBootstrapManifestSyncRecreatesDeletedObject(testCtx context.Context, st state.State, managementClient *management.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
+		defer cancel()
+
+		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
+			t.Skip("emulated machines do not apply the bootstrap manifests")
+		}
+
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
+
+		const name = "system-bootstrap-approve-node-client-csr"
+
+		require.NoError(t, kubeClient.RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{}))
+
+		err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
+			var found bool
+
+			if err := managementClient.WithCluster(clusterName).KubernetesSyncManifests(ctx, true, func(result *managementpb.KubernetesSyncManifestResponse) error {
+				if result.ResponseType != managementpb.KubernetesSyncManifestResponse_MANIFEST || !strings.HasSuffix(result.Path, "/"+name) {
+					return nil
+				}
+
+				found = true
+
+				assert.NotEmpty(t, result.Diff)
+				assert.Empty(t, result.Object)
+
+				return nil
+			}); err != nil {
+				return retry.ExpectedError(err)
+			}
+
+			if !found {
+				return errors.New("deleted object is not reported by the dry run sync")
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		KubernetesBootstrapManifestSync(ctx, managementClient, clusterName)(t)
+
+		_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
 		require.NoError(t, err)
 	}
 }
