@@ -417,6 +417,11 @@ tests:
           content:
             name: data
             emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /data
 
   - it: Should mount dev-tun
     template: deployment.yaml

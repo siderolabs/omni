@@ -121,10 +121,8 @@ spec:
               mountPath: /config/additional-{{ $index }}
               readOnly: true
             {{- end }}
-            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: /data
-            {{- end }}
             - name: etcd-key
               mountPath: /omni.asc
               subPath: omni.asc
