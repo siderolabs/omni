@@ -32,7 +32,6 @@ var forbiddenFields = []string{
 	"cluster.clusterName",
 	"cluster.id",
 	"cluster.controlPlane.endpoint",
-	"cluster.token",
 	"cluster.secret",
 	"cluster.aescbcEncryptionSecret",
 	"cluster.secretboxEncryptionSecret",

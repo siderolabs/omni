@@ -37,6 +37,13 @@ machine:
 			expectedError: "1 error occurred:\n\t* overriding \"machine.token\" is not allowed in the config patch\n\n",
 		},
 		{
+			name: "cluster token",
+			config: strings.TrimSpace(`
+cluster:
+  token: abcdef.0123456789abcdef
+`),
+		},
+		{
 			name: "several fields",
 			config: strings.TrimSpace(`
 machine:
