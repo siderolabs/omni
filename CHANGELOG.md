@@ -1,3 +1,41 @@
+## [Omni 1.13.2](https://github.com/siderolabs/omni/releases/tag/v1.13.2) (2026-11-02)
+
+Welcome to the v1.13.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind boltdb`) is deprecated and will be removed in a future release. It keeps working in this release and Omni logs a warning at startup when it runs on it. There is no automated migration between the two backends, so if your Omni runs on BoltDB, plan the move to etcd, which is the default, before the removal lands.
+
+The metrics endpoint now listens on `127.0.0.1:2122` by default instead of `0.0.0.0:2122`. If you scrape the Omni metrics from another host or from outside the Omni container (e.g., through a published Docker port), set `services.metrics.endpoint` (`--metrics-bind-addr`) to `0.0.0.0:2122` explicitly. The Helm chart still binds it to `0.0.0.0:2122` when `metrics.enabled` is set.
+
+The embedded etcd server no longer listens on any address by default, Omni connects to it in-memory. Previously, it listened on `storage.default.etcd.endpoints` (`http://localhost:2379` by default) without TLS, and backups taken with `etcdctl` relied on it. To access the embedded etcd from outside, set `storage.default.etcd.embeddedCertFile` and `embeddedKeyFile` (`--etcd-embedded-cert-path`, `--etcd-embedded-key-path`), and optionally `embeddedCaFile` (`--etcd-embedded-ca-path`). The embedded etcd server then listens on the `storage.default.etcd.endpoints` addresses with TLS, and only accepts clients with a certificate signed by the given CA. When no CA is set, the certificate file must contain a single certificate, which is used as the CA, so clients can use the same certificate and key.
+
+Omni no longer installs Talos from the installer registry set in `registries.talos` (`--talos-installer-registry`, `ghcr.io/siderolabs/installer` by default). The setting is deprecated and has no effect, every install image now comes from an image factory. Machines with an invalid schematic (e.g., booted from an imager-built ISO with extensions) get an image factory schematic built from their join kernel args at their next install, without their custom extensions. If you mirrored the installer image for an air-gapped setup, make sure Omni can reach an image factory instead.
+
+
+### Contributors
+
+* Oguz Kilcan
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`cccc4b709`](https://github.com/siderolabs/omni/commit/cccc4b70938c238d3eaed4dcddbeaccaf78da702) fix: allow overriding the cluster token in config patches
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.13.1](https://github.com/siderolabs/omni/releases/tag/v1.13.1)
+
 ## [Omni 1.13.1](https://github.com/siderolabs/omni/releases/tag/v1.13.1) (2026-10-30)
 
 Welcome to the v1.13.1 release of Omni!
