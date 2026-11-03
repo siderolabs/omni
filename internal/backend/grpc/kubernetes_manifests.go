@@ -103,7 +103,6 @@ func (s *managementServer) syncSSA(
 		// fallback to defaults if SSA options are not provided
 		req.Ssa = &management.KubernetesSSAOptions{
 			InventoryPolicy: management.KubernetesSSAOptions_ADOPT_IF_NO_INVENTORY,
-			NoPrune:         true,
 		}
 	}
 
