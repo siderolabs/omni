@@ -66,7 +66,7 @@ require (
 	github.com/prometheus/common v0.73.1
 	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
-	github.com/siderolabs/crypto v0.6.5
+	github.com/siderolabs/crypto v0.6.6
 	github.com/siderolabs/discovery-api v0.1.8
 	github.com/siderolabs/discovery-client v0.1.15
 	github.com/siderolabs/discovery-service v1.1.3
@@ -84,7 +84,7 @@ require (
 	github.com/siderolabs/omni/client v0.0.0-00010101000000-000000000000
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.18
-	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261101173601-65d3235d8321
+	github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261102184104-ab534fcfa315
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10

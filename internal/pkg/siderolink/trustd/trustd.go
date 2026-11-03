@@ -11,6 +11,7 @@ package trustd
 import (
 	"crypto/tls"
 	stdlibx509 "crypto/x509"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"net"
@@ -21,6 +22,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/siderolabs/crypto/x509"
 	securityapi "github.com/siderolabs/talos/pkg/machinery/api/security"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -59,28 +61,40 @@ func getCertificate(st state.State, serverAddr net.IP) func(info *tls.ClientHell
 		if err != nil {
 			return nil, err
 		}
-		// issue a short-lived cert for trustd for this connection
-		ca, err := x509.NewCertificateAuthorityFromCertificateAndKey(secretsBundle.Certs.OS)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse CA certificate: %w", err)
-		}
 
-		serverCert, err := x509.NewKeyPair(
-			ca,
-			x509.IPAddresses([]net.IP{serverAddr}),
-			x509.CommonName("omni"),
-			x509.NotAfter(time.Now().Add(5*time.Minute)),
-			x509.KeyUsage(stdlibx509.KeyUsageDigitalSignature|stdlibx509.KeyUsageKeyEncipherment),
-			x509.ExtKeyUsage([]stdlibx509.ExtKeyUsage{
-				stdlibx509.ExtKeyUsageServerAuth,
-			}),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate API server cert: %w", err)
-		}
-
-		return serverCert.Certificate, nil
+		return issueServerCertificate(secretsBundle.Certs.OS, serverAddr)
 	}
+}
+
+// issueServerCertificate issues a short-lived trustd server certificate signed by the cluster OS CA.
+//
+// The certificate is marked with the trustd-specific extended key usage, same way as Talos does it for its trustd.
+// Talos versions which don't check the extended key usage ignore it, so it is safe to always set it.
+func issueServerCertificate(osCA *x509.PEMEncodedCertificateAndKey, serverAddr net.IP) (*tls.Certificate, error) {
+	ca, err := x509.NewCertificateAuthorityFromCertificateAndKey(osCA)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CA certificate: %w", err)
+	}
+
+	serverCert, err := x509.NewKeyPair(
+		ca,
+		x509.IPAddresses([]net.IP{serverAddr}),
+		x509.CommonName("omni"),
+		x509.NotAfter(time.Now().Add(5*time.Minute)),
+		x509.KeyUsage(stdlibx509.KeyUsageDigitalSignature|stdlibx509.KeyUsageKeyEncipherment),
+		x509.ExtKeyUsage([]stdlibx509.ExtKeyUsage{
+			stdlibx509.ExtKeyUsageServerAuth,
+		}),
+		// mark the certificate as trustd server certificate
+		x509.UnknownExtKeyUsage([]asn1.ObjectIdentifier{
+			constants.TrustdServerExtKeyUsage,
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate API server cert: %w", err)
+	}
+
+	return serverCert.Certificate, nil
 }
 
 // NewServer initializes grpc server for trustd.

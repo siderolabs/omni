@@ -87,6 +87,7 @@ export type OSRootSpec = {
   certSANIPs?: string[]
   certSANDNSNames?: string[]
   token?: string
+  trustdCheckExtKeyUsage?: boolean
 }
 
 export type TrustdCertsSpec = {

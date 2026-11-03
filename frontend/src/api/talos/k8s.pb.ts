@@ -222,6 +222,7 @@ export type BootstrapManifestsConfigSpec = {
   flannelKubeServicePort?: string
   flannelKubeNetworkPoliciesEnabled?: boolean
   flannelKubeNetworkPoliciesImage?: string
+  flannelKubeNetworkPoliciesArgs?: string[]
   flannelBackendType?: string
   flannelBackendPort?: number
   flannelBackendMTU?: number

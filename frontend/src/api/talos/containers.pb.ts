@@ -72,6 +72,12 @@ export type ContainerDependencyStatusSpec = {
   waitingFor?: string[]
 }
 
+export type ContainerHealthStatusSpec = {
+  healthy?: boolean
+  message?: string
+  lastChange?: string
+}
+
 export type ContainerImageStatusSpec = {
   phase?: string
   image?: string

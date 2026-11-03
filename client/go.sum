@@ -221,8 +221,8 @@ github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlE
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
 github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
-github.com/siderolabs/crypto v0.6.5 h1:Elq5tpWP2ApZ4Y+Kg+eIDiiWbmriCPI1mjYIMwvsYkw=
-github.com/siderolabs/crypto v0.6.5/go.mod h1:QjVcrdJQE1sxhjHqieCgwGdlIYq/xCP2DL53Up8nbU4=
+github.com/siderolabs/crypto v0.6.6 h1:tUFqUifryTTc0yRoKAlga+DGXYrrJQ4As4qrD7H6dMk=
+github.com/siderolabs/crypto v0.6.6/go.mod h1:mucveFVYuAGvxkUIx/Wfpt5m3qQKQjVJH5sa3o520oE=
 github.com/siderolabs/gen v0.8.8 h1:wDDlHAT7q4JYr1nD6I8iJml2jUgMKKuCpd05W5UoM+A=
 github.com/siderolabs/gen v0.8.8/go.mod h1:iOCzLzCgiHas+4KIJ0KaLJUjIXL/SVH1ZXZUXBt04tc=
 github.com/siderolabs/go-api-signature v0.4.0 h1:rlDNzVwRfG6et8DbqCEZEX4h46tBHMtYinSvjpYVYXQ=
@@ -245,8 +245,8 @@ github.com/siderolabs/protoenc v0.2.4 h1:D3Fpn2nQSQOhl8ZlAxijZAf7K6F8CM1uZq0afIG
 github.com/siderolabs/protoenc v0.2.4/go.mod h1:i5XLHjfv5vyi7LhQrSEo19HCA+lYtDd7CWxsoWp9XE8=
 github.com/siderolabs/siderolink v0.3.18 h1:Pzz47qsgnVzJK6oIpjzr7BOZHMXePtPH08JyHVv1mQk=
 github.com/siderolabs/siderolink v0.3.18/go.mod h1:yApRaEuwExyiyA31c4svnCZNirumfgYSHN4XnIxJIK0=
-github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261101173601-65d3235d8321 h1:F5gY370mWe7QrfD9O8P+xjKRZkdivmJr5whgq7T1jjY=
-github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261101173601-65d3235d8321/go.mod h1:LMWuErKPsKvAp2zoDv2cDWVVAt5LX7GwDiIn87ZOM1A=
+github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261102184104-ab534fcfa315 h1:d7ROJB6WKYkhc7cbRouIsWN8FcFqro+GUeAj/OPNvOc=
+github.com/siderolabs/talos/pkg/machinery v1.15.0-alpha.2.0.20261102184104-ab534fcfa315/go.mod h1:GQosqOvbQR1j8usRZQrQf83R/+WUGuLnJHR32jflU94=
 github.com/spf13/cobra v1.10.2 h1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=
 github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiTUUS4=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
