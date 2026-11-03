@@ -1079,6 +1079,11 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 		)
 
 		t.Run(
+			"ClusterBootstrapManifestSyncShouldPruneReplacedToken",
+			AssertBootstrapManifestSyncPrunesReplacedToken(t.Context(), options.omniClient.Omni().State(), options.omniClient.Management(), clusterName),
+		)
+
+		t.Run(
 			"FailedKubernetesUpgradeShouldBeRevertible",
 			AssertKubernetesUpgradeIsRevertible(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.KubernetesVersion),
 		)

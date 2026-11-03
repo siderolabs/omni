@@ -24,6 +24,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -379,6 +381,102 @@ func AssertBootstrapManifestSyncRecreatesDeletedObject(testCtx context.Context, 
 
 		_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
 		require.NoError(t, err)
+	}
+}
+
+// AssertBootstrapManifestSyncPrunesReplacedToken replaces the cluster token with a config patch,
+// checks that a dry run sync reports the old bootstrap token secret as to be deleted, then checks that a sync deletes it.
+func AssertBootstrapManifestSyncPrunesReplacedToken(testCtx context.Context, st state.State, managementClient *management.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
+		defer cancel()
+
+		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
+			t.Skip("emulated machines do not apply the bootstrap manifests")
+		}
+
+		cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterName)
+		require.NoError(t, err)
+
+		talosVersion, err := compatibility.ParseTalosVersion(&machine.VersionInfo{Tag: cluster.TypedSpec().Value.TalosVersion})
+		require.NoError(t, err)
+
+		if !talosVersion.SupportsSSAManifestSync() {
+			t.Skip("the legacy bootstrap manifest sync does not prune objects")
+		}
+
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, managementClient, clusterName)
+
+		const (
+			newTokenID     = "prune0"
+			newTokenSecret = "bootstrap-token-" + newTokenID
+		)
+
+		secrets, err := kubeClient.CoreV1().Secrets("kube-system").List(ctx, metav1.ListOptions{FieldSelector: "type=" + string(corev1.SecretTypeBootstrapToken)})
+		require.NoError(t, err)
+		require.Len(t, secrets.Items, 1)
+
+		oldTokenSecret := secrets.Items[0].Name
+
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		configHashes := make(map[resource.ID]string, len(machineIDs))
+
+		for _, machineID := range machineIDs {
+			configStatus, getErr := safe.StateGetByID[*omni.ClusterMachineConfigStatus](ctx, st, machineID)
+			require.NoError(t, getErr)
+
+			configHashes[machineID] = configStatus.TypedSpec().Value.ClusterMachineConfigSha256
+		}
+
+		// kept until the cluster is destroyed, removing it brings back the old token and leaves the new one to be pruned
+		createOrUpdate(ctx, t, st, omni.NewConfigPatch("500-"+clusterName+"-cluster-token"), func(patch *omni.ConfigPatch) error {
+			patch.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+
+			return patch.TypedSpec().Value.SetUncompressedData([]byte("cluster:\n  token: " + newTokenID + ".0123456789abcdef\n"))
+		})
+
+		// the sync reads the bootstrap manifests from one node, with the patch half applied it prunes the new token
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+			assert.NotEqual(configHashes[res.Metadata().ID()], res.TypedSpec().Value.ClusterMachineConfigSha256, resourceDetails(res))
+		})
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			_, getErr := kubeClient.CoreV1().Secrets("kube-system").Get(ctx, newTokenSecret, metav1.GetOptions{})
+			assert.NoError(collect, getErr)
+		}, 5*time.Minute, 5*time.Second, "the new bootstrap token secret is not created")
+
+		// Talos generates the bootstrap manifests from the applied config shortly after it is applied
+		err = retry.Constant(time.Minute, retry.WithUnits(5*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
+			var pruned bool
+
+			if syncErr := managementClient.WithCluster(clusterName).KubernetesSyncManifests(ctx, true, func(result *managementpb.KubernetesSyncManifestResponse) error {
+				if result.ResponseType == managementpb.KubernetesSyncManifestResponse_MANIFEST && strings.HasSuffix(result.Path, "/"+oldTokenSecret) && result.Diff != "" {
+					pruned = true
+				}
+
+				return nil
+			}); syncErr != nil {
+				return retry.ExpectedError(syncErr)
+			}
+
+			if !pruned {
+				return retry.ExpectedErrorf("old bootstrap token secret is not reported as pruned by the dry run sync")
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		KubernetesBootstrapManifestSync(ctx, managementClient, clusterName)(t)
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			_, getErr := kubeClient.CoreV1().Secrets("kube-system").Get(ctx, oldTokenSecret, metav1.GetOptions{})
+			assert.True(collect, kubeerrors.IsNotFound(getErr), "old bootstrap token secret is not deleted: %v", getErr)
+
+			_, getErr = kubeClient.CoreV1().Secrets("kube-system").Get(ctx, newTokenSecret, metav1.GetOptions{})
+			assert.NoError(collect, getErr)
+		}, time.Minute, 5*time.Second)
 	}
 }
 

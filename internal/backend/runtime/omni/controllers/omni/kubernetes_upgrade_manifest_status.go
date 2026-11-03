@@ -279,7 +279,6 @@ func reconcileSSA(
 
 	changes, err := manager.Diff(ctx, bootstrapManifests, ssa.DiffOptions{
 		InventoryPolicy: ssa.InventoryPolicyAdoptIfNoInventory,
-		NoPrune:         true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to diff manifests: %w", err)
