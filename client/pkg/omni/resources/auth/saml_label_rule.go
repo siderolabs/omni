@@ -15,6 +15,8 @@ import (
 )
 
 // NewSAMLLabelRule creates a new SAMLLabelRule resource.
+//
+// Deprecated: use NewIdentityLabelRule instead.
 func NewSAMLLabelRule(id string) *SAMLLabelRule {
 	return typed.NewResource[SAMLLabelRuleSpec, SAMLLabelRuleExtension](
 		resource.NewMetadata(resources.DefaultNamespace, SAMLLabelRuleType, id, resource.VersionUndefined),
@@ -25,11 +27,13 @@ func NewSAMLLabelRule(id string) *SAMLLabelRule {
 const (
 	// SAMLLabelRuleType is the type of SAMLLabelRule resource.
 	//
-	// tsgen:SAMLLabelRuleType
+	// Deprecated: use IdentityLabelRuleType instead.
 	SAMLLabelRuleType = resource.Type("SAMLLabelRules.omni.sidero.dev")
 )
 
 // SAMLLabelRule resource describes a SAML label rule.
+//
+// Deprecated: use IdentityLabelRule instead. The existing SAMLLabelRules are migrated to IdentityLabelRules on startup, and this type is kept only for that migration.
 type SAMLLabelRule = typed.Resource[SAMLLabelRuleSpec, SAMLLabelRuleExtension]
 
 // SAMLLabelRuleSpec wraps specs.SAMLLabelRuleSpec.

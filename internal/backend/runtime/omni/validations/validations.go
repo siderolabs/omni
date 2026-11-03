@@ -35,7 +35,7 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		exposedServiceValidationOptions(),
 		configPatchValidationOptions(st),
 		etcdManualBackupValidationOptions(),
-		samlLabelRuleValidationOptions(),
+		identityLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
 		machineRequestSetValidationOptions(st),
 		infraMachineConfigValidationOptions(st),

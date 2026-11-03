@@ -519,7 +519,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.PublicKeyLastActiveType,
 		authres.UserType,
 		authres.ServiceAccountStatusType,
-		authres.SAMLLabelRuleType,
+		authres.IdentityLabelRuleType,
 		authres.AccessPolicyType,
 		omni.EtcdBackupS3ConfType,
 		infra.ProviderType,

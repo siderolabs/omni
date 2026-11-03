@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -407,6 +408,73 @@ func (suite *MigrationSuite) TestChangeImageFactoryAuthOwner() {
 
 	suite.Assert().Equal(imagefactory.AuthControllerName, untouched.Metadata().Owner())
 	suite.Assert().Equal(alreadyOwned.Metadata().Version(), untouched.Metadata().Version())
+}
+
+func (suite *MigrationSuite) TestMigrateSAMLLabelRulesToIdentityLabelRules() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	current := authres.NewSAMLLabelRule("current") //nolint:staticcheck
+	current.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/admins"}
+	current.TypedSpec().Value.AssignRole = string(role.Operator)
+	current.TypedSpec().Value.UpdateOnEachLogin = true
+
+	suite.Require().NoError(suite.state.Create(ctx, current))
+
+	legacy := authres.NewSAMLLabelRule("legacy") //nolint:staticcheck
+	legacy.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/readers"}
+	legacy.TypedSpec().Value.AssignRoleOnRegistration = string(role.Reader) //nolint:staticcheck
+
+	suite.Require().NoError(suite.state.Create(ctx, legacy))
+
+	// an owner and a finalizer must not block the migration
+	owned := authres.NewSAMLLabelRule("owned") //nolint:staticcheck
+	owned.TypedSpec().Value.AssignRole = string(role.Admin)
+	owned.Metadata().Finalizers().Add("SomeController")
+	suite.Require().NoError(owned.Metadata().SetOwner("SomeController"))
+
+	suite.Require().NoError(suite.state.Create(ctx, owned, state.WithCreateOwner("SomeController")))
+
+	// a rule being torn down is destroyed, not carried over
+	tearingDown := authres.NewSAMLLabelRule("tearing-down") //nolint:staticcheck
+	tearingDown.TypedSpec().Value.AssignRole = string(role.Admin)
+	tearingDown.Metadata().Finalizers().Add("SomeController")
+
+	suite.Require().NoError(suite.state.Create(ctx, tearingDown))
+
+	_, err := suite.state.Teardown(ctx, tearingDown.Metadata())
+	suite.Require().NoError(err)
+
+	suite.manager.SetFilter(filterWith("migrateSAMLLabelRulesToIdentityLabelRules"))
+
+	_, err = suite.manager.Run(ctx)
+	suite.Require().NoError(err)
+
+	migratedCurrent, err := safe.ReaderGetByID[*authres.IdentityLabelRule](ctx, suite.state, "current")
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal([]string{"saml.omni.sidero.dev/role/admins"}, migratedCurrent.TypedSpec().Value.MatchLabels)
+	suite.Assert().Equal(string(role.Operator), migratedCurrent.TypedSpec().Value.AssignRole)
+	suite.Assert().True(migratedCurrent.TypedSpec().Value.UpdateOnEachLogin)
+
+	migratedLegacy, err := safe.ReaderGetByID[*authres.IdentityLabelRule](ctx, suite.state, "legacy")
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal(string(role.Reader), migratedLegacy.TypedSpec().Value.AssignRole)
+	suite.Assert().False(migratedLegacy.TypedSpec().Value.UpdateOnEachLogin)
+
+	migratedOwned, err := safe.ReaderGetByID[*authres.IdentityLabelRule](ctx, suite.state, "owned")
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal(string(role.Admin), migratedOwned.TypedSpec().Value.AssignRole)
+
+	_, err = safe.ReaderGetByID[*authres.IdentityLabelRule](ctx, suite.state, "tearing-down")
+	suite.Assert().True(state.IsNotFoundError(err))
+
+	samlLabelRules, err := safe.ReaderListAll[*authres.SAMLLabelRule](ctx, suite.state) //nolint:staticcheck
+	suite.Require().NoError(err)
+
+	suite.Assert().Zero(samlLabelRules.Len())
 }
 
 func (suite *MigrationSuite) TestDropSchematicResource() {

@@ -222,33 +222,33 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 	}
 }
 
-func TestRoleInSAMLLabelRules(t *testing.T) {
+func TestRoleInIdentityLabelRules(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
-	operatorRoleToDeveloper := auth.NewSAMLLabelRule("assign-operator-to-developer")
+	operatorRoleToDeveloper := auth.NewIdentityLabelRule("assign-operator-to-developer")
 
 	operatorRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
 	operatorRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Operator)
 
-	readerRoleToDeveloper := auth.NewSAMLLabelRule("assign-reader-to-developer")
+	readerRoleToDeveloper := auth.NewIdentityLabelRule("assign-reader-to-developer")
 
 	readerRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
 	readerRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Reader)
 
-	adminRoleToManager := auth.NewSAMLLabelRule("assign-admin-to-manager")
+	adminRoleToManager := auth.NewIdentityLabelRule("assign-admin-to-manager")
 
 	adminRoleToManager.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/manager"}
 	adminRoleToManager.TypedSpec().Value.AssignRole = string(role.Admin)
 
-	invalidRoleToFoobar := auth.NewSAMLLabelRule("assign-invalid-role-to-foobar")
+	invalidRoleToFoobar := auth.NewIdentityLabelRule("assign-invalid-role-to-foobar")
 
 	invalidRoleToFoobar.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/foobar"}
 	invalidRoleToFoobar.TypedSpec().Value.AssignRole = "invalid-role"
 
 	// match the role in the rules with the highest access level
 
-	matchedRole := saml.MatchSAMLLabelRule(
-		[]*auth.SAMLLabelRule{operatorRoleToDeveloper, readerRoleToDeveloper, adminRoleToManager, invalidRoleToFoobar},
+	matchedRole := saml.MatchIdentityLabelRule(
+		[]*auth.IdentityLabelRule{operatorRoleToDeveloper, readerRoleToDeveloper, adminRoleToManager, invalidRoleToFoobar},
 		map[string]string{
 			"saml.omni.sidero.dev/role/developer": "",
 		}, logger,
@@ -256,7 +256,7 @@ func TestRoleInSAMLLabelRules(t *testing.T) {
 
 	require.EqualValues(t, matchedRole.TypedSpec().Value.AssignRole, role.Operator)
 
-	matchedRole = saml.MatchSAMLLabelRule([]*auth.SAMLLabelRule{operatorRoleToDeveloper, invalidRoleToFoobar, adminRoleToManager}, map[string]string{
+	matchedRole = saml.MatchIdentityLabelRule([]*auth.IdentityLabelRule{operatorRoleToDeveloper, invalidRoleToFoobar, adminRoleToManager}, map[string]string{
 		"saml.omni.sidero.dev/role/manager": "",
 	}, logger)
 
@@ -264,7 +264,7 @@ func TestRoleInSAMLLabelRules(t *testing.T) {
 
 	// if the role in the rule is invalid, log it and return None
 
-	matchedRole = saml.MatchSAMLLabelRule([]*auth.SAMLLabelRule{invalidRoleToFoobar}, map[string]string{
+	matchedRole = saml.MatchIdentityLabelRule([]*auth.IdentityLabelRule{invalidRoleToFoobar}, map[string]string{
 		"saml.omni.sidero.dev/role/foobar": "",
 	}, logger)
 
@@ -279,17 +279,17 @@ func TestRoleCompare(t *testing.T) {
 	require.Equal(t, -1, role.Operator.Compare(role.Admin))
 }
 
-func TestMatchSAMLLabelRuleNone(t *testing.T) {
+func TestMatchIdentityLabelRuleNone(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
-	noneRoleToInactive := auth.NewSAMLLabelRule("assign-none-to-inactive")
+	noneRoleToInactive := auth.NewIdentityLabelRule("assign-none-to-inactive")
 	noneRoleToInactive.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-none"}
 	noneRoleToInactive.TypedSpec().Value.AssignRole = string(role.None)
 	noneRoleToInactive.TypedSpec().Value.UpdateOnEachLogin = true
 
 	// None role rule should be returned (not nil)
-	matchedRule := saml.MatchSAMLLabelRule(
-		[]*auth.SAMLLabelRule{noneRoleToInactive},
+	matchedRule := saml.MatchIdentityLabelRule(
+		[]*auth.IdentityLabelRule{noneRoleToInactive},
 		map[string]string{
 			"saml.omni.sidero.dev/role/omni-none": "",
 		}, logger,
@@ -300,20 +300,20 @@ func TestMatchSAMLLabelRuleNone(t *testing.T) {
 	require.True(t, matchedRule.TypedSpec().Value.UpdateOnEachLogin)
 }
 
-func TestMatchSAMLLabelRuleNoneWithHigherRulePresent(t *testing.T) {
+func TestMatchIdentityLabelRuleNoneWithHigherRulePresent(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
-	noneRule := auth.NewSAMLLabelRule("assign-none")
+	noneRule := auth.NewIdentityLabelRule("assign-none")
 	noneRule.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-none"}
 	noneRule.TypedSpec().Value.AssignRole = string(role.None)
 
-	readerRule := auth.NewSAMLLabelRule("assign-reader")
+	readerRule := auth.NewIdentityLabelRule("assign-reader")
 	readerRule.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-reader"}
 	readerRule.TypedSpec().Value.AssignRole = string(role.Reader)
 
 	// User with only None label → returns None rule
-	matchedRule := saml.MatchSAMLLabelRule(
-		[]*auth.SAMLLabelRule{noneRule, readerRule},
+	matchedRule := saml.MatchIdentityLabelRule(
+		[]*auth.IdentityLabelRule{noneRule, readerRule},
 		map[string]string{
 			"saml.omni.sidero.dev/role/omni-none": "",
 		}, logger,
@@ -323,8 +323,8 @@ func TestMatchSAMLLabelRuleNoneWithHigherRulePresent(t *testing.T) {
 	require.EqualValues(t, matchedRule.TypedSpec().Value.AssignRole, role.None)
 
 	// User with both labels → Reader wins (highest role)
-	matchedRule = saml.MatchSAMLLabelRule(
-		[]*auth.SAMLLabelRule{noneRule, readerRule},
+	matchedRule = saml.MatchIdentityLabelRule(
+		[]*auth.IdentityLabelRule{noneRule, readerRule},
 		map[string]string{
 			"saml.omni.sidero.dev/role/omni-none":   "",
 			"saml.omni.sidero.dev/role/omni-reader": "",
@@ -352,7 +352,7 @@ func setupEnsureUser(ctx context.Context, t *testing.T, assignRole role.Role, up
 		require.NoError(t, user.Ensure(ctx, st, email, role.Admin, false))
 	}
 
-	rule := auth.NewSAMLLabelRule("assign-to-developer")
+	rule := auth.NewIdentityLabelRule("assign-to-developer")
 	rule.TypedSpec().Value.MatchLabels = []string{developerLabel}
 	rule.TypedSpec().Value.AssignRole = string(assignRole)
 	rule.TypedSpec().Value.UpdateOnEachLogin = updateOnEachLogin

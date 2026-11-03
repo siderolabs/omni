@@ -174,8 +174,7 @@ message AccessPolicySpec {
    repeated AccessPolicyTest tests = 4;
 }
 
-// SAMLLabelRuleSpec describes a rule on how to map Identity labels to Omni roles.
-//
+// SAMLLabelRuleSpec is the spec of the SAMLLabelRule resource, which is replaced by IdentityLabelRule.
 message SAMLLabelRuleSpec {
   // MatchLabels is the list of labels to match the user's Identity against this rule.
   repeated string match_labels = 1;
@@ -190,6 +189,18 @@ message SAMLLabelRuleSpec {
 
   // UpdateOnEachLogin makes the rule to be applied every time user logs in.
   bool update_on_each_login = 4;
+}
+
+// IdentityLabelRuleSpec describes a rule on how to map Identity labels to Omni roles.
+message IdentityLabelRuleSpec {
+  // MatchLabels is the list of labels to match the user's Identity against this rule.
+  repeated string match_labels = 1;
+
+  // AssignRole to the user matched by this rule.
+  string assign_role = 2;
+
+  // UpdateOnEachLogin makes the rule to be applied every time user logs in.
+  bool update_on_each_login = 3;
 }
 
 // IdentityLastActiveSpec tracks the last time a user or service account was active.

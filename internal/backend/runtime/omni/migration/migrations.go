@@ -618,3 +618,49 @@ func machineInstallDiskConfigsFromPatches(ctx context.Context, st state.State, l
 
 	return nil
 }
+
+// migrateSAMLLabelRulesToIdentityLabelRules replaces every SAMLLabelRule with an IdentityLabelRule of the same ID, as the rules apply to the labels of both SAML and OIDC logins.
+func migrateSAMLLabelRulesToIdentityLabelRules(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	samlLabelRules, err := safe.ReaderListAll[*authres.SAMLLabelRule](ctx, st) //nolint:staticcheck // the deprecated type is read only to migrate it
+	if err != nil {
+		return err
+	}
+
+	for samlLabelRule := range samlLabelRules.All() {
+		md := samlLabelRule.Metadata()
+
+		// a rule being torn down is only destroyed, not carried over
+		if md.Phase() == resource.PhaseRunning {
+			spec := samlLabelRule.TypedSpec().Value
+
+			identityLabelRule := authres.NewIdentityLabelRule(md.ID())
+			identityLabelRule.TypedSpec().Value.MatchLabels = spec.MatchLabels
+			identityLabelRule.TypedSpec().Value.AssignRole = spec.AssignRole
+			identityLabelRule.TypedSpec().Value.UpdateOnEachLogin = spec.UpdateOnEachLogin
+
+			// rules created before AssignRole existed have the role only in the deprecated field
+			if identityLabelRule.TypedSpec().Value.AssignRole == "" {
+				identityLabelRule.TypedSpec().Value.AssignRole = spec.AssignRoleOnRegistration //nolint:staticcheck // the deprecated field is read only to migrate it
+			}
+
+			// a conflict means a previous interrupted run already created the rule
+			if err = st.Create(ctx, identityLabelRule); err != nil && !state.IsConflictError(err) {
+				return fmt.Errorf("failed to create the IdentityLabelRule %q: %w", md.ID(), err)
+			}
+		}
+
+		if finalizers := *md.Finalizers(); len(finalizers) > 0 {
+			if err = st.RemoveFinalizer(ctx, md, finalizers...); err != nil && !state.IsNotFoundError(err) {
+				return fmt.Errorf("failed to remove the finalizers of the SAMLLabelRule %q: %w", md.ID(), err)
+			}
+		}
+
+		if err = st.Destroy(ctx, md, state.WithDestroyOwner(md.Owner())); err != nil && !state.IsNotFoundError(err) {
+			return fmt.Errorf("failed to destroy the SAMLLabelRule %q: %w", md.ID(), err)
+		}
+
+		logger.Info("migrated the SAMLLabelRule to an IdentityLabelRule", zap.String("id", md.ID()))
+	}
+
+	return nil
+}

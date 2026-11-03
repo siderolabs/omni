@@ -579,6 +579,29 @@ func (m *SAMLLabelRuleSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *IdentityLabelRuleSpec) CloneVT() *IdentityLabelRuleSpec {
+	if m == nil {
+		return (*IdentityLabelRuleSpec)(nil)
+	}
+	r := new(IdentityLabelRuleSpec)
+	r.AssignRole = m.AssignRole
+	r.UpdateOnEachLogin = m.UpdateOnEachLogin
+	if rhs := m.MatchLabels; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.MatchLabels = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *IdentityLabelRuleSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *IdentityLastActiveSpec) CloneVT() *IdentityLastActiveSpec {
 	if m == nil {
 		return (*IdentityLastActiveSpec)(nil)
@@ -1451,6 +1474,37 @@ func (this *SAMLLabelRuleSpec) EqualVT(that *SAMLLabelRuleSpec) bool {
 
 func (this *SAMLLabelRuleSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*SAMLLabelRuleSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *IdentityLabelRuleSpec) EqualVT(that *IdentityLabelRuleSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.MatchLabels) != len(that.MatchLabels) {
+		return false
+	}
+	for i, vx := range this.MatchLabels {
+		vy := that.MatchLabels[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.AssignRole != that.AssignRole {
+		return false
+	}
+	if this.UpdateOnEachLogin != that.UpdateOnEachLogin {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *IdentityLabelRuleSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*IdentityLabelRuleSpec)
 	if !ok {
 		return false
 	}
@@ -3078,6 +3132,65 @@ func (m *SAMLLabelRuleSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *IdentityLabelRuleSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IdentityLabelRuleSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *IdentityLabelRuleSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdateOnEachLogin {
+		i--
+		if m.UpdateOnEachLogin {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.AssignRole) > 0 {
+		i -= len(m.AssignRole)
+		copy(dAtA[i:], m.AssignRole)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssignRole)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.MatchLabels) > 0 {
+		for iNdEx := len(m.MatchLabels) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.MatchLabels[iNdEx])
+			copy(dAtA[i:], m.MatchLabels[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.MatchLabels[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *IdentityLastActiveSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3949,6 +4062,29 @@ func (m *SAMLLabelRuleSpec) SizeVT() (n int) {
 	l = len(m.AssignRoleOnRegistration)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AssignRole)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.UpdateOnEachLogin {
+		n += 2
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *IdentityLabelRuleSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.MatchLabels) > 0 {
+		for _, s := range m.MatchLabels {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	l = len(m.AssignRole)
 	if l > 0 {
@@ -7847,6 +7983,141 @@ func (m *SAMLLabelRuleSpec) UnmarshalVT(dAtA []byte) error {
 			m.AssignRole = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateOnEachLogin", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UpdateOnEachLogin = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *IdentityLabelRuleSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IdentityLabelRuleSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IdentityLabelRuleSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MatchLabels", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MatchLabels = append(m.MatchLabels, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssignRole", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AssignRole = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UpdateOnEachLogin", wireType)
 			}

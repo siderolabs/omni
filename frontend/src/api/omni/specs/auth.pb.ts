@@ -154,6 +154,12 @@ export type SAMLLabelRuleSpec = {
   update_on_each_login?: boolean
 }
 
+export type IdentityLabelRuleSpec = {
+  match_labels?: string[]
+  assign_role?: string
+  update_on_each_login?: boolean
+}
+
 export type IdentityLastActiveSpec = {
   last_active?: GoogleProtobufTimestamp.Timestamp
 }

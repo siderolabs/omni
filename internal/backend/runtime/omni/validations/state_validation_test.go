@@ -1906,16 +1906,16 @@ func TestEtcdBackupValidation(t *testing.T) {
 	require.NoError(t, st.Create(ctx, backup))
 }
 
-func TestSAMLLabelRuleValidation(t *testing.T) {
+func TestIdentityLabelRuleValidation(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, validations.SAMLLabelRuleValidationOptions()...)
+	st := validated.NewState(innerSt, validations.IdentityLabelRuleValidationOptions()...)
 
-	labelRule := auth.NewSAMLLabelRule("test-label-rule")
+	labelRule := auth.NewIdentityLabelRule("test-label-rule")
 	labelRule.TypedSpec().Value.AssignRole = "invalid"
 	labelRule.TypedSpec().Value.MatchLabels = []string{"--invalid--- ===== 5"}
 
@@ -1923,20 +1923,20 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "unknown role")
 	assert.ErrorContains(t, err, "invalid match labels")
 
-	// roles that parse but must not be reachable through a SAML label rule. This fails open if the
+	// roles that parse but must not be reachable through an identity label rule. This fails open if the
 	// assignability check is dropped, since both parse successfully.
 	for _, r := range []role.Role{role.Auditor, role.InfraProvider} {
 		labelRule.TypedSpec().Value.AssignRole = string(r)
 
 		err = st.Create(ctx, labelRule)
-		assert.ErrorContains(t, err, "cannot be assigned by a SAML label rule", "role %q", r)
+		assert.ErrorContains(t, err, "cannot be assigned by an identity label rule", "role %q", r)
 	}
 
 	labelRule.TypedSpec().Value.AssignRole = string(role.Operator)
 
 	err = st.Create(ctx, labelRule)
 	assert.ErrorContains(t, err, "invalid match labels")
-	assert.NotContains(t, err.Error(), "cannot be assigned by a SAML label rule")
+	assert.NotContains(t, err.Error(), "cannot be assigned by an identity label rule")
 
 	labelRule.TypedSpec().Value.MatchLabels = []string{"a", "b"}
 

@@ -49,8 +49,8 @@ func EtcdManualBackupValidationOptions() []validated.StateOption {
 	return etcdManualBackupValidationOptions()
 }
 
-func SAMLLabelRuleValidationOptions() []validated.StateOption {
-	return samlLabelRuleValidationOptions()
+func IdentityLabelRuleValidationOptions() []validated.StateOption {
+	return identityLabelRuleValidationOptions()
 }
 
 func S3ConfigValidationOptions() []validated.StateOption {

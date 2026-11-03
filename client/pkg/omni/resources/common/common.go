@@ -23,7 +23,7 @@ import (
 // ManagementService.CreateJoinToken) do not belong here.
 var UserManagedResourceTypes = []resource.Type{
 	authres.AccessPolicyType,
-	authres.SAMLLabelRuleType,
+	authres.IdentityLabelRuleType,
 	siderolink.DefaultJoinTokenType,
 	siderolink.GRPCTunnelConfigType,
 	omni.ClusterType,

@@ -11,8 +11,8 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 )
 
-// MatchSAMLLabelRule is exported for testing.
-var MatchSAMLLabelRule = user.MatchSAMLLabelRule
+// MatchIdentityLabelRule is exported for testing.
+var MatchIdentityLabelRule = user.MatchIdentityLabelRule
 
 // EnsureUser exposes the user sync to the external test package.
 func (sp *SessionProvider) EnsureUser(ctx context.Context, email string, samlLabels map[string]string) error {

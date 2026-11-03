@@ -77,14 +77,14 @@ func WithExactRoles(roles ...role.Role) CheckOption {
 	}
 }
 
-// policyAssignableRoles are the roles an access policy or a SAML label rule may assign.
+// policyAssignableRoles are the roles an access policy or an identity label rule may assign.
 //
 // This is an allowlist rather than a denylist so that a newly added role is unassignable until someone
 // deliberately allows it. Auditor is absent because audit log access is not expressible as a point on the
 // role ordering, and InfraProvider because it is a service identity rather than a user role.
 var policyAssignableRoles = []role.Role{role.None, role.Reader, role.Operator, role.Admin}
 
-// RoleAssignableByPolicy reports whether an access policy or a SAML label rule may assign the role.
+// RoleAssignableByPolicy reports whether an access policy or an identity label rule may assign the role.
 func RoleAssignableByPolicy(r role.Role) bool {
 	return slices.Contains(policyAssignableRoles, r)
 }

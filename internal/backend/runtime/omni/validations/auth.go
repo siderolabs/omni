@@ -161,19 +161,15 @@ func accountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 	}
 }
 
-func samlLabelRuleValidationOptions() []validated.StateOption {
-	validate := func(res *authres.SAMLLabelRule) error {
+func identityLabelRuleValidationOptions() []validated.StateOption {
+	validate := func(res *authres.IdentityLabelRule) error {
 		var multiErr error
-
-		if res.TypedSpec().Value.AssignRoleOnRegistration != "" { //nolint:staticcheck
-			return fmt.Errorf("assignroleonregistration is deprecated, please use assignrole instead")
-		}
 
 		parsedRole, err := role.Parse(res.TypedSpec().Value.AssignRole)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 		} else if !auth.RoleAssignableByPolicy(parsedRole) {
-			multiErr = multierror.Append(multiErr, fmt.Errorf("role %q cannot be assigned by a SAML label rule", parsedRole))
+			multiErr = multierror.Append(multiErr, fmt.Errorf("role %q cannot be assigned by an identity label rule", parsedRole))
 		}
 
 		if _, err := labels.ParseSelectors(res.TypedSpec().Value.GetMatchLabels()); err != nil {
@@ -184,10 +180,10 @@ func samlLabelRuleValidationOptions() []validated.StateOption {
 	}
 
 	return []validated.StateOption{
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.SAMLLabelRule, _ ...state.CreateOption) error {
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *authres.IdentityLabelRule, _ ...state.CreateOption) error {
 			return validate(res)
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _ *authres.SAMLLabelRule, newRes *authres.SAMLLabelRule, _ ...state.UpdateOption) error {
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _ *authres.IdentityLabelRule, newRes *authres.IdentityLabelRule, _ ...state.UpdateOption) error {
 			return validate(newRes)
 		})),
 	}

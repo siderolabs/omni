@@ -317,6 +317,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: changeImageFactoryAuthOwner,
 				name:     "changeImageFactoryAuthOwner",
 			},
+			{
+				callback: migrateSAMLLabelRulesToIdentityLabelRules,
+				name:     "migrateSAMLLabelRulesToIdentityLabelRules",
+			},
 		},
 	}
 }

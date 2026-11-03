@@ -857,7 +857,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		identity := authres.NewIdentity(uuid.New().String())
 		accessPolicy := authres.NewAccessPolicy()
-		samlLabelRule := authres.NewSAMLLabelRule(uuid.New().String())
+		identityLabelRule := authres.NewIdentityLabelRule(uuid.New().String())
 		cluster := omni.NewCluster(uuid.New().String())
 		cluster.TypedSpec().Value.TalosVersion = "1.2.2"
 		configPatch := omni.NewConfigPatch(uuid.New().String())
@@ -915,7 +915,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isDestroyNotAllowed: true,
 			},
 			{
-				resource:       samlLabelRule,
+				resource:       identityLabelRule,
 				allowedVerbSet: allVerbsSet,
 				isAdminOnly:    true,
 			},
@@ -1463,6 +1463,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: authres.NewSAMLAssertion(uuid.New().String()),
+			},
+			{
+				resource: authres.NewSAMLLabelRule(uuid.New().String()), //nolint:staticcheck // the deprecated type must stay inaccessible
 			},
 			{
 				resource: omni.NewClusterMachineEncryptionKey(uuid.New().String()),

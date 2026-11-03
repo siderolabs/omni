@@ -137,6 +137,16 @@ By default, OIDC users are still not created on their first login. To create the
 The labels are shown in the users list of the UI and in `omnictl user list`.
 """
 
+[notes.identity-label-rules]
+title = "Identity Label Rules"
+description = """\
+`SAMLLabelRule` resources are replaced by `IdentityLabelRule` resources (`IdentityLabelRules.omni.sidero.dev`), as the rules assign roles \
+from the labels of both SAML and OIDC logins. Omni migrates the existing rules on startup and keeps their IDs. `SAMLLabelRules` can no \
+longer be read or written, so manifests and scripts that use them need to switch to the new type.
+
+The deprecated `assignroleonregistration` field is removed. The migration moves its value to `assignrole` on the rules that still use it.
+"""
+
 [notes.saml-request-signing]
 title = "Signed SAML Requests"
 description = """\
