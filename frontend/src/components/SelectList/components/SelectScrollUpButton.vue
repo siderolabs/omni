@@ -22,8 +22,10 @@ const forwarded = useForwardProps(delegatedProps)
     v-bind="forwarded"
     :class="
       cn(
+        // No z-index on the button itself, so it doesn't form a stacking context: the gradient
+        // (z-5) sits below sticky group labels (z-10), while the icon (z-20) stays above them.
         // eslint-disable-next-line design-system/no-off-menu-spacing --arrow-size is on system
-        'z-10 -mb-(--arrow-size) bg-linear-to-b from-surface-raised from-25% to-transparent',
+        'relative -mb-(--arrow-size) *:relative *:z-20 before:absolute before:inset-0 before:z-5 before:bg-linear-to-b before:from-surface-raised before:from-25% before:to-transparent',
         props.class,
       )
     "

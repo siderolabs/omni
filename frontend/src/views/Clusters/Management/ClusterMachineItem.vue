@@ -317,8 +317,8 @@ const onSavePatchConfig = (config: string) => {
 <template>
   <TListItem>
     <template #default>
-      <div class="flex items-center text-content-default">
-        <span class="grow truncate pr-tight font-bold">
+      <div class="flex items-center gap-snug text-content-default">
+        <span class="grow truncate font-bold">
           <WordHighlighter
             :query="searchQuery ?? ''"
             :text-to-highlight="machineName"
@@ -327,24 +327,26 @@ const onSavePatchConfig = (config: string) => {
           />
         </span>
 
-        <template v-if="machineSetIndex !== undefined">
-          <Tooltip :description="installDiskStatus?.spec.message" placement="bottom">
-            <div
-              v-if="systemDiskPath"
-              class="cursor-not-allowed rounded border border-border-strong py-tight pr-section pl-snug text-content-secondary"
-            >
-              Install Disk: {{ systemDiskPath }}
-            </div>
-            <div v-else>
-              <TSelectList
-                v-model="selectedInstallDisk"
-                class="h-7"
-                title="Install Disk"
-                :values="disks"
-              />
-            </div>
-          </Tooltip>
-        </template>
+        <Tooltip
+          v-if="machineSetIndex !== undefined"
+          :description="installDiskStatus?.spec.message"
+          placement="bottom"
+        >
+          <div
+            v-if="systemDiskPath"
+            class="cursor-not-allowed rounded border border-border-strong py-tight pr-section pl-snug text-content-secondary"
+          >
+            Install Disk: {{ systemDiskPath }}
+          </div>
+
+          <TSelectList
+            v-else
+            v-model="selectedInstallDisk"
+            class="h-7"
+            title="Install Disk"
+            :values="disks"
+          />
+        </Tooltip>
 
         <MachineSetPicker v-model="machineSetIndex" :options="options" />
 

@@ -58,10 +58,6 @@ export default defineConfig(({ command }) => {
       },
     },
     server: {
-      // Fix for 1Password mounted .env causing infinite reloads
-      watch: {
-        ignored: ['**/.env', '**/.env.*'],
-      },
       port: 8121,
       // Set HOST env to "true" or 0.0.0.0 to listen on all interfaces
       host: process.env.HOST === 'true' || process.env.HOST || '127.0.0.1',

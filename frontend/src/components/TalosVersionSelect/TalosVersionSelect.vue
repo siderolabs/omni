@@ -204,7 +204,10 @@ function isItemEnterprise(item?: string) {
               :key="group.label ?? index"
               class="not-first:mt-tight"
             >
-              <SelectGroupLabel v-if="group.label">
+              <SelectGroupLabel
+                v-if="group.label"
+                class="after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-(--arrow-size) after:bg-linear-to-b after:from-surface-raised after:to-transparent"
+              >
                 {{ group.label }}
               </SelectGroupLabel>
 
