@@ -42,13 +42,30 @@ function palette(read: (property: string) => string) {
   ) as Palette
 }
 
+function hexChannel(value: number) {
+  return Math.round(value).toString(16).padStart(2, '0')
+}
+
+/**
+ * Converts the design system's `rgba()` tokens (the translucent borders) to
+ * `#rrggbbaa`, passing hex through. Monaco only parses hex and silently turns
+ * anything else into red.
+ */
+function toHex(colour: string) {
+  const [r, g, b, a = 1] =
+    colour
+      .match(/^rgba?\((.*)\)$/)?.[1]
+      .split(/[\s,/]+/)
+      .map(Number) ?? []
+
+  if (r === undefined || g === undefined || b === undefined) return colour
+
+  return `#${[r, g, b, a * 255].map(hexChannel).join('')}`
+}
+
 /** Appends an alpha channel to a `#rrggbb` colour, for Monaco's hex-only colours. */
 function withAlpha(hex: string, alpha: number) {
-  const channel = Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, '0')
-
-  return `${hex}${channel}`
+  return `${hex.slice(0, 7)}${hexChannel(alpha * 255)}`
 }
 
 /**
@@ -131,7 +148,7 @@ export function createOmniShikiTheme(): ThemeRegistration {
 export function createOmniMonacoTheme(theme: Theme): monaco.editor.IStandaloneThemeData {
   const styles = getComputedStyle(document.documentElement)
   const { key, scalar, constant, keyword, muted, comment, invalid, ...chrome } = palette(
-    (property) => styles.getPropertyValue(property).trim(),
+    (property) => toHex(styles.getPropertyValue(property).trim()),
   )
 
   return {

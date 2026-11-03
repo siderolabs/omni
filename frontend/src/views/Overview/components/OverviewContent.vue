@@ -510,7 +510,7 @@ const machineLockedForSecretRotation = computed(() => {
         <div class="flex px-base pb-compact">
           <span class="text-sm text-content-default">Machines</span>
         </div>
-        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)]">
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-snug">
           <ClusterMachines is-subgrid :cluster-i-d="clusterId" />
         </div>
       </div>
