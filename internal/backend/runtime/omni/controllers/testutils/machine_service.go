@@ -143,7 +143,7 @@ func NewMachineServiceMock(ctx context.Context, t *testing.T, id string, omniSta
 		omniState:              omniState,
 	}
 	lifecycleService := &lifecycleServiceMock{ms: machineService}
-	imageService := &imageServiceMock{}
+	imageService := &imageServiceMock{ms: machineService}
 
 	resourceState := server.NewState(machineService.State)
 
@@ -199,6 +199,7 @@ type MachineServiceMock struct {
 	lifecycleInstallHandler func(*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error
 	lifecycleUpgradeHandler func(*machine.LifecycleServiceUpgradeRequest, grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error
 	rebootHandler           func() error
+	imagePullHandler        func(*machine.ImageServicePullRequest) error
 
 	lifecycleInstallRequests []*machine.LifecycleServiceInstallRequest
 	lifecycleUpgradeRequests []*machine.LifecycleServiceUpgradeRequest
@@ -493,10 +494,27 @@ func (l *lifecycleServiceMock) Upgrade(req *machine.LifecycleServiceUpgradeReque
 
 type imageServiceMock struct {
 	machine.UnimplementedImageServiceServer
+	ms *MachineServiceMock
 }
 
-func (imageServiceMock) Pull(*machine.ImageServicePullRequest, grpc.ServerStreamingServer[machine.ImageServicePullResponse]) error {
+func (i *imageServiceMock) Pull(req *machine.ImageServicePullRequest, _ grpc.ServerStreamingServer[machine.ImageServicePullResponse]) error {
+	i.ms.lock.Lock()
+	handler := i.ms.imagePullHandler
+	i.ms.lock.Unlock()
+
+	if handler != nil {
+		return handler(req)
+	}
+
 	return nil
+}
+
+// SetImagePullHandler sets the handler for ImageService.Pull.
+func (ms *MachineServiceMock) SetImagePullHandler(handler func(*machine.ImageServicePullRequest) error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.imagePullHandler = handler
 }
 
 // SetLifecycleInstallHandler sets the handler for LifecycleService.Install. The handler gets the

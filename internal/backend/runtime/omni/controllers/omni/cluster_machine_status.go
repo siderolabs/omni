@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -69,6 +70,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				}
 
 				cmsVal := clusterMachineStatus.TypedSpec().Value
+				cmsVal.Operation = nil
 
 				machineStatus, err := safe.ReaderGet[*omni.MachineStatus](
 					ctx, r,
@@ -234,6 +236,20 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					cmsVal.Stage = specs.ClusterMachineStatusSpec_POWERING_ON
 				}
 
+				machineOperationStatus, err := safe.ReaderGetByID[*omni.MachineOperationStatus](ctx, r, clusterMachine.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if !slices.Contains([]specs.ClusterMachineStatusSpec_Stage{
+					specs.ClusterMachineStatusSpec_DESTROYING,
+					specs.ClusterMachineStatusSpec_SHUTTING_DOWN,
+					specs.ClusterMachineStatusSpec_POWERED_OFF,
+					specs.ClusterMachineStatusSpec_POWERING_ON,
+				}, cmsVal.Stage) {
+					cmsVal.Operation = machineOperation(machineOperationStatus, clusterMachineConfigStatus, statusSnapshot, cmsVal.LastConfigError)
+				}
+
 				clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(
 					clusterMachineStatus.Metadata().ID(),
 				).Metadata())
@@ -276,6 +292,9 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*omni.MachinePendingUpdates](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.MachineOperationStatus](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
@@ -324,6 +343,53 @@ func updateMachineProvisionStatus(ctx context.Context, r controller.Reader, mach
 	}
 
 	return nil
+}
+
+// machineOperation returns the operation Omni runs on the machine, or nil if there is none.
+func machineOperation(
+	operationStatus *omni.MachineOperationStatus,
+	configStatus *omni.ClusterMachineConfigStatus,
+	statusSnapshot *omni.MachineStatusSnapshot,
+	lastConfigError string,
+) *specs.ClusterMachineStatusSpec_Operation {
+	operation := &specs.ClusterMachineStatusSpec_Operation{}
+
+	var configStatusSpec *specs.ClusterMachineConfigStatusSpec
+	if configStatus != nil {
+		configStatusSpec = configStatus.TypedSpec().Value
+	}
+
+	preRebootBootID := configStatusSpec.GetPreRebootBootId()
+	bootID := statusSnapshot.TypedSpec().Value.BootId
+
+	switch {
+	case operationStatus != nil && operationStatus.TypedSpec().Value.Phase != specs.MachineOperationPhase_NONE:
+		operation.Phase = operationStatus.TypedSpec().Value.Phase
+		operation.Message = operationStatus.TypedSpec().Value.Message
+		operation.PhaseStartedAt = operationStatus.TypedSpec().Value.PhaseStartedAt
+	case preRebootBootID != "" && (bootID == "" || bootID == preRebootBootID):
+		operation.Phase = specs.MachineOperationPhase_REBOOTING
+	case preRebootBootID != "":
+		operation.Phase = specs.MachineOperationPhase_FINALIZING
+	case configStatusSpec.GetConfigTry().GetStartedAt() != nil && configStatusSpec.GetLastConfigError() == "":
+		operation.Phase = specs.MachineOperationPhase_TRYING_CONFIG
+		operation.PhaseStartedAt = configStatusSpec.GetConfigTry().GetStartedAt()
+		operation.ConfigTryAttempt = configStatusSpec.GetConfigTry().GetAttempts()
+	}
+
+	switch {
+	case lastConfigError != "" && configStatusSpec.GetLastConfigErrorPhase() != specs.MachineOperationPhase_NONE:
+		operation.FailedPhase = configStatusSpec.GetLastConfigErrorPhase()
+	case operationStatus != nil && operationStatus.TypedSpec().Value.LastError != "" && preRebootBootID != "":
+		operation.LastError = operationStatus.TypedSpec().Value.LastError
+		operation.FailedPhase = operationStatus.TypedSpec().Value.FailedPhase
+	}
+
+	if operation.Phase == specs.MachineOperationPhase_NONE && operation.FailedPhase == specs.MachineOperationPhase_NONE {
+		return nil
+	}
+
+	return operation
 }
 
 // configApplyStatus returns the config apply status for the given cluster machine status spec.

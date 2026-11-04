@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useClipboard } from '@vueuse/core'
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import prettyBytes from 'pretty-bytes'
 import { computed, useId } from 'vue'
@@ -39,9 +40,11 @@ import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { machineOperationPhaseName } from '@/methods/machineOperation'
 import { formatFullDateTime } from '@/methods/time'
 import { useTitle } from '@/methods/title'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
@@ -59,6 +62,19 @@ const { clusterMachine } = defineProps<{
 }>()
 
 const route = useRoute()
+
+const operation = computed(() => {
+  const phase = machineOperationPhaseName(clusterMachine.spec.operation?.phase)
+  if (!phase) {
+    return undefined
+  }
+
+  const message = clusterMachine.spec.operation?.message
+
+  return message ? `${phase}: ${message}` : phase
+})
+
+const { copy: copyOperation, copied: operationCopied } = useClipboard({ copiedDuring: 1000 })
 const context = computed(() => ({
   cluster: route.params.cluster,
   node: route.params.machine,
@@ -287,6 +303,23 @@ useTitle('Overview')
         <div class="overview-data-row">
           <p class="overview-data-name">Stage</p>
           <ClusterMachinePhase :machine="clusterMachine" class="text-xs" />
+        </div>
+        <div class="overview-data-row">
+          <p class="overview-data-name">Operation</p>
+          <Tooltip
+            v-if="operation"
+            :description="operationCopied ? 'Copied' : `${operation} (click to copy)`"
+          >
+            <button
+              type="button"
+              class="overview-data max-w-80 cursor-pointer truncate text-left"
+              data-testid="cluster-machine-operation"
+              @click="copyOperation(operation)"
+            >
+              {{ operation }}
+            </button>
+          </Tooltip>
+          <p v-else class="overview-data">None</p>
         </div>
         <div v-if="talosMachineStatus" class="overview-data-row">
           <p class="overview-data-name">Unmet Conditions</p>

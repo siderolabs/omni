@@ -65,7 +65,8 @@ const (
 type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
-	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
+	FinalizeReboot(ctx context.Context, machineID string, opts ...lifecycle.Option) error
+	Forget(machineID string)
 }
 
 // StatusController manages the ClusterMachineConfigStatus resource lifecycle.
@@ -237,7 +238,7 @@ func (ctrl *StatusController) reconcileRunning(
 			machineConfigStatus.TypedSpec().Value.ConfigTry = nil
 		}
 
-		machineConfigStatus.TypedSpec().Value.LastConfigError = rc.lastConfigError
+		machineConfigStatus.TypedSpec().Value.SetLastConfigError(rc.lastConfigError, specs.MachineOperationPhase_NONE)
 
 		logger.Info("config generation error", zap.String("error", rc.lastConfigError))
 
@@ -302,7 +303,7 @@ func (ctrl *StatusController) reconcileRunning(
 
 		grpcSt := client.Status(err)
 		if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
-			machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
+			machineConfigStatus.TypedSpec().Value.SetLastConfigError(grpcSt.Message(), specs.MachineOperationPhase_NONE)
 
 			return nil
 		}
@@ -339,7 +340,7 @@ func (ctrl *StatusController) reconcileRunning(
 	// without a re-apply (the whole-config sha still matches, so no apply was needed).
 	machineConfigStatus.TypedSpec().Value.AppliedHighPriorityConfigHash = rc.highPriorityHash
 
-	machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+	machineConfigStatus.TypedSpec().Value.SetLastConfigError("", specs.MachineOperationPhase_NONE)
 
 	if _, err = helpers.TeardownAndDestroy(ctx, r, omni.NewMachinePendingUpdates(machineConfig.Metadata().ID()).Metadata()); err != nil {
 		return err
@@ -368,6 +369,9 @@ func (ctrl *StatusController) reconcileTearingDown(ctx context.Context, r contro
 	if !ready {
 		return nil
 	}
+
+	// the machine left the cluster, so nothing retries its failed uncordon
+	ctrl.lifecycleManager.Forget(machineConfig.Metadata().ID())
 
 	if err = ctrl.releaseConfigUpdateLock(ctx, r, clusterMachine); err != nil {
 		return err
@@ -529,13 +533,20 @@ func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.R
 			}
 
 			if nodeName != "" {
-				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
+				err = ctrl.lifecycleManager.FinalizeReboot(ctx, rc.ID(), lifecycle.WithUncordon(clusterName, nodeName))
+				if errors.Is(err, lifecycle.ErrAlreadyInFlight) {
+					return controller.NewRequeueInterval(lifecycle.RetryInterval)
+				}
+
+				if err != nil {
 					// Keep PreRebootBootId so the next reconcile retries the uncordon.
 					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycle.RetryInterval)
 				}
 			}
 		}
 	}
+
+	ctrl.lifecycleManager.Forget(rc.ID()) // a failed uncordon is not retried once the reboot marker is cleared
 
 	rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 
@@ -751,9 +762,15 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 		zap.String("version", operation.Version),
 		zap.String("disk", operation.Disk))
 
+	var lastPhase specs.MachineOperationPhase
+
 	err = ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
 		logger.Debug(operationName+" progress", zap.String("machine", machineID), zap.String("message", msg))
-	}))
+	}), lifecycle.WithPhase(func(phase specs.MachineOperationPhase) { lastPhase = phase }))
+
+	if err != nil && !errors.Is(err, lifecycle.ErrAlreadyInFlight) {
+		rc.machineConfigStatus.TypedSpec().Value.SetLastConfigError(lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error(), lastPhase)
+	}
 
 	switch {
 	case errors.Is(err, lifecycle.ErrAlreadyInFlight):
@@ -762,21 +779,17 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	case lifecycle.IsPermanentInstallerFailure(err):
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
-
 		logger.Error(operationName+" failed permanently", zap.String("machine", machineID), zap.Error(err))
 
 		return false, err
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
-
 		logger.Error(operationName+" failed", zap.String("machine", machineID), zap.Error(err))
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	default:
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+		rc.machineConfigStatus.TypedSpec().Value.SetLastConfigError("", specs.MachineOperationPhase_NONE)
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
@@ -870,7 +883,15 @@ func (ctrl *StatusController) runClusterLifecycle(
 		zap.String("version", operation.Version),
 		zap.String("node", nodeName))
 
+	var lastPhase specs.MachineOperationPhase
+
+	opts = append(opts, lifecycle.WithPhase(func(phase specs.MachineOperationPhase) { lastPhase = phase }))
+
 	err = ctrl.lifecycleManager.Run(ctx, operation, opts...)
+
+	if err != nil && !errors.Is(err, lifecycle.ErrAlreadyInFlight) {
+		rc.machineConfigStatus.TypedSpec().Value.SetLastConfigError(lifecycle.WrapErr(err, "upgrade failed").Error(), lastPhase)
+	}
 
 	switch {
 	case errors.Is(err, lifecycle.ErrAlreadyInFlight):
@@ -879,21 +900,17 @@ func (ctrl *StatusController) runClusterLifecycle(
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	case lifecycle.IsPermanentInstallerFailure(err):
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()
-
 		logger.Error("upgrade failed permanently", zap.String("machine", machineID), zap.Error(err))
 
 		return false, err
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()
-
 		logger.Error("upgrade failed", zap.String("machine", machineID), zap.Error(err))
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	default:
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
-		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+		rc.machineConfigStatus.TypedSpec().Value.SetLastConfigError("", specs.MachineOperationPhase_NONE)
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
@@ -1087,7 +1104,7 @@ func (ctrl *StatusController) reconcileConfigApply(
 		return configApplyResult{}, controller.NewRequeueInterval(delay)
 
 	case configtry.Stop:
-		status.LastConfigError = fmt.Sprintf("the config was rolled back %d times, change it to try again", status.ConfigTry.GetAttempts())
+		status.SetLastConfigError(fmt.Sprintf("the config was rolled back %d times, change it to try again", status.ConfigTry.GetAttempts()), specs.MachineOperationPhase_NONE)
 
 		return configApplyResult{}, nil
 
@@ -1118,7 +1135,7 @@ func (ctrl *StatusController) reconcileConfigApply(
 		}
 
 		status.ConfigTry = configtry.Begin(status.ConfigTry, shaSum, result.bootID, result.startedAt)
-		status.LastConfigError = ""
+		status.SetLastConfigError("", specs.MachineOperationPhase_NONE)
 
 		logger.Info("applied config in try mode", zap.String("machine", rc.ID()), zap.Uint32("attempt", status.ConfigTry.GetAttempts()))
 

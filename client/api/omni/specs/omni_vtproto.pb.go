@@ -879,6 +879,28 @@ func (m *ClusterMachineStatusSpec_ProvisionStatus) CloneMessageVT() proto.Messag
 	return m.CloneVT()
 }
 
+func (m *ClusterMachineStatusSpec_Operation) CloneVT() *ClusterMachineStatusSpec_Operation {
+	if m == nil {
+		return (*ClusterMachineStatusSpec_Operation)(nil)
+	}
+	r := new(ClusterMachineStatusSpec_Operation)
+	r.Phase = m.Phase
+	r.Message = m.Message
+	r.PhaseStartedAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.PhaseStartedAt).CloneVT())
+	r.ConfigTryAttempt = m.ConfigTryAttempt
+	r.LastError = m.LastError
+	r.FailedPhase = m.FailedPhase
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineStatusSpec_Operation) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	if m == nil {
 		return (*ClusterMachineStatusSpec)(nil)
@@ -892,6 +914,7 @@ func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	r.ConfigApplyStatus = m.ConfigApplyStatus
 	r.IsRemoved = m.IsRemoved
 	r.ProvisionStatus = m.ProvisionStatus.CloneVT()
+	r.Operation = m.Operation.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1000,6 +1023,7 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 	r.AppliedHighPriorityConfigHash = m.AppliedHighPriorityConfigHash
 	r.ImageFactoryHost = m.ImageFactoryHost
 	r.ConfigTry = m.ConfigTry.CloneVT()
+	r.LastConfigErrorPhase = m.LastConfigErrorPhase
 	if rhs := m.CompressedRedactedMachineConfig; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1033,6 +1057,27 @@ func (m *ConfigTryStatus) CloneVT() *ConfigTryStatus {
 }
 
 func (m *ConfigTryStatus) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachineOperationStatusSpec) CloneVT() *MachineOperationStatusSpec {
+	if m == nil {
+		return (*MachineOperationStatusSpec)(nil)
+	}
+	r := new(MachineOperationStatusSpec)
+	r.Phase = m.Phase
+	r.Message = m.Message
+	r.PhaseStartedAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.PhaseStartedAt).CloneVT())
+	r.LastError = m.LastError
+	r.FailedPhase = m.FailedPhase
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineOperationStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -4732,6 +4777,40 @@ func (this *ClusterMachineStatusSpec_ProvisionStatus) EqualMessageVT(thatMsg pro
 	}
 	return this.EqualVT(that)
 }
+func (this *ClusterMachineStatusSpec_Operation) EqualVT(that *ClusterMachineStatusSpec_Operation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.PhaseStartedAt).EqualVT((*timestamppb1.Timestamp)(that.PhaseStartedAt)) {
+		return false
+	}
+	if this.ConfigTryAttempt != that.ConfigTryAttempt {
+		return false
+	}
+	if this.LastError != that.LastError {
+		return false
+	}
+	if this.FailedPhase != that.FailedPhase {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineStatusSpec_Operation) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineStatusSpec_Operation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bool {
 	if this == that {
 		return true
@@ -4760,6 +4839,9 @@ func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bo
 		return false
 	}
 	if !this.ProvisionStatus.EqualVT(that.ProvisionStatus) {
+		return false
+	}
+	if !this.Operation.EqualVT(that.Operation) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4929,6 +5011,9 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 	if !this.ConfigTry.EqualVT(that.ConfigTry) {
 		return false
 	}
+	if this.LastConfigErrorPhase != that.LastConfigErrorPhase {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4962,6 +5047,37 @@ func (this *ConfigTryStatus) EqualVT(that *ConfigTryStatus) bool {
 
 func (this *ConfigTryStatus) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ConfigTryStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachineOperationStatusSpec) EqualVT(that *MachineOperationStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.PhaseStartedAt).EqualVT((*timestamppb1.Timestamp)(that.PhaseStartedAt)) {
+		return false
+	}
+	if this.LastError != that.LastError {
+		return false
+	}
+	if this.FailedPhase != that.FailedPhase {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineOperationStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineOperationStatusSpec)
 	if !ok {
 		return false
 	}
@@ -10890,6 +11006,78 @@ func (m *ClusterMachineStatusSpec_ProvisionStatus) MarshalToSizedBufferVT(dAtA [
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterMachineStatusSpec_Operation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineStatusSpec_Operation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineStatusSpec_Operation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.FailedPhase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FailedPhase))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.LastError) > 0 {
+		i -= len(m.LastError)
+		copy(dAtA[i:], m.LastError)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.LastError)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.ConfigTryAttempt != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ConfigTryAttempt))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.PhaseStartedAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.PhaseStartedAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Message) > 0 {
+		i -= len(m.Message)
+		copy(dAtA[i:], m.Message)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Message)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Phase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ClusterMachineStatusSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -10919,6 +11107,16 @@ func (m *ClusterMachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Operation != nil {
+		size, err := m.Operation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.ProvisionStatus != nil {
 		size, err := m.ProvisionStatus.MarshalToSizedBufferVT(dAtA[:i])
@@ -11289,6 +11487,11 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.LastConfigErrorPhase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.LastConfigErrorPhase))
+		i--
+		dAtA[i] = 0x78
+	}
 	if m.ConfigTry != nil {
 		size, err := m.ConfigTry.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -11430,6 +11633,73 @@ func (m *ConfigTryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Sha256)))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachineOperationStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineOperationStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineOperationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.FailedPhase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FailedPhase))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.LastError) > 0 {
+		i -= len(m.LastError)
+		copy(dAtA[i:], m.LastError)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.LastError)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.PhaseStartedAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.PhaseStartedAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Message) > 0 {
+		i -= len(m.Message)
+		copy(dAtA[i:], m.Message)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Message)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Phase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -19107,6 +19377,37 @@ func (m *ClusterMachineStatusSpec_ProvisionStatus) SizeVT() (n int) {
 	return n
 }
 
+func (m *ClusterMachineStatusSpec_Operation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Phase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PhaseStartedAt != nil {
+		l = (*timestamppb1.Timestamp)(m.PhaseStartedAt).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ConfigTryAttempt != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.ConfigTryAttempt))
+	}
+	l = len(m.LastError)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.FailedPhase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.FailedPhase))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -19138,6 +19439,10 @@ func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	}
 	if m.ProvisionStatus != nil {
 		l = m.ProvisionStatus.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Operation != nil {
+		l = m.Operation.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -19294,6 +19599,9 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 		l = m.ConfigTry.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.LastConfigErrorPhase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.LastConfigErrorPhase))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -19318,6 +19626,34 @@ func (m *ConfigTryStatus) SizeVT() (n int) {
 	l = len(m.BootId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachineOperationStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Phase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PhaseStartedAt != nil {
+		l = (*timestamppb1.Timestamp)(m.PhaseStartedAt).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.LastError)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.FailedPhase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.FailedPhase))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -28616,6 +28952,214 @@ func (m *ClusterMachineStatusSpec_ProvisionStatus) UnmarshalVT(dAtA []byte) erro
 	}
 	return nil
 }
+func (m *ClusterMachineStatusSpec_Operation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineStatusSpec_Operation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineStatusSpec_Operation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Phase |= MachineOperationPhase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PhaseStartedAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PhaseStartedAt == nil {
+				m.PhaseStartedAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.PhaseStartedAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigTryAttempt", wireType)
+			}
+			m.ConfigTryAttempt = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ConfigTryAttempt |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastError", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastError = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailedPhase", wireType)
+			}
+			m.FailedPhase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FailedPhase |= MachineOperationPhase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -28840,6 +29384,42 @@ func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 				m.ProvisionStatus = &ClusterMachineStatusSpec_ProvisionStatus{}
 			}
 			if err := m.ProvisionStatus.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Operation == nil {
+				m.Operation = &ClusterMachineStatusSpec_Operation{}
+			}
+			if err := m.Operation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -29887,6 +30467,25 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastConfigErrorPhase", wireType)
+			}
+			m.LastConfigErrorPhase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LastConfigErrorPhase |= MachineOperationPhase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -30057,6 +30656,195 @@ func (m *ConfigTryStatus) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BootId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineOperationStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineOperationStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineOperationStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Phase |= MachineOperationPhase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PhaseStartedAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.PhaseStartedAt == nil {
+				m.PhaseStartedAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.PhaseStartedAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastError", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastError = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailedPhase", wireType)
+			}
+			m.FailedPhase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FailedPhase |= MachineOperationPhase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

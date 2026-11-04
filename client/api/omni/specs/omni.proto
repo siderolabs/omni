@@ -602,6 +602,20 @@ message ClusterMachineStatusSpec {
 
   // ProvisionStatus is set when the cluster machine is provisioned using a machine request.
   ProvisionStatus provision_status = 9;
+
+  message Operation {
+    MachineOperationPhase phase = 1;
+    string message = 2;
+    google.protobuf.Timestamp phase_started_at = 3;
+    // ConfigTryAttempt is set when the phase is TRYING_CONFIG.
+    uint32 config_try_attempt = 4;
+    // LastError is set only for a failure not in last_config_error, i.e., a failed uncordon.
+    string last_error = 5;
+    MachineOperationPhase failed_phase = 6;
+  }
+
+  // Operation is the operation Omni runs on the machine, if any.
+  Operation operation = 10;
 }
 
 // Machines counts the number of machines in a set including health status.
@@ -707,6 +721,10 @@ message ClusterMachineConfigStatusSpec {
 
   // ConfigTry tracks the in-flight try mode apply of the desired config, if any.
   ConfigTryStatus config_try = 14;
+
+  // LastConfigErrorPhase is the phase of the install or upgrade that failed with LastConfigError.
+  // It is NONE when LastConfigError does not come from an install or upgrade.
+  MachineOperationPhase last_config_error_phase = 15;
 }
 
 // ConfigTryStatus tracks a config pushed to a machine in Talos "try" mode. Talos keeps such a config
@@ -725,6 +743,34 @@ message ConfigTryStatus {
   // BootID is the kernel boot ID of the machine when the try was pushed. A different one at confirm
   // time means the machine restarted and dropped the try config.
   string boot_id = 4;
+}
+
+// MachineOperationPhase represents a step of an operation Omni runs on a machine.
+enum MachineOperationPhase {
+  NONE = 0;
+  PULLING_IMAGE = 1;
+  INSTALLING = 2;
+  UPGRADING = 3;
+  PREPARING_REBOOT = 4;
+  CORDONING = 5;
+  DRAINING = 6;
+  REBOOTING = 7;
+  FINALIZING = 8;
+  TRYING_CONFIG = 9;
+  UNCORDONING = 10;
+  PREPARING_IMAGE = 11;
+}
+
+// MachineOperationStatusSpec represents the install or upgrade Omni is running on a machine.
+message MachineOperationStatusSpec {
+  MachineOperationPhase phase = 1;
+  // Message is the last progress message of the operation.
+  string message = 2;
+  google.protobuf.Timestamp phase_started_at = 3;
+  // LastError is the error of the last failed operation. It is cleared when the next operation starts.
+  string last_error = 4;
+  // FailedPhase is the phase the last failed operation was in when it failed.
+  MachineOperationPhase failed_phase = 5;
 }
 
 message MachinePendingUpdatesSpec {

@@ -53,6 +53,7 @@ import {
   revertTalosUpgrade,
 } from '@/methods/cluster'
 import { useFeatures } from '@/methods/features'
+import { machineOperationError } from '@/methods/machineOperation'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
@@ -212,7 +213,9 @@ const { data: clusterMachineStatuses } = useResourceWatch<ClusterMachineStatusSp
 }))
 
 const machinesWithErrors = computed(() =>
-  clusterMachineStatuses.value.filter((m) => !!m.spec.last_config_error),
+  clusterMachineStatuses.value.filter(
+    (m) => !!machineOperationError(m.spec.last_config_error, m.spec.operation),
+  ),
 )
 
 const { data: secretRotationStatus } = useResourceWatch<ClusterSecretsRotationStatusSpec>(() => ({
@@ -259,7 +262,7 @@ const secretRotationPaused = computed(() => isPaused(secretRotationStatus.value?
       </TAlert>
       <TAlert
         v-if="machinesWithErrors.length > 0"
-        :title="`${machinesWithErrors.length} ${machinesWithErrors.length === 1 ? 'machine has' : 'machines have'} configuration errors`"
+        :title="`${machinesWithErrors.length} ${machinesWithErrors.length === 1 ? 'machine has' : 'machines have'} errors`"
         type="error"
         class="mb-compact"
       >

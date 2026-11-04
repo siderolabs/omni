@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -23,6 +23,7 @@ import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useClusterPermissions } from '@/methods/auth'
+import { machineOperationError, machineOperationErrorTitle } from '@/methods/machineOperation'
 import { getMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -57,6 +58,15 @@ const { data: clusterMachine } = useResourceWatch<ClusterMachineStatusSpec>(() =
     id: machineId.value,
   },
 }))
+
+const machineError = computed(() =>
+  machineOperationError(
+    clusterMachine.value?.spec.last_config_error,
+    clusterMachine.value?.spec.operation,
+  ),
+)
+
+watch(machineError, () => (configErrorDismissed.value = false))
 
 const isPartOfCluster = computed(
   () => machine.value?.metadata.labels?.[LabelCluster] === clusterId.value,
@@ -128,12 +138,12 @@ useTitle(() => getMachineName(machine.value) || machineId.value)
       <NodesHeader :cluster-id="clusterId" :machine-id="machineId" />
 
       <TAlert
-        v-if="clusterMachine?.spec.last_config_error?.trim() && !configErrorDismissed"
+        v-if="machineError && !configErrorDismissed"
         :dismiss="{ name: 'Dismiss', action: () => (configErrorDismissed = true) }"
-        title="Configuration Error"
+        :title="machineOperationErrorTitle(clusterMachine?.spec.operation)"
         type="error"
       >
-        {{ clusterMachine.spec.last_config_error.trim() }}
+        {{ machineError }}
       </TAlert>
     </div>
 

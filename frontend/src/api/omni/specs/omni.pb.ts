@@ -26,6 +26,21 @@ export enum ConfigApplyStatus {
   FAILED = 3,
 }
 
+export enum MachineOperationPhase {
+  NONE = 0,
+  PULLING_IMAGE = 1,
+  INSTALLING = 2,
+  UPGRADING = 3,
+  PREPARING_REBOOT = 4,
+  CORDONING = 5,
+  DRAINING = 6,
+  REBOOTING = 7,
+  FINALIZING = 8,
+  TRYING_CONFIG = 9,
+  UNCORDONING = 10,
+  PREPARING_IMAGE = 11,
+}
+
 export enum MachineSetPhase {
   Unknown = 0,
   ScalingUp = 1,
@@ -506,6 +521,15 @@ export type ClusterMachineStatusSpecProvisionStatus = {
   request_id?: string
 }
 
+export type ClusterMachineStatusSpecOperation = {
+  phase?: MachineOperationPhase
+  message?: string
+  phase_started_at?: GoogleProtobufTimestamp.Timestamp
+  config_try_attempt?: number
+  last_error?: string
+  failed_phase?: MachineOperationPhase
+}
+
 export type ClusterMachineStatusSpec = {
   ready?: boolean
   stage?: ClusterMachineStatusSpecStage
@@ -515,6 +539,7 @@ export type ClusterMachineStatusSpec = {
   config_apply_status?: ConfigApplyStatus
   is_removed?: boolean
   provision_status?: ClusterMachineStatusSpecProvisionStatus
+  operation?: ClusterMachineStatusSpecOperation
 }
 
 export type Machines = {
@@ -559,6 +584,7 @@ export type ClusterMachineConfigStatusSpec = {
   applied_high_priority_config_hash?: string
   image_factory_host?: string
   config_try?: ConfigTryStatus
+  last_config_error_phase?: MachineOperationPhase
 }
 
 export type ConfigTryStatus = {
@@ -566,6 +592,14 @@ export type ConfigTryStatus = {
   attempts?: number
   started_at?: GoogleProtobufTimestamp.Timestamp
   boot_id?: string
+}
+
+export type MachineOperationStatusSpec = {
+  phase?: MachineOperationPhase
+  message?: string
+  phase_started_at?: GoogleProtobufTimestamp.Timestamp
+  last_error?: string
+  failed_phase?: MachineOperationPhase
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {
