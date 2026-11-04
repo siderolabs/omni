@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,7 @@ func TestValidations(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	testMgmtAddress := "test-mgmt-address"
 	testTalosVersion := "test-talos-version"
@@ -209,7 +208,7 @@ func TestValidations(t *testing.T) {
 }
 
 func TestTeardownDestroyValidations(t *testing.T) {
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := state.WrapCore(
 		validated.NewState(
 			innerSt,
@@ -250,7 +249,7 @@ func TestTeardownDestroyValidations(t *testing.T) {
 }
 
 func TestTeardownAndDestroyValidations(t *testing.T) {
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := state.WrapCore(
 		validated.NewState(
 			innerSt,

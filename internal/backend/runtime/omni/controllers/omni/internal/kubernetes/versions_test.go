@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -56,7 +55,7 @@ func TestCalculateUpgradeVersions(t *testing.T) {
 
 			ctx := t.Context()
 
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			tv := omni.NewTalosVersion(test.talosVersion)
 			tv.TypedSpec().Value.Version = test.talosVersion

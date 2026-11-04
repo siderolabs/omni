@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -40,7 +39,7 @@ func TestTalosctlHandler(t *testing.T) {
 	imageFactoryClient, err := imagefactory.NewClient(upstream.URL, imagefactory.Auth{})
 	require.NoError(t, err)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	require.NoError(t, st.Create(t.Context(), omni.NewTalosVersion("1.2.3")))
 
 	handler := artifacts.NewTalosctlHandler(st, imagefactory.NewClients(st, imageFactoryClient), zaptest.NewLogger(t))

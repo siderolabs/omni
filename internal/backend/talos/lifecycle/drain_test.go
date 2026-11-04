@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +44,7 @@ func newDrainTestManager(t *testing.T, clientset k8s.Interface) *lifecycle.Manag
 	require.NoError(t, err)
 
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
-		state.WrapCore(namespaced.NewState(inmem.Build)),
+		state.WrapCore(inmem.NewState()),
 		c,
 	), fixedClientsetProvider{clientset: clientset}, nil, nil)
 }

@@ -246,9 +246,7 @@ func newNamespacedState(
 	logger *zap.Logger,
 	storeFactory store.Factory,
 ) *namespaced.State {
-	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20), inmem.WithHistoryMaxCapacity(10000))
-	ephemeralState := buildEphemeralState(resources.EphemeralNamespace)
-	metaEphemeralState := buildEphemeralState(meta.NamespaceName)
+	ephemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20), inmem.WithHistoryMaxCapacity(40960), inmem.WithHistoryInitialCapacity(1024))
 	infraProviderState := infraprovider.NewState(defaultCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
 
 	return namespaced.NewState(func(ns resource.Namespace) state.CoreState {
@@ -257,9 +255,7 @@ func newNamespacedState(
 			return virtualState
 		case resources.MetricsNamespace:
 			return secondaryCoreState
-		case meta.NamespaceName:
-			return metaEphemeralState
-		case resources.EphemeralNamespace:
+		case meta.NamespaceName, resources.EphemeralNamespace:
 			return ephemeralState
 		case resources.ExternalNamespace:
 			return &external.State{
@@ -468,21 +464,14 @@ func (w *AuditWrap) WrapState(resourceState state.State) state.State {
 
 // TestStateBuilder returns an inmem state builder with history options suitable for testing.
 // The history buffer prevents watch event loss when controller goroutines are slow under parallel test load.
-func TestStateBuilder() namespaced.StateBuilder {
-	build := inmem.NewStateWithOptions(
-		inmem.WithHistoryMaxCapacity(1024),
-		inmem.WithHistoryGap(20),
-	)
-
-	return func(ns resource.Namespace) state.CoreState {
-		return build(ns)
-	}
+func TestStateBuilder() state.CoreState {
+	return inmem.NewState()
 }
 
 // NewTestState creates a new test state using the in-memory storage and no virtual one.
 func NewTestState(logger *zap.Logger) (*State, error) {
 	defaultPersistentState := &PersistentState{
-		State: namespaced.NewState(TestStateBuilder()),
+		State: TestStateBuilder(),
 	}
 
 	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})

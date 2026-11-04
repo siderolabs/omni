@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/siderolabs/gen/optional"
@@ -32,7 +31,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 
 	t.Run("empty log message", func(t *testing.T) {
 		machineMap := siderolink.NewMachineMap(&mapStorage{})
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
@@ -50,7 +49,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 			},
 		})
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		handler, err := siderolink.NewLogHandler(testDB(t), cache, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
@@ -87,7 +86,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 			},
 		})
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		handler, err := siderolink.NewLogHandler(testDB(t), cache, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
@@ -127,7 +126,7 @@ func TestLogHandler_IngestedBytesMetric(t *testing.T) {
 			},
 		})
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
 		require.NoError(t, err)
@@ -148,7 +147,7 @@ func TestLogHandler_IngestedBytesMetric(t *testing.T) {
 			},
 		})
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		// Low sustained rate with a small burst: the first message exhausts the
 		// burst, and the second is guaranteed to be rejected since refilling a

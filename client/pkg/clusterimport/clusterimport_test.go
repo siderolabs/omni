@@ -23,7 +23,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/client"
@@ -316,7 +315,7 @@ func (data *testData) prepareNodes(ctx context.Context, t *testing.T) {
 func (data *testData) prepareNode(ctx context.Context, t *testing.T, node string, machineType machinetype.Type) *mockNode {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	buildHostname := func(n string) string {
 		return "node-" + n
@@ -505,7 +504,7 @@ func (data *testData) generateMachineConfig(t *testing.T, machineType machinetyp
 func (data *testData) prepareOmniState(ctx context.Context, t *testing.T) {
 	t.Helper()
 
-	omniState := state.WrapCore(namespaced.NewState(inmem.Build))
+	omniState := state.WrapCore(inmem.NewState())
 
 	if !data.invalidOmniState {
 		defaultJoinToken := siderolink.NewDefaultJoinToken()

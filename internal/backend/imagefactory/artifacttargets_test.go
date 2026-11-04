@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 
 	imagefactorypb "github.com/siderolabs/omni/client/api/omni/imagefactory"
@@ -25,7 +24,7 @@ const schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d60
 // TestClusterArtifactTargets covers resolving a cluster's installed (schematic, arch) pairs and
 // upgrade-target versions from its COSI resources.
 func TestClusterArtifactTargets(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ctx := t.Context()
 
 	const clusterID = "test-cluster"
@@ -99,7 +98,7 @@ func TestClusterArtifactTargets(t *testing.T) {
 // TestClusterArtifactTargetsUnknownCluster covers that an unknown cluster surfaces as a
 // not-found error the caller (the gRPC handler) can map to the right status code.
 func TestClusterArtifactTargetsUnknownCluster(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	_, err := imagefactoryinternal.ClusterArtifactTargets(t.Context(), st, "does-not-exist")
 
@@ -163,7 +162,7 @@ func TestClusterArtifactTargetsUpgradeVersions(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 			ctx := t.Context()
 
 			const clusterID = "test-cluster"

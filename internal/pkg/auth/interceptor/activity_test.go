@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -52,7 +51,7 @@ func TestActivity(t *testing.T) {
 	t.Run("no identity in context", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -89,7 +88,7 @@ func TestActivity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 			logger := zaptest.NewLogger(t)
 			activity := interceptor.NewActivity(st, logger)
 
@@ -109,7 +108,7 @@ func TestActivity(t *testing.T) {
 	t.Run("signature identity takes precedence over verified email", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -141,7 +140,7 @@ func TestActivity(t *testing.T) {
 	t.Run("debounce prevents repeated writes", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -186,7 +185,7 @@ func TestActivity(t *testing.T) {
 	t.Run("different identities tracked independently", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -213,7 +212,7 @@ func TestActivity(t *testing.T) {
 	t.Run("stream interceptor tracks activity", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -235,7 +234,7 @@ func TestActivity(t *testing.T) {
 	t.Run("fingerprint tracking creates PublicKeyLastActive", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -259,7 +258,7 @@ func TestActivity(t *testing.T) {
 	t.Run("fingerprint debounced independently from identity", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 		activity := interceptor.NewActivity(st, logger)
 
@@ -291,7 +290,7 @@ func TestActivity(t *testing.T) {
 	t.Run("updates existing resource", func(t *testing.T) {
 		t.Parallel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		logger := zaptest.NewLogger(t)
 
 		// Pre-create an old activity record.

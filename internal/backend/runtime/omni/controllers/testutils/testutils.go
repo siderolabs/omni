@@ -28,11 +28,12 @@ import (
 
 // defaultStateBuilder is an inmem state builder with history options to prevent
 // watch event loss when watchers are slow during test execution.
-var defaultStateBuilder = omniruntime.TestStateBuilder()
+var defaultStateBuilder = omniruntime.TestStateBuilder
 
 type DynamicStateBuilder struct { //nolint:govet
-	mx sync.Mutex
-	M  map[resource.Namespace]state.CoreState
+	mx           sync.Mutex
+	M            map[resource.Namespace]state.CoreState
+	defaultState state.CoreState
 }
 
 func (b *DynamicStateBuilder) Builder(ns resource.Namespace) state.CoreState {
@@ -43,11 +44,11 @@ func (b *DynamicStateBuilder) Builder(ns resource.Namespace) state.CoreState {
 		return s
 	}
 
-	s := defaultStateBuilder(ns)
+	if b.defaultState == nil {
+		b.defaultState = defaultStateBuilder()
+	}
 
-	b.M[ns] = s
-
-	return s
+	return b.defaultState
 }
 
 func (b *DynamicStateBuilder) Set(ns resource.Namespace, state state.CoreState) {
@@ -88,7 +89,9 @@ func WithRuntime(ctx context.Context, t *testing.T, testOptions TestOptions, bef
 	t.Cleanup(cancel)
 
 	if testOptions.StateBuilder == nil {
-		testOptions.StateBuilder = defaultStateBuilder
+		defaultState := defaultStateBuilder()
+
+		testOptions.StateBuilder = func(resource.Namespace) state.CoreState { return defaultState }
 	}
 
 	var loggerOpts []zaptest.LoggerOption

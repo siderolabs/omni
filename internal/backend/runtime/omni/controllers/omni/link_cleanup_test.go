@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -32,7 +31,7 @@ func TestLinkCleanup(t *testing.T) {
 
 	controller := omni.NewLinkCleanupController()
 
-	st := state.WrapCore(namespaced.NewState(omniruntime.TestStateBuilder()))
+	st := state.WrapCore(omniruntime.TestStateBuilder())
 	logger := zaptest.NewLogger(t)
 
 	rt, err := runtime.NewRuntime(st, logger, omniruntime.RuntimeCacheOptions()...)

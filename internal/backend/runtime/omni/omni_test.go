@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -79,7 +78,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 
 	var err error
 
-	resourceState := state.WrapCore(namespaced.NewState(inmem.Build))
+	resourceState := state.WrapCore(inmem.NewState())
 	logger := zaptest.NewLogger(suite.T())
 	clientFactory := talos.NewClientFactory(resourceState, logger)
 	dnsService := dns.NewService(resourceState, logger)

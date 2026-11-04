@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -71,7 +70,7 @@ func (rt *runtime) Teardown(ctx context.Context, r resource.Pointer, _ ...contro
 }
 
 func createRuntime() *runtime {
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
+	state := state.WrapCore(inmem.NewState())
 
 	return &runtime{state}
 }

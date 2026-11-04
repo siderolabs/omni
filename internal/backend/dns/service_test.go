@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -44,7 +43,7 @@ type ServiceSuite struct {
 func (suite *ServiceSuite) SetupTest() {
 	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
-	suite.state = state.WrapCore(namespaced.NewState(inmem.Build))
+	suite.state = state.WrapCore(inmem.NewState())
 
 	suite.logger = zaptest.NewLogger(suite.T(), zaptest.WrapOptions(zap.AddCaller()))
 

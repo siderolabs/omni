@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -119,7 +118,7 @@ func TestOIDCKubeconfigWithCacheIsolation(t *testing.T) {
 }
 
 func TestBreakGlassKubeconfig(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	logger := zaptest.NewLogger(t)
 	r := kubernetes.New(st, logger, "", "", "")

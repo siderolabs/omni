@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	csaml "github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	dsig "github.com/russellhaering/goxmldsig"
@@ -118,7 +117,7 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
-	s := state.WrapCore(namespaced.NewState(inmem.Build))
+	s := state.WrapCore(inmem.NewState())
 
 	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t), map[string]string{
 		"identity": saml.IdentityAttribute,
@@ -346,7 +345,7 @@ const (
 func setupEnsureUser(ctx context.Context, t *testing.T, assignRole role.Role, updateOnEachLogin bool) state.State {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	for _, email := range []string{lockedOutEmail, colleagueEmail} {
 		require.NoError(t, user.Ensure(ctx, st, email, role.Admin, false))
@@ -513,7 +512,7 @@ func TestCreateSessionQuerySource(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			t.Cleanup(cancel)
 
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			authConfig := auth.NewAuthConfig()
 			authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{}
@@ -677,7 +676,7 @@ func TestCreateSessionLogsStaleLogin(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			t.Cleanup(cancel)
 
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			authConfig := auth.NewAuthConfig()
 			authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{}

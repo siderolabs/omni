@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 
@@ -24,7 +23,7 @@ import (
 // NewFactoryClientSet creates a new image factory client set with the given clients: the first is
 // the primary, the optional second is the secondary. With no clients, a single mock primary is used.
 func NewFactoryClientSet(clients ...imagefactory.FactoryClient) *imagefactory.Clients {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	var primaryClient imagefactory.FactoryClient
 

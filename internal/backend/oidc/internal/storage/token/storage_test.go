@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -30,7 +29,7 @@ import (
 func TestValidateJWTProfileScopes(t *testing.T) {
 	ctx := t.Context()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	s := token.NewStorage(st)
 
@@ -78,7 +77,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 
 	cluster := omni.NewCluster(clusterID)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
@@ -127,7 +126,7 @@ func TestGetPrivateClaimsFromScopesClusterNotFound(t *testing.T) {
 	user := auth.NewUser(userID)
 	user.TypedSpec().Value.Role = string(role.None)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
@@ -227,7 +226,7 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 
 	cluster := omni.NewCluster(clusterID)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
@@ -278,7 +277,7 @@ func TestTokenIntrospection(t *testing.T) {
 		// will bring constants.DefaultAccessGroup scope
 		user.TypedSpec().Value.Role = string(role.Operator)
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 
 		require.NoError(t, st.Create(ctx, identity))
 		require.NoError(t, st.Create(ctx, user))
@@ -320,7 +319,7 @@ func TestTokenIntrospection(t *testing.T) {
 func TestRevokeToken(t *testing.T) {
 	ctx := t.Context()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	s := token.NewStorage(st)
 
@@ -337,7 +336,7 @@ func TestRevokeToken(t *testing.T) {
 func TestTerminateSession(t *testing.T) {
 	ctx := t.Context()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	s := token.NewStorage(st)
 

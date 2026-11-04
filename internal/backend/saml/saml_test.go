@@ -35,7 +35,6 @@ import (
 	"github.com/beevik/etree"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	dsig "github.com/russellhaering/goxmldsig"
@@ -127,7 +126,7 @@ func setSLOBindings(m *samlsp.Middleware, sloBindings ...string) {
 func newHandler(t *testing.T, signingCert *tls.Certificate) *samlsp.Middleware {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authConfig := auth.NewAuthConfig()
 	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{}
@@ -707,7 +706,7 @@ func TestAllowIDPInitiated(t *testing.T) {
 
 	for _, allow := range []bool{true, false} {
 		m, err := omnisaml.NewHandler(
-			state.WrapCore(namespaced.NewState(inmem.Build)),
+			state.WrapCore(inmem.NewState()),
 			&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
 			zaptest.NewLogger(t),
 			testAdvertisedURL,
@@ -806,7 +805,7 @@ func TestNewHandlerRejectsNonRSASigningKey(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := omnisaml.NewHandler(
-				state.WrapCore(namespaced.NewState(inmem.Build)),
+				state.WrapCore(inmem.NewState()),
 				&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
 				zaptest.NewLogger(t),
 				testAdvertisedURL,

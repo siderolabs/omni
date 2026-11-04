@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -52,8 +51,8 @@ func TestInfraProviderAccess(t *testing.T) {
 	ctx = prepareRole(ctx, role.InfraProvider)
 
 	logger := zaptest.NewLogger(t)
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
@@ -226,8 +225,8 @@ func TestInternalAccess(t *testing.T) {
 
 	logger := zaptest.NewLogger(t)
 
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 	mr := infra.NewMachineRequest("test-mr")
 
@@ -258,8 +257,8 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 	ctx = prepareRole(ctx, role.InfraProvider)
 
 	logger := zaptest.NewLogger(t)
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
@@ -309,8 +308,8 @@ func TestInfraProviderIDChecks(t *testing.T) {
 	ctx = prepareRole(ctx, role.InfraProvider)
 
 	logger := zaptest.NewLogger(t)
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
@@ -409,8 +408,8 @@ func TestEphemeralState(t *testing.T) {
 	ctx = prepareRole(ctx, role.InfraProvider)
 
 	logger := zaptest.NewLogger(t)
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
@@ -443,8 +442,8 @@ func TestAdminOnlyRead(t *testing.T) {
 	ctx = prepareRole(ctx, role.InfraProvider)
 
 	logger := zaptest.NewLogger(t)
-	persistentState := namespaced.NewState(inmem.Build)
-	ephemeralState := namespaced.NewState(inmem.Build)
+	persistentState := inmem.NewState()
+	ephemeralState := inmem.NewState()
 	st := state.WrapCore(infraprovider.NewState(persistentState, ephemeralState, logger))
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))

@@ -11,7 +11,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/config"
@@ -33,15 +32,7 @@ import (
 
 // newTalosState creates State.
 func newTalosState(ctx context.Context) (state.State, error) {
-	state := state.WrapCore(namespaced.NewState(
-		func(ns string) state.CoreState {
-			return inmem.NewStateWithOptions(
-				inmem.WithHistoryInitialCapacity(8),
-				inmem.WithHistoryMaxCapacity(1024),
-				inmem.WithHistoryGap(4),
-			)(ns)
-		},
-	))
+	state := state.WrapCore(inmem.NewState())
 	namespaceRegistry := registry.NewNamespaceRegistry(state)
 	resourceRegistry := registry.NewResourceRegistry(state)
 

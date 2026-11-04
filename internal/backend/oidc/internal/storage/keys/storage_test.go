@@ -20,7 +20,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +37,7 @@ func TestStorage(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		// a key is generated on startup
@@ -96,7 +95,7 @@ func TestDeletedKeyIsNotTrusted(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		synctest.Wait()
@@ -139,7 +138,7 @@ func TestCurrentKeyReplacement(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		synctest.Wait()
@@ -183,7 +182,7 @@ func TestExpiredCurrentKeyIsReplaced(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		synctest.Wait()
@@ -209,7 +208,7 @@ func TestTearingDownKeyIsNotTrusted(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		synctest.Wait()
@@ -245,7 +244,7 @@ func TestMalformedKeyIsSkipped(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		storage := runStorage(ctx, t, st)
 
 		synctest.Wait()
@@ -274,7 +273,7 @@ func TestCurrentKeyReplacementFailure(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx := t.Context()
 
-		failing := &failingState{CoreState: namespaced.NewState(inmem.Build)}
+		failing := &failingState{CoreState: inmem.NewState()}
 		st := state.WrapCore(failing)
 		storage := runStorage(ctx, t, st)
 
@@ -303,7 +302,7 @@ func TestCurrentKeyReplacementFailure(t *testing.T) {
 func TestNoCurrentKey(t *testing.T) {
 	ctx := t.Context()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	storage := keys.NewStorage(st, zaptest.NewLogger(t))
 
 	// the refresher has not generated the startup key yet: signing fails and never generates lazily

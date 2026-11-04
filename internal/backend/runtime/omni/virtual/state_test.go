@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/siderolabs/gen/channel"
@@ -192,7 +191,7 @@ func TestSupportGet(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 	defer cancel()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	vst := virtual.NewState(st, nil, "", "", config.Registries{}, config.Support{})
 
 	require := require.New(t)
@@ -238,7 +237,7 @@ func stripeItemResponse(productName string) map[string]any {
 }
 
 func TestSupportGetWithStripe(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ptr := virtualres.NewSupport().Metadata()
 	supportCfg := config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}}
 
@@ -304,7 +303,7 @@ func TestSupportGetCaching(t *testing.T) {
 		require.NoError(json.NewEncoder(w).Encode(stripeItemResponse("Enterprise")))
 	})
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	vst := virtual.NewState(st, stripeClient, "", "sub_item_id", config.Registries{}, config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}})
 	ptr := virtualres.NewSupport().Metadata()
 
@@ -318,7 +317,7 @@ func TestSupportGetCaching(t *testing.T) {
 }
 
 func TestDeduper(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 	defer cancel()

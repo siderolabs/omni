@@ -11,10 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/impl/store"
 	"github.com/cosi-project/runtime/pkg/state/impl/store/bolt"
 	"go.etcd.io/bbolt"
@@ -22,19 +20,19 @@ import (
 )
 
 func newBoltPersistentState(path string, options *bbolt.Options, compact bool, logger *zap.Logger) (*PersistentState, error) {
-	builder, backingStore, err := newBoltStateBuilder(path, options, compact, logger)
+	state, backingStore, err := newBoltStateBuilder(path, options, compact, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PersistentState{
-		State: namespaced.NewState(builder),
+		State: state,
 		Close: backingStore.Close,
 	}, nil
 }
 
 func newBoltStateBuilder(path string, options *bbolt.Options, compact bool, logger *zap.Logger) (
-	builder namespaced.StateBuilder,
+	state state.CoreState,
 	backingStore io.Closer,
 	stateErr error,
 ) {
@@ -104,11 +102,9 @@ func newBoltStateBuilder(path string, options *bbolt.Options, compact bool, logg
 		return nil, nil, err
 	}
 
-	return func(ns resource.Namespace) state.CoreState {
-		return inmem.NewStateWithOptions(
-			inmem.WithBackingStore(boltStore.WithNamespace(ns)),
-			inmem.WithHistoryGap(20),
-			inmem.WithHistoryMaxCapacity(5000),
-		)(ns)
-	}, boltStore, nil
+	return inmem.NewStateWithOptions(
+		inmem.WithBackingStore(boltStore),
+		inmem.WithHistoryGap(20),
+		inmem.WithHistoryMaxCapacity(5000),
+	), boltStore, nil
 }

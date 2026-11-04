@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
@@ -35,7 +34,7 @@ type ProducerIDTransformer func(context.Context, resource.Pointer) (resource.Poi
 
 // NewComputed creates new computed state.
 func NewComputed(resourceType string, factory ProducerFactory, resolveID ProducerIDTransformer, cleanupInterval time.Duration, logger *zap.Logger, registerMetrics bool) *Computed {
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
+	state := state.WrapCore(inmem.NewState())
 	scheduler := NewDedupScheduler(resourceType, state, factory, cleanupInterval, logger)
 
 	computed := &Computed{

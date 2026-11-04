@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/siderolink/pkg/events"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -27,7 +26,7 @@ import (
 )
 
 func TestSequenceEvent(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	logger := zaptest.NewLogger(t)
 	installEventCh := make(chan resource.ID, 1)
 	handler := machineevent.NewHandler(st, logger, nil, installEventCh)

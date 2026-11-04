@@ -22,7 +22,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wgtunnel/wggrpc"
@@ -952,7 +951,7 @@ func provisionFixture(
 ) (state.State, *siderolink.ProvisionHandler) {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	logger := zaptest.NewLogger(t)
 
 	ctx, cancel := context.WithCancel(ctx)

@@ -22,7 +22,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/channel"
@@ -395,7 +394,7 @@ func TestInfra(t *testing.T) {
 }
 
 func setupInfra(ctx context.Context, t *testing.T, p provision.Provisioner[*TestResource], opts ...infra.Option) state.State {
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
+	state := state.WrapCore(inmem.NewState())
 
 	resourceRegistry := registry.NewResourceRegistry(state)
 

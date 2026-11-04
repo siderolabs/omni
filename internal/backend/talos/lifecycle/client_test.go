@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ func TestBuildInstallImage(t *testing.T) {
 	require.NoError(t, err)
 
 	m := lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
-		state.WrapCore(namespaced.NewState(inmem.Build)),
+		state.WrapCore(inmem.NewState()),
 		c,
 	), nil, nil, nil)
 

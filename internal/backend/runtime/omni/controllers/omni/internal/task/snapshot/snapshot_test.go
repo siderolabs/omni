@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/stretchr/testify/assert"
@@ -104,7 +103,7 @@ func setupCollectTask(t *testing.T, talosVersion string) (context.Context, snaps
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	machineService := testutils.NewMachineServiceMock(ctx, t, "machine", state.WrapCore(namespaced.NewState(inmem.Build)))
+	machineService := testutils.NewMachineServiceMock(ctx, t, "machine", state.WrapCore(inmem.NewState()))
 
 	machineService.SetVersionHandler(func(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
 		return versionResponse(talosVersion), nil

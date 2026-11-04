@@ -11,7 +11,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -91,7 +90,7 @@ func TestCheckForKindAccessClusterTerms(t *testing.T) {
 
 	const identity = "user-1@example.com"
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	accessPolicy := authres.NewAccessPolicy()
 	accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{
@@ -171,7 +170,7 @@ func TestKernelArgsIsNotClusterScoped(t *testing.T) {
 
 	const identity = "user-2@example.com"
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	accessPolicy := authres.NewAccessPolicy()
 	accessPolicy.TypedSpec().Value.Rules = []*specs.AccessPolicyRule{

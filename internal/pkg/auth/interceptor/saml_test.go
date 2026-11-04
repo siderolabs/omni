@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/crewjam/saml"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,7 @@ func TestSAMLSessionCanOnlyBeUsedOnceConcurrently(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	assertionData, err := json.Marshal(saml.Assertion{IssueInstant: time.Now().UTC()})
 	require.NoError(t, err)

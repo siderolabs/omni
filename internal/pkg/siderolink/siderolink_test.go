@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/go-retry/retry"
@@ -113,7 +112,7 @@ type SiderolinkSuite struct {
 func (suite *SiderolinkSuite) SetupTest() {
 	suite.ctx, suite.ctxCancel = context.WithTimeout(suite.T().Context(), 3*time.Minute)
 
-	suite.state = state.WrapCore(namespaced.NewState(inmem.Build))
+	suite.state = state.WrapCore(inmem.NewState())
 
 	defaultCfg := config.Default()
 

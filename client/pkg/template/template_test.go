@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -543,7 +542,7 @@ func TestSync(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	ctx := t.Context()
 
@@ -593,7 +592,7 @@ func TestSync_KubernetesHealthChecks(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ctx := t.Context()
 
 	templ, err := template.Load(bytes.NewReader(clusterWithKubernetesHealthChecks), template.WithRoot(root))
@@ -649,7 +648,7 @@ func TestSync_KubernetesManifests(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ctx := t.Context()
 
 	templ, err := template.Load(bytes.NewReader(clusterWithManifests), template.WithRoot(root))
@@ -694,7 +693,7 @@ func TestDelete(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	ctx := t.Context()
 
@@ -737,7 +736,7 @@ func TestSync_KernelArgs_Lifecycle(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ctx := t.Context()
 
 	// 1. Initial Sync: Apply the template with KernelArgs
@@ -995,7 +994,7 @@ func TestSync_InstallDisk_Lifecycle(t *testing.T) {
 
 	root := openTestRoot(t)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	ctx := t.Context()
 
 	templ, err := template.Load(bytes.NewReader(cluster1), template.WithRoot(root))

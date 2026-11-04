@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -246,7 +245,7 @@ func TestAuditStateTeardownNoHook(t *testing.T) {
 	l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
 	// no hooks registered
 
-	st := audit.WrapState(state.WrapCore(namespaced.NewState(inmem.Build)), l)
+	st := audit.WrapState(state.WrapCore(inmem.NewState()), l)
 
 	res := newPublicKey(t, "no-hook-key")
 	require.NoError(t, st.Create(t.Context(), res))
@@ -267,7 +266,7 @@ func newAuditStateWithHooks(t *testing.T) (state.State, *audit.Log) {
 
 	hooks.Init(l)
 
-	return audit.WrapState(state.WrapCore(namespaced.NewState(inmem.Build)), l), l
+	return audit.WrapState(state.WrapCore(inmem.NewState()), l), l
 }
 
 func newPublicKey(t *testing.T, id string) *auth.PublicKey {

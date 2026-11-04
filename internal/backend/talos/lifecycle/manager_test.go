@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -28,7 +27,7 @@ func newManagerForTest(t *testing.T) *lifecycle.Manager {
 	require.NoError(t, err)
 
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
-		state.WrapCore(namespaced.NewState(inmem.Build)),
+		state.WrapCore(inmem.NewState()),
 		c,
 	), nil, nil, nil)
 }

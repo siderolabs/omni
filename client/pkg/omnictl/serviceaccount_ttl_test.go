@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	stateserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/stretchr/testify/require"
@@ -56,7 +55,7 @@ func TestServiceAccountKeyTTL(t *testing.T) {
 			t.Run(strings.Join(command, " ")+"/ttl="+ttl, func(t *testing.T) {
 				t.Parallel()
 
-				st := state.WrapCore(namespaced.NewState(inmem.Build))
+				st := state.WrapCore(inmem.NewState())
 				version := system.NewSysVersion(system.SysVersionID)
 				version.TypedSpec().Value.BackendVersion = "1.12.4"
 				require.NoError(t, st.Create(t.Context(), version))

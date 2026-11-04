@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/siderolabs/go-api-signature/api/auth"
 	"github.com/siderolabs/go-api-signature/pkg/message"
@@ -47,7 +46,7 @@ import (
 )
 
 func TestRegisterPublicKey(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
 		Api: config.Service{
@@ -169,7 +168,7 @@ LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
 
 // TestRevokePublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
 func TestRevokePublicKeyDenials(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
 		Api: config.Service{
@@ -197,7 +196,7 @@ func TestRevokePublicKeyDenials(t *testing.T) {
 
 // TestConfirmPublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
 func TestConfirmPublicKeyDenials(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
 		Api: config.Service{
@@ -230,7 +229,7 @@ func TestConfirmPublicKeyDenials(t *testing.T) {
 // TestPublicKeyRegisterConfirm checks that a registered key is stored only once it is confirmed, and that a wait for an
 // unknown key takes as long as a wait for a registered one. Overlapping confirmations of one key all succeed.
 func TestPublicKeyRegisterConfirm(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
 		Api: config.Service{
@@ -396,7 +395,7 @@ e3jZVPlrk+078y8/+99sKfmGskU+ynBsKNglG/uy2LO1yl8WGXhJtXJF+w==
 
 // TestRegisterPublicKeyLimited checks that registrations from one address are limited, and other addresses are not affected.
 func TestRegisterPublicKeyLimited(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
 		Api: config.Service{
@@ -459,7 +458,7 @@ func TestConfirmPublicKeySyncsOIDCUser(t *testing.T) {
 	verifier, err := oidcauth.NewIDTokenVerifier(t.Context(), provider, "omni", false)
 	require.NoError(t, err)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	require.NoError(t, user.Ensure(t.Context(), st, "admin@example.com", role.Admin, false))
 
 	authServer, err := grpc.NewOIDCAuthServer(st, config.Services{Api: config.Service{AdvertisedURL: new("http://localhost:8099")}},

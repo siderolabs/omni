@@ -15,7 +15,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +29,7 @@ import (
 func newTestState(t *testing.T) state.State {
 	t.Helper()
 
-	return state.WrapCore(namespaced.NewState(inmem.Build))
+	return state.WrapCore(inmem.NewState())
 }
 
 func TestValidateCloudPlatform(t *testing.T) {

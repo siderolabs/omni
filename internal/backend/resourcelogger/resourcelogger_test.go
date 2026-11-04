@@ -15,7 +15,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +37,7 @@ func TestResourceLogger(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		resourceRegistry := registry.NewResourceRegistry(st)
 
 		for _, r := range resourceregistry.Resources {

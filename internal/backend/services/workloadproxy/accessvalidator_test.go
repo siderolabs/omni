@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -43,7 +42,7 @@ func TestAccessValidator(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	roleProvider := &mockRoleProvider{
 		role: role.Reader,
@@ -98,7 +97,7 @@ func TestAccessValidatorUnconfirmedKey(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), &mockRoleProvider{role: role.Admin}, zaptest.NewLogger(t))
 	require.NoError(t, err)

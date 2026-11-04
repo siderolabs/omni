@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
@@ -137,7 +136,7 @@ func TestPollCPUCores(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			for _, r := range test.resources {
 				require.NoError(t, st.Create(t.Context(), r))

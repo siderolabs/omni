@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -72,7 +71,7 @@ func TestMergeConfig(t *testing.T) {
 }
 
 func TestValidateStateConfig(t *testing.T) {
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
+	state := state.WrapCore(inmem.NewState())
 
 	cfg, err := config.FromBytes(configFull)
 	require.NoError(t, err)

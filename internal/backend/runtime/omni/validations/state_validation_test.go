@@ -24,7 +24,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xiter"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +79,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		MaxInterval:  new(24 * time.Hour),
 	}
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
 
 	// prepare talos versions
@@ -667,7 +666,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	buildState := func(conf config.EmbeddedDiscoveryService) (inner, outer state.State) {
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, conf)...)
 
 		return innerSt, state.WrapCore(st)
@@ -890,7 +889,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.RelationLabelsValidationOptions()...)
 
 	clusterID := "test-cluster" //nolint:goconst
@@ -978,7 +977,7 @@ func TestMachineSetValidation(t *testing.T) {
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	require.NoError(t, err)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, etcdBackupStoreFactory)...)
 
 	machineSet1 := omnires.NewMachineSet("test-cluster-wrong-suffix")
@@ -1110,7 +1109,7 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 		},
 	}
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, &etcdBackupStoreFactory)...)
 
 	cluster := omnires.NewCluster(clusterID)
@@ -1292,7 +1291,7 @@ func TestMachineSetBootstrapSnapshotValidation(t *testing.T) {
 			t.Cleanup(cancel)
 
 			clusterID := "test-cluster"
-			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			innerSt := state.WrapCore(inmem.NewState())
 			st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, &mockEtcdBackupStoreFactory{})...)
 
 			require.NoError(t, st.Create(ctx, omnires.NewCluster(clusterID)))
@@ -1329,7 +1328,7 @@ func TestMachineSetNodeValidations(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
 
 	cluster := omnires.NewCluster("test-cluster")
@@ -1419,7 +1418,7 @@ func TestMachineSetNodeMaintenanceInstallCompatibility(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 			t.Cleanup(cancel)
 
-			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			innerSt := state.WrapCore(inmem.NewState())
 			st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
 
 			cluster := omnires.NewCluster("c1")
@@ -1458,7 +1457,7 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 
 	cluster := omnires.NewCluster("test-cluster")
@@ -1511,7 +1510,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
 		TickInterval: new(time.Minute),
@@ -1627,7 +1626,7 @@ func TestClusterImport(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
 		TickInterval: new(time.Minute),
@@ -1696,7 +1695,7 @@ func TestClusterImportInitialVersions(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, config.EmbeddedDiscoveryService{})...)
 
 	talosVersion := omnires.NewTalosVersion("1.10.6")
@@ -1762,7 +1761,7 @@ func TestCreateIdentityValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.IdentityValidationOptions(config.SAML{})...)
 
 	assert := assert.New(t)
@@ -1787,7 +1786,7 @@ func TestExposedServiceAliasValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ExposedServiceValidationOptions()...)
 
 	exposedService := omnires.NewExposedService("test-exposed-service")
@@ -1821,7 +1820,7 @@ func TestConfigPatchValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ConfigPatchValidationOptions(innerSt)...)
 
 	configPatch := omnires.NewConfigPatch("test-config-patch")
@@ -1890,7 +1889,7 @@ func TestEtcdBackupValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	st := validated.NewState(innerSt, validations.EtcdManualBackupValidationOptions()...)
 
@@ -1912,7 +1911,7 @@ func TestIdentityLabelRuleValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.IdentityLabelRuleValidationOptions()...)
 
 	labelRule := auth.NewIdentityLabelRule("test-label-rule")
@@ -1950,7 +1949,7 @@ func TestRoleValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := state.WrapCore(validated.NewState(innerSt, validations.RoleValidationOptions()...))
 
 	setUserRole := func(id string, r role.Role) error {
@@ -1994,7 +1993,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	require.NoError(t, err)
@@ -2074,7 +2073,7 @@ func TestMachineClassValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	st := validated.NewState(
 		innerSt,
@@ -2228,7 +2227,7 @@ func TestS3ConfigValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	st := validated.NewState(innerSt, validations.S3ConfigValidationOptions()...)
 
@@ -2277,7 +2276,7 @@ func TestMachineRequestSetValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, innerSt.Create(ctx, talosVersion1))
 	require.NoError(t, innerSt.Create(ctx, talosVersion2))
@@ -2326,7 +2325,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.InfraMachineConfigValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
@@ -2396,7 +2395,7 @@ func TestMetadataIDValidation(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 			t.Cleanup(cancel)
 
-			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			innerSt := state.WrapCore(inmem.NewState())
 			st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
 
 			res := omnires.NewKernelArgs(tt.id)
@@ -2448,7 +2447,7 @@ func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				t.Cleanup(cancel)
 
-				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				innerSt := state.WrapCore(inmem.NewState())
 				st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
 
 				res := omnires.NewKernelArgs("test-" + strings.ReplaceAll(tt.name, " ", "-"))
@@ -2479,7 +2478,7 @@ func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
 
 		res := omnires.NewKernelArgs("count-test")
@@ -2499,7 +2498,7 @@ func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Stage an offending resource via the inner state (bypassing validation).
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		res := omnires.NewKernelArgs("update-test-1")
 		res.Metadata().Labels().Set("", "empty-key-still-here")
@@ -2523,7 +2522,7 @@ func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		res := omnires.NewKernelArgs("update-test-2")
 		res.Metadata().Labels().Set("", "preexisting")
@@ -2547,7 +2546,7 @@ func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		// Pre-populate with more labels than the cap, bypassing validation.
 		res := omnires.NewKernelArgs("update-test-3")
@@ -2640,7 +2639,7 @@ func TestInfraMachineConfigRequestIDValidation(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 			t.Cleanup(cancel)
 
-			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			innerSt := state.WrapCore(inmem.NewState())
 			st := validated.NewState(innerSt, validations.InfraMachineConfigValidationOptions(innerSt)...)
 
 			conf := omnires.NewInfraMachineConfig("test")
@@ -2689,7 +2688,7 @@ func TestKernelArgsValidation(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				t.Cleanup(cancel)
 
-				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				innerSt := state.WrapCore(inmem.NewState())
 				st := validated.NewState(innerSt, validations.InfraMachineConfigValidationOptions(innerSt)...)
 
 				conf := omnires.NewInfraMachineConfig("test")
@@ -2783,7 +2782,7 @@ func TestKernelArgsValidation(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				t.Cleanup(cancel)
 
-				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				innerSt := state.WrapCore(inmem.NewState())
 				st := validated.NewState(innerSt, validations.KernelArgsValidationOptions()...)
 
 				res := omnires.NewKernelArgs("test")
@@ -2808,7 +2807,7 @@ func TestKernelArgsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := validated.NewState(innerSt, validations.KernelArgsValidationOptions()...)
 
 		res := omnires.NewKernelArgs("test")
@@ -2856,7 +2855,7 @@ func TestKernelArgsValidation(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				t.Cleanup(cancel)
 
-				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				innerSt := state.WrapCore(inmem.NewState())
 				st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
 
 				media := omnires.NewInstallationMediaConfig("test")
@@ -2883,7 +2882,7 @@ func TestInstallationMediaConfigTalosVersionValidation(t *testing.T) {
 	const talosVersionID = "1.13.2"
 
 	setup := func(t *testing.T) state.State {
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
@@ -2946,7 +2945,7 @@ func TestInstallationMediaConfigEmbeddedConfigValidation(t *testing.T) {
 	const embeddedConfig = "version: v1alpha1\nmachine: {}\n"
 
 	setup := func(t *testing.T, versions ...string) state.State {
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
@@ -3020,7 +3019,7 @@ func TestExtensionsCatalogValidation(t *testing.T) {
 	talosVersionID := constants.DefaultTalosVersion
 
 	setupBaseState := func(t *testing.T) state.State {
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
@@ -3350,7 +3349,7 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	st := validated.NewState(innerSt, validations.NodeForceDestroyRequestValidationOptions(innerSt)...)
 
@@ -3370,7 +3369,7 @@ func TestNodeForceDestroyRequestClusterLabel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.NodeForceDestroyRequestValidationOptions(innerSt)...)
 
 	clusterMachine := omnires.NewClusterMachine("node-1")
@@ -3404,7 +3403,7 @@ func TestJoinTokenValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 
 	st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
@@ -3469,7 +3468,7 @@ func TestJoinTokenNameControlCharsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
 
 		token := siderolink.NewJoinToken("token-control-char")
@@ -3487,7 +3486,7 @@ func TestJoinTokenNameControlCharsValidation(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Stage a token with an offending name via the inner state (bypassing validation).
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		token := siderolink.NewJoinToken("token-stale-bad-name")
 		token.TypedSpec().Value.Name = "stale\nbad"
@@ -3511,7 +3510,7 @@ func TestJoinTokenNameControlCharsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
 		wrappedState := state.WrapCore(st)
 
@@ -3536,7 +3535,7 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.DefaultJoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
@@ -3596,7 +3595,7 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ImportedClusterSecretValidationOptions(innerSt, true)...)
 	res := omnires.NewImportedClusterSecrets("test")
 
@@ -3632,7 +3631,7 @@ func TestInfraProviderValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.InfraProviderValidationOptions(innerSt)...)
 
 	provider := infra.NewProvider("test")
@@ -3672,7 +3671,7 @@ func TestInfraProviderNameValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		return ctx, validated.NewState(innerSt, validations.InfraProviderValidationOptions(innerSt)...)
 	}
@@ -3721,7 +3720,7 @@ func TestRotateSecretsValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.RotateSecretsValidationOptions(innerSt)...)
 
 	updateTalosCATimestamp := func(rotateTalosCA *omnires.RotateTalosCA) {
@@ -3763,7 +3762,7 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
 
 	installationMediaConfig := omnires.NewInstallationMediaConfig("test")
@@ -3874,7 +3873,7 @@ func TestKubernetesManifestValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.KubernetesManifestsValidationOptions()...)
 
 	m := omnires.NewKubernetesManifestGroup("1")
@@ -3914,7 +3913,7 @@ func TestKubernetesHealthCheckValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.KubernetesHealthCheckValidationOptions()...)
 
 	const jobManifest = "apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: check\n          image: alpine\n"
@@ -4032,7 +4031,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 
 		maxUsers := 2
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxUsers: new(uint32(maxUsers)),
 		})...))
@@ -4058,7 +4057,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 
 		maxSAs := 1
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxServiceAccounts: new(uint32(maxSAs)),
 		})...))
@@ -4084,7 +4083,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 		t.Cleanup(cancel)
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxServiceAccounts: new(uint32(0)),
 			MaxUsers:           new(uint32(0)),
@@ -4108,7 +4107,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 
 		maxUsers := 1
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 
 		require.NoError(t, innerSt.Create(ctx, auth.NewIdentity("existing1@example.com")))
 		require.NoError(t, innerSt.Create(ctx, auth.NewIdentity("existing2@example.com")))
@@ -4131,7 +4130,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		maxUsers := 1
 		maxSAs := 1
 
-		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		innerSt := state.WrapCore(inmem.NewState())
 		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxUsers:           new(uint32(maxUsers)),
 			MaxServiceAccounts: new(uint32(maxSAs)),
@@ -4163,7 +4162,7 @@ func TestConfigPatchLevelValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.ConfigPatchValidationOptions(innerSt)...)
 
 	patch := func(id string, labels ...string) *omnires.ConfigPatch {
@@ -4227,7 +4226,7 @@ func TestMachineSetNodeClusterAgreesWithMachineSet(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
 
 	for _, name := range []string{"alpha", "beta"} {
@@ -4261,7 +4260,7 @@ func TestKernelArgsClusterLabelRejected(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	innerSt := state.WrapCore(inmem.NewState())
 	st := validated.NewState(innerSt, validations.KernelArgsValidationOptions()...)
 
 	withCluster := omnires.NewKernelArgs("m1")

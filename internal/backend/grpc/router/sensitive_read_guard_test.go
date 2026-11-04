@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/runtime/pkg/state/registry"
@@ -43,7 +42,7 @@ const sensitiveType = "ApiCertificates.secrets.talos.dev"
 func startFakeNode(ctx context.Context, t *testing.T) string {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	require.NoError(t, registry.NewNamespaceRegistry(st).RegisterDefault(ctx))
 	require.NoError(t, registry.NewResourceRegistry(st).RegisterDefault(ctx))
 

@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -45,7 +44,7 @@ func assertUsers(ctx context.Context, t *testing.T, st state.State, expectedUser
 }
 
 func TestInitialUsers(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	logger := zaptest.NewLogger(t)
 	ctx := t.Context()
 
@@ -115,7 +114,7 @@ func TestElevateRecoveryAdmin(t *testing.T) {
 	setup := func(t *testing.T) (context.Context, state.State, *zap.Logger) {
 		t.Helper()
 
-		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(inmem.NewState())
 		ctx := t.Context()
 
 		require.NoError(t, user.Ensure(ctx, st, locked, role.None, false))

@@ -17,7 +17,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -459,7 +458,7 @@ func TestCleanupProbabilities(t *testing.T) {
 		logConf.SetMaxLinesPerMachine(limit)
 		logConf.SetCleanupProbability(prob)
 
-		state := state.WrapCore(namespaced.NewState(inmem.Build))
+		state := state.WrapCore(inmem.NewState())
 
 		logger := zaptest.NewLogger(t)
 		mgr, err := sqlitelog.NewStoreManager(ctx, db, logConf, state, logger)
@@ -688,7 +687,7 @@ func TestTimeBasedCleanupBatching(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
-	omniState := state.WrapCore(namespaced.NewState(inmem.Build))
+	omniState := state.WrapCore(inmem.NewState())
 
 	var totalCleaned int
 
@@ -905,7 +904,7 @@ func setupDBWithStorageConfig(ctx context.Context, t *testing.T, logger *zap.Log
 		require.NoError(t, db.Close())
 	})
 
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
+	state := state.WrapCore(inmem.NewState())
 
 	storeManager, err := sqlitelog.NewStoreManager(ctx, db, storageConf, state, logger)
 	require.NoError(t, err)

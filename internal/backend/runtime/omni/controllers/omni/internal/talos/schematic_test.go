@@ -11,7 +11,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	talosextensions "github.com/siderolabs/talos/pkg/machinery/extensions"
@@ -32,7 +31,7 @@ type extension struct {
 func buildState(t *testing.T, extensions []extension) state.State {
 	t.Helper()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	for i, ext := range extensions {
 		res := runtime.NewExtensionStatus(runtime.NamespaceName, strconv.Itoa(i))

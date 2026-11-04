@@ -12,7 +12,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -22,7 +21,7 @@ import (
 )
 
 func TestSkipDroppedMigrationsOnFreshInstall(t *testing.T) {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	logger := zaptest.NewLogger(t)
 
 	mgr := migration.NewManager(st, logger)
@@ -51,7 +50,7 @@ func TestFailOnTooOldDBVersion(t *testing.T) {
 		{"more than enough version", 50, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			dbVersion := system.NewDBVersion(system.DBVersionID)
 			dbVersion.TypedSpec().Value.Version = tt.currentVersion

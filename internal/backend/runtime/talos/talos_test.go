@@ -22,7 +22,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
@@ -66,7 +65,7 @@ func startFakeTalos(ctx context.Context, t *testing.T) *fakeTalos {
 	listener, err := (&net.ListenConfig{}).Listen(ctx, "unix", socketPath)
 	require.NoError(t, err)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	require.NoError(t, registry.NewNamespaceRegistry(st).RegisterDefault(ctx))
 	require.NoError(t, registry.NewResourceRegistry(st).RegisterDefault(ctx))
 

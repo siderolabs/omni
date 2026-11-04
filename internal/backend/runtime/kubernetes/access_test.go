@@ -11,7 +11,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -30,7 +29,7 @@ import (
 func TestCallerAccess(t *testing.T) {
 	t.Parallel()
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	r := kubernetes.New(st, zaptest.NewLogger(t), "", "omni", "")
 
 	callerContext := func(ctx context.Context, r role.Role) context.Context {

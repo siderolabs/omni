@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	grpccodes "google.golang.org/grpc/codes"
@@ -65,7 +64,7 @@ func factoryServer(t *testing.T, factory *upstreamFactory) (*grpcomni.ImageFacto
 	client, err := imagefactory.NewClient(server.URL, imagefactory.Auth{})
 	require.NoError(t, err)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	clients := imagefactory.NewClients(st, client)
 
 	ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.Reader})

@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/maps"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -242,7 +241,7 @@ func assertAllFieldsSet(t *testing.T, modelList models.List, includeKernelArgs b
 }
 
 func buildState(ctx context.Context, t *testing.T) state.State {
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 	dec := yaml.NewDecoder(bytes.NewReader(clusterResources))
 
 	for {

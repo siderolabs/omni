@@ -11,7 +11,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -199,7 +198,7 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			st := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(inmem.NewState())
 
 			authConfig, err := auth.EnsureAuthConfigResource(ctx, st, logger, tt.initialConfig)
 			if tt.expectInitError {
@@ -243,7 +242,7 @@ func TestMarkUsersLoggedIn(t *testing.T) {
 	ctx := t.Context()
 	logger := zaptest.NewLogger(t).With(logging.Component("auth"))
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	authConfig, err := auth.EnsureAuthConfigResource(ctx, st, logger, auth0Config())
 	require.NoError(t, err)
@@ -266,7 +265,7 @@ func TestEnsureAuthConfigResourceClearsStoredClientSecret(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(inmem.NewState())
 
 	stored := authres.NewAuthConfig()
 	stored.TypedSpec().Value.Oidc = &specs.AuthConfigSpec_OIDC{
