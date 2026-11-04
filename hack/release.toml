@@ -33,6 +33,13 @@ them now, so set `OMNI_PRIMARY_FACTORY_USERNAME` and `OMNI_PRIMARY_FACTORY_PASSW
 are missing.
 """
 
+[notes.omnictl-download-removal]
+title = "`omnictl download` Removal"
+description = """\
+The deprecated `omnictl download` command is removed. Use `omnictl media download` with an installation media preset \
+instead, for example `omnictl media preset create iso-amd64 --arch amd64` and then `omnictl media download iso-amd64`.
+"""
+
 [notes.aaa-boltdb-deprecation]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
 description = """\

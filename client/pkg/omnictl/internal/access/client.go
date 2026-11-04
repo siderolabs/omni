@@ -108,10 +108,6 @@ func WithClient(f func(ctx context.Context, client *client.Client, info ServerIn
 				return err
 			}
 
-			if configCtx.Auth.Basic != "" { //nolint:staticcheck
-				fmt.Fprintf(safeout.Stderr(), "[WARN] basic auth is deprecated and has no effect\n")
-			}
-
 			opts = append(
 				opts,
 				client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity),

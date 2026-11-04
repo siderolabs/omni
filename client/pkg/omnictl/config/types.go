@@ -19,8 +19,6 @@ type Context struct {
 
 // Auth contains the authentication configuration for a context.
 type Auth struct {
-	// Deprecated: basic auth is not supported, and setting this field has no effect.
-	Basic    string   `yaml:"basic,omitempty"`
 	SideroV1 SideroV1 `yaml:"siderov1,omitempty"`
 }
 

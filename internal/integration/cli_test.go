@@ -18,7 +18,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
@@ -29,72 +28,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
 	clientconstants "github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 )
-
-// AssertDownloadUsingCLI verifies generated image download using omnictl.
-func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omnictlPath, httpEndpoint string) TestFunc {
-	st := client.Omni().State()
-
-	return func(t *testing.T) {
-		t.Parallel()
-
-		if omnictlPath == "" {
-			t.Skip()
-		}
-
-		media, err := safe.StateListAll[*omni.InstallationMedia](testCtx, st)
-		require.NoError(t, err)
-
-		var images []*omni.InstallationMedia
-
-		for val := range media.All() {
-			spec := val.TypedSpec().Value
-
-			switch {
-			case spec.Profile == "aws",
-				spec.Extension == "iso" && spec.Overlay == "",
-				spec.Overlay == "rpi_generic":
-				images = append(images, val)
-			}
-		}
-
-		require.Greater(t, len(images), 2)
-
-		name := "test-" + uuid.NewString()
-
-		key := createServiceAccount(testCtx, t, client, name, role.Admin)
-
-		for _, image := range images {
-			t.Run(image.Metadata().ID(), func(t *testing.T) {
-				t.Parallel()
-
-				output := filepath.Join(t.TempDir(), image.Metadata().ID())
-
-				stdout, stderr, err := runCmd(
-					testCtx,
-					omnictlPath,
-					httpEndpoint,
-					key, "download",
-					"--insecure-skip-tls-verify",
-					image.TypedSpec().Value.Name,
-					"--initial-labels",
-					"key=value",
-					"--output",
-					output,
-				)
-				require.NoError(t, err, "stdout:\n %s\nstderr:\n%s", stdout.String(), stderr.String())
-
-				res, err := os.Stat(output)
-
-				require.NoError(t, err)
-
-				require.Greater(t, res.Size(), int64(1024*1024))
-			})
-		}
-	}
-}
 
 func runCmd(ctx context.Context, path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
 	var stdout, stderr bytes.Buffer

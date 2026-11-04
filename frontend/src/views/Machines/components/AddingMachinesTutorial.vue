@@ -43,6 +43,9 @@ const awsCode = `aws ec2 run-instances \\
 
 const pxeBootCode =
   'docker run -t --network host ghcr.io/siderolabs/booter:v0.3.0 -k "$(omnictl jointoken kernel-args)"'
+
+const downloadISOCode = `omnictl media preset create iso-amd64 --arch amd64
+omnictl media download iso-amd64`
 </script>
 
 <template>
@@ -78,7 +81,7 @@ const pxeBootCode =
         </template>
 
         <p>Download ISO</p>
-        <CodeBlock code="omnictl download iso --arch amd64"></CodeBlock>
+        <CodeBlock :code="downloadISOCode"></CodeBlock>
       </div>
 
       <p>

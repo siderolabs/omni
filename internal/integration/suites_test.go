@@ -122,11 +122,6 @@ func testImageGeneration(options *TestOptions) TestFunc {
 Generate various Talos images with Omni and try to download them.`)
 
 		t.Run(
-			"TalosImagesShouldBeDownloadableUsingCLI",
-			AssertDownloadUsingCLI(t.Context(), options.omniClient, options.OmnictlPath, options.HTTPEndpoint),
-		)
-
-		t.Run(
 			"OmnictlInstallationMediaPresetShouldWork",
 			AssertInstallationMediaPresetCLI(t.Context(), options.omniClient, options.OmnictlPath, options.HTTPEndpoint),
 		)

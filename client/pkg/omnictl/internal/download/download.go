@@ -61,28 +61,12 @@ const (
 
 // ImageInfo describes an installation media image for download.
 type ImageInfo struct {
-	MediaID        string // resource ID for CreateSchematicRequest.MediaId (unused when Params.Overlay is set)
 	Name           string // display name
 	DestFilePrefix string // prefix for output filename
 	Profile        string // platform profile (e.g., "metal", "aws")
 	Architecture   string // amd64, arm64
 	Extension      string // file extension (iso, raw.xz, qcow2)
 	NoSecureBoot   bool   // true if secure boot is not supported
-}
-
-// imageInfoFromResource constructs an ImageInfo from an InstallationMedia resource.
-func imageInfoFromResource(media *omni.InstallationMedia) ImageInfo {
-	spec := media.TypedSpec().Value
-
-	return ImageInfo{
-		MediaID:        media.Metadata().ID(),
-		Name:           spec.Name,
-		DestFilePrefix: spec.DestFilePrefix,
-		Profile:        spec.Profile,
-		Architecture:   spec.Architecture,
-		Extension:      spec.Extension,
-		NoSecureBoot:   spec.NoSecureBoot,
-	}
 }
 
 // Params holds the parameters for downloading installation media.
@@ -467,63 +451,7 @@ func BuildParamsFromPreset(spec *specs.InstallationMediaConfigSpec, arch string)
 	return params, nil
 }
 
-// FindImage finds an installation media resource by name/profile/overlay and returns its ImageInfo.
-func FindImage(ctx context.Context, client *client.Client, name string, params Params) (ImageInfo, error) {
-	result, err := filterMedia(ctx, client, func(val *omni.InstallationMedia) (*omni.InstallationMedia, bool) {
-		spec := val.TypedSpec().Value
-
-		if strings.EqualFold(name, "iso") {
-			return val, strings.Contains(strings.ToLower(spec.Name), strings.ToLower(name))
-		}
-
-		return val, strings.EqualFold(spec.Name, name) ||
-			strings.EqualFold(spec.Profile, name) || strings.EqualFold(spec.Overlay, name)
-	})
-	if err != nil {
-		return ImageInfo{}, err
-	}
-
-	if len(result) > 1 {
-		result = xslices.FilterInPlace(result, func(val *omni.InstallationMedia) bool {
-			return val.TypedSpec().Value.Architecture == params.Architecture
-		})
-	}
-
-	if len(result) == 0 {
-		return ImageInfo{}, fmt.Errorf("no image found for %q", name)
-	} else if len(result) > 1 {
-		names := xslices.Map(result, func(val *omni.InstallationMedia) string {
-			return val.Metadata().ID()
-		})
-
-		return ImageInfo{}, fmt.Errorf("multiple images found:\n  %s", strings.Join(names, "\n  "))
-	}
-
-	installationMedia := result[0]
-
-	minTalosVersion := installationMedia.TypedSpec().Value.MinTalosVersion
-	if minTalosVersion != "" {
-		minVersion, versionErr := semver.ParseTolerant(minTalosVersion)
-		if versionErr != nil {
-			return ImageInfo{}, fmt.Errorf("failed to parse min Talos version supported by the installation media: %w", versionErr)
-		}
-
-		requestedVersion, versionErr := semver.ParseTolerant(params.TalosVersion)
-		if versionErr != nil {
-			return ImageInfo{}, fmt.Errorf("failed to parse requested Talos version: %w", versionErr)
-		}
-
-		requestedVersion.Pre = nil
-
-		if requestedVersion.LT(minVersion) {
-			return ImageInfo{}, fmt.Errorf("%s supports only Talos version >= %s", installationMedia.TypedSpec().Value.Name, minTalosVersion)
-		}
-	}
-
-	return imageInfoFromResource(installationMedia), nil
-}
-
-func createSchematic(ctx context.Context, client *client.Client, image ImageInfo, params Params) (*management.CreateSchematicResponse, error) {
+func createSchematic(ctx context.Context, client *client.Client, params Params) (*management.CreateSchematicResponse, error) {
 	metaValues := map[uint32]string{}
 
 	var extensions []string
@@ -557,11 +485,7 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 		EmbeddedMachineConfig:    params.EmbeddedMachineConfig,
 	}
 
-	if params.Overlay != nil {
-		req.Overlay = params.Overlay
-	} else {
-		req.MediaId = image.MediaID
-	}
+	req.Overlay = params.Overlay
 
 	resp, err := client.Management().CreateSchematic(ctx, req)
 	if err != nil {
@@ -648,7 +572,7 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		return fmt.Errorf("%q doesn't support secure boot", image.Name)
 	}
 
-	schematicResp, err := createSchematic(ctx, client, image, params)
+	schematicResp, err := createSchematic(ctx, client, params)
 	if err != nil {
 		return err
 	}
@@ -705,26 +629,6 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	}
 
 	return downloadToFile(req, dest)
-}
-
-func filterMedia[T any](ctx context.Context, client *client.Client, check func(value *omni.InstallationMedia) (T, bool)) ([]T, error) {
-	media, err := safe.StateListAll[*omni.InstallationMedia](
-		ctx,
-		client.Omni().State(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]T, 0, media.Len())
-
-	for item := range media.All() {
-		if val, ok := check(item); ok {
-			result = append(result, val)
-		}
-	}
-
-	return result, nil
 }
 
 // ParseLabelPairs converts label key=value pairs into a map.
@@ -949,39 +853,4 @@ func checkPath(path string) (bool, error) {
 	default:
 		return true, nil
 	}
-}
-
-// ImageCompletion provides shell completion for image names.
-func ImageCompletion(architecture string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	var results []string
-
-	err := access.WithClient(
-		func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
-			res, err := filterMedia(ctx, client, func(value *omni.InstallationMedia) (string, bool) {
-				spec := value.TypedSpec().Value
-				if architecture != spec.Architecture {
-					return "", false
-				}
-
-				name := spec.Name
-				if toComplete == "" || strings.Contains(name, toComplete) {
-					return name, true
-				}
-
-				return "", false
-			})
-			if err != nil {
-				return err
-			}
-
-			results = res
-
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
-	}
-
-	return xslices.Deduplicate(results, func(s string) string { return s }), cobra.ShellCompDirectiveNoFileComp
 }
