@@ -10,47 +10,14 @@ import (
 	"net/url"
 )
 
-// GetPrimaryFactory returns the resolved primary Image Factory configuration. This is the factory
-// that Omni uses for all its Image Factory operations today.
-//
-// A registries.factories.primary block that specifies a URL is self-contained: the deprecated flat
-// imageFactory* fields are ignored entirely. Otherwise credentials configured for the old factory
-// would be sent to a newly configured one, which is both wrong and a way to leak them.
-//
-// Without a URL under registries.factories.primary, the deprecated fields are used instead (they
-// still carry the default factory URL), with any field set on the primary block winning. A token file
-// set on the primary block leaves the flat username and password out, since a factory takes a token or
-// a basic auth pair, not both.
+// GetPrimaryFactory returns the primary Image Factory configuration. This is the factory that Omni
+// uses for all its Image Factory operations today.
 func (s *Registries) GetPrimaryFactory() Factory {
-	primary := s.Factories.Primary
-
-	if primary.GetUrl() != "" {
-		return primary
-	}
-
-	var resolved Factory
-
-	resolved.SetUrl(s.GetImageFactoryBaseURL())
-	resolved.SetPxeURL(firstNonEmpty(primary.GetPxeURL(), s.GetImageFactoryPXEBaseURL()))
-	resolved.MachineTokenTTL = primary.MachineTokenTTL
-
-	// A token file and a basic auth pair never go together.
-	if tokenFile := primary.GetTokenFile(); tokenFile != "" {
-		resolved.SetTokenFile(tokenFile)
-
-		return resolved
-	}
-
-	resolved.SetUsername(firstNonEmpty(primary.GetUsername(), s.GetImageFactoryUsername()))
-	resolved.SetPassword(firstNonEmpty(primary.GetPassword(), s.GetImageFactoryPassword()))
-
-	return resolved
+	return s.Factories.Primary
 }
 
 // GetSecondaryFactory returns the configured secondary Image Factory configuration and true,
 // or a zero Factory and false when no secondary factory is configured.
-//
-// There is no deprecated fallback for the secondary factory, as it is a new concept.
 func (s *Registries) GetSecondaryFactory() (Factory, bool) {
 	secondary := s.Factories.Secondary
 	if secondary.GetUrl() == "" {
@@ -93,14 +60,4 @@ func (f Factory) PXEBaseURL() (*url.URL, error) {
 // RequiresAuth returns whether Omni has a token file or basic auth credentials for the factory.
 func (f Factory) RequiresAuth() bool {
 	return f.GetTokenFile() != "" || f.GetPassword() != ""
-}
-
-func firstNonEmpty[T ~string](values ...T) T {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-
-	return ""
 }

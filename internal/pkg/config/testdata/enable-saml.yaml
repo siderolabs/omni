@@ -14,19 +14,18 @@ services:
     joinTokensMode: strict
 
 auth:
+  initialUsers:
+    - user@email.com
   keyPruner:
     interval: 1m
   auth0:
     enabled: false
-    initialUsers:
-      - user@email.com
   saml:
     enabled: true
 
 registries:
   talos: ghcr.io/siderolabs/installer
   kubernetes: ghcr.io/siderolabs/kubelet
-  imageFactoryBaseURL: https://factory.talos.dev
 
 storage:
   vault:

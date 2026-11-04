@@ -51,14 +51,14 @@ debug:
     endpoint: 0.0.0.0:8124
 
 auth:
+  initialUsers:
+    - test-user@siderolabs.com
   keyPruner:
     interval: 1m
   auth0:
     enabled: true
     clientID: TODO
     domain: TODO
-    initialUsers:
-      - test-user@siderolabs.com
   saml:
     enabled: false
   initialServiceAccount:
@@ -71,7 +71,6 @@ auth:
 registries:
   talos: ghcr.io/siderolabs/installer
   kubernetes: ghcr.io/siderolabs/kubelet
-  imageFactoryBaseURL: https://factory.talos.dev
   factories:
     primary:
       url: https://factory.talos.dev

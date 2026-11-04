@@ -82,11 +82,6 @@ type Auth0 struct {
 	// to true, it cannot be set back to false.
 	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
-	// InitialUsers is a list of emails which should be created as admins when Omni is
-	// run for the first time. DEPRECATED: use params.auth.initialUsers instead, this
-	// will be removed.
-	InitialUsers []string `json:"initialUsers,omitempty,omitzero" yaml:"initialUsers,omitempty"`
-
 	// UseFormData controls whether the Auth0 provider should use form data for
 	// authentication requests. When true, data to the token endpoint is transmitted
 	// as x-www-form-urlencoded data instead of JSON.
@@ -471,8 +466,8 @@ type Logs struct {
 	// (production). Defaults to text for debug builds, json otherwise.
 	Format *LogsFormat `json:"format,omitempty,omitzero" yaml:"format,omitempty"`
 
-	// Level is the log level for the Omni application logger. Defaults to info,
-	// unless the --debug flag is set, in which case it defaults to debug.
+	// Level is the log level for the Omni application logger. Defaults to info, debug
+	// for debug builds.
 	Level *LogsLevel `json:"level,omitempty,omitzero" yaml:"level,omitempty"`
 
 	// Machine contains machine logs configuration.
@@ -699,30 +694,6 @@ type RateLimits struct {
 type Registries struct {
 	// Factories contains the primary and secondary Image Factory configurations.
 	Factories Factories `json:"factories" yaml:"factories"`
-
-	// ImageFactoryBaseURL is the base URL of the Image Factory service used to build
-	// custom machine images.
-	//
-	// Deprecated: use factories.primary.url instead.
-	ImageFactoryBaseURL *string `json:"imageFactoryBaseURL" yaml:"imageFactoryBaseURL"`
-
-	// ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used
-	// to build custom PXE boot images.
-	//
-	// Deprecated: use factories.primary.pxeURL instead.
-	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty,omitzero" yaml:"imageFactoryPXEBaseURL,omitempty"`
-
-	// ImageFactoryPassword is the password used to authenticate against the Image
-	// Factory Enterprise service.
-	//
-	// Deprecated: use factories.primary.password instead.
-	ImageFactoryPassword *Secret `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
-
-	// ImageFactoryUsername is the username used to authenticate against the Image
-	// Factory Enterprise service.
-	//
-	// Deprecated: use factories.primary.username instead.
-	ImageFactoryUsername *string `json:"imageFactoryUsername,omitempty,omitzero" yaml:"imageFactoryUsername,omitempty"`
 
 	// Kubernetes is the Kubernetes container registry configuration.
 	Kubernetes *string `json:"kubernetes" yaml:"kubernetes"`

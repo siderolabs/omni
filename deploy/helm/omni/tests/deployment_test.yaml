@@ -290,12 +290,12 @@ tests:
     template: deployment.yaml
     set:
       args:
-        - --debug
+        - --log-level=debug
         - --verbose
     asserts:
       - contains:
           path: spec.template.spec.containers[0].args
-          content: "--debug"
+          content: "--log-level=debug"
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--verbose"

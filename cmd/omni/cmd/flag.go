@@ -135,30 +135,6 @@ func (f *FlagBinder) ValueVar(fieldPath string, value pflag.Value) {
 	f.cmd.Flags().Var(value, name, usage)
 }
 
-// deprecatedStringAlias registers a deprecated string flag alias that points to the same target.
-func (f *FlagBinder) deprecatedStringAlias(name, deprecationMsg string, target **string) {
-	var val string
-
-	f.cmd.Flags().StringVar(&val, name, "", "")
-
-	//nolint:errcheck
-	f.cmd.Flags().MarkDeprecated(name, deprecationMsg)
-
-	f.callbacks = append(f.callbacks, makeApplier(f.cmd, name, target, &val))
-}
-
-// deprecatedIntAlias registers a deprecated int flag alias that points to the same target.
-func (f *FlagBinder) deprecatedIntAlias(name, deprecationMsg string, target **int) {
-	var val int
-
-	f.cmd.Flags().IntVar(&val, name, 0, "")
-
-	//nolint:errcheck
-	f.cmd.Flags().MarkDeprecated(name, deprecationMsg)
-
-	f.callbacks = append(f.callbacks, makeApplier(f.cmd, name, target, &val))
-}
-
 func (f *FlagBinder) BindAll() error {
 	for _, cb := range f.callbacks {
 		if err := cb(); err != nil {

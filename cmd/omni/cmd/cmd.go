@@ -47,7 +47,6 @@ func buildRootCommand() (*cobra.Command, error) {
 	var (
 		rootCmdFlagBinder *FlagBinder
 		configPaths       []string
-		debug             bool
 		flagConfig        = &config.Params{}
 	)
 
@@ -80,7 +79,7 @@ func buildRootCommand() (*cobra.Command, error) {
 				return err
 			}
 
-			logger, err := buildLogger(cfg.Logs, debug)
+			logger, err := buildLogger(cfg.Logs)
 			if err != nil {
 				return fmt.Errorf("failed to set up logging: %w", err)
 			}
@@ -131,10 +130,6 @@ func buildRootCommand() (*cobra.Command, error) {
 	rootCmdFlagBinder = NewFlagBinder(rootCmd, configSchema)
 
 	rootCmd.Flags().StringArrayVar(&configPaths, "config-path", nil, "config file(s) to load, can be specified multiple times, merged in order (flags have highest priority)")
-	rootCmd.Flags().BoolVar(&debug, "debug", constants.IsDebugBuild, "enable debug logs.")
-
-	rootCmd.Flags().MarkDeprecated("debug", "use --log-level debug") //nolint:errcheck
-
 	rootCmdFlagBinder.StringVar("account.id", &flagConfig.Account.Id)
 	rootCmdFlagBinder.StringVar("account.name", &flagConfig.Account.Name)
 	rootCmdFlagBinder.StringVar("account.userPilot.appToken", &flagConfig.Account.UserPilot.AppToken)
@@ -189,12 +184,6 @@ func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.Uint64Var("services.siderolink.bandwidthLimitMbps", &flagConfig.Services.Siderolink.BandwidthLimitMbps)
 	b.Uint64Var("services.siderolink.bandwidthLimitBurstBytes", &flagConfig.Services.Siderolink.BandwidthLimitBurstBytes)
 
-	// MachineAPI — deprecated aliases registered first so canonical flags take precedence in BindAll()
-	b.deprecatedStringAlias("siderolink-api-bind-addr", "use --machine-api-bind-addr", &flagConfig.Services.MachineAPI.Endpoint)
-	b.deprecatedStringAlias("siderolink-api-cert", "use --machine-api-cert", &flagConfig.Services.MachineAPI.CertFile)
-	b.deprecatedStringAlias("siderolink-api-key", "use --machine-api-key", &flagConfig.Services.MachineAPI.KeyFile)
-	b.deprecatedStringAlias("siderolink-api-advertised-url", "use --machine-api-advertised-url", &flagConfig.Services.MachineAPI.AdvertisedURL)
-
 	b.StringVar("services.machineAPI.endpoint", &flagConfig.Services.MachineAPI.Endpoint)
 	b.StringVar("services.machineAPI.certFile", &flagConfig.Services.MachineAPI.CertFile)
 	b.StringVar("services.machineAPI.keyFile", &flagConfig.Services.MachineAPI.KeyFile)
@@ -216,7 +205,6 @@ func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 
 	// Embedded discovery service
 	b.BoolVar("services.embeddedDiscoveryService.enabled", &flagConfig.Services.EmbeddedDiscoveryService.Enabled)
-	b.deprecatedIntAlias("embedded-discovery-service-endpoint", "use --embedded-discovery-service-port", &flagConfig.Services.EmbeddedDiscoveryService.Port)
 	b.IntVar("services.embeddedDiscoveryService.port", &flagConfig.Services.EmbeddedDiscoveryService.Port)
 	b.BoolVar("services.embeddedDiscoveryService.snapshotsEnabled", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled)
 	b.DurationVar("services.embeddedDiscoveryService.snapshotsInterval", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval)
@@ -364,19 +352,6 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.cmd.Flags().MarkDeprecated(b.mustFlagName("registries.talos"), "unused, Omni always installs from an image factory")
 	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
 
-	// Deprecated image factory flags, superseded by the --primary-factory-* flags below.
-	// These intentionally target the deprecated fields to preserve backward compatibility.
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-address", "use --primary-factory-url", &flagConfig.Registries.ImageFactoryBaseURL)
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-pxe-address", "use --primary-factory-pxe-url", &flagConfig.Registries.ImageFactoryPXEBaseURL)
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-username", "use --primary-factory-username", &flagConfig.Registries.ImageFactoryUsername)
-	//nolint:staticcheck
-	EnumVar(b, "registries.imageFactoryPassword", &flagConfig.Registries.ImageFactoryPassword)
-	//nolint:errcheck
-	b.cmd.Flags().MarkDeprecated(b.mustFlagName("registries.imageFactoryPassword"), "use "+config.EnvPrimaryFactoryPassword+" or a config file")
-
 	primary := &flagConfig.Registries.Factories.Primary
 	b.StringVar("registries.factories.primary.url", &primary.Url)
 	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)
@@ -449,7 +424,7 @@ func defineEulaFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 	rootCmd.MarkFlagsRequiredTogether(b.mustFlagName("eulaAccept.name"), b.mustFlagName("eulaAccept.email"))
 }
 
-func buildLogger(logs config.Logs, debug bool) (*zap.Logger, error) {
+func buildLogger(logs config.Logs) (*zap.Logger, error) {
 	useTextFormat := constants.IsDebugBuild
 	if logs.Format != nil {
 		useTextFormat = *logs.Format == config.LogsFormatText
@@ -472,7 +447,7 @@ func buildLogger(logs config.Logs, debug bool) (*zap.Logger, error) {
 		}
 
 		loggerConfig.Level.SetLevel(level)
-	case debug:
+	case constants.IsDebugBuild:
 		loggerConfig.Level.SetLevel(zap.DebugLevel)
 	default:
 		loggerConfig.Level.SetLevel(zap.InfoLevel)

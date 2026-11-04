@@ -21,7 +21,6 @@ auth:
 registries:
   talos: ghcr.io/siderolabs/installer
   kubernetes: ghcr.io/siderolabs/kubelet
-  imageFactoryBaseURL: https://factory.talos.dev
 
 storage:
   vault:

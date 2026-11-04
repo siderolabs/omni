@@ -8,6 +8,31 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.12.0"
 
+[notes.aaa-removed-deprecated-options]
+title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+description = """\
+The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind boltdb`) is still deprecated and will be removed \
+in a future release. There is no automated migration between the two backends, so if your Omni runs on BoltDB, plan the move \
+to etcd, which is the default.
+
+The following deprecated flags and config keys are removed. Omni does not start when it gets one of them, so switch to the \
+replacement before the upgrade:
+
+- `--siderolink-api-bind-addr`, `--siderolink-api-cert`, `--siderolink-api-key` and `--siderolink-api-advertised-url`: use \
+`--machine-api-bind-addr`, `--machine-api-cert`, `--machine-api-key` and `--machine-api-advertised-url`.
+- `--embedded-discovery-service-endpoint`: use `--embedded-discovery-service-port`.
+- `--debug`: use `--log-level debug`.
+- `registries.imageFactoryBaseURL`, `registries.imageFactoryPXEBaseURL`, `registries.imageFactoryUsername` and \
+`registries.imageFactoryPassword`, with the flags `--image-factory-address`, `--image-factory-pxe-address`, \
+`--image-factory-username` and `--image-factory-password`: use `registries.factories.primary` (`--primary-factory-url`, \
+`--primary-factory-pxe-url`, `--primary-factory-username` and `OMNI_PRIMARY_FACTORY_PASSWORD`).
+- `auth.auth0.initialUsers`: use `auth.initialUsers` (`--initial-users`).
+
+The `OMNI_IMAGE_FACTORY_USERNAME` and `OMNI_IMAGE_FACTORY_PASSWORD` environment variables are removed too. Omni ignores \
+them now, so set `OMNI_PRIMARY_FACTORY_USERNAME` and `OMNI_PRIMARY_FACTORY_PASSWORD` instead, or the image factory credentials \
+are missing.
+"""
+
 [notes.aaa-boltdb-deprecation]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
 description = """\

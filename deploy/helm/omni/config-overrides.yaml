@@ -55,8 +55,6 @@ omit:
   account:
     maxRegisteredMachines: true
   auth:
-    auth0:
-      initialUsers: true
     webauthn: true
   logs:
     stripe: true

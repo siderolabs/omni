@@ -151,13 +151,8 @@
       "required": [
         "talos",
         "kubernetes",
-        "imageFactoryBaseURL",
         "factories"
       ],
-      "dependentRequired": {
-        "imageFactoryUsername": ["imageFactoryPassword"],
-        "imageFactoryPassword": ["imageFactoryUsername"]
-      },
       "properties": {
         "talos": {
           "type": "string",
@@ -178,38 +173,6 @@
           "default": "ghcr.io/siderolabs/kubelet",
           "goJSONSchema": {
             "type": "*string"
-          }
-        },
-        "imageFactoryBaseURL": {
-          "type": "string",
-          "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.\n\nDeprecated: use factories.primary.url instead.",
-          "x-cli-flag": "image-factory-address",
-          "deprecated": true,
-          "minLength": 1,
-          "default": "https://factory.talos.dev",
-          "goJSONSchema": {
-            "type": "*string"
-          }
-        },
-        "imageFactoryPXEBaseURL": {
-          "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.\n\nDeprecated: use factories.primary.pxeURL instead.",
-          "x-cli-flag": "image-factory-pxe-address",
-          "deprecated": true,
-          "type": "string"
-        },
-        "imageFactoryUsername": {
-          "description": "ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.username instead.",
-          "x-cli-flag": "image-factory-username",
-          "deprecated": true,
-          "type": "string"
-        },
-        "imageFactoryPassword": {
-          "description": "ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.password instead.",
-          "x-cli-flag": "image-factory-password",
-          "deprecated": true,
-          "type": "string",
-          "goJSONSchema": {
-            "type": "Secret"
           }
         },
         "factories": {
@@ -242,7 +205,7 @@
           "description": "Primary is the primary Image Factory configuration.",
           "$ref": "#/definitions/Factory",
           "properties": {
-            "url": { "x-cli-flag": "primary-factory-url" },
+            "url": { "x-cli-flag": "primary-factory-url", "default": "https://factory.talos.dev", "minLength": 1 },
             "pxeURL": { "x-cli-flag": "primary-factory-pxe-url" },
             "username": { "x-cli-flag": "primary-factory-username" },
             "password": { "x-cli-flag": "primary-factory-password" },
@@ -970,14 +933,6 @@
     "Auth0": {
       "type": "object",
       "properties": {
-        "initialUsers": {
-          "description": "InitialUsers is a list of emails which should be created as admins when Omni is run for the first time. DEPRECATED: use params.auth.initialUsers instead, this will be removed.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "deprecated": true
-        },
         "domain": {
           "description": "Domain is the Auth0 domain.",
           "x-cli-flag": "auth-auth0-domain",
@@ -1223,7 +1178,7 @@
       ],
       "properties": {
         "level": {
-          "description": "Level is the log level for the Omni application logger. Defaults to info, unless the --debug flag is set, in which case it defaults to debug.",
+          "description": "Level is the log level for the Omni application logger. Defaults to info, debug for debug builds.",
           "x-cli-flag": "log-level",
           "type": "string",
           "enum": ["debug", "info", "warn", "error"],
