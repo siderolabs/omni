@@ -233,11 +233,9 @@ type SiderolinkSpec struct {
 	VirtualAddrport string                 `protobuf:"bytes,7,opt,name=virtual_addrport,json=virtualAddrport,proto3" json:"virtual_addrport,omitempty"`
 	// RemoteAddr is the machine address how it's visible from Omni
 	// it is determined by reading X-Forwarded-For header coming from the gRPC API.
-	RemoteAddr string `protobuf:"bytes,8,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
-	// Deprecated: Marked as deprecated in omni/specs/siderolink.proto.
-	NodeUniqueToken string `protobuf:"bytes,9,opt,name=node_unique_token,json=nodeUniqueToken,proto3" json:"node_unique_token,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	RemoteAddr    string `protobuf:"bytes,8,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SiderolinkSpec) Reset() {
@@ -308,14 +306,6 @@ func (x *SiderolinkSpec) GetVirtualAddrport() string {
 func (x *SiderolinkSpec) GetRemoteAddr() string {
 	if x != nil {
 		return x.RemoteAddr
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in omni/specs/siderolink.proto.
-func (x *SiderolinkSpec) GetNodeUniqueToken() string {
-	if x != nil {
-		return x.NodeUniqueToken
 	}
 	return ""
 }
@@ -1291,7 +1281,7 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\x06subnet\x18\x05 \x01(\tR\x06subnet\x12%\n" +
 	"\x0eserver_address\x18\x06 \x01(\tR\rserverAddress\x12,\n" +
 	"\x12initial_join_token\x18\a \x01(\tR\x10initialJoinToken\x12/\n" +
-	"\x13advertised_endpoint\x18\b \x01(\tR\x12advertisedEndpoint\"\xa4\x02\n" +
+	"\x13advertised_endpoint\x18\b \x01(\tR\x12advertisedEndpoint\"\xfa\x01\n" +
 	"\x0eSiderolinkSpec\x12\x1f\n" +
 	"\vnode_subnet\x18\x01 \x01(\tR\n" +
 	"nodeSubnet\x12&\n" +
@@ -1300,8 +1290,8 @@ const file_omni_specs_siderolink_proto_rawDesc = "" +
 	"\tconnected\x18\x04 \x01(\bR\tconnected\x12)\n" +
 	"\x10virtual_addrport\x18\a \x01(\tR\x0fvirtualAddrport\x12\x1f\n" +
 	"\vremote_addr\x18\b \x01(\tR\n" +
-	"remoteAddr\x12.\n" +
-	"\x11node_unique_token\x18\t \x01(\tB\x02\x18\x01R\x0fnodeUniqueTokenJ\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x9d\x01\n" +
+	"remoteAddrJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\t\x10\n" +
+	"\"\x9d\x01\n" +
 	"\x0eLinkStatusSpec\x12\x1f\n" +
 	"\vnode_subnet\x18\x01 \x01(\tR\n" +
 	"nodeSubnet\x12&\n" +

@@ -38,7 +38,6 @@ export type SiderolinkSpec = {
   connected?: boolean
   virtual_addrport?: string
   remote_addr?: string
-  node_unique_token?: string
 }
 
 export type LinkStatusSpec = {
