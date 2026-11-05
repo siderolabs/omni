@@ -250,8 +250,8 @@ const machineLockedForSecretRotation = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col justify-start gap-base max-lg:gap-compact lg:flex-row lg:items-start">
-    <div class="grow">
+  <div class="flex flex-col justify-start gap-base lg:flex-row lg:items-start">
+    <div class="flex grow flex-col gap-base">
       <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-compact">
         All operations on this cluster are currently disabled. Config patches can be created,
         updated or deleted but these changes will not be applied while the cluster is locked.
@@ -264,9 +264,7 @@ const machineLockedForSecretRotation = computed(() => {
       >
         Open the cluster machine detail page for each affected node to view the error and recover.
       </TAlert>
-      <div
-        class="relative mb-base min-h-25 rounded border border-border-default bg-surface-card p-base"
-      >
+      <div class="relative min-h-25 rounded border border-border-default bg-surface-card p-base">
         <div
           class="flex w-full flex-wrap gap-tight transition-opacity duration-500 *:flex-1"
           :class="{ 'opacity-25': !showStats }"
@@ -317,7 +315,7 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="kubernetesUpgradeStatus && kubernetesUpgradeStatus.spec.step"
-        class="mb-base rounded border border-border-default bg-surface-card pt-base"
+        class="rounded border border-border-default bg-surface-card pt-base"
       >
         <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Kubernetes Update</span>
@@ -369,7 +367,7 @@ const machineLockedForSecretRotation = computed(() => {
       </div>
       <div
         v-if="talosUpgradeStatus && talosUpgradeStatus.spec.status"
-        class="mb-base rounded border border-border-default bg-surface-card pt-base"
+        class="rounded border border-border-default bg-surface-card pt-base"
       >
         <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Talos Update</span>
@@ -433,7 +431,7 @@ const machineLockedForSecretRotation = computed(() => {
       <ClusterHealthChecks :cluster-id="clusterId" />
       <div
         v-if="secretRotationStatus && secretRotationStatus.spec.status"
-        class="mb-base rounded border border-border-default bg-surface-card pt-base"
+        class="rounded border border-border-default bg-surface-card pt-base"
       >
         <div class="flex items-center gap-micro px-base pb-compact">
           <span class="flex-1 text-sm text-content-default">Secret Rotation</span>
@@ -457,10 +455,8 @@ const machineLockedForSecretRotation = computed(() => {
           </div>
         </div>
       </div>
-      <div class="flex gap-base">
-        <div
-          class="mb-base flex-1 rounded border border-border-default bg-surface-card px-base py-base"
-        >
+      <div class="flex flex-col gap-base xl:flex-row">
+        <div class="flex-1 rounded border border-border-default bg-surface-card px-base py-base">
           <div class="mb-snug">
             <span class="text-sm text-content-default">Features</span>
           </div>
@@ -492,9 +488,8 @@ const machineLockedForSecretRotation = computed(() => {
             />
           </div>
         </div>
-        <div
-          class="mb-base flex-1 rounded border border-border-default bg-surface-card px-base py-base"
-        >
+
+        <div class="flex-1 rounded border border-border-default bg-surface-card px-base py-base">
           <div class="mb-snug">
             <span class="text-sm text-content-default">Labels</span>
           </div>
