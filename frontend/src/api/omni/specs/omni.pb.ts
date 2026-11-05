@@ -37,6 +37,14 @@ export enum MachineSetPhase {
   Upgrading = 7,
 }
 
+export enum OperationPauseReason {
+  OPERATION_PAUSE_REASON_NONE = 0,
+  OPERATION_PAUSE_REASON_CLUSTER_LOCKED = 1,
+  OPERATION_PAUSE_REASON_MACHINES_LOCKED = 2,
+  OPERATION_PAUSE_REASON_CLUSTER_NOT_READY = 3,
+  OPERATION_PAUSE_REASON_MACHINES_NOT_READY = 4,
+}
+
 export enum ConditionType {
   UnknownCondition = 0,
   Etcd = 1,
@@ -688,6 +696,7 @@ export type TalosUpgradeStatusSpec = {
   last_upgrade_version?: string
   current_upgrade_version?: string
   upgrade_versions?: string[]
+  pause_reason?: OperationPauseReason
 }
 
 export type MachineSetStatusSpec = {
@@ -765,6 +774,7 @@ export type KubernetesUpgradeStatusSpec = {
   last_upgrade_version?: string
   current_upgrade_version?: string
   upgrade_versions?: string[]
+  pause_reason?: OperationPauseReason
 }
 
 export type KubernetesUpgradeManifestStatusSpec = {
@@ -1162,6 +1172,7 @@ export type ClusterSecretsRotationStatusSpec = {
   error?: string
   step?: string
   status?: string
+  pause_reason?: OperationPauseReason
 }
 
 export type ClusterMachineSecretsSpecRotation = {

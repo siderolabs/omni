@@ -90,6 +90,8 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 					return err
 				}
 
+				upgradeStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE
+
 				if err := ctrl.reconcileStatus(ctx, r, clusterMachines, outdatedMachines, cluster, upgradeStatus); err != nil {
 					return err
 				}
@@ -336,6 +338,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 	if lockedPendingMachines == pendingMachines && lockedPendingMachines > 0 {
 		upgradeStatus.TypedSpec().Value.Step = "all machines are locked"
 		upgradeStatus.TypedSpec().Value.Status = "waiting for machines to be unlocked"
+		upgradeStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED
 
 		return nil
 	}

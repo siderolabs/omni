@@ -1446,6 +1446,7 @@ func (m *TalosUpgradeStatusSpec) CloneVT() *TalosUpgradeStatusSpec {
 	r.Status = m.Status
 	r.LastUpgradeVersion = m.LastUpgradeVersion
 	r.CurrentUpgradeVersion = m.CurrentUpgradeVersion
+	r.PauseReason = m.PauseReason
 	if rhs := m.UpgradeVersions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1732,6 +1733,7 @@ func (m *KubernetesUpgradeStatusSpec) CloneVT() *KubernetesUpgradeStatusSpec {
 	r.Status = m.Status
 	r.LastUpgradeVersion = m.LastUpgradeVersion
 	r.CurrentUpgradeVersion = m.CurrentUpgradeVersion
+	r.PauseReason = m.PauseReason
 	if rhs := m.UpgradeVersions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -3167,6 +3169,7 @@ func (m *ClusterSecretsRotationStatusSpec) CloneVT() *ClusterSecretsRotationStat
 	r.Error = m.Error
 	r.Step = m.Step
 	r.Status = m.Status
+	r.PauseReason = m.PauseReason
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5508,6 +5511,9 @@ func (this *TalosUpgradeStatusSpec) EqualVT(that *TalosUpgradeStatusSpec) bool {
 			return false
 		}
 	}
+	if this.PauseReason != that.PauseReason {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5902,6 +5908,9 @@ func (this *KubernetesUpgradeStatusSpec) EqualVT(that *KubernetesUpgradeStatusSp
 		}
 	}
 	if this.CurrentUpgradeVersion != that.CurrentUpgradeVersion {
+		return false
+	}
+	if this.PauseReason != that.PauseReason {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7933,6 +7942,9 @@ func (this *ClusterSecretsRotationStatusSpec) EqualVT(that *ClusterSecretsRotati
 		return false
 	}
 	if this.Status != that.Status {
+		return false
+	}
+	if this.PauseReason != that.PauseReason {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -12570,6 +12582,11 @@ func (m *TalosUpgradeStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.PauseReason != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PauseReason))
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.UpgradeVersions) > 0 {
 		for iNdEx := len(m.UpgradeVersions) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.UpgradeVersions[iNdEx])
@@ -13314,6 +13331,11 @@ func (m *KubernetesUpgradeStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.PauseReason != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PauseReason))
+		i--
+		dAtA[i] = 0x40
 	}
 	if len(m.CurrentUpgradeVersion) > 0 {
 		i -= len(m.CurrentUpgradeVersion)
@@ -17145,6 +17167,11 @@ func (m *ClusterSecretsRotationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.PauseReason != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PauseReason))
+		i--
+		dAtA[i] = 0x30
+	}
 	if len(m.Status) > 0 {
 		i -= len(m.Status)
 		copy(dAtA[i:], m.Status)
@@ -19763,6 +19790,9 @@ func (m *TalosUpgradeStatusSpec) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.PauseReason != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PauseReason))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20048,6 +20078,9 @@ func (m *KubernetesUpgradeStatusSpec) SizeVT() (n int) {
 	l = len(m.CurrentUpgradeVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PauseReason != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PauseReason))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -21576,6 +21609,9 @@ func (m *ClusterSecretsRotationStatusSpec) SizeVT() (n int) {
 	l = len(m.Status)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PauseReason != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PauseReason))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -33126,6 +33162,25 @@ func (m *TalosUpgradeStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.UpgradeVersions = append(m.UpgradeVersions, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PauseReason", wireType)
+			}
+			m.PauseReason = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PauseReason |= OperationPauseReason(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -34861,6 +34916,25 @@ func (m *KubernetesUpgradeStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.CurrentUpgradeVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PauseReason", wireType)
+			}
+			m.PauseReason = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PauseReason |= OperationPauseReason(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -44699,6 +44773,25 @@ func (m *ClusterSecretsRotationStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Status = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PauseReason", wireType)
+			}
+			m.PauseReason = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PauseReason |= OperationPauseReason(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

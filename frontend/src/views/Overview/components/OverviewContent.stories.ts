@@ -9,6 +9,7 @@ import type { ClusterSpec, KubernetesHealthCheckStatusSpec } from '@/api/omni/sp
 import {
   KubernetesHealthCheckStatusSpecState,
   KubernetesUpgradeStatusSpecPhase,
+  OperationPauseReason,
   SecretRotationSpecComponent,
   SecretRotationSpecPhase,
   TalosUpgradeStatusSpecPhase,
@@ -97,6 +98,7 @@ export const KubernetesUpgradeMachineLocked: Story = {
           status: `waiting for a machine from ["${CLUSTER_ID}-worker-1" "${CLUSTER_ID}-worker-2"] to be unlocked`,
           last_upgrade_version: '1.30.4',
           current_upgrade_version: '1.31.2',
+          pause_reason: OperationPauseReason.OPERATION_PAUSE_REASON_MACHINES_LOCKED,
         },
       }),
     )
@@ -111,6 +113,7 @@ export const TalosUpgradeMachinesLocked: Story = {
           phase: TalosUpgradeStatusSpecPhase.Upgrading,
           status: 'waiting for machines to be unlocked',
           step: 'all machines are locked',
+          pause_reason: OperationPauseReason.OPERATION_PAUSE_REASON_MACHINES_LOCKED,
           last_upgrade_version: 'v1.8.4',
           current_upgrade_version: TALOS_VERSION,
         },
@@ -128,6 +131,7 @@ export const SecretRotationMachinesLocked: Story = {
           component: SecretRotationSpecComponent.TALOS_CA,
           status: 'rotation paused at phase ROTATE',
           step: `waiting for machines: [${CLUSTER_ID}-worker-1]`,
+          pause_reason: OperationPauseReason.OPERATION_PAUSE_REASON_MACHINES_LOCKED,
         },
       }),
     )

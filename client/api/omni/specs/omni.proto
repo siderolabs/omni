@@ -975,6 +975,20 @@ message MachineSetSpec {
   UpdateStrategyConfig upgrade_strategy_config = 9;
 }
 
+// OperationPauseReason is the reason a cluster-wide operation (an upgrade or a secret rotation) is paused.
+enum OperationPauseReason {
+  // The operation is not paused.
+  OPERATION_PAUSE_REASON_NONE = 0;
+  // The cluster is locked.
+  OPERATION_PAUSE_REASON_CLUSTER_LOCKED = 1;
+  // The machines the operation has to proceed with are locked.
+  OPERATION_PAUSE_REASON_MACHINES_LOCKED = 2;
+  // The cluster is not ready.
+  OPERATION_PAUSE_REASON_CLUSTER_NOT_READY = 3;
+  // The machines the operation has to proceed with are not ready.
+  OPERATION_PAUSE_REASON_MACHINES_NOT_READY = 4;
+}
+
 // TalosUpgradeStatusSpec contains the status of the Talos upgrade process.
 message TalosUpgradeStatusSpec {
   enum Phase {
@@ -1006,6 +1020,9 @@ message TalosUpgradeStatusSpec {
 
   // List of versions available for upgrade.
   repeated string upgrade_versions = 7;
+
+  // Why the upgrade is paused, if it is. Step and status describe it for display only.
+  OperationPauseReason pause_reason = 8;
 }
 
 // MachineSetStatusSpec describes machine set status.
@@ -1156,6 +1173,9 @@ message KubernetesUpgradeStatusSpec {
 
   // List of versions available for upgrade.
   repeated string upgrade_versions = 6;
+
+  // Why the upgrade is paused, if it is. Step and status describe it for display only.
+  OperationPauseReason pause_reason = 8;
 }
 
 // KubernetesUpgradeManifestStatus contains status of Kubernetes upgrade manifest sync.
@@ -1801,6 +1821,8 @@ message ClusterSecretsRotationStatusSpec {
   string step = 4;
   // Contains the current rotation step progress.
   string status = 5;
+  // Why the rotation is paused, if it is. Step and status describe it for display only.
+  OperationPauseReason pause_reason = 6;
 }
 
 // ClusterMachineSecretsSpec describes cluster machine secrets.

@@ -53,6 +53,8 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kubernetes upgrades are not allowed: the cluster is locked")
 				}
 
+				upgradeStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE
+
 				kubernetesStatus, err := safe.ReaderGet[*omni.KubernetesStatus](ctx, r, omni.NewKubernetesStatus(cluster.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
@@ -191,6 +193,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 						upgradeStatus.TypedSpec().Value.Step = fmt.Sprintf("updating %s to %s", kubernetes.Kubelet, cluster.TypedSpec().Value.KubernetesVersion)
 						upgradeStatus.TypedSpec().Value.Status = fmt.Sprintf("waiting for a machine from %q to be unlocked", upgradePath.BlockedNodes())
 						upgradeStatus.TypedSpec().Value.Error = ""
+						upgradeStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED
 
 						return nil
 					}

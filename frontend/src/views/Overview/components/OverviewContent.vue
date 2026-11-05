@@ -20,6 +20,7 @@ import {
   type KubernetesUpgradeStatusSpec,
   KubernetesUpgradeStatusSpecPhase,
   type KubernetesUsageSpec,
+  OperationPauseReason,
   SecretRotationSpecComponent,
   type TalosUpgradeStatusSpec,
   TalosUpgradeStatusSpecPhase,
@@ -236,19 +237,17 @@ const clusterLocked = computed(() => {
   return currentCluster.metadata.annotations?.[ClusterLocked] !== undefined
 })
 
-const machineLockedForTalosUpgrade = computed(() => {
-  return talosUpgradeStatus.value?.spec.status === 'waiting for machines to be unlocked'
-})
+// the zero value is omitted from the JSON, so an unset reason means not paused
+const isPaused = (reason = OperationPauseReason.OPERATION_PAUSE_REASON_NONE) =>
+  reason !== OperationPauseReason.OPERATION_PAUSE_REASON_NONE
 
-const machineLockedForKubernetesUpgrade = computed(() => {
-  return /^waiting for a machine from .* to be unlocked$/.test(
-    kubernetesUpgradeStatus.value?.spec.status ?? '',
-  )
-})
+const talosUpgradePaused = computed(() => isPaused(talosUpgradeStatus.value?.spec.pause_reason))
 
-const machineLockedForSecretRotation = computed(() => {
-  return secretRotationStatus.value?.spec.status?.startsWith('rotation paused at phase ') ?? false
-})
+const kubernetesUpgradePaused = computed(() =>
+  isPaused(kubernetesUpgradeStatus.value?.spec.pause_reason),
+)
+
+const secretRotationPaused = computed(() => isPaused(secretRotationStatus.value?.spec.pause_reason))
 </script>
 
 <template>
@@ -341,7 +340,7 @@ const machineLockedForSecretRotation = computed(() => {
           class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
         >
           <TIcon
-            v-if="clusterLocked || machineLockedForKubernetesUpgrade"
+            v-if="clusterLocked || kubernetesUpgradePaused"
             icon="pause-circle"
             class="h-6 w-6"
           />
@@ -402,11 +401,7 @@ const machineLockedForSecretRotation = computed(() => {
         <div
           class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
         >
-          <TIcon
-            v-if="clusterLocked || machineLockedForTalosUpgrade"
-            icon="pause-circle"
-            class="h-6 w-6"
-          />
+          <TIcon v-if="clusterLocked || talosUpgradePaused" icon="pause-circle" class="h-6 w-6" />
           <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-default" />
           <div class="min-w-0 flex-1 wrap-break-word">
             {{ talosUpgradeStatus.spec.status }}
@@ -442,11 +437,7 @@ const machineLockedForSecretRotation = computed(() => {
         <div
           class="flex min-h-20 items-center gap-tight border-t-8 border-border-default p-compact text-xs"
         >
-          <TIcon
-            v-if="clusterLocked || machineLockedForSecretRotation"
-            icon="pause-circle"
-            class="h-6 w-6"
-          />
+          <TIcon v-if="clusterLocked || secretRotationPaused" icon="pause-circle" class="h-6 w-6" />
           <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-status-warning-default" />
           <div class="flex-1">
             {{ secretRotationStatus.spec.status }}

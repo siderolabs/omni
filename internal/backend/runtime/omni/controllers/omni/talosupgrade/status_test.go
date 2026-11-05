@@ -484,6 +484,7 @@ func TestStatusController(t *testing.T) {
 					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 						assertions.Equal("all machines are locked", res.TypedSpec().Value.Step)
 						assertions.Equal("waiting for machines to be unlocked", res.TypedSpec().Value.Status)
+						assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED, res.TypedSpec().Value.PauseReason)
 					})
 			},
 		)

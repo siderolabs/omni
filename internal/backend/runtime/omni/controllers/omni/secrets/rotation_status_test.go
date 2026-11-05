@@ -269,6 +269,7 @@ func Test_TalosCARotation(t *testing.T) {
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Equal("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_LOCKED, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterStatus](
@@ -283,6 +284,7 @@ func Test_TalosCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 					assertions.NotEqual("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
 				})
 			},
@@ -338,6 +340,7 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_TALOS_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Equal("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_NOT_READY, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterStatus](
@@ -353,6 +356,7 @@ func Test_TalosCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 					assertions.NotEqual("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
 				})
 			},
@@ -414,6 +418,7 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_TALOS_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterMachineStatus](
@@ -428,6 +433,7 @@ func Test_TalosCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 				})
 			},
 		)
@@ -488,6 +494,7 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_TALOS_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_NOT_READY, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterMachineStatus](
@@ -502,6 +509,7 @@ func Test_TalosCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 				})
 			},
 		)
@@ -862,6 +870,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Equal("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_LOCKED, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterStatus](
@@ -876,6 +885,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 					assertions.NotEqual("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
 				})
 			},
@@ -940,6 +950,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_KUBERNETES_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Equal("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_NOT_READY, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterStatus](
@@ -955,6 +966,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 					assertions.NotEqual("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
 				})
 			},
@@ -1025,6 +1037,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_KUBERNETES_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterMachineStatus](
@@ -1039,6 +1052,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 				})
 			},
 		)
@@ -1108,6 +1122,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Equal(specs.SecretRotationSpec_KUBERNETES_CA, res.TypedSpec().Value.Component)
 					assertions.Contains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_NOT_READY, res.TypedSpec().Value.PauseReason)
 				})
 
 				rmock.Mock[*omni.ClusterMachineStatus](
@@ -1122,6 +1137,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, testContext.State, cluster.Metadata().ID(), func(res *omni.ClusterSecretsRotationStatus, assertions *assert.Assertions) {
 					assertions.NotContains(res.TypedSpec().Value.Status, secretsctrl.RotationPaused)
+					assertions.Equal(specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE, res.TypedSpec().Value.PauseReason)
 				})
 			},
 		)

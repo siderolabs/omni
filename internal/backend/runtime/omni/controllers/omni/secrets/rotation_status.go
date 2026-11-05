@@ -196,6 +196,7 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 		rotationStatus.TypedSpec().Value.Status = ""
 		rotationStatus.TypedSpec().Value.Step = ""
 		rotationStatus.TypedSpec().Value.Error = ""
+		rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE
 
 		cmStatusesMap, cmSecretsMap, err := s.getCMStatusesAndSecrets(ctx, r, clusterSecrets.Metadata().ID())
 		if err != nil {
@@ -488,6 +489,8 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 	ongoingRotations := secretrotation.Candidates{}
 	pendingRotations := secretrotation.Candidates{}
 
+	rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_NONE
+
 	clusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, r, secretRotation.Metadata().ID())
 	if err != nil {
 		return err
@@ -509,6 +512,7 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 		rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 		rotationStatus.TypedSpec().Value.Step = "waiting for the cluster to be unlocked"
 		rotationStatus.TypedSpec().Value.Error = ""
+		rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_LOCKED
 
 		return fmt.Errorf("waiting for the cluster to be unlocked: %w", sequence.ErrWait)
 	}
@@ -549,6 +553,7 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 		rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 		rotationStatus.TypedSpec().Value.Step = "waiting for the cluster to become ready"
 		rotationStatus.TypedSpec().Value.Error = ""
+		rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_CLUSTER_NOT_READY
 
 		return fmt.Errorf("waiting for the cluster to be ready: %w", sequence.ErrWait)
 	}
@@ -568,6 +573,12 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 			})))
 			rotationStatus.TypedSpec().Value.Error = ""
 		} else {
+			rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_NOT_READY
+
+			if slices.ContainsFunc(blockedCandidates, func(candidate secretrotation.Candidate) bool { return candidate.Locked }) {
+				rotationStatus.TypedSpec().Value.PauseReason = specs.OperationPauseReason_OPERATION_PAUSE_REASON_MACHINES_LOCKED
+			}
+
 			rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 			rotationStatus.TypedSpec().Value.Step = fmt.Sprintf("waiting for machines: [%v]", s.hostnamesToString(xslices.Map(blockedCandidates, func(res secretrotation.Candidate) string {
 				return res.Hostname
