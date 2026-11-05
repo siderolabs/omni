@@ -8,6 +8,8 @@ included in the LICENSE file.
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { ref } from 'vue'
 
+import IconButton from '@/components/Button/IconButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { useOngoingTasks } from '@/methods/ongoingTasks'
 import { formatISO } from '@/methods/time'
@@ -19,21 +21,21 @@ const dropdownOpen = ref(false)
 
 <template>
   <PopoverRoot v-model:open="dropdownOpen">
-    <PopoverTrigger
-      class="flex items-center gap-micro text-content-secondary transition-colors hover:text-content-emphasis"
-    >
-      <TIcon
+    <PopoverTrigger>
+      <TButton
+        variant="subtle"
         :icon="data.length > 0 ? 'action-horizontal-animated' : 'action-horizontal'"
-        class="size-4"
-      />
-      <span class="text-xs font-normal whitespace-nowrap select-none">
-        <span class="contents sm:hidden">Tasks</span>
-        <span class="hidden sm:contents">Ongoing Tasks</span>
-      </span>
-      <TIcon
-        class="flex h-4 w-4 items-center justify-center transition-transform duration-300"
-        :class="{ '-rotate-180': dropdownOpen }"
-        icon="dropdown"
+        icon-position="left"
+        class="text-content-secondary max-sm:hidden"
+      >
+        Ongoing Tasks
+      </TButton>
+
+      <IconButton
+        variant="subtle"
+        :icon="data.length > 0 ? 'action-horizontal-animated' : 'action-horizontal'"
+        icon-position="left"
+        class="text-content-secondary sm:hidden"
       />
     </PopoverTrigger>
 
