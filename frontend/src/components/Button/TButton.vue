@@ -58,7 +58,6 @@ const {
   iconPosition = 'right',
   icon,
   disabled,
-  class: className,
 } = defineProps<Props & (ButtonProps | AnchorProps | RLink)>()
 const attrs = useAttrs()
 
@@ -77,9 +76,9 @@ const dynamicProps = computed(() => {
   <component
     :is="disabled ? 'button' : is === 'router-link' ? RouterLink : is"
     v-bind="dynamicProps"
-    class="flex items-center justify-center gap-micro rounded border transition-colors duration-200"
     :class="
       cn(
+        'flex items-center justify-center gap-micro rounded border transition-colors duration-200',
         {
           'border-border-strong bg-surface-raised text-content-default hover:border-accent-fill hover:bg-accent-fill hover:text-content-on-accent focus:border-accent-fill focus:bg-accent-fill-hover focus:text-content-on-accent active:border-accent-fill-active active:bg-accent-fill-active active:text-content-on-accent disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
             variant === 'primary',
@@ -94,7 +93,7 @@ const dynamicProps = computed(() => {
           'p-0 text-sm': size === 'xs',
           'p-0 text-xs': size === 'xxs',
         },
-        className,
+        $props.class,
       )
     "
   >

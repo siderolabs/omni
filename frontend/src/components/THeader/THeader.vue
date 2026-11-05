@@ -93,7 +93,7 @@ function dismissNotification(id: string) {
 
         <RouterLink
           to="/"
-          class="flex items-center gap-micro text-lg text-content-default uppercase"
+          class="flex items-center gap-micro text-base text-content-default uppercase md:text-lg"
         >
           <TIcon class="t-header-icon size-6" icon="logo" />
           <span class="font-bold">Sidero</span>
@@ -101,16 +101,24 @@ function dismissNotification(id: string) {
         </RouterLink>
       </div>
 
-      <div class="flex min-h-12 items-center gap-tight px-base">
+      <div class="flex min-h-12 items-center gap-tight md:px-base">
         <TButton
           variant="subtle"
-          icon="check-circle"
+          icon="question-mark-circle"
           icon-position="left"
-          class="text-content-secondary"
+          class="text-content-secondary max-sm:hidden"
           @click="helpModalOpen = true"
         >
-          <span class="max-sm:sr-only">Support</span>
+          Support
         </TButton>
+
+        <IconButton
+          variant="subtle"
+          icon="question-mark-circle"
+          icon-position="left"
+          class="text-content-secondary sm:hidden"
+          @click="helpModalOpen = true"
+        />
 
         <OngoingTasks />
 
