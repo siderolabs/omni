@@ -9,6 +9,8 @@ import type { ClusterSpec, KubernetesHealthCheckStatusSpec } from '@/api/omni/sp
 import {
   KubernetesHealthCheckStatusSpecState,
   KubernetesUpgradeStatusSpecPhase,
+  SecretRotationSpecComponent,
+  SecretRotationSpecPhase,
   TalosUpgradeStatusSpecPhase,
 } from '@/api/omni/specs/omni.pb'
 import { ClusterLocked, LabelCluster } from '@/api/resources'
@@ -78,6 +80,54 @@ export const TalosUpgrading: Story = {
           step: 'current machine: talos-default-cp-1',
           last_upgrade_version: 'v1.8.4',
           current_upgrade_version: TALOS_VERSION,
+        },
+      }),
+    )
+  },
+}
+
+export const KubernetesUpgradeMachineLocked: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      ...createHandlers({
+        kubernetesUpgradeStatus: {
+          phase: KubernetesUpgradeStatusSpecPhase.Upgrading,
+          step: 'updating kubelet to 1.31.2',
+          // the backend formats the blocked node names with Go's %q on a []string
+          status: `waiting for a machine from ["${CLUSTER_ID}-worker-1" "${CLUSTER_ID}-worker-2"] to be unlocked`,
+          last_upgrade_version: '1.30.4',
+          current_upgrade_version: '1.31.2',
+        },
+      }),
+    )
+  },
+}
+
+export const TalosUpgradeMachinesLocked: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      ...createHandlers({
+        talosUpgradeStatus: {
+          phase: TalosUpgradeStatusSpecPhase.Upgrading,
+          status: 'waiting for machines to be unlocked',
+          step: 'all machines are locked',
+          last_upgrade_version: 'v1.8.4',
+          current_upgrade_version: TALOS_VERSION,
+        },
+      }),
+    )
+  },
+}
+
+export const SecretRotationMachinesLocked: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      ...createHandlers({
+        secretRotationStatus: {
+          phase: SecretRotationSpecPhase.ROTATE,
+          component: SecretRotationSpecComponent.TALOS_CA,
+          status: 'rotation paused at phase ROTATE',
+          step: `waiting for machines: [${CLUSTER_ID}-worker-1]`,
         },
       }),
     )
