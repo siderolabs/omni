@@ -77,12 +77,13 @@ func TestLoginPrompt(t *testing.T) {
 
 				assert.Equal(t, "idp.example.com", redirectURL.Host, target)
 
+				// sending this breaks some OIDC providers that does not support max_age
+				assert.False(t, redirectURL.Query().Has("max_age"), target)
+
 				if tt.forced {
 					assert.Equal(t, "login", redirectURL.Query().Get("prompt"), target)
-					assert.Equal(t, "120", redirectURL.Query().Get("max_age"), target)
 				} else {
 					assert.False(t, redirectURL.Query().Has("prompt"), target)
-					assert.False(t, redirectURL.Query().Has("max_age"), target)
 				}
 			}
 		})

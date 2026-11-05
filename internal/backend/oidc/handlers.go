@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -149,10 +148,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var opts []oauth2.AuthCodeOption
 
 	if h.requireReauthForNewKeys || auth.HasReauthCookie(r) {
-		opts = append(opts,
-			oauth2.SetAuthURLParam("prompt", "login"),
-			oauth2.SetAuthURLParam("max_age", strconv.Itoa(int(auth.LoginMaxAge.Seconds()))),
-		)
+		opts = append(opts, oauth2.SetAuthURLParam("prompt", "login"))
 	}
 
 	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state, opts...), http.StatusFound)
