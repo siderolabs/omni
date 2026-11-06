@@ -187,7 +187,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			LBConfig: cfg.Services.LoadBalancer,
 		},
 		omnictrl.NewMachineCleanupController(),
-		metricsctrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
+		metricsctrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines(), cfg.DisconnectBelowTalosVersionFloor()),
 		omnictrl.NewVersionsController(imageFactoryClients, st.Default(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),
@@ -266,8 +266,9 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewInfraMachineController(installEventCh),
 		omnictrl.NewBMCConfigController(),
 		omnictrl.NewInfraProviderConfigPatchController(),
-		omnictrl.NewLinkStatusController[*siderolinkres.Link](peers),
-		omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers),
+		omnictrl.NewLinkStatusController[*siderolinkres.Link](peers, cfg.DisconnectBelowTalosVersionFloor()),
+		// pending machines are created only after the provision request passed the Talos version floor check
+		omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers, false),
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(
 			omnictrl.NewMaintenanceClientFactory(talosClientFactory),

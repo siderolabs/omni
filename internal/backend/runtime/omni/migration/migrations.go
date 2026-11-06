@@ -664,3 +664,54 @@ func migrateSAMLLabelRulesToIdentityLabelRules(ctx context.Context, st state.Sta
 
 	return nil
 }
+
+// fillLinkTalosVersions sets the Talos version on the links from the MachineStatus of their machines.
+func fillLinkTalosVersions(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	links, err := safe.ReaderListAll[*siderolink.Link](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	machineStatuses, err := safe.ReaderListAll[*omni.MachineStatus](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	talosVersions := make(map[string]string, machineStatuses.Len())
+
+	for machineStatus := range machineStatuses.All() {
+		talosVersions[machineStatus.Metadata().ID()] = machineStatus.TypedSpec().Value.TalosVersion
+	}
+
+	var updated int
+
+	for link := range links.All() {
+		if link.TypedSpec().Value.TalosVersion != "" || link.Metadata().Phase() != resource.PhaseRunning {
+			continue
+		}
+
+		talosVersion := talosVersions[link.Metadata().ID()]
+		if talosVersion == "" {
+			continue
+		}
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, link.Metadata(), func(res *siderolink.Link) error {
+			res.TypedSpec().Value.TalosVersion = talosVersion
+
+			return nil
+		})
+		if err != nil {
+			if state.IsNotFoundError(err) || state.IsPhaseConflictError(err) {
+				continue
+			}
+
+			return fmt.Errorf("failed to update the link %q: %w", link.Metadata().ID(), err)
+		}
+
+		updated++
+	}
+
+	logger.Info("set the Talos version on the links", zap.Int("count", updated))
+
+	return nil
+}

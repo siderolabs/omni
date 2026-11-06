@@ -310,7 +310,7 @@ func (suite *PendingMachineStatusSuite) TestTokenReusedByLaterPendingMachine() {
 			createProvisionPrerequisites(ctx, t, tc.State)
 			require.NoError(t, tc.State.Create(ctx, siderolink.NewLinkStatus(link)))
 
-			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 			_, err = handler.Provision(ctx, &pb.ProvisionRequest{
 				NodeUuid: "machine", NodePublicKey: pubkey, NodeUniqueToken: new(second), JoinToken: new("join"), TalosVersion: new("v1.12.0"),
 			})
@@ -392,7 +392,7 @@ func (suite *PendingMachineStatusSuite) TestUUIDConflictKeepsExistingToken() {
 
 			require.NoError(t, tc.State.Create(ctx, siderolink.NewLinkStatus(siderolink.NewLink(newUUID, nil))))
 
-			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, &statusWatchState{State: tc.State, watchStarted: watchStarted}, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, &statusWatchState{State: tc.State, watchStarted: watchStarted}, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 			request := &pb.ProvisionRequest{
 				NodeUuid: newUUID, NodePublicKey: pubkey, NodeUniqueToken: new(existing), JoinToken: new("join"), TalosVersion: new("v1.12.0"),
 			}
@@ -417,7 +417,7 @@ func (suite *PendingMachineStatusSuite) TestUUIDConflictKeepsExistingToken() {
 
 			// the machine re-joins with the token from META, which must be accepted without a warning
 			logCore, observedLogs := observer.New(zap.WarnLevel)
-			handler = siderolinkpkg.NewProvisionHandler(zap.New(logCore), tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+			handler = siderolinkpkg.NewProvisionHandler(zap.New(logCore), tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 
 			request.NodeUniqueToken = new(ms.getMetaKeys()[meta.UniqueMachineToken])
 
@@ -598,7 +598,7 @@ func (suite *PendingMachineStatusSuite) firstJoin(failFirst bool) {
 				t.Fatal(ctx.Err())
 			}
 
-			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, &statusWatchState{State: tc.State, watchStarted: watchStarted}, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, &statusWatchState{State: tc.State, watchStarted: watchStarted}, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 			_, err := handler.Provision(ctx, &pb.ProvisionRequest{
 				NodeUuid: "first-join", NodePublicKey: pubkey, NodeUniqueToken: new(token), JoinToken: new("join"), TalosVersion: new("v1.12.0"),
 			})
@@ -669,7 +669,7 @@ func (suite *PendingMachineStatusSuite) TestMigrationAndNewBootWithoutToken() {
 
 			createProvisionPrerequisites(ctx, t, tc.State)
 
-			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+			handler := siderolinkpkg.NewProvisionHandler(tc.Logger, tc.State, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 			_, err = handler.Provision(ctx, &pb.ProvisionRequest{NodeUuid: "same-machine", NodePublicKey: newPublicKey, JoinToken: new("join"), TalosVersion: new("v1.12.0")})
 			require.NoError(t, err)
 		},

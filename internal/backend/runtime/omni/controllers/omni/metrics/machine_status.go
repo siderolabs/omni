@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
@@ -64,12 +65,21 @@ const (
 	talosVersionEndOfSupportNotificationTitle = "Unsupported Talos Version Detected"
 	talosVersionEndOfSupportNotificationBody  = "%d machine(s) are running unsupported Talos versions (below %s)." +
 		" Please upgrade immediately: " + talosVersionSupportPolicyDocsURL
+
+	talosVersionBelowFloorNotificationTitle = "Talos Version Too Old to Connect"
+	talosVersionBelowFloorNotificationBody  = "%d machine(s) are running Talos versions below %s." +
+		" These machines will not be able to communicate with Omni in an upcoming release. Please upgrade: " + talosVersionSupportPolicyDocsURL
+
+	talosVersionBelowFloorDisconnectedNotificationTitle = "Machines Disconnected for Talos Version"
+	talosVersionBelowFloorDisconnectedNotificationBody  = "%d machine(s) are running Talos versions below %s and are disconnected from Omni." +
+		" Remove them, or reinstall them with a supported Talos version: " + talosVersionSupportPolicyDocsURL
 )
 
 // NewMachineStatusMetricsController creates a new MachineStatusMetricsController.
-func NewMachineStatusMetricsController(maxRegisteredMachines uint32) *MachineStatusMetricsController {
+func NewMachineStatusMetricsController(maxRegisteredMachines uint32, disconnectBelowTalosVersionFloor bool) *MachineStatusMetricsController {
 	return &MachineStatusMetricsController{
-		maxRegisteredMachines: maxRegisteredMachines,
+		maxRegisteredMachines:            maxRegisteredMachines,
+		disconnectBelowTalosVersionFloor: disconnectBelowTalosVersionFloor,
 	}
 }
 
@@ -85,6 +95,8 @@ type MachineStatusMetricsController struct {
 
 	maxRegisteredMachines uint32
 
+	disconnectBelowTalosVersionFloor bool
+
 	platformNames []string
 
 	metricNumMachines                                    prometheus.Gauge
@@ -93,6 +105,7 @@ type MachineStatusMetricsController struct {
 	metricNumApproachingTalosVersionEndOfSupportMachines prometheus.Gauge
 	metricNumCores                                       prometheus.Gauge
 	metricNumTalosVersionEndOfSupportMachines            prometheus.Gauge
+	metricNumTalosVersionBelowFloorMachines              prometheus.Gauge
 	metricNumMachinesPerVersion                          *prometheus.Desc
 	metricNumMachinesPerCores                            *prometheus.Desc
 	metricMachinePlatforms                               *prometheus.GaugeVec
@@ -169,6 +182,11 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 		ctrl.metricNumTalosVersionEndOfSupportMachines = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_machines_talos_version_end_of_support",
 			Help: "Number of machines running a Talos version below the minimum supported version.",
+		})
+
+		ctrl.metricNumTalosVersionBelowFloorMachines = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "omni_machines_talos_version_below_floor",
+			Help: "Number of machines running a Talos version below the lowest version which can connect to Omni.",
 		})
 
 		ctrl.metricNumMachinesPerVersion = prometheus.NewDesc(
@@ -268,14 +286,8 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			}
 		}
 
-		if UnsupportedTalosVersionNotificationEnabled {
-			if err = ctrl.reconcileApproachingTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
-				return err
-			}
-
-			if err = ctrl.reconcileTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
-				return err
-			}
+		if err = ctrl.reconcileTalosVersionNotifications(ctx, r, metricsSpec); err != nil {
+			return err
 		}
 
 		select {
@@ -284,6 +296,20 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 		case <-time.After(10 * time.Second): // don't reconcile too often, as metrics are not scraped that often
 		}
 	}
+}
+
+func (ctrl *MachineStatusMetricsController) reconcileTalosVersionNotifications(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	if UnsupportedTalosVersionNotificationEnabled {
+		if err := ctrl.reconcileApproachingTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
+			return err
+		}
+
+		if err := ctrl.reconcileTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
+			return err
+		}
+	}
+
+	return ctrl.reconcileTalosVersionBelowFloorNotification(ctx, r, metricsSpec)
 }
 
 func (ctrl *MachineStatusMetricsController) reconcileRegistrationLimitNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
@@ -368,6 +394,64 @@ func (ctrl *MachineStatusMetricsController) reconcileTalosVersionEndOfSupportNot
 	return err
 }
 
+func (ctrl *MachineStatusMetricsController) reconcileTalosVersionBelowFloorNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	id, staleID := omni.NotificationTalosVersionBelowFloorID, omni.NotificationTalosVersionBelowFloorDisconnectedID
+	if ctrl.disconnectBelowTalosVersionFloor {
+		id, staleID = staleID, id
+	}
+
+	if _, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(staleID).Metadata()); err != nil {
+		return err
+	}
+
+	count := int(metricsSpec.TalosVersionBelowFloorMachinesCount)
+	if count == 0 {
+		_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(id).Metadata())
+
+		return err
+	}
+
+	return safe.WriterModify(ctx, r, omni.NewNotification(id), func(res *omni.Notification) error {
+		if ctrl.disconnectBelowTalosVersionFloor {
+			res.TypedSpec().Value.Title = talosVersionBelowFloorDisconnectedNotificationTitle
+			res.TypedSpec().Value.Body = fmt.Sprintf(talosVersionBelowFloorDisconnectedNotificationBody, count, constants.TalosVersionFloor)
+			res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
+
+			return nil
+		}
+
+		res.TypedSpec().Value.Title = talosVersionBelowFloorNotificationTitle
+		res.TypedSpec().Value.Body = fmt.Sprintf(talosVersionBelowFloorNotificationBody, count, constants.TalosVersionFloor)
+		res.TypedSpec().Value.Type = specs.NotificationSpec_ERROR
+		res.TypedSpec().Value.Undismissible = true
+
+		return nil
+	})
+}
+
+type talosVersionCounts struct {
+	endOfSupport int
+	approaching  int
+	belowFloor   int
+}
+
+func (counts *talosVersionCounts) add(talosVersion string, minTalosVer, approachingThreshold semver.Version) {
+	if ver, err := semver.ParseTolerant(strings.TrimLeft(talosVersion, "v")); err == nil {
+		ver.Pre = nil
+
+		switch {
+		case ver.LT(minTalosVer):
+			counts.endOfSupport++
+		case ver.LT(approachingThreshold):
+			counts.approaching++
+		}
+	}
+
+	if siderolink.IsBelowTalosVersionFloor(talosVersion) {
+		counts.belowFloor++
+	}
+}
+
 func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omni.MachineStatus], numPendingMachines int) *specs.MachineStatusMetricsSpec {
 	platformMetrics := make(map[string]uint32, len(ctrl.platformNames))
 	for _, p := range ctrl.platformNames {
@@ -408,7 +492,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	var (
 		machines, connectedMachines, allocatedMachines, invalidSchematicMachines int
-		approachingEndOfSupportMachines, endOfSupportTalosVersionMachines        int
+		talosVersions                                                            talosVersionCounts
 	)
 
 	var cores uint64
@@ -433,16 +517,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 				connected:    ms.TypedSpec().Value.Connected,
 			}]++
 
-			if ver, err := semver.ParseTolerant(strings.TrimLeft(talosVersion, "v")); err == nil {
-				ver.Pre = nil
-
-				switch {
-				case ver.LT(minTalosVer):
-					endOfSupportTalosVersionMachines++
-				case ver.LT(approachingThreshold):
-					approachingEndOfSupportMachines++
-				}
-			}
+			talosVersions.add(talosVersion, minTalosVer, approachingThreshold)
 		}
 
 		if ms.TypedSpec().Value.Cluster != "" {
@@ -489,8 +564,9 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	ctrl.metricNumMachines.Set(float64(machines))
 	ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
-	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Set(float64(approachingEndOfSupportMachines))
-	ctrl.metricNumTalosVersionEndOfSupportMachines.Set(float64(endOfSupportTalosVersionMachines))
+	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Set(float64(talosVersions.approaching))
+	ctrl.metricNumTalosVersionEndOfSupportMachines.Set(float64(talosVersions.endOfSupport))
+	ctrl.metricNumTalosVersionBelowFloorMachines.Set(float64(talosVersions.belowFloor))
 	ctrl.setInvalidSchematicMetrics(invalidSchematicMetrics)
 
 	setByLabel(ctrl.metricMachinePlatforms, platformMetrics)
@@ -512,8 +588,9 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		RegisteredMachinesLimit:       ctrl.maxRegisteredMachines,
 		RegistrationLimitReached:      ctrl.maxRegisteredMachines > 0 && uint32(machines) >= ctrl.maxRegisteredMachines,
 		InvalidSchematicMachinesCount: uint32(invalidSchematicMachines),
-		ApproachingTalosVersionEndOfSupportMachinesCount: uint32(approachingEndOfSupportMachines),
-		TalosVersionEndOfSupportMachinesCount:            uint32(endOfSupportTalosVersionMachines),
+		ApproachingTalosVersionEndOfSupportMachinesCount: uint32(talosVersions.approaching),
+		TalosVersionEndOfSupportMachinesCount:            uint32(talosVersions.endOfSupport),
+		TalosVersionBelowFloorMachinesCount:              uint32(talosVersions.belowFloor),
 		CoresCount:                                       cores,
 	}
 }
@@ -552,6 +629,7 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.metricNumInvalidSchematicMachines.Collect(ch)
 	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Collect(ch)
 	ctrl.metricNumTalosVersionEndOfSupportMachines.Collect(ch)
+	ctrl.metricNumTalosVersionBelowFloorMachines.Collect(ch)
 	ctrl.metricMachinePlatforms.Collect(ch)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)

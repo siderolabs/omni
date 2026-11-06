@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -79,13 +80,16 @@ func (pc *provisionContext) isAuthorizedSecureFlow() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.SiderolinkServiceJoinTokensMode, forceWireguardOverGRPC bool, maxRegisteredMachines uint32) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.SiderolinkServiceJoinTokensMode,
+	forceWireguardOverGRPC bool, maxRegisteredMachines uint32, disconnectBelowTalosVersionFloor bool,
+) *ProvisionHandler {
 	return &ProvisionHandler{
-		logger:                 logger,
-		state:                  state,
-		joinTokenMode:          joinTokenMode,
-		forceWireguardOverGRPC: forceWireguardOverGRPC,
-		maxRegisteredMachines:  maxRegisteredMachines,
+		logger:                           logger,
+		state:                            state,
+		joinTokenMode:                    joinTokenMode,
+		forceWireguardOverGRPC:           forceWireguardOverGRPC,
+		maxRegisteredMachines:            maxRegisteredMachines,
+		disconnectBelowTalosVersionFloor: disconnectBelowTalosVersionFloor,
 	}
 }
 
@@ -93,12 +97,18 @@ func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode co
 type ProvisionHandler struct {
 	pb.UnimplementedProvisionServiceServer
 
-	logger                 *zap.Logger
-	state                  state.State
+	logger *zap.Logger
+	state  state.State
+
+	// rejectedBelowFloorMachines holds the IDs of the machines rejected for the Talos version floor, to warn only once per machine
+	rejectedBelowFloorMachines sync.Map
+
 	joinTokenMode          config.SiderolinkServiceJoinTokensMode
 	registrationMu         sync.Mutex
 	maxRegisteredMachines  uint32
 	forceWireguardOverGRPC bool
+
+	disconnectBelowTalosVersionFloor bool
 }
 
 func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
@@ -132,6 +142,22 @@ func (h *ProvisionHandler) Provision(ctx context.Context, req *pb.ProvisionReque
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	logger := h.logger.With(zap.String("machine", req.GetNodeUuid()))
+
+	if h.disconnectBelowTalosVersionFloor && siderolink.IsBelowTalosVersionFloorOrMissing(req.GetTalosVersion()) {
+		logLevel := zap.DebugLevel
+		if _, alreadyRejected := h.rejectedBelowFloorMachines.LoadOrStore(req.GetNodeUuid(), struct{}{}); !alreadyRejected {
+			logLevel = zap.WarnLevel
+		}
+
+		logger.Log(logLevel, "rejected machine running a Talos version below the floor",
+			zap.String("talos_version", req.GetTalosVersion()), zap.String("floor", constants.TalosVersionFloor))
+
+		return nil, status.Errorf(
+			codes.FailedPrecondition,
+			"Talos versions below %s are not supported on this Omni instance",
+			constants.TalosVersionFloor,
+		)
+	}
 
 	provisionContext, err := h.buildProvisionContext(ctx, logger, req)
 	if err != nil {
@@ -297,6 +323,8 @@ func updateResource[T res](ctx context.Context, logger *zap.Logger,
 		}
 
 		s.NodePublicKey = provisionContext.request.NodePublicKey
+
+		s.TalosVersion = provisionContext.request.GetTalosVersion()
 
 		s.VirtualAddrport, err = resolveVirtualAddrPort(provisionContext)
 		if err != nil {
@@ -657,6 +685,7 @@ func generateLinkSpec(provisionContext *provisionContext, resourceType resource.
 		NodePublicKey:   pubKey.String(),
 		VirtualAddrport: virtualAddrPort,
 		Connected:       true,
+		TalosVersion:    provisionContext.request.GetTalosVersion(),
 	}, nil
 }
 

@@ -254,6 +254,8 @@ func TestIntegration(t *testing.T) {
 		t.Run("FactoryMigrationPrepare", testFactoryMigrationPrepare(testOptions))
 		t.Run("FactoryMigrationVerify", testFactoryMigrationVerify(testOptions))
 		t.Run("FactoryMigrationRollback", testFactoryMigrationRollback(testOptions))
+		t.Run("TalosVersionFloorPrepare", testTalosVersionFloorPrepare(testOptions))
+		t.Run("TalosVersionFloorVerify", testTalosVersionFloorVerify(testOptions))
 		t.Run("ClusterImport", func(t *testing.T) { testClusterImport(t, testOptions) })
 		t.Run("KernelArgsUpdate", func(t *testing.T) { testKernelArgsUpdate(t, testOptions) })
 		t.Run("KernelArgsBreakAndRevert", func(t *testing.T) { testKernelArgsBreakAndRevert(t, testOptions) })

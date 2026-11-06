@@ -570,6 +570,8 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 		UseGRPCTunnel:         s.cfg.Services.Siderolink.GetUseGRPCTunnel(),
 		DisableLastEndpoint:   s.cfg.Services.Siderolink.GetDisableLastEndpoint(),
 		MaxRegisteredMachines: s.cfg.Account.GetMaxRegisteredMachines(),
+
+		DisconnectBelowTalosVersionFloor: s.cfg.DisconnectBelowTalosVersionFloor(),
 	}
 
 	omniState := s.state.Default()

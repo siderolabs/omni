@@ -17,6 +17,7 @@ services:
       endpoint: localhost:50180
       advertisedEndpoint: 192.168.88.219:50180
     disableLastEndpoint: true
+    disconnectTalosBelow1_6: true
     useGRPCTunnel: true
     eventSinkPort: 8091
     logServerPort: 8092

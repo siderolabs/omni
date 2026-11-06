@@ -19,6 +19,9 @@ const DefaultTalosVersion = "1.14.5"
 // tsgen:MinTalosVersion
 const MinTalosVersion = "1.10.0"
 
+// TalosVersionFloor is the lowest Talos version which can connect to Omni when disconnecting below the floor is on.
+const TalosVersionFloor = "1.6.0"
+
 // LatestSupportedTalosVersion is the highest Talos release Omni officially supports as an upgrade target.
 // tsgen:LatestSupportedTalosVersion
 const LatestSupportedTalosVersion = "1.14"

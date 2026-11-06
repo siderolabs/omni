@@ -38,6 +38,7 @@ export type SiderolinkSpec = {
   connected?: boolean
   virtual_addrport?: string
   remote_addr?: string
+  talos_version?: string
 }
 
 export type LinkStatusSpec = {

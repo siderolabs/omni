@@ -476,6 +476,42 @@ func (suite *MigrationSuite) TestMigrateSAMLLabelRulesToIdentityLabelRules() {
 	suite.Assert().Zero(samlLabelRules.Len())
 }
 
+func (suite *MigrationSuite) TestFillLinkTalosVersions() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	suite.T().Cleanup(cancel)
+
+	createLink := func(id, talosVersion string) {
+		suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLink(id, &specs.SiderolinkSpec{TalosVersion: talosVersion})))
+	}
+
+	createMachineStatus := func(id, talosVersion string) {
+		machineStatus := omni.NewMachineStatus(id)
+		machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+
+		suite.Require().NoError(suite.state.Create(ctx, machineStatus))
+	}
+
+	createLink("empty", "")
+	createMachineStatus("empty", "v1.2.0")
+
+	createLink("set", "v1.9.0")
+	createMachineStatus("set", "v1.8.0")
+
+	createLink("no-machine-status", "")
+
+	suite.manager.SetFilter(filterWith("fillLinkTalosVersions"))
+
+	_, err := suite.manager.Run(ctx)
+	suite.Require().NoError(err)
+
+	for id, expected := range map[string]string{"empty": "v1.2.0", "set": "v1.9.0", "no-machine-status": ""} {
+		link, err := safe.ReaderGetByID[*siderolink.Link](ctx, suite.state, id)
+		suite.Require().NoError(err)
+
+		suite.Assert().Equal(expected, link.TypedSpec().Value.TalosVersion, id)
+	}
+}
+
 func (suite *MigrationSuite) TestDropSchematicResource() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()

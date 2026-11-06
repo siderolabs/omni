@@ -12,12 +12,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/blang/semver/v4"
 	"github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -577,4 +580,53 @@ func TestIsJoinConfigDocumentTrustedRoots(t *testing.T) {
 
 	require.True(t, siderolink.IsJoinConfigDocument(omniRoots))
 	require.False(t, siderolink.IsJoinConfigDocument(userRoots))
+}
+
+func TestIsBelowTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		version string
+		below   bool
+	}{
+		{version: "v1.5.5", below: true},
+		{version: "1.2.0", below: true},
+		{version: "v1.6.0", below: false},
+		{version: "v1.6.0-alpha.1", below: false},
+		{version: "v1.14.5", below: false},
+		{version: "", below: false},
+		{version: "not-a-version", below: false},
+	} {
+		t.Run(tt.version, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.below, siderolink.IsBelowTalosVersionFloor(tt.version))
+		})
+	}
+}
+
+func TestIsBelowTalosVersionFloorOrMissing(t *testing.T) {
+	t.Parallel()
+
+	assert.True(t, siderolink.IsBelowTalosVersionFloorOrMissing(""))
+	assert.True(t, siderolink.IsBelowTalosVersionFloorOrMissing("v1.5.5"))
+	assert.False(t, siderolink.IsBelowTalosVersionFloorOrMissing("v1.6.0"))
+	assert.False(t, siderolink.IsBelowTalosVersionFloorOrMissing("not-a-version"))
+}
+
+// TestVersionFollowsDefaultTalosVersion fails when DefaultTalosVersion moves to a new minor without bumping Version.
+func TestVersionFollowsDefaultTalosVersion(t *testing.T) {
+	t.Parallel()
+
+	const supportedMinors = 10
+
+	defaultVersion, err := semver.ParseTolerant(constants.DefaultTalosVersion)
+	require.NoError(t, err)
+
+	floor := semver.MustParse(constants.TalosVersionFloor)
+
+	require.Equal(t, defaultVersion.Major, floor.Major)
+	assert.GreaterOrEqual(t, floor.Minor+supportedMinors-1, defaultVersion.Minor,
+		"with the default Talos %s the floor %s supports more than %d minors: bump constants.TalosVersionFloor and add a new --siderolink-disconnect-talos-below flag",
+		constants.DefaultTalosVersion, constants.TalosVersionFloor, supportedMinors)
 }

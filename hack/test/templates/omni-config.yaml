@@ -14,7 +14,8 @@ services:
     wireGuard:
       endpoint: ${LOCAL_IP}:50180
       advertisedEndpoint: ${LOCAL_IP}:50180
-    joinTokensMode: strict
+    joinTokensMode: ${OMNI_JOIN_TOKENS_MODE}
+    disconnectTalosBelow1_6: ${OMNI_DISCONNECT_TALOS_BELOW_FLOOR}
     eventSinkPort: 8091
   machineAPI:
     endpoint: 0.0.0.0:8090

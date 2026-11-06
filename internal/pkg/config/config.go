@@ -32,9 +32,9 @@ import (
 const (
 	wireguardDefaultPort = "50180"
 
-	// UnsupportedTalosVersionFailOnStart controls whether Omni refuses to start when machines
-	// are running Talos versions below MinTalosVersion. This will be flipped to true in a future release.
-	UnsupportedTalosVersionFailOnStart = false
+	// TalosVersionFloorEnforced controls whether Omni disconnects the machines running Talos versions below constants.TalosVersionFloor
+	// even when the disconnect flag is not set.
+	TalosVersionFloorEnforced = false
 
 	// NonImageFactoryFailOnStart controls whether Omni refuses to start when machines
 	// were provisioned without ImageFactory. This will be flipped to true in a future release.
@@ -168,8 +168,8 @@ func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 		}
 	}
 
-	if UnsupportedTalosVersionFailOnStart {
-		if err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st); err != nil {
+	if TalosVersionFloorEnforced && !p.Services.Siderolink.GetDisconnectTalosBelow16() {
+		if err := validations.EnsureNoMachinesBelowTalosVersionFloor(ctx, st); err != nil {
 			return err
 		}
 	}
@@ -181,6 +181,11 @@ func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 	}
 
 	return nil
+}
+
+// DisconnectBelowTalosVersionFloor reports whether Omni disconnects the machines running Talos versions below constants.TalosVersionFloor.
+func (p *Params) DisconnectBelowTalosVersionFloor() bool {
+	return TalosVersionFloorEnforced || p.Services.Siderolink.GetDisconnectTalosBelow16()
 }
 
 // Validate Omni params.

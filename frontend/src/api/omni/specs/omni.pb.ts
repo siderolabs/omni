@@ -1006,6 +1006,7 @@ export type MachineStatusMetricsSpec = {
   approaching_talos_version_end_of_support_machines_count?: number
   talos_version_end_of_support_machines_count?: number
   cores_count?: string
+  talos_version_below_floor_machines_count?: number
 }
 
 export type ClusterMetricsSpec = {
@@ -1199,6 +1200,7 @@ export type NotificationSpec = {
   title?: string
   body?: string
   type?: NotificationSpecType
+  undismissible?: boolean
 }
 
 export type KubernetesManifestGroupSpec = {

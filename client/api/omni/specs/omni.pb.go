@@ -7269,6 +7269,7 @@ type MachineStatusMetricsSpec struct {
 	ApproachingTalosVersionEndOfSupportMachinesCount uint32                 `protobuf:"varint,12,opt,name=approaching_talos_version_end_of_support_machines_count,json=approachingTalosVersionEndOfSupportMachinesCount,proto3" json:"approaching_talos_version_end_of_support_machines_count,omitempty"`
 	TalosVersionEndOfSupportMachinesCount            uint32                 `protobuf:"varint,13,opt,name=talos_version_end_of_support_machines_count,json=talosVersionEndOfSupportMachinesCount,proto3" json:"talos_version_end_of_support_machines_count,omitempty"`
 	CoresCount                                       uint64                 `protobuf:"varint,14,opt,name=cores_count,json=coresCount,proto3" json:"cores_count,omitempty"`
+	TalosVersionBelowFloorMachinesCount              uint32                 `protobuf:"varint,15,opt,name=talos_version_below_floor_machines_count,json=talosVersionBelowFloorMachinesCount,proto3" json:"talos_version_below_floor_machines_count,omitempty"`
 	unknownFields                                    protoimpl.UnknownFields
 	sizeCache                                        protoimpl.SizeCache
 }
@@ -7390,6 +7391,13 @@ func (x *MachineStatusMetricsSpec) GetTalosVersionEndOfSupportMachinesCount() ui
 func (x *MachineStatusMetricsSpec) GetCoresCount() uint64 {
 	if x != nil {
 		return x.CoresCount
+	}
+	return 0
+}
+
+func (x *MachineStatusMetricsSpec) GetTalosVersionBelowFloorMachinesCount() uint32 {
+	if x != nil {
+		return x.TalosVersionBelowFloorMachinesCount
 	}
 	return 0
 }
@@ -8934,6 +8942,7 @@ type NotificationSpec struct {
 	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	Body          string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
 	Type          NotificationSpec_Type  `protobuf:"varint,3,opt,name=type,proto3,enum=specs.NotificationSpec_Type" json:"type,omitempty"`
+	Undismissible bool                   `protobuf:"varint,4,opt,name=undismissible,proto3" json:"undismissible,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8987,6 +8996,13 @@ func (x *NotificationSpec) GetType() NotificationSpec_Type {
 		return x.Type
 	}
 	return NotificationSpec_INFO
+}
+
+func (x *NotificationSpec) GetUndismissible() bool {
+	if x != nil {
+		return x.Undismissible
+	}
+	return false
 }
 
 // KubernetesManifestGroup is the collection (or a single) kubernetes manifests to be applied on the cluster.
@@ -13129,7 +13145,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\tInstalled\x10\x00\x12\x0e\n" +
 	"\n" +
 	"Installing\x10\x01\x12\f\n" +
-	"\bRemoving\x10\x02\"\xfc\b\n" +
+	"\bRemoving\x10\x02\"\xd3\t\n" +
 	"\x18MachineStatusMetricsSpec\x12:\n" +
 	"\x19registered_machines_count\x18\x01 \x01(\rR\x17registeredMachinesCount\x128\n" +
 	"\x18connected_machines_count\x18\x02 \x01(\rR\x16connectedMachinesCount\x128\n" +
@@ -13146,7 +13162,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"7approaching_talos_version_end_of_support_machines_count\x18\f \x01(\rR0approachingTalosVersionEndOfSupportMachinesCount\x12Z\n" +
 	"+talos_version_end_of_support_machines_count\x18\r \x01(\rR%talosVersionEndOfSupportMachinesCount\x12\x1f\n" +
 	"\vcores_count\x18\x0e \x01(\x04R\n" +
-	"coresCount\x1a<\n" +
+	"coresCount\x12U\n" +
+	"(talos_version_below_floor_machines_count\x18\x0f \x01(\rR#talosVersionBelowFloorMachinesCount\x1a<\n" +
 	"\x0ePlatformsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\x1aC\n" +
@@ -13341,11 +13358,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1amachine_sets_upgrade_quota\x18\x01 \x03(\v26.specs.UpgradeRolloutSpec.MachineSetsUpgradeQuotaEntryR\x17machineSetsUpgradeQuota\x1aJ\n" +
 	"\x1cMachineSetsUpgradeQuotaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x98\x01\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xbe\x01\n" +
 	"\x10NotificationSpec\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x120\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x1c.specs.NotificationSpec.TypeR\x04type\"(\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x1c.specs.NotificationSpec.TypeR\x04type\x12$\n" +
+	"\rundismissible\x18\x04 \x01(\bR\rundismissible\"(\n" +
 	"\x04Type\x12\b\n" +
 	"\x04INFO\x10\x00\x12\v\n" +
 	"\aWARNING\x10\x01\x12\t\n" +
