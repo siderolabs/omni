@@ -6,6 +6,7 @@ package statustree
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fatih/color"
 
@@ -185,10 +186,62 @@ func clusterMachineConfigStatus(node *omni.ClusterMachineStatus) string {
 		specs.ConfigApplyStatus_APPLIED:
 		return ""
 	case specs.ConfigApplyStatus_FAILED:
+		operation := node.TypedSpec().Value.Operation
+
+		if operation.GetLastError() == "" && operation.GetFailedPhase() != specs.MachineOperationPhase_NONE {
+			return "" // printed with the phase it failed in
+		}
+
 		return " " + color.RedString("Config Apply Failed")
 	default:
 		return ""
 	}
+}
+
+func operationPhaseString(phase specs.MachineOperationPhase) string {
+	if phase == specs.MachineOperationPhase_NONE {
+		return ""
+	}
+
+	words := strings.Split(phase.String(), "_")
+
+	for i, word := range words {
+		words[i] = word[:1] + strings.ToLower(word[1:])
+	}
+
+	return strings.Join(words, " ")
+}
+
+func clusterMachineOperationString(node *omni.ClusterMachineStatus) string {
+	operation := node.TypedSpec().Value.GetOperation()
+	if operation == nil {
+		return ""
+	}
+
+	var result string
+
+	if operation.Phase != specs.MachineOperationPhase_NONE {
+		result = " " + color.HiYellowString(operationPhaseString(operation.Phase))
+
+		if operation.ConfigTryAttempt > 1 {
+			result += fmt.Sprintf(" (attempt %d)", operation.ConfigTryAttempt)
+		}
+
+		if operation.Message != "" {
+			result += ": " + safeout.Cell(operation.Message)
+		}
+	}
+
+	if operation.FailedPhase != specs.MachineOperationPhase_NONE {
+		lastError := operation.LastError
+		if lastError == "" {
+			lastError = node.TypedSpec().Value.LastConfigError
+		}
+
+		result += " " + color.RedString("%s failed: %s", operationPhaseString(operation.FailedPhase), safeout.Cell(lastError))
+	}
+
+	return result
 }
 
 func clusterMachineReadyString(clusterMachine *omni.ClusterMachineStatus) string {

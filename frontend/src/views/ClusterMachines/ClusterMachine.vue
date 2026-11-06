@@ -23,6 +23,7 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { updateMachineLock } from '@/methods/machine'
+import { machineOperationError, machineOperationErrorDescription } from '@/methods/machineOperation'
 import { showError } from '@/notification'
 import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
@@ -122,8 +123,10 @@ const updateLock = async () => {
 
     <div class="flex items-center justify-end">
       <Tooltip
-        v-if="machine.spec.last_config_error"
-        :description="machine.spec.last_config_error.trim()"
+        v-if="machineOperationError(machine.spec.last_config_error, machine.spec.operation)"
+        :description="
+          machineOperationErrorDescription(machine.spec.last_config_error, machine.spec.operation)
+        "
       >
         <TIcon icon="x-circle" class="mx-micro size-4 shrink-0 text-status-danger-default" />
       </Tooltip>

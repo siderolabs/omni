@@ -40,10 +40,11 @@ func (m *Manager) RunCordonAndDrainForTest(ctx context.Context, clusterName, nod
 	return m.runCordonAndDrain(ctx, runConfig{
 		cordonDrain: &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort},
 		progress:    progress,
+		phase:       func(specs.MachineOperationPhase) {},
 	})
 }
 
 // ReleaseForTest exposes release to external tests.
-func (m *Manager) ReleaseForTest(machineID string) {
-	m.release(machineID)
+func (m *Manager) ReleaseForTest(machineID string, err error) {
+	m.release(machineID, err)
 }

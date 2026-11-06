@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	ktesting "k8s.io/client-go/testing"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
@@ -171,7 +173,7 @@ func TestFinalizeRebootUncordon(t *testing.T) {
 		manager := newDrainTestManager(t, clientset)
 
 		require.NoError(t, manager.RunCordonAndDrainForTest(ctx, clusterName, nodeName, false, func(string) {}))
-		require.NoError(t, manager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)))
+		require.NoError(t, manager.FinalizeReboot(ctx, "machine-1", lifecycle.WithUncordon(clusterName, nodeName)))
 
 		got, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		require.NoError(t, err)
@@ -199,4 +201,45 @@ func TestFinalizeRebootUncordon(t *testing.T) {
 		assert.True(t, node.Spec.Unschedulable, "a node cordoned by an operator must stay cordoned after the reboot")
 		assert.NotContains(t, node.Annotations, omni.KubernetesNodeCordoned)
 	})
+}
+
+func TestFinalizeRebootKeepsFailedOperation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	const (
+		machineID = "machine-1"
+		nodeName  = "node-1"
+	)
+
+	var unreachable atomic.Bool
+
+	unreachable.Store(true)
+
+	clientset := fake.NewSimpleClientset(&corev1.Node{Name: nodeName})
+	clientset.PrependReactor("get", "nodes", func(ktesting.Action) (bool, k8sruntime.Object, error) {
+		if unreachable.Load() {
+			return true, nil, errors.New("node unreachable")
+		}
+
+		return false, nil, nil
+	})
+
+	manager := newDrainTestManager(t, clientset)
+
+	err := manager.FinalizeReboot(ctx, machineID, lifecycle.WithUncordon("cluster-1", nodeName), lifecycle.WithProgress(func(string) {
+		assert.Equal(t, specs.MachineOperationPhase_UNCORDONING, manager.Operations()[machineID].Phase)
+	}))
+	require.Error(t, err)
+
+	failed := manager.Operations()[machineID]
+	assert.Equal(t, specs.MachineOperationPhase_UNCORDONING, failed.FailedPhase)
+	assert.Contains(t, failed.LastError, "node unreachable")
+
+	unreachable.Store(false)
+
+	require.NoError(t, manager.FinalizeReboot(ctx, machineID, lifecycle.WithUncordon("cluster-1", nodeName)))
+	assert.Empty(t, manager.Operations())
 }

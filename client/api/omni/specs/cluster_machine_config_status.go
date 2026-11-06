@@ -100,3 +100,9 @@ func (x *ClusterMachineConfigStatusSpec) SetUncompressedData(data []byte, opts .
 
 	return nil
 }
+
+// SetLastConfigError sets the last config error and the operation phase it happened in.
+func (x *ClusterMachineConfigStatusSpec) SetLastConfigError(lastConfigError string, phase MachineOperationPhase) {
+	x.LastConfigError = lastConfigError
+	x.LastConfigErrorPhase = phase
+}

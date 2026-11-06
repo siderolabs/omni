@@ -45,3 +45,7 @@ func FetchTalosVersions(
 func (ctrl *StripeMetricsReporterController) SetDebounceDuration(duration time.Duration) {
 	ctrl.debounceDuration = duration
 }
+
+func (ctrl *MachineOperationStatusController) SetSyncInterval(interval time.Duration) {
+	ctrl.syncInterval = interval
+}

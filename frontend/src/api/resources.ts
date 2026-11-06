@@ -213,6 +213,7 @@ export const MachineExtensionsStatusType = "MachineExtensionsStatuses.omni.sider
 export const MachineInstallDiskConfigType = "MachineInstallDiskConfigs.omni.sidero.dev";
 export const MachineInstallDiskStatusType = "MachineInstallDiskStatuses.omni.sidero.dev";
 export const MachineLabelsType = "MachineLabels.omni.sidero.dev";
+export const MachineOperationStatusType = "MachineOperationStatuses.omni.sidero.dev";
 export const MachinePendingUpdatesType = "MachinePendingUpdates.omni.sidero.dev";
 export const MachineRequestSetType = "MachineRequestSets.omni.sidero.dev";
 export const MachineRequestSetStatusType = "MachineRequestSetStatuses.omni.sidero.dev";

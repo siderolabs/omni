@@ -1518,6 +1518,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 					a.Contains(res.TypedSpec().Value.LastConfigError, "installer blew up")
+					a.Equal(specs.MachineOperationPhase_INSTALLING, res.TypedSpec().Value.LastConfigErrorPhase)
 					a.Empty(res.TypedSpec().Value.PreRebootBootId, "a failed operation must not record the boot ID")
 				})
 			},

@@ -8,6 +8,7 @@ package lifecycle
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/go-kubernetes/kubernetes/nodedrain"
@@ -18,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 	k8s "k8s.io/client-go/kubernetes"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -33,13 +35,28 @@ type TalosClientFactory interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 }
 
+// OperationState represents the operation running on a machine, or the last failed one.
+type OperationState struct {
+	PhaseStartedAt time.Time
+	Message        string
+	LastError      string
+	Phase          specs.MachineOperationPhase
+	FailedPhase    specs.MachineOperationPhase
+}
+
+type operationState struct {
+	OperationState
+	inFlight bool
+}
+
 // Manager runs Talos's LifecycleService install/upgrade for a single machine, one in-flight op per machine.
 type Manager struct {
 	kubernetesClientProvider KubernetesClientProvider
 	talosClientFactory       TalosClientFactory
 	logger                   *zap.Logger
 	containerdInstance       *common.ContainerdInstance
-	inFlight                 map[string]struct{}
+	operations               map[string]*operationState
+	changes                  chan struct{}
 	installEventCh           chan<- resource.ID
 	imageFactoryClients      *imagefactory.Clients
 	mu                       sync.Mutex
@@ -63,7 +80,8 @@ func NewManager(
 			Driver:    common.ContainerDriver_CONTAINERD,
 			Namespace: common.ContainerdNamespace_NS_SYSTEM,
 		},
-		inFlight:       map[string]struct{}{},
+		operations:     map[string]*operationState{},
+		changes:        make(chan struct{}, 1),
 		installEventCh: installEventCh,
 	}
 }
@@ -91,6 +109,7 @@ type nodeRef struct {
 type runConfig struct {
 	audit       AuditFunc
 	progress    func(string)
+	phase       func(specs.MachineOperationPhase)
 	cordonDrain *nodeRef
 	uncordon    *nodeRef
 	preReboot   []PreRebootHook
@@ -145,6 +164,15 @@ func WithProgress(fn func(string)) Option {
 	}
 }
 
+// WithPhase sets a hook called with each phase the operation enters.
+func WithPhase(fn func(specs.MachineOperationPhase)) Option {
+	return func(c *runConfig) {
+		if fn != nil {
+			c.phase = fn
+		}
+	}
+}
+
 // WithAudit sets the audit hook invoked once per Talos call. Without it, calls are not audited.
 func WithAudit(fn AuditFunc) Option {
 	return func(c *runConfig) {
@@ -178,7 +206,7 @@ func (m *Manager) GetForMachine(ctx context.Context, machineID string) (*talos.C
 // Run performs the install or upgrade synchronously, returning when the machine has been rebooted into the target Talos or on error.
 // Returns ErrAlreadyInFlight if another operation holds this machine.
 func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
-	cfg := runConfig{audit: NoAudit, progress: func(string) {}}
+	cfg := runConfig{audit: NoAudit, progress: func(string) {}, phase: func(specs.MachineOperationPhase) {}}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -187,7 +215,12 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 		return ErrAlreadyInFlight
 	}
 
-	defer m.release(op.MachineID)
+	// the caller records a failure of Run in its own status, see WithPhase
+	defer m.release(op.MachineID, nil)
+
+	m.track(op.MachineID, &cfg)
+
+	cfg.phase(specs.MachineOperationPhase_PREPARING_IMAGE)
 
 	installImageStr, err := m.buildInstallImage(ctx, op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
 	if err != nil {
@@ -209,35 +242,20 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	talosClient := nodeClient.Client
 
+	cfg.phase(specs.MachineOperationPhase_PULLING_IMAGE)
+
 	// Install/Upgrade expect the image already present in containerd so we pull it here.
 	resolvedImage, err := m.pullInstallerImage(ctx, talosClient, installImageStr, op.MachineID, cfg)
 	if err != nil {
 		return WrapErr(err, "failed to pull installer image")
 	}
 
-	switch op.Kind {
-	case KindInstall:
-		err = m.install(ctx, talosClient, resolvedImage, op.Disk, op.MachineID, cfg)
+	if err = m.installOrUpgrade(ctx, talosClient, resolvedImage, op, cfg); err != nil {
+		return err
+	}
 
-		// AlreadyExists means Talos already has Talos on disk, which is the precondition Upgrade needs.
-		// The intent is "bring the machine to the target image", so fall back to upgrade.
-		if status.Code(err) == codes.AlreadyExists {
-			cfg.progress("[omni] Talos is already installed on disk; falling back to upgrade")
-
-			m.logger.Info("install rejected as already installed, falling back to upgrade", zap.String("machine_id", op.MachineID))
-
-			err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
-		}
-
-		if err != nil {
-			return err
-		}
-	case KindUpgrade:
-		if err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg); err != nil {
-			return err
-		}
-	default:
-		return status.Errorf(codes.InvalidArgument, "unknown operation kind: %d", op.Kind)
+	if len(cfg.preReboot) > 0 {
+		cfg.phase(specs.MachineOperationPhase_PREPARING_REBOOT)
 	}
 
 	for _, hook := range cfg.preReboot {
@@ -249,6 +267,8 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 	if err = m.runCordonAndDrain(ctx, cfg); err != nil {
 		return WrapErr(err, "cordon/drain before reboot failed")
 	}
+
+	cfg.phase(specs.MachineOperationPhase_REBOOTING)
 
 	if err = m.reboot(ctx, talosClient, op.MachineID, cfg); err != nil {
 		return WrapErr(err, "failed to reboot machine after install/upgrade")
@@ -267,6 +287,35 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 	return nil
 }
 
+func (m *Manager) installOrUpgrade(ctx context.Context, talosClient *talosclient.Client, resolvedImage string, op Operation, cfg runConfig) error {
+	switch op.Kind {
+	case KindInstall:
+		cfg.phase(specs.MachineOperationPhase_INSTALLING)
+
+		err := m.install(ctx, talosClient, resolvedImage, op.Disk, op.MachineID, cfg)
+
+		// AlreadyExists means Talos already has Talos on disk, which is the precondition Upgrade needs.
+		// The intent is "bring the machine to the target image", so fall back to upgrade.
+		if status.Code(err) == codes.AlreadyExists {
+			cfg.phase(specs.MachineOperationPhase_UPGRADING)
+
+			cfg.progress("[omni] Talos is already installed on disk; falling back to upgrade")
+
+			m.logger.Info("install rejected as already installed, falling back to upgrade", zap.String("machine_id", op.MachineID))
+
+			err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
+		}
+
+		return err
+	case KindUpgrade:
+		cfg.phase(specs.MachineOperationPhase_UPGRADING)
+
+		return m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
+	default:
+		return status.Errorf(codes.InvalidArgument, "unknown operation kind: %d", op.Kind)
+	}
+}
+
 // runPreRebootHook runs a single pre-reboot hook under its own timeout.
 func (m *Manager) runPreRebootHook(ctx context.Context, hook PreRebootHook, talosClient *talosclient.Client) error {
 	ctx, cancel := context.WithTimeout(ctx, PreRebootHookTimeout)
@@ -282,6 +331,8 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 	}
 
 	target := cfg.cordonDrain
+
+	cfg.phase(specs.MachineOperationPhase_CORDONING)
 
 	clientset, err := m.clientset(ctx, target.clusterName)
 	if err != nil {
@@ -327,6 +378,8 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 
 // drain evicts the node's pods, bounding itself with nodedrain's own drain timeout.
 func drain(ctx context.Context, clientset k8s.Interface, cfg runConfig, nodeName string) error {
+	cfg.phase(specs.MachineOperationPhase_DRAINING)
+
 	emitf(cfg.progress, "[omni] draining node %s", nodeName)
 
 	if err := nodedrain.Drain(ctx, clientset, nodeName, nodedrain.DrainOptions{
@@ -341,8 +394,9 @@ func drain(ctx context.Context, clientset k8s.Interface, cfg runConfig, nodeName
 }
 
 // FinalizeReboot uncordons the node, separate from Run because the caller decides when the machine is back.
-func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
-	cfg := runConfig{progress: func(string) {}}
+// Returns ErrAlreadyInFlight if another operation holds this machine.
+func (m *Manager) FinalizeReboot(ctx context.Context, machineID string, opts ...Option) (err error) {
+	cfg := runConfig{progress: func(string) {}, phase: func(specs.MachineOperationPhase) {}}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -351,7 +405,17 @@ func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
 		return nil
 	}
 
+	if !m.acquire(machineID) {
+		return ErrAlreadyInFlight
+	}
+
+	defer func() { m.release(machineID, err) }()
+
+	m.track(machineID, &cfg)
+
 	target := cfg.uncordon
+
+	cfg.phase(specs.MachineOperationPhase_UNCORDONING)
 
 	clientset, err := m.clientset(ctx, target.clusterName)
 	if err != nil {
@@ -370,23 +434,138 @@ func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
 	return nil
 }
 
+// Operations returns a copy of the operations running on the machines and of the last failed ones.
+func (m *Manager) Operations() map[string]OperationState {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	operations := make(map[string]OperationState, len(m.operations))
+
+	for machineID, state := range m.operations {
+		operations[machineID] = state.OperationState
+	}
+
+	return operations
+}
+
+// Forget drops the failed operation of the machine. It does nothing while an operation is in flight.
+func (m *Manager) Forget(machineID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if state, ok := m.operations[machineID]; ok && !state.inFlight {
+		delete(m.operations, machineID)
+
+		m.notify()
+	}
+}
+
+// Changes returns a channel which receives a value when Operations changes.
+func (m *Manager) Changes() <-chan struct{} {
+	return m.changes
+}
+
+func (m *Manager) track(machineID string, cfg *runConfig) {
+	progress := cfg.progress
+
+	cfg.progress = func(msg string) {
+		m.setMessage(machineID, msg)
+
+		progress(msg)
+	}
+
+	phase := cfg.phase
+
+	cfg.phase = func(p specs.MachineOperationPhase) {
+		m.setPhase(machineID, p)
+
+		phase(p)
+	}
+}
+
 // acquire claims the in-flight slot for the machine, returning false if one is already held.
 func (m *Manager) acquire(machineID string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, ok := m.inFlight[machineID]; ok {
+	state, ok := m.operations[machineID]
+	if !ok {
+		state = &operationState{}
+		m.operations[machineID] = state
+	}
+
+	if state.inFlight {
 		return false
 	}
 
-	m.inFlight[machineID] = struct{}{}
+	state.inFlight = true
+	state.OperationState = OperationState{}
+
+	m.notify()
 
 	return true
 }
 
-// release frees the in-flight slot for the machine.
-func (m *Manager) release(machineID string) {
+// release frees the in-flight slot for the machine. A failed operation is kept with its error and the phase it failed in.
+func (m *Manager) release(machineID string, err error) {
 	m.mu.Lock()
-	delete(m.inFlight, machineID)
-	m.mu.Unlock()
+	defer m.mu.Unlock()
+
+	defer m.notify()
+
+	state, ok := m.operations[machineID]
+	if !ok {
+		return
+	}
+
+	if err == nil {
+		delete(m.operations, machineID)
+
+		return
+	}
+
+	state.OperationState = OperationState{
+		LastError:   status.Convert(err).Message(),
+		FailedPhase: state.Phase,
+	}
+	state.inFlight = false
+}
+
+func (m *Manager) setPhase(machineID string, phase specs.MachineOperationPhase) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state, ok := m.operations[machineID]
+	if !ok {
+		return
+	}
+
+	state.OperationState = OperationState{
+		PhaseStartedAt: time.Now(),
+		Phase:          phase,
+	}
+
+	m.notify()
+}
+
+func (m *Manager) setMessage(machineID, msg string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state, ok := m.operations[machineID]
+	if !ok {
+		return
+	}
+
+	state.Message = msg
+
+	m.notify()
+}
+
+// notify never blocks, so that Run does not wait for the consumer of Changes.
+func (m *Manager) notify() {
+	select {
+	case m.changes <- struct{}{}:
+	default:
+	}
 }

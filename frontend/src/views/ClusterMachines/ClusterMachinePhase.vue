@@ -12,6 +12,9 @@ import { MachineStatusLabelConnected } from '@/api/resources'
 import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
 import StatusPill from '@/components/Status/StatusPill.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { machineOperationDescription, machineOperationPhaseName } from '@/methods/machineOperation'
+
+import ClusterMachineOperationDescription from './ClusterMachineOperationDescription.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   if (
@@ -25,6 +28,11 @@ const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
 }
 
 const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
+  const operationName = machineOperationPhaseName(machine?.spec.operation?.phase)
+  if (operationName) {
+    return operationName
+  }
+
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
       return 'Booting'
@@ -62,6 +70,10 @@ const stageStatus = (machine: Resource<ClusterMachineStatusSpec>): StatusAppeara
     return { tone: 'info', glyph: 'unknown' }
   }
 
+  if (machine?.spec.operation?.phase) {
+    return { tone: 'warning', glyph: 'progress' }
+  }
+
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
     case ClusterMachineStatusSpecStage.INSTALLING:
@@ -85,6 +97,16 @@ const stageStatus = (machine: Resource<ClusterMachineStatusSpec>): StatusAppeara
   }
 }
 
+const hasOperationDescription = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
+  const operation = machine?.spec.operation
+
+  return (
+    connected(machine) &&
+    !!operation?.phase &&
+    machineOperationDescription(operation, new Date()) !== ''
+  )
+}
+
 type Props = {
   machine: Resource<ClusterMachineStatusSpec>
 }
@@ -105,6 +127,10 @@ defineProps<Props>()
           {{ stageName(machine) || '' }}
         </span>
       </StatusPill>
+
+      <template v-if="hasOperationDescription(machine)" #description>
+        <ClusterMachineOperationDescription :operation="machine.spec.operation!" />
+      </template>
     </Tooltip>
   </div>
 </template>
