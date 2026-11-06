@@ -132,7 +132,11 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 	case virtual.AdvertisedEndpointsType:
 		return v.advertisedEndpoints(ctx, ptr)
 	case virtual.SupportType:
-		return v.support(ctx, ptr)
+		if ptr.ID() != virtual.SupportID {
+			return nil, stateerrors.ErrNotFound(ptr)
+		}
+
+		return v.support(ctx)
 	case virtual.QuirksType:
 		return v.quirks(ctx, ptr)
 	case virtual.VersionContractType:
@@ -394,11 +398,7 @@ func (v *State) labelsCompletion(ctx context.Context, ptr resource.Pointer) (*vi
 	return completion, nil
 }
 
-func (v *State) support(ctx context.Context, ptr resource.Pointer) (*virtual.Support, error) {
-	if ptr.ID() != virtual.SupportID {
-		return nil, stateerrors.ErrNotFound(ptr)
-	}
-
+func (v *State) support(ctx context.Context) (*virtual.Support, error) {
 	res := virtual.NewSupport()
 
 	version, err := resource.ParseVersion("1")

@@ -200,11 +200,12 @@ func TestSupportGet(t *testing.T) {
 	wrongPtr := virtualres.NewSupport()
 	*wrongPtr.Metadata() = resource.NewMetadata(wrongPtr.Metadata().Namespace(), wrongPtr.Metadata().Type(), "wrong-id", resource.VersionUndefined)
 
-	_, err := vst.Get(ctx, wrongPtr.Metadata())
+	res, err := vst.Get(ctx, wrongPtr.Metadata())
 	require.True(state.IsNotFoundError(err))
+	require.Equal(nil, res) // require.Nil would also accept a typed nil
 
 	// correct ID returns the resource with SupportEnabled=false (no stripe keys configured)
-	res, err := vst.Get(ctx, virtualres.NewSupport().Metadata())
+	res, err = vst.Get(ctx, virtualres.NewSupport().Metadata())
 	require.NoError(err)
 
 	sub, ok := res.(*virtualres.Support)
