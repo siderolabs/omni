@@ -1307,6 +1307,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isSignatureSufficient: true,
 			},
 			{
+				resource:              virtual.NewVersionContract(constants.DefaultTalosVersion), // the ID is a Talos version
+				allowedVerbSet:        readOnlyVerbSet,
+				isSignatureSufficient: true,
+			},
+			{
 				resource:       omni.NewEtcdBackupStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

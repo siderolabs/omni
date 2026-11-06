@@ -26,7 +26,7 @@ const (
 	// VersionContractType is the type of VersionContract resource.
 	//
 	// tsgen:VersionContractType
-	VersionContractType = resource.Type("VersionContract.omni.sidero.dev")
+	VersionContractType = resource.Type("VersionContracts.omni.sidero.dev")
 )
 
 // VersionContract resource exposes the Talos version contract capabilities for a given version, keyed by the version ID.
