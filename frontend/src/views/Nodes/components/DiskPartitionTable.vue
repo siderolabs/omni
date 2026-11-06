@@ -13,6 +13,7 @@ import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
+import { getVolumeDisplayName } from '@/views/Machines/lib/diskVolumes'
 
 defineProps<{
   partitions: {
@@ -109,9 +110,9 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
                 <div
                   :id="`volume-${volume.metadata.id}-title`"
                   class="max-w-40 truncate font-medium text-content-emphasis"
-                  :title="volume.spec.partition_label || volume.spec.label || volume.metadata.id"
+                  :title="getVolumeDisplayName(volume)"
                 >
-                  {{ volume.spec.partition_label || volume.spec.label || volume.metadata.id }}
+                  {{ getVolumeDisplayName(volume) }}
                 </div>
                 <div class="text-xs text-content-muted">
                   {{ volume.spec.dev_path }}

@@ -506,6 +506,156 @@ export const WithManyPartitions: Story = {
   },
 }
 
+const diskResource = (id: string, spec: DiskSpec) => ({
+  metadata: { id, namespace: TalosRuntimeNamespace, type: TalosDiskType },
+  spec: { dev_path: `/dev/${id}`, ...spec },
+})
+
+const volumeResource = (id: string, spec: DiscoveredVolumeSpec) => ({
+  metadata: { id, namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+  spec: { dev_path: `/dev/${id}`, ...spec },
+})
+
+// Two whole SATA disks in an MD RAID1 array, which holds a filesystem directly.
+export const WithRaid: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('sda', { size: 500 * GiB, transport: 'sata', rotational: true }),
+          diskResource('sdb', { size: 500 * GiB, transport: 'sata', rotational: true }),
+          diskResource('md127', { size: 499.9 * GiB, secondary_disks: ['sda', 'sdb'] }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          ...['sda', 'sdb'].map((id) =>
+            volumeResource(id, {
+              type: 'disk',
+              name: 'linux_raid_member',
+              label: 'talos:data',
+              uuid: '6f3c2a51-0c4e-4b0e-8a57-3d1f4f2b9c11',
+              offset: 0,
+              size: 500 * GiB,
+            }),
+          ),
+          volumeResource('md127', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'data',
+            uuid: faker.string.uuid(),
+            offset: 0,
+            size: 499.9 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+    )
+  },
+}
+
+// A whole disk used as an LVM physical volume, with two logical volumes on it.
+// The logical volumes are device-mapper disks, which this view does not show.
+export const WithLvm: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('sdc', { size: 1024 * GiB, transport: 'sata', rotational: true }),
+          diskResource('dm-0', {
+            size: 600 * GiB,
+            secondary_disks: ['sdc'],
+            device_mapper_name: 'vg0-data',
+            device_mapper_kind: 'lvm',
+          }),
+          diskResource('dm-1', {
+            size: 200 * GiB,
+            secondary_disks: ['sdc'],
+            device_mapper_name: 'vg0-logs',
+            device_mapper_kind: 'lvm',
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('sdc', {
+            type: 'disk',
+            name: 'lvm2-pv',
+            uuid: faker.string.uuid(),
+            offset: 0,
+            size: 1024 * GiB,
+          }),
+          volumeResource('dm-0', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'data',
+            offset: 0,
+            size: 600 * GiB,
+          }),
+          volumeResource('dm-1', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'logs',
+            offset: 0,
+            size: 200 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+    )
+  },
+}
+
+// Talos 1.12+ reports partition offsets, so free space shows where it is on disk.
+export const WithPartitionGaps: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [diskResource('vda', { size: 40 * GiB, transport: 'virtio' })],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('vda', { type: 'disk', name: 'gpt', offset: 0, size: 40 * GiB }),
+          volumeResource('vda1', {
+            type: 'partition',
+            name: 'xfs',
+            parent: 'vda',
+            partition_index: 1,
+            partition_label: 'EPHEMERAL',
+            offset: 1024 ** 2,
+            size: 10 * GiB,
+          }),
+          volumeResource('vda2', {
+            type: 'partition',
+            name: 'xfs',
+            parent: 'vda',
+            partition_index: 2,
+            partition_label: 'u-data',
+            offset: 20 * GiB,
+            size: 10 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+    )
+  },
+}
+
 export const NoData: Story = {
   beforeEach({ msw }) {
     msw.use(createWatchStreamHandler().handler)
