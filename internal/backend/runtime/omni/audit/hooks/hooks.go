@@ -19,6 +19,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
@@ -119,10 +120,15 @@ func Init(a *audit.Log) {
 	// JoinToken create must go through the management.CreateJoinToken API (other verbs run
 	// directly against state). It is not user-managed, so register the full set of hooks
 	// explicitly so all join-token operations are audited.
-	audit.ShouldLogCreate(a, siderolink.JoinTokenType, emptyCreateFunc, audit.WithInternalAgent())
-	audit.ShouldLogUpdate(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent())
-	audit.ShouldLogUpdateWithConflicts(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent())
-	audit.ShouldLogDestroy(a, siderolink.JoinTokenType, emptyDestroyFunc, audit.WithInternalAgent())
+	//
+	// The ID of a join token is the token itself, so the log carries its fingerprint instead,
+	// the same value JoinTokenStatus has in its fingerprint label.
+	joinTokenFingerprint := audit.WithResourceID(jointoken.Fingerprint)
+
+	audit.ShouldLogCreate(a, siderolink.JoinTokenType, emptyCreateFunc, audit.WithInternalAgent(), joinTokenFingerprint)
+	audit.ShouldLogUpdate(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent(), joinTokenFingerprint)
+	audit.ShouldLogUpdateWithConflicts(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent(), joinTokenFingerprint)
+	audit.ShouldLogDestroy(a, siderolink.JoinTokenType, emptyDestroyFunc, audit.WithInternalAgent(), joinTokenFingerprint)
 
 	customLoggedResourceTypes := xslices.ToSet(slices.Concat(a.CreateHooksResourceTypes(), a.UpdateHooksResourceTypes(), a.DestroyHooksResourceTypes()))
 

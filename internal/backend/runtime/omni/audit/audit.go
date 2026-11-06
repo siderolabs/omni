@@ -343,7 +343,7 @@ func ShouldLogCreate(l *Log, resType resource.Type, before CreateHandler, opts .
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("create", resType, res.Metadata().ID(), data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("create", resType, o.loggedID(res.Metadata().ID()), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for create event: %w", err)
 		}
 
@@ -386,7 +386,7 @@ func ShouldLogUpdate(l *Log, resType resource.Type, before UpdateHandler, opts .
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent(eventType, resType, newRes.Metadata().ID(), data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent(eventType, resType, o.loggedID(newRes.Metadata().ID()), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update event: %w", err)
 		}
 
@@ -408,7 +408,7 @@ func ShouldLogDestroy(l *Log, resType resource.Type, before DestroyHandler, opts
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("destroy", resType, ptr.ID(), data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("destroy", resType, o.loggedID(ptr.ID()), data)); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -450,7 +450,7 @@ func ShouldLogUpdateWithConflicts(l *Log, resType resource.Type, before UpdateHa
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("update_with_conflicts", resType, newRes.Metadata().ID(), data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("update_with_conflicts", resType, o.loggedID(newRes.Metadata().ID()), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update with conflicts events: %w", err)
 		}
 
@@ -503,8 +503,18 @@ func isEqualResource(oldRes, newRes resource.Resource) bool {
 }
 
 type options struct {
+	resourceID    func(resource.ID) resource.ID
 	userAgent     string
 	newDataIfNone bool
+}
+
+// loggedID returns the resource ID to write into the audit log.
+func (o options) loggedID(id resource.ID) resource.ID {
+	if o.resourceID == nil {
+		return id
+	}
+
+	return o.resourceID(id)
 }
 
 const internalAgent = "Omni-Internal-Agent"
@@ -514,6 +524,13 @@ func WithInternalAgent() Option {
 	return func(o *options) {
 		o.newDataIfNone = true
 		o.userAgent = internalAgent
+	}
+}
+
+// WithResourceID makes the hook log the result of fn instead of the resource ID, for types whose ID is a secret.
+func WithResourceID(fn func(resource.ID) resource.ID) Option {
+	return func(o *options) {
+		o.resourceID = fn
 	}
 }
 
