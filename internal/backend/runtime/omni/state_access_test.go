@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/assert"
@@ -18,8 +20,10 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -202,4 +206,33 @@ func TestKernelArgsIsNotClusterScoped(t *testing.T) {
 	err := st.Create(ctx, kernelArgs)
 
 	assert.Equal(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
+}
+
+// TestInfraProviderTypesOutsideTheirNamespaces covers infra provider types written into a namespace that is not served by the infra provider state.
+//
+// The infra provider state checks the access to these types, so a namespace it does not serve must not skip the regular checks.
+func TestInfraProviderTypesOutsideTheirNamespaces(t *testing.T) {
+	t.Parallel()
+
+	innerSt := state.WrapCore(inmem.NewState())
+	st := state.WrapCore(validated.NewState(innerSt, omni.AuthorizationValidationOptions(innerSt)...))
+
+	for _, r := range []role.Role{role.None, role.Reader, role.Admin} {
+		ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: r})
+
+		for _, res := range []resource.Resource{
+			typed.NewResource[infra.ProviderSpec, infra.ProviderExtension](
+				resource.NewMetadata(resources.DefaultNamespace, infra.ProviderType, "rogue", resource.VersionUndefined),
+				protobuf.NewResourceSpec(&specs.InfraProviderSpec{}),
+			),
+			typed.NewResource[infra.MachineRequestSpec, infra.MachineRequestExtension](
+				resource.NewMetadata(resources.DefaultNamespace, infra.MachineRequestType, "rogue", resource.VersionUndefined),
+				protobuf.NewResourceSpec(&specs.MachineRequestSpec{}),
+			),
+		} {
+			err := st.Create(ctx, res)
+
+			assert.Equal(t, codes.PermissionDenied, status.Code(err), "role %s, type %s", r, res.Metadata().Type())
+		}
+	}
 }

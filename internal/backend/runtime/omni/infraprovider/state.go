@@ -472,8 +472,20 @@ type resourceConfig struct {
 	onlyAdminCanRead     bool
 }
 
-// IsInfraProviderResource returns true if the given resource type is an infra provider specific resource.
+// IsInfraProviderNamespace returns true if the resources in the given namespace are served by the infra provider state.
+func IsInfraProviderNamespace(ns resource.Namespace) bool {
+	return ns == resources.InfraProviderNamespace || ns == resources.InfraProviderEphemeralNamespace || strings.HasPrefix(ns, resources.InfraProviderSpecificNamespacePrefix)
+}
+
+// IsInfraProviderResource returns true if the given resource is an infra provider specific resource in a namespace served by the infra provider state.
+//
+// The namespace matters: the access to infra provider resources is checked by the infra provider state, so the same type in any other namespace
+// must not be treated as one.
 func IsInfraProviderResource(ns resource.Namespace, resType resource.Type) bool {
+	if !IsInfraProviderNamespace(ns) {
+		return false
+	}
+
 	_, isInfraProviderResource := getResourceConfig(ns, resType)
 
 	return isInfraProviderResource

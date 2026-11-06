@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -263,10 +262,8 @@ func newNamespacedState(
 				StoreFactory: storeFactory,
 				Logger:       logger,
 			}
-		case resources.InfraProviderNamespace, resources.InfraProviderEphemeralNamespace:
-			return infraProviderState
 		default:
-			if strings.HasPrefix(ns, resources.InfraProviderSpecificNamespacePrefix) {
+			if infraprovider.IsInfraProviderNamespace(ns) {
 				return infraProviderState
 			}
 
