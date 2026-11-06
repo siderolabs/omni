@@ -10,11 +10,13 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -56,4 +58,20 @@ func CheckForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 // AuthorizationValidationOptions exposes authorizationValidationOptions for tests.
 func AuthorizationValidationOptions(st state.State) []validated.StateOption {
 	return authorizationValidationOptions(st)
+}
+
+// NewAuthorizedState returns the production composition of the namespaced state over in-memory storage, with only the
+// authorization checks on top. The second state is the same composition without the authorization checks.
+func NewAuthorizedState(apiURL string) (authorized, unauthorized state.State, err error) {
+	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defaultCoreState := inmem.NewState()
+	virtualState := virtual.NewState(state.WrapCore(defaultCoreState), nil, apiURL, "", config.Registries{}, config.Support{})
+
+	unauthorized = state.WrapCore(newNamespacedState(defaultCoreState, inmem.NewState(), virtualState, zap.NewNop(), storeFactory))
+
+	return state.WrapCore(validated.NewState(unauthorized, authorizationValidationOptions(unauthorized)...)), unauthorized, nil
 }

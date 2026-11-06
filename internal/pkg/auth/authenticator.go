@@ -11,6 +11,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/message"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
+	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
 // Authenticator represents an authenticator.
@@ -23,3 +24,13 @@ type Authenticator struct {
 
 // AuthenticatorFunc represents a function that returns an authenticator for the given public key fingerprint.
 type AuthenticatorFunc func(ctx context.Context, fingerprint string) (*Authenticator, error)
+
+// ContextWithAuthenticator returns a child context carrying the caller who signed the request with the key of the given fingerprint.
+func ContextWithAuthenticator(ctx context.Context, authenticator *Authenticator, fingerprint string) context.Context {
+	ctx = ctxstore.WithValue(ctx, UserIDContextKey{UserID: authenticator.UserID})
+	ctx = ctxstore.WithValue(ctx, IdentityContextKey{Identity: authenticator.Identity})
+	ctx = ctxstore.WithValue(ctx, RoleContextKey{Role: authenticator.Role})
+	ctx = ctxstore.WithValue(ctx, FingerprintContextKey{Fingerprint: fingerprint})
+
+	return ctx
+}
