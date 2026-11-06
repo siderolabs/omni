@@ -489,7 +489,15 @@ func extractData(ctx context.Context, opts options) *auditlog.Data {
 }
 
 func isEqualResource(oldRes, newRes resource.Resource) bool {
-	if oldRes.Metadata().ID() != newRes.Metadata().ID() || oldRes.Metadata().Phase() != newRes.Metadata().Phase() {
+	oldMd, newMd := oldRes.Metadata(), newRes.Metadata()
+
+	if oldMd.ID() != newMd.ID() || oldMd.Phase() != newMd.Phase() {
+		return false
+	}
+
+	if !oldMd.Labels().Equal(*newMd.Labels()) ||
+		!oldMd.Annotations().Equal(*newMd.Annotations()) ||
+		!slices.Equal(*oldMd.Finalizers(), *newMd.Finalizers()) {
 		return false
 	}
 

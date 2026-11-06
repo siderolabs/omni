@@ -306,3 +306,39 @@ func TestJoinTokenAuditLogsFingerprint(t *testing.T) {
 	assert.NotContains(t, events, token)
 	assert.Equal(t, 4, strings.Count(events, jointoken.Fingerprint(token)))
 }
+
+func TestAnnotationsAudit(t *testing.T) {
+	t.Parallel()
+
+	db := testDB(t)
+
+	cfg := config.LogsAudit{Enabled: new(true)}
+	l, err := audit.NewLog(t.Context(), cfg, db, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	hooks.Init(l)
+
+	data := auditlog.Data{
+		Session: auditlog.Session{
+			Email: "admin@siderolabs.com",
+			Role:  "Admin",
+		},
+	}
+
+	ctx := ctxstore.WithValue(t.Context(), &data)
+
+	cluster := omni.NewCluster("cluster-1")
+	cluster.Metadata().Annotations().Set("created-by", "test")
+
+	require.NoError(t, l.LogCreate(cluster)(ctx, cluster))
+
+	updated := omni.NewCluster("cluster-1")
+	updated.Metadata().Annotations().Set("created-by", "test")
+	updated.Metadata().Annotations().Set("locked", "")
+
+	require.NoError(t, l.LogUpdate(updated)(ctx, cluster, updated))
+
+	events := readAuditEvents(t, l)
+	assert.Contains(t, events, `"annotations":{"created-by":"test"}`)
+	assert.Contains(t, events, `"annotations":{"created-by":"test","locked":""}`)
+}

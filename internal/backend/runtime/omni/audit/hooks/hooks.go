@@ -283,6 +283,7 @@ func handleMachine(data *auditlog.Data, res resource.Resource) error {
 	data.Machine.IsConnected = machine.TypedSpec().Value.GetConnected()
 	data.Machine.ManagementAddress = machine.TypedSpec().Value.GetManagementAddress()
 	data.Machine.Labels = maps.Clone(machine.Metadata().Labels().Raw())
+	data.Machine.Annotations = maps.Clone(machine.Metadata().Annotations().Raw())
 
 	return nil
 }
@@ -298,6 +299,7 @@ func machineDestroy(_ context.Context, data *auditlog.Data, ptr resource.Pointer
 	}
 
 	data.Machine.Labels = maps.Clone(md.Labels().Raw())
+	data.Machine.Annotations = maps.Clone(md.Annotations().Raw())
 
 	return nil
 }
@@ -307,6 +309,7 @@ func machineLabelsCreate(_ context.Context, data *auditlog.Data, res resource.Re
 
 	data.MachineLabels.ID = res.Metadata().ID()
 	data.MachineLabels.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.MachineLabels.Annotations = maps.Clone(res.Metadata().Annotations().Raw())
 
 	return nil
 }
@@ -316,6 +319,7 @@ func machineLabelsUpdate(_ context.Context, data *auditlog.Data, _, newRes resou
 
 	data.MachineLabels.ID = newRes.Metadata().ID()
 	data.MachineLabels.Labels = maps.Clone(newRes.Metadata().Labels().Raw())
+	data.MachineLabels.Annotations = maps.Clone(newRes.Metadata().Annotations().Raw())
 
 	return nil
 }
@@ -405,6 +409,7 @@ func handleCluster(data *auditlog.Data, res resource.Resource) error {
 	data.Cluster.KubernetesVersion = cluster.TypedSpec().Value.GetKubernetesVersion()
 	data.Cluster.TalosVersion = cluster.TypedSpec().Value.GetTalosVersion()
 	data.Cluster.Labels = maps.Clone(cluster.Metadata().Labels().Raw())
+	data.Cluster.Annotations = maps.Clone(cluster.Metadata().Annotations().Raw())
 
 	return nil
 }
@@ -445,6 +450,7 @@ func handleMachineSet(data *auditlog.Data, res resource.Resource, emptyOwner boo
 	data.MachineSet.UpdateStrategyConfig = machineSet.TypedSpec().Value.GetUpdateStrategyConfig()
 	data.MachineSet.DeleteStrategyConfig = machineSet.TypedSpec().Value.GetDeleteStrategyConfig()
 	data.MachineSet.Labels = maps.Clone(machineSet.Metadata().Labels().Raw())
+	data.MachineSet.Annotations = maps.Clone(machineSet.Metadata().Annotations().Raw())
 	data.MachineSet.ClusterID, _ = machineSet.Metadata().Labels().Get(omni.LabelCluster)
 
 	return nil
@@ -477,6 +483,7 @@ func handleMachineSetNode(data *auditlog.Data, res resource.Resource, emptyOwner
 
 	data.MachineSetNode.ID = res.Metadata().ID()
 	data.MachineSetNode.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.MachineSetNode.Annotations = maps.Clone(res.Metadata().Annotations().Raw())
 	data.MachineSetNode.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	return nil
@@ -510,6 +517,7 @@ func handleConfigPatch(data *auditlog.Data, res resource.Resource) error {
 
 	data.ConfigPatch.ID = res.Metadata().ID()
 	data.ConfigPatch.Labels = maps.Clone(res.Metadata().Labels().Raw())
+	data.ConfigPatch.Annotations = maps.Clone(res.Metadata().Annotations().Raw())
 	data.ConfigPatch.ClusterID, _ = res.Metadata().Labels().Get(omni.LabelCluster)
 
 	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()

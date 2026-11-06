@@ -67,6 +67,7 @@ type NewUser struct {
 // Machine contains information about the machine.
 type Machine struct {
 	Labels            map[string]string `json:"labels,omitempty"`
+	Annotations       map[string]string `json:"annotations,omitempty"`
 	ID                string            `json:"id,omitempty"`
 	ManagementAddress string            `json:"management_address,omitempty"`
 	IsConnected       bool              `json:"is_connected,omitempty"`
@@ -74,8 +75,9 @@ type Machine struct {
 
 // MachineLabels contains information about the machine labels.
 type MachineLabels struct {
-	Labels map[string]string `json:"labels,omitempty"`
-	ID     string            `json:"id,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	ID          string            `json:"id,omitempty"`
 }
 
 // AccessPolicy contains information about the access policy.
@@ -91,6 +93,7 @@ type AccessPolicy struct {
 type Cluster struct {
 	ID                  string                      `json:"id,omitempty"`
 	Labels              map[string]string           `json:"labels,omitempty"`
+	Annotations         map[string]string           `json:"annotations,omitempty"`
 	BackupConfiguration *specs.EtcdBackupConf       `json:"backup_configuration,omitempty"`
 	Features            *specs.ClusterSpec_Features `json:"features,omitempty"`
 	KubernetesVersion   string                      `json:"kubernetes_version,omitempty"`
@@ -100,6 +103,7 @@ type Cluster struct {
 // MachineSet struct contains information about the machine set.
 type MachineSet struct {
 	Labels               map[string]string                          `json:"labels,omitempty"`
+	Annotations          map[string]string                          `json:"annotations,omitempty"`
 	MachineAllocation    *specs.MachineSetSpec_MachineAllocation    `json:"machine_allocation,omitempty"`
 	BootstrapSpec        *specs.MachineSetSpec_BootstrapSpec        `json:"bootstrap_spec,omitempty"`
 	UpdateStrategyConfig *specs.MachineSetSpec_UpdateStrategyConfig `json:"update_strategy_config,omitempty"`
@@ -112,17 +116,19 @@ type MachineSet struct {
 
 // MachineSetNode struct contains information about the machine set node.
 type MachineSetNode struct {
-	Labels    map[string]string `json:"labels,omitempty"`
-	ID        string            `json:"id,omitempty"`
-	ClusterID string            `json:"cluster_id,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	ClusterID   string            `json:"cluster_id,omitempty"`
 }
 
 // ConfigPatch struct contains information about the config patch.
 type ConfigPatch struct {
-	Labels    map[string]string `json:"labels,omitempty"`
-	ID        string            `json:"id,omitempty"`
-	Data      string            `json:"data,omitempty"`
-	ClusterID string            `json:"cluster_id,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	Data        string            `json:"data,omitempty"`
+	ClusterID   string            `json:"cluster_id,omitempty"`
 }
 
 // MachineConfigDiff struct contains information about the machine configuration diff.
