@@ -522,7 +522,6 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.IdentityLabelRuleType,
 		authres.AccessPolicyType,
 		omni.EtcdBackupS3ConfType,
-		infra.ProviderType,
 		omni.InfraMachineBMCConfigType,
 		oidcres.JWTPublicKeyType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
