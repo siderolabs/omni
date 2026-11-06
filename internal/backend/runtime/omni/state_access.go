@@ -18,6 +18,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -187,6 +188,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					Verb:              state.Get,
 				}, clusterID, false)
 			},
+			labelsCompletionValidation(st),
 		),
 		validated.WithWatchValidations(
 			func(ctx context.Context, ptr resource.Pointer, _ ...state.WatchOption) error {
@@ -279,6 +281,17 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}, clusterID, false)
 			},
 		),
+	}
+}
+
+// labelsCompletionValidation requires list access to the type a LabelsCompletion is for, as it is built from all resources of that type.
+func labelsCompletionValidation(st state.State) validated.GetValidation {
+	return func(ctx context.Context, ptr resource.Pointer, _ resource.Resource, _ ...state.GetOption) error {
+		if ptr.Type() != virtual.LabelsCompletionType {
+			return nil
+		}
+
+		return checkForKindAccess(ctx, st, state.List, resource.NewMetadata(resources.DefaultNamespace, ptr.ID(), "", resource.VersionUndefined), nil)
 	}
 }
 
