@@ -22,10 +22,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/jointoken"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
@@ -264,4 +266,43 @@ func testDB(t *testing.T) *sqlitexx.Pool {
 	})
 
 	return db
+}
+
+func TestJoinTokenAuditLogsFingerprint(t *testing.T) {
+	t.Parallel()
+
+	db := testDB(t)
+
+	cfg := config.LogsAudit{Enabled: new(true)}
+	l, err := audit.NewLog(t.Context(), cfg, db, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	hooks.Init(l)
+
+	const token = "w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD"
+
+	joinToken := siderolink.NewJoinToken(token)
+
+	data := auditlog.Data{
+		Session: auditlog.Session{
+			Email: "admin@siderolabs.com",
+			Role:  "Admin",
+		},
+	}
+
+	ctx := ctxstore.WithValue(t.Context(), &data)
+
+	require.NoError(t, l.LogCreate(joinToken)(ctx, joinToken))
+
+	revokedJoinToken := siderolink.NewJoinToken(token)
+	revokedJoinToken.TypedSpec().Value.Revoked = true
+
+	require.NoError(t, l.LogUpdate(revokedJoinToken)(ctx, joinToken, revokedJoinToken))
+	require.NoError(t, l.LogUpdateWithConflicts(revokedJoinToken.Metadata())(ctx, joinToken, revokedJoinToken))
+	require.NoError(t, l.LogDestroy(joinToken.Metadata())(ctx, joinToken.Metadata()))
+
+	events := readAuditEvents(t, l)
+
+	assert.NotContains(t, events, token)
+	assert.Equal(t, 4, strings.Count(events, jointoken.Fingerprint(token)))
 }
