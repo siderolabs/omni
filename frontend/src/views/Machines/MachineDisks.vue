@@ -23,6 +23,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { getChildDiskIds, getDiskVolumes, getParentDiskIds } from '@/views/Machines/lib/diskVolumes'
 import DiskPartitionTable from '@/views/Nodes/components/DiskPartitionTable.vue'
 import DiskUsageBar from '@/views/Nodes/components/DiskUsageBar.vue'
 
@@ -86,7 +87,7 @@ const errCode = computed(
   () => disksErrCode.value || volumesErrCode.value || volumeStatusesErrCode.value,
 )
 
-const organizedDisks = computed(() =>
+const visibleDisks = computed(() =>
   disks.value
     .filter(
       (d) =>
@@ -96,26 +97,25 @@ const organizedDisks = computed(() =>
         // partition's VolumeStatus and should not appear as top-level disk entries.
         !d.metadata.id?.startsWith('dm-'),
     )
-    .map((disk) => ({
-      disk,
-      partitions: volumes.value
-        .filter((v) => v.spec.parent === disk.metadata.id)
-        .map((v) => ({
-          volume: v,
-          volumeStatus: volumeStatuses.value.find((m) => m.spec.location === v.spec.dev_path),
-        }))
-        .sort(
-          (a, b) => (a.volume.spec.partition_index || 0) - (b.volume.spec.partition_index || 0),
-        ),
-    }))
     // Hide empty CD-ROMs. Talos always creates a DiscoveredVolume for a CDROM
     // drive but leaves `name` (filesystem type) as "" when no media is present.
     // The kernel does not partition CD-ROMs, so the name is on the whole-disk volume.
     .filter(
       (d) =>
-        !d.disk.spec.cdrom ||
-        volumes.value.some((v) => v.metadata.id === d.disk.metadata.id && v.spec.name),
+        !d.spec.cdrom || volumes.value.some((v) => v.metadata.id === d.metadata.id && v.spec.name),
     ),
+)
+
+const organizedDisks = computed(() =>
+  visibleDisks.value.map((disk) => ({
+    disk,
+    memberOf: getParentDiskIds(disk, visibleDisks.value),
+    backedBy: getChildDiskIds(disk, visibleDisks.value),
+    partitions: getDiskVolumes(disk, volumes.value).map((v) => ({
+      volume: v,
+      volumeStatus: volumeStatuses.value.find((m) => m.spec.location === v.spec.dev_path),
+    })),
+  })),
 )
 </script>
 
@@ -155,6 +155,19 @@ const organizedDisks = computed(() =>
               {{ prettyBytes(diskInfo.disk.spec.size ?? 0) }}
             </span>
             <div class="flex items-center gap-tight">
+              <span
+                v-if="diskInfo.backedBy.length"
+                class="rounded bg-surface-inert px-tight py-micro text-xs text-content-default"
+              >
+                Backed by {{ diskInfo.backedBy.join(', ') }}
+              </span>
+              <span
+                v-for="parentId in diskInfo.memberOf"
+                :key="parentId"
+                class="rounded bg-surface-inert px-tight py-micro text-xs text-content-default"
+              >
+                Member of {{ parentId }}
+              </span>
               <span
                 v-if="diskInfo.disk.spec.cdrom"
                 class="rounded bg-surface-inert px-tight py-micro text-xs text-content-default"

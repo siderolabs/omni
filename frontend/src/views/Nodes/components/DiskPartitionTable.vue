@@ -13,6 +13,8 @@ import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
+import { getVolumeDisplayName } from '@/views/Machines/lib/diskVolumes'
+import { isVolumePrepared } from '@/views/Machines/lib/volumeStatus'
 
 defineProps<{
   partitions: {
@@ -48,11 +50,12 @@ const getEffectiveFilesystem = (
 }
 
 const isEncrypted = (item?: Resource<VolumeStatusSpec>) => {
-  if (!item) {
-    return Encryption.Unknown
+  if (item?.spec.encryptionProvider) {
+    return Encryption.Enabled
   }
 
-  return item.spec.encryptionProvider ? Encryption.Enabled : Encryption.Disabled
+  // Encryption is set up when a volume is prepared, so before that its absence means nothing.
+  return item && isVolumePrepared(item.spec.phase) ? Encryption.Disabled : Encryption.Unknown
 }
 
 const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
@@ -109,9 +112,9 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
                 <div
                   :id="`volume-${volume.metadata.id}-title`"
                   class="max-w-40 truncate font-medium text-content-emphasis"
-                  :title="volume.spec.partition_label || volume.spec.label || volume.metadata.id"
+                  :title="getVolumeDisplayName(volume)"
                 >
-                  {{ volume.spec.partition_label || volume.spec.label || volume.metadata.id }}
+                  {{ getVolumeDisplayName(volume) }}
                 </div>
                 <div class="text-xs text-content-muted">
                   {{ volume.spec.dev_path }}
