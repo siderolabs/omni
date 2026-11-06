@@ -204,6 +204,87 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	require.Equal(t, "teardown", events[1]["event_type"])
 }
 
+func TestMetadataChangeIsAudited(t *testing.T) {
+	for _, tc := range []struct {
+		modify    func(md *resource.Metadata)
+		name      string
+		expectLog bool
+	}{
+		{
+			name:      "label",
+			modify:    func(md *resource.Metadata) { md.Labels().Set("foo", "bar") },
+			expectLog: true,
+		},
+		{
+			name:      "annotation",
+			modify:    func(md *resource.Metadata) { md.Annotations().Set("foo", "bar") },
+			expectLog: true,
+		},
+		{
+			name:      "finalizer",
+			modify:    func(md *resource.Metadata) { md.Finalizers().Add("foo") },
+			expectLog: true,
+		},
+		{
+			name: "version and updated",
+			modify: func(md *resource.Metadata) {
+				md.SetVersion(md.Version().Next())
+				md.SetUpdated(time.Now().Add(time.Hour))
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := config.LogsAudit{
+				Enabled: new(true),
+			}
+
+			l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
+
+			hooks.Init(l)
+
+			res := auth.NewPublicKey("metadata-change-test")
+
+			res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
+
+			res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
+			res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
+
+			ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{Session: auditlog.Session{UserAgent: "Mozilla/5.0"}})
+
+			newRes := res.DeepCopy().(*auth.PublicKey) //nolint:errcheck,forcetypeassert
+			tc.modify(newRes.Metadata())
+
+			require.NoError(t, l.LogUpdate(res)(ctx, res, newRes))
+
+			rdr, err := l.Reader(t.Context(), auditlog.ReadFilters{End: time.Now().Add(5 * time.Second)})
+			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				require.NoError(t, rdr.Close())
+			})
+
+			var events int
+
+			for {
+				_, err := rdr.Read()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				require.NoError(t, err)
+
+				events++
+			}
+
+			if tc.expectLog {
+				require.Equal(t, 1, events)
+			} else {
+				require.Zero(t, events)
+			}
+		})
+	}
+}
+
 // TestAuditStateTeardown verifies the auditState wrapper emits a "teardown"
 // event when state.Teardown is called for a type with an update hook.
 func TestAuditStateTeardown(t *testing.T) {
