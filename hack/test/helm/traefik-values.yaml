@@ -9,7 +9,8 @@ updateStrategy:
     maxSurge: 0
 
 service:
-  type: ClusterIP
+  spec:
+    type: ClusterIP
 
 ports:
   web:
