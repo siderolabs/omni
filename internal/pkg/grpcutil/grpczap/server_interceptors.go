@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
@@ -39,8 +40,8 @@ func UnaryServerInterceptor(logger *zap.Logger, opts ...Option) grpc.UnaryServer
 			return resp, err
 		}
 
-		code := o.codeFunc(err)
-		level := o.levelFunc(code)
+		code := status.Code(err)
+		level := DefaultCodeToLevel(code)
 		duration := o.durationFunc(time.Since(startTime))
 
 		o.messageFunc(newCtx, "finished unary call with code "+code.String(), level, code, err, duration)
@@ -65,8 +66,8 @@ func StreamServerInterceptor(logger *zap.Logger, opts ...Option) grpc.StreamServ
 			return err
 		}
 
-		code := o.codeFunc(err)
-		level := o.levelFunc(code)
+		code := status.Code(err)
+		level := DefaultCodeToLevel(code)
 		duration := o.durationFunc(time.Since(startTime))
 
 		o.messageFunc(newCtx, "finished streaming call with code "+code.String(), level, code, err, duration)
