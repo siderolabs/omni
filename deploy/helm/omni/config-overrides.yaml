@@ -71,6 +71,9 @@ examples:
   logs:
     level: info
     format: json
+  services:
+    siderolink:
+      disconnectTalosBelow: 1.6.0
 
 comments:
   account:

@@ -455,6 +455,13 @@
           "x-cli-flag": "siderolink-disable-last-endpoint",
           "type": "boolean"
         },
+        "disconnectTalosBelow": {
+          "description": "DisconnectTalosBelow confirms that the machines running Talos versions below this version can be disconnected from Omni. The value must be in the major.minor.0 format (e.g., 1.6.0) and cannot be higher than the Talos version floor (currently 1.6.0). When it is set, Omni disconnects the machines running Talos versions below the floor. When a future Omni release raises the floor, Omni will refuse to start if there are machines running Talos versions between this value and the new floor.",
+          "x-cli-flag": "siderolink-disconnect-talos-below",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.0$",
+          "x-pattern-message": "must be a Talos version in the major.minor.0 format, e.g., 1.6.0"
+        },
         "useGRPCTunnel": {
           "description": "UseGRPCTunnel controls whether the SideroLink service should tunnel WireGuard traffic over gRPC, in setups where direct Wireguard connectivity is not possible (e.g., due to firewall restrictions). When enabled, the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration.",
           "x-cli-flag": "siderolink-use-grpc-tunnel",

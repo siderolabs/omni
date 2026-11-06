@@ -17,12 +17,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xyaml"
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/internal/pkg/config/validations"
@@ -31,10 +33,6 @@ import (
 
 const (
 	wireguardDefaultPort = "50180"
-
-	// UnsupportedTalosVersionFailOnStart controls whether Omni refuses to start when machines
-	// are running Talos versions below MinTalosVersion. This will be flipped to true in a future release.
-	UnsupportedTalosVersionFailOnStart = false
 
 	// NonImageFactoryFailOnStart controls whether Omni refuses to start when machines
 	// were provisioned without ImageFactory. This will be flipped to true in a future release.
@@ -168,8 +166,8 @@ func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 		}
 	}
 
-	if UnsupportedTalosVersionFailOnStart {
-		if err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st); err != nil {
+	if agreedFloor := p.Services.Siderolink.GetDisconnectTalosBelow(); agreedFloor != "" {
+		if err := validations.EnsureNoMachinesBelowTalosVersionFloor(ctx, st, agreedFloor); err != nil {
 			return err
 		}
 	}
@@ -178,6 +176,29 @@ func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 		if err := validations.EnsureNoNonImageFactoryMachines(ctx, st); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// DisconnectBelowTalosVersionFloor reports whether Omni disconnects the machines running Talos versions below constants.TalosVersionFloor.
+func (p *Params) DisconnectBelowTalosVersionFloor() bool {
+	return p.Services.Siderolink.GetDisconnectTalosBelow() != ""
+}
+
+func (p *Params) validateDisconnectTalosBelow() error {
+	agreedFloor := p.Services.Siderolink.GetDisconnectTalosBelow()
+	if agreedFloor == "" {
+		return nil
+	}
+
+	version, err := semver.Parse(agreedFloor)
+	if err != nil {
+		return fmt.Errorf("failed to parse disconnectTalosBelow: %w", err)
+	}
+
+	if version.GT(semver.MustParse(constants.TalosVersionFloor)) {
+		return fmt.Errorf("disconnectTalosBelow %s cannot be higher than the Talos version floor %s", agreedFloor, constants.TalosVersionFloor)
 	}
 
 	return nil
@@ -204,7 +225,7 @@ func (p *Params) Validate(schema *jsonschema.Schema) error {
 		return fmt.Errorf("failed to validate config against JSON schema: %w", err)
 	}
 
-	return nil
+	return p.validateDisconnectTalosBelow()
 }
 
 var localIP = getLocalIPOrEmpty()

@@ -42,6 +42,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkclient "github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -104,17 +105,19 @@ func NewManager(
 				64 * 60, // more than hour... wth?
 			},
 		}),
-		deltaCh:             deltaCh,
-		allowedPeers:        wggrpc.NewAllowedPeers(),
-		peerTraffic:         wgbind.NewPeerTraffic(maxPendingClientMessages, logger),
-		virtualPrefix:       wireguard.VirtualNetworkPrefix(),
-		disableLastEndpoint: params.DisableLastEndpoint,
+		deltaCh:                          deltaCh,
+		allowedPeers:                     wggrpc.NewAllowedPeers(),
+		peerTraffic:                      wgbind.NewPeerTraffic(maxPendingClientMessages, logger),
+		virtualPrefix:                    wireguard.VirtualNetworkPrefix(),
+		disableLastEndpoint:              params.DisableLastEndpoint,
+		disconnectBelowTalosVersionFloor: params.DisconnectBelowTalosVersionFloor,
 		provisionServer: NewProvisionHandler(
 			logger,
 			state,
 			params.JoinTokensMode,
 			params.UseGRPCTunnel,
 			params.MaxRegisteredMachines,
+			params.DisconnectBelowTalosVersionFloor,
 		),
 	}
 
@@ -133,25 +136,24 @@ func NewManager(
 
 // Manager sets up Siderolink server, manages it's state.
 type Manager struct {
-	config              *siderolink.Config
-	logger              *zap.Logger
-	state               state.State
-	wgHandler           WireguardHandler
-	logHandler          *LogHandler
-	machineEventHandler *machineevent.Handler
-	provisionServer     *ProvisionHandler
-
-	rateLimiter *ratelimit.Limiter
-
-	metricBytesReceived prometheus.Counter
-	metricBytesSent     prometheus.Counter
-	metricLastHandshake prometheus.Histogram
-	deltaCh             chan<- LinkCounterDeltas
-	serverAddr          netip.Prefix
-	allowedPeers        *wggrpc.AllowedPeers
-	peerTraffic         *wgbind.PeerTraffic
-	virtualPrefix       netip.Prefix
-	disableLastEndpoint bool
+	metricBytesReceived              prometheus.Counter
+	metricLastHandshake              prometheus.Histogram
+	state                            state.State
+	wgHandler                        WireguardHandler
+	metricBytesSent                  prometheus.Counter
+	logHandler                       *LogHandler
+	allowedPeers                     *wggrpc.AllowedPeers
+	rateLimiter                      *ratelimit.Limiter
+	machineEventHandler              *machineevent.Handler
+	config                           *siderolink.Config
+	logger                           *zap.Logger
+	deltaCh                          chan<- LinkCounterDeltas
+	provisionServer                  *ProvisionHandler
+	peerTraffic                      *wgbind.PeerTraffic
+	virtualPrefix                    netip.Prefix
+	serverAddr                       netip.Prefix
+	disableLastEndpoint              bool
+	disconnectBelowTalosVersionFloor bool
 }
 
 // JoinTokenLen number of random bytes to be encoded in the join token.
@@ -181,16 +183,17 @@ func getJoinToken(logger *zap.Logger) (string, error) {
 
 // Params are the parameters for the Manager.
 type Params struct {
-	WireguardEndpoint     string
-	AdvertisedEndpoint    string
-	MachineAPIEndpoint    string
-	MachineAPITLSCert     string
-	MachineAPITLSKey      string
-	EventSinkPort         string
-	JoinTokensMode        config.SiderolinkServiceJoinTokensMode
-	MaxRegisteredMachines uint32
-	UseGRPCTunnel         bool
-	DisableLastEndpoint   bool
+	WireguardEndpoint                string
+	AdvertisedEndpoint               string
+	MachineAPIEndpoint               string
+	MachineAPITLSCert                string
+	MachineAPITLSKey                 string
+	EventSinkPort                    string
+	JoinTokensMode                   config.SiderolinkServiceJoinTokensMode
+	MaxRegisteredMachines            uint32
+	UseGRPCTunnel                    bool
+	DisableLastEndpoint              bool
+	DisconnectBelowTalosVersionFloor bool
 }
 
 // NewListener creates a new listener.
@@ -588,6 +591,10 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 
 				peer, ok := peersByKey[spec.NodePublicKey]
 				if !ok {
+					if err = manager.markDisconnectedBelowFloor(ctx, link, checkPeerConnection); err != nil {
+						return err
+					}
+
 					continue
 				}
 
@@ -650,6 +657,42 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// markDisconnectedBelowFloor marks a link without a WireGuard peer as disconnected when its peer was dropped for running a Talos version below the floor.
+func (manager *Manager) markDisconnectedBelowFloor(ctx context.Context, link *siderolink.Link, checkPeerConnection bool) error {
+	disconnected, err := disconnectedBelowFloor(link.TypedSpec().Value, checkPeerConnection, manager.disconnectBelowTalosVersionFloor)
+	if err != nil {
+		manager.logger.Warn("keeping the link connected, its Talos version cannot be checked against the floor", zap.String("link", link.Metadata().ID()), zap.Error(err))
+	}
+
+	if !disconnected {
+		return nil
+	}
+
+	talosVersion := link.TypedSpec().Value.TalosVersion
+
+	_, err = safe.StateUpdateWithConflicts(ctx, manager.state, link.Metadata(), func(res *siderolink.Link) error {
+		// the link might have been provisioned with a supported version since it was listed
+		if res.TypedSpec().Value.TalosVersion == talosVersion {
+			res.TypedSpec().Value.Connected = false
+		}
+
+		return nil
+	})
+	if err != nil && !state.IsNotFoundError(err) && !state.IsPhaseConflictError(err) {
+		return fmt.Errorf("failed to update link %q: %w", link.Metadata().ID(), err)
+	}
+
+	return nil
+}
+
+func disconnectedBelowFloor(spec *specs.SiderolinkSpec, checkPeerConnection, disconnectBelowFloor bool) (bool, error) {
+	if !disconnectBelowFloor || !checkPeerConnection || !spec.Connected {
+		return false, nil
+	}
+
+	return siderolinkclient.IsBelowTalosVersionFloorOrMissing(spec.TalosVersion)
 }
 
 // Describe implements prom.Collector interface.

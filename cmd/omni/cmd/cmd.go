@@ -177,6 +177,7 @@ func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("services.siderolink.wireGuard.endpoint", &flagConfig.Services.Siderolink.WireGuard.Endpoint)
 	b.StringVar("services.siderolink.wireGuard.advertisedEndpoint", &flagConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint)
 	b.BoolVar("services.siderolink.disableLastEndpoint", &flagConfig.Services.Siderolink.DisableLastEndpoint)
+	b.StringVar("services.siderolink.disconnectTalosBelow", &flagConfig.Services.Siderolink.DisconnectTalosBelow)
 	b.BoolVar("services.siderolink.useGRPCTunnel", &flagConfig.Services.Siderolink.UseGRPCTunnel)
 	b.IntVar("services.siderolink.eventSinkPort", &flagConfig.Services.Siderolink.EventSinkPort)
 	b.IntVar("services.siderolink.logServerPort", &flagConfig.Services.Siderolink.LogServerPort)

@@ -14,6 +14,8 @@ source ./hack/test/common.sh
 QEMU_TALOS_VERSION="${TALOS_VERSION}"
 WITH_QEMU_TALOS_VERSION_OVERRIDE="${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}"
 WITH_FACTORY_MIGRATION="${WITH_FACTORY_MIGRATION:-false}"
+WITH_TALOS_VERSION_FLOOR="${WITH_TALOS_VERSION_FLOOR:-false}"
+BELOW_FLOOR_TALOS_VERSION="${BELOW_FLOOR_TALOS_VERSION:-1.5.6}"
 if [[ "${WITH_QEMU_TALOS_VERSION_OVERRIDE}" == "true" ]]; then
   QEMU_TALOS_VERSION="${STABLE_TALOS_VERSION}"
 fi
@@ -30,12 +32,27 @@ NON_UKI_MACHINES=2         # 2 machines: siderolink via kernel args, non-UKI, no
 KERNEL_ARGS_MACHINES=4 # 4 machines: siderolink via kernel args, UKI, no secure boot
 SECURE_BOOT_MACHINES=0 # 0 machines: secure boot, UKI, siderolink via kernel args
 
+BELOW_FLOOR_MACHINES=0 # machines running a Talos version below the Talos version floor, non-UKI, siderolink via kernel args
+
 if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
   KERNEL_ARGS_MACHINES=2 # 2 machine: siderolink via kernel args, UKI, no secure boot
   SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
 fi
 
-if [[ $((PARTIAL_CONFIG_MACHINES + EMBEDDED_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
+if [[ "${WITH_TALOS_VERSION_FLOOR}" == "true" ]]; then
+  TOTAL_MACHINES=4
+  PARTIAL_CONFIG_MACHINES=2
+  EMBEDDED_CONFIG_MACHINES=0
+  NON_UKI_MACHINES=0
+  KERNEL_ARGS_MACHINES=0
+  SECURE_BOOT_MACHINES=0
+  BELOW_FLOOR_MACHINES=2
+
+  # Talos below 1.6 does not support the secure join tokens
+  export OMNI_JOIN_TOKENS_MODE=legacyAllowed
+fi
+
+if [[ $((PARTIAL_CONFIG_MACHINES + EMBEDDED_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES + BELOW_FLOOR_MACHINES)) -ne $TOTAL_MACHINES ]]; then
   echo "Error: unexpected total machine count, exiting" >&2
   exit 1
 fi
@@ -99,6 +116,9 @@ if [[ "${CREATE_QEMU_MACHINES:-true}" == "true" ]]; then
   create_machines name=test-secure-boot count="${SECURE_BOOT_MACHINES}" cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
   create_machines name=test-non-uki count="${NON_UKI_MACHINES}" cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
+    kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
+
+  create_machines name=test-below-floor count="${BELOW_FLOOR_MACHINES}" cidr=172.25.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${BELOW_FLOOR_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
 fi
 
@@ -172,7 +192,15 @@ function run_integration_test() { # args: omni_config, name, test args...
     "$@"
 }
 
-if [[ "${WITH_FACTORY_MIGRATION}" == "true" ]]; then
+if [[ "${WITH_TALOS_VERSION_FLOOR}" == "true" ]]; then
+  # The machines below the floor join first, then Omni restarts with --siderolink-disconnect-talos-below and drops them.
+  run_integration_test "${OMNI_CONFIG}" talos-version-floor-prepare --test.run "TestIntegration/Suites/TalosVersionFloorPrepare$"
+
+  export OMNI_DISCONNECT_TALOS_BELOW=1.6.0
+
+  prepare_omni_config "${OMNI_CONFIG}.floor"
+  run_integration_test "${OMNI_CONFIG}.floor" talos-version-floor-verify --test.run "TestIntegration/Suites/TalosVersionFloorVerify$"
+elif [[ "${WITH_FACTORY_MIGRATION}" == "true" ]]; then
   # The machines boot from the public factory and Omni starts with it. The enterprise factory comes in with a restart,
   # as it does for a running instance, and the last restart goes back to the public one. The runs share the coverage
   # profile, so it holds the last run only.

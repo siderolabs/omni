@@ -20,34 +20,50 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config/validations"
 )
 
-func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
+func TestEnsureNoMachinesBelowTalosVersionFloor(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
-		versions  map[string]string
-		name      string
-		expectErr bool
+		versions    map[string]string
+		name        string
+		agreedFloor string
+		expectErr   bool
 	}{
 		{
-			name:     "no machines",
-			versions: nil,
+			name: "no machines",
 		},
 		{
-			name:      "machine below MinTalosVersion",
-			versions:  map[string]string{"m1": "v1.9.0"},
+			name:        "machine below the agreed floor",
+			versions:    map[string]string{"m1": "v1.4.3"},
+			agreedFloor: "1.5.0",
+		},
+		{
+			name:        "machine between the agreed floor and the floor",
+			versions:    map[string]string{"m1": "v1.5.3"},
+			agreedFloor: "1.5.0",
+			expectErr:   true,
+		},
+		{
+			name:        "machine below the floor agreed to",
+			versions:    map[string]string{"m1": "v1.5.3"},
+			agreedFloor: "1.6.0",
+		},
+		{
+			name:      "machine below the floor",
+			versions:  map[string]string{"m1": "v1.5.0"},
 			expectErr: true,
 		},
 		{
-			name:     "machine at MinTalosVersion",
-			versions: map[string]string{"m1": "v1.10.0"},
+			name:     "machine at the floor",
+			versions: map[string]string{"m1": "v1.6.0"},
 		},
 		{
-			name:     "machine above MinTalosVersion",
-			versions: map[string]string{"m1": "v1.11.0"},
+			name:     "machine below MinTalosVersion but above the floor",
+			versions: map[string]string{"m1": "v1.9.0"},
 		},
 		{
 			name:      "mix of below and above",
-			versions:  map[string]string{"m1": "v1.7.0", "m2": "v1.11.0"},
+			versions:  map[string]string{"m1": "v1.5.0", "m2": "v1.11.0"},
 			expectErr: true,
 		},
 		{
@@ -70,9 +86,9 @@ func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
 				require.NoError(t, st.Create(ctx, ms))
 			}
 
-			err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st)
+			err := validations.EnsureNoMachinesBelowTalosVersionFloor(ctx, st, tt.agreedFloor)
 			if tt.expectErr {
-				assert.ErrorContains(t, err, "running unsupported Talos versions")
+				assert.ErrorContains(t, err, "--siderolink-disconnect-talos-below=1.6.0")
 			} else {
 				assert.NoError(t, err)
 			}

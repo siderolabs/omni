@@ -1547,6 +1547,7 @@ message MachineStatusMetricsSpec {
   uint32 talos_version_end_of_support_machines_count = 13;
 
   uint64 cores_count = 14;
+  uint32 talos_version_below_floor_machines_count = 15;
 }
 
 // ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
@@ -1867,6 +1868,7 @@ message NotificationSpec {
   string title = 1;
   string body = 2;
   Type type = 3;
+  bool undismissible = 4;
 }
 
 // KubernetesManifestGroup is the collection (or a single) kubernetes manifests to be applied on the cluster.

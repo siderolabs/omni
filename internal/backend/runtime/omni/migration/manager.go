@@ -321,6 +321,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: migrateSAMLLabelRulesToIdentityLabelRules,
 				name:     "migrateSAMLLabelRulesToIdentityLabelRules",
 			},
+			{
+				callback: fillLinkTalosVersions,
+				name:     "fillLinkTalosVersions",
+			},
 		},
 	}
 }

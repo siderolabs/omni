@@ -12,12 +12,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/blang/semver/v4"
 	"github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -577,4 +580,82 @@ func TestIsJoinConfigDocumentTrustedRoots(t *testing.T) {
 
 	require.True(t, siderolink.IsJoinConfigDocument(omniRoots))
 	require.False(t, siderolink.IsJoinConfigDocument(userRoots))
+}
+
+func TestIsBelowTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		version   string
+		below     bool
+		expectErr bool
+	}{
+		{version: "v1.5.5", below: true},
+		{version: "1.2.0", below: true},
+		{version: "v1.6.0", below: false},
+		{version: "v1.6.0-alpha.1", below: false},
+		{version: "v1.14.5", below: false},
+		{version: "", expectErr: true},
+		{version: "not-a-version", expectErr: true},
+	} {
+		t.Run(tt.version, func(t *testing.T) {
+			t.Parallel()
+
+			below, err := siderolink.IsBelowTalosVersionFloor(tt.version)
+			if tt.expectErr {
+				assert.Error(t, err)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.below, below)
+		})
+	}
+}
+
+func TestIsBelowTalosVersionFloorOrMissing(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		version   string
+		below     bool
+		expectErr bool
+	}{
+		{version: "", below: true},
+		{version: "v1.5.5", below: true},
+		{version: "v1.6.0", below: false},
+		{version: "not-a-version", expectErr: true},
+	} {
+		t.Run(tt.version, func(t *testing.T) {
+			t.Parallel()
+
+			below, err := siderolink.IsBelowTalosVersionFloorOrMissing(tt.version)
+			if tt.expectErr {
+				assert.Error(t, err)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.below, below)
+		})
+	}
+}
+
+// TestVersionFollowsDefaultTalosVersion fails when DefaultTalosVersion moves to a new minor without bumping Version.
+func TestVersionFollowsDefaultTalosVersion(t *testing.T) {
+	t.Parallel()
+
+	const supportedMinors = 10
+
+	defaultVersion, err := semver.ParseTolerant(constants.DefaultTalosVersion)
+	require.NoError(t, err)
+
+	floor := semver.MustParse(constants.TalosVersionFloor)
+
+	require.Equal(t, defaultVersion.Major, floor.Major)
+	assert.GreaterOrEqual(t, floor.Minor+supportedMinors-1, defaultVersion.Minor,
+		"with the default Talos %s the floor %s supports more than %d minors: bump constants.TalosVersionFloor and OMNI_DISCONNECT_TALOS_BELOW in hack/test/integration-qemu.sh",
+		constants.DefaultTalosVersion, constants.TalosVersionFloor, supportedMinors)
 }

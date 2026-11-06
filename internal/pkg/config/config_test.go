@@ -8,6 +8,7 @@ package config_test
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -15,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -22,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	omnijsonschema "github.com/siderolabs/omni/internal/pkg/jsonschema"
@@ -948,4 +951,165 @@ func unset(t *testing.T, key string) {
 	t.Setenv(key, "")
 
 	require.NoError(t, os.Unsetenv(key))
+}
+
+func TestDisconnectBelowTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	var params config.Params
+
+	assert.False(t, params.DisconnectBelowTalosVersionFloor())
+
+	params.Services.Siderolink.SetDisconnectTalosBelow(constants.TalosVersionFloor)
+
+	assert.True(t, params.DisconnectBelowTalosVersionFloor())
+}
+
+func TestDisconnectTalosBelowDescriptionHasTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("schema.json")
+	require.NoError(t, err)
+
+	var schema struct {
+		Definitions struct {
+			SiderolinkService struct {
+				Properties struct {
+					DisconnectTalosBelow struct {
+						Description string `json:"description"`
+					} `json:"disconnectTalosBelow"`
+				} `json:"properties"`
+			} `json:"SiderolinkService"`
+		} `json:"definitions"`
+	}
+
+	require.NoError(t, json.Unmarshal(data, &schema))
+
+	assert.Contains(t, schema.Definitions.SiderolinkService.Properties.DisconnectTalosBelow.Description, "(currently "+constants.TalosVersionFloor+")",
+		"update the Talos version floor in the disconnectTalosBelow description in schema.json and run make generate")
+}
+
+func TestValidateTalosVersionFloorConfig(t *testing.T) {
+	schema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
+	for _, tt := range []validateConfigCase{
+		{
+			name:   "disconnect below the floor",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow(constants.TalosVersionFloor)
+			},
+		},
+		{
+			name:   "disconnect below a version lower than the floor",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow("1.5.0")
+			},
+		},
+		{
+			name:   "empty disconnect below",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow("")
+			},
+			validateErr: "must be a Talos version in the major.minor.0 format",
+		},
+		{
+			name:   "disconnect below with a patch version",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow("1.6.1")
+			},
+			validateErr: "must be a Talos version in the major.minor.0 format",
+		},
+		{
+			name:   "disconnect below with the v prefix",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow("v1.6.0")
+			},
+			validateErr: "must be a Talos version in the major.minor.0 format",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.run(t, schema)
+		})
+	}
+
+	t.Run("disconnect below a version higher than the floor", func(t *testing.T) {
+		cfg, err := config.FromBytes(configFull)
+		require.NoError(t, err)
+
+		floor := semver.MustParse(constants.TalosVersionFloor)
+
+		cfg.Services.Siderolink.SetDisconnectTalosBelow(semver.Version{Major: floor.Major, Minor: floor.Minor + 1}.String())
+
+		assert.ErrorContains(t, cfg.Validate(schema), "cannot be higher than the Talos version floor")
+	})
+}
+
+func TestValidateStateTalosVersionFloor(t *testing.T) {
+	floor := semver.MustParse(constants.TalosVersionFloor)
+	previousFloor := semver.Version{Major: floor.Major, Minor: floor.Minor - 1}
+
+	for _, tt := range []struct {
+		modify       func(cfg *config.Params)
+		name         string
+		talosVersion string
+		expectErr    bool
+	}{
+		{
+			name:         "machine below the agreed floor",
+			talosVersion: semver.Version{Major: previousFloor.Major, Minor: previousFloor.Minor - 1, Patch: 3}.String(),
+			modify: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow(previousFloor.String())
+			},
+		},
+		{
+			name:         "machine between the agreed floor and the floor",
+			talosVersion: semver.Version{Major: previousFloor.Major, Minor: previousFloor.Minor, Patch: 3}.String(),
+			modify: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow(previousFloor.String())
+			},
+			expectErr: true,
+		},
+		{
+			name:         "machine below the floor agreed to",
+			talosVersion: semver.Version{Major: previousFloor.Major, Minor: previousFloor.Minor, Patch: 3}.String(),
+			modify: func(cfg *config.Params) {
+				cfg.Services.Siderolink.SetDisconnectTalosBelow(floor.String())
+			},
+		},
+		{
+			name:         "machine below the floor without disconnect below",
+			talosVersion: semver.Version{Major: previousFloor.Major, Minor: previousFloor.Minor, Patch: 3}.String(),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			t.Cleanup(cancel)
+
+			st := state.WrapCore(inmem.NewState())
+
+			machine := omni.NewMachineStatus("1")
+			machine.TypedSpec().Value.TalosVersion = "v" + tt.talosVersion
+
+			require.NoError(t, st.Create(ctx, machine))
+
+			var cfg config.Params
+
+			if tt.modify != nil {
+				tt.modify(&cfg)
+			}
+
+			err := cfg.ValidateState(ctx, st)
+			if tt.expectErr {
+				assert.ErrorContains(t, err, "--siderolink-disconnect-talos-below="+constants.TalosVersionFloor)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

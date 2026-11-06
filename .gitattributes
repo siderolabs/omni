@@ -29,6 +29,7 @@ frontend/src/api/resources.ts linguist-generated=true
 .github/workflows/e2e-scaling-cron.yaml linguist-generated=true
 .github/workflows/e2e-short-cron.yaml linguist-generated=true
 .github/workflows/e2e-short-secureboot-cron.yaml linguist-generated=true
+.github/workflows/e2e-talos-version-floor-cron.yaml linguist-generated=true
 .github/workflows/e2e-templates-cron.yaml linguist-generated=true
 .github/workflows/e2e-upgrades-cron.yaml linguist-generated=true
 .github/workflows/e2e-workload-proxy-cron.yaml linguist-generated=true

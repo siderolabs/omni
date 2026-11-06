@@ -78,7 +78,7 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(tt.maxRegistered)))
+					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(tt.maxRegistered, false)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					for _, id := range tt.machineIDs {
@@ -156,7 +156,7 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0)))
+					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0, false)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					for id, version := range tt.machineVersions {
@@ -196,7 +196,7 @@ func TestMachineStatusMetricsController_CollectMetrics(t *testing.T) {
 	t.Parallel()
 
 	registry := prometheus.NewPedanticRegistry()
-	require.NoError(t, registry.Register(metrics.NewMachineStatusMetricsController(0)))
+	require.NoError(t, registry.Register(metrics.NewMachineStatusMetricsController(0, false)))
 
 	families, err := registry.Gather()
 	require.NoError(t, err)
@@ -210,6 +210,7 @@ func TestMachineStatusMetricsController_CollectMetrics(t *testing.T) {
 		"omni_machines_invalid_schematic",
 		"omni_machines_approaching_talos_version_end_of_support",
 		"omni_machines_talos_version_end_of_support",
+		"omni_machines_talos_version_below_floor",
 	}, names)
 }
 
@@ -219,7 +220,7 @@ func TestMachineStatusMetricsController_MachinesByCores(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	ctrl := metrics.NewMachineStatusMetricsController(0)
+	ctrl := metrics.NewMachineStatusMetricsController(0, false)
 
 	// the vectors gain their label sets only as machines appear, which the pedantic registry does not allow
 	registry := prometheus.NewRegistry()
@@ -278,7 +279,7 @@ func TestMachineStatusMetricsController_JoinConfigLocation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	ctrl := metrics.NewMachineStatusMetricsController(0)
+	ctrl := metrics.NewMachineStatusMetricsController(0, false)
 
 	registry := prometheus.NewRegistry()
 	require.NoError(t, registry.Register(ctrl))
@@ -360,7 +361,7 @@ func TestMachineStatusMetricsController_TrustedRoots(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	ctrl := metrics.NewMachineStatusMetricsController(0)
+	ctrl := metrics.NewMachineStatusMetricsController(0, false)
 
 	registry := prometheus.NewRegistry()
 	require.NoError(t, registry.Register(ctrl))
@@ -443,7 +444,7 @@ func TestMachineStatusMetricsController_InvalidSchematic(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	ctrl := metrics.NewMachineStatusMetricsController(0)
+	ctrl := metrics.NewMachineStatusMetricsController(0, false)
 
 	registry := prometheus.NewRegistry()
 	require.NoError(t, registry.Register(ctrl))
@@ -517,7 +518,7 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testi
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0)))
+			require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0, false)))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			ms := omni.NewMachineStatus("m1")
@@ -538,6 +539,76 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testi
 
 			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationTalosVersionEndOfSupportID)
 			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationApproachingTalosVersionEndOfSupportID)
+		},
+	)
+}
+
+func TestMachineStatusMetricsController_TalosVersionBelowFloor(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0, false)))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, version := range map[string]string{"m1": "v1.5.0", "m2": "v1.9.0", "m3": "v1.13.0"} {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value.TalosVersion = version
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationTalosVersionBelowFloorID, func(res *omni.Notification, a *assert.Assertions) {
+				a.Contains(res.TypedSpec().Value.Body, "1 machine(s)")
+				a.Contains(res.TypedSpec().Value.Body, "will not be able to communicate with Omni")
+				a.Equal(specs.NotificationSpec_ERROR, res.TypedSpec().Value.Type)
+				a.True(res.TypedSpec().Value.Undismissible)
+			})
+
+			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewMachineStatus("m1").Metadata(), func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.TalosVersion = "v1.13.0"
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationTalosVersionBelowFloorID)
+		},
+	)
+}
+
+func TestMachineStatusMetricsController_TalosVersionBelowFloorDisconnected(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0, true)))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			for id, version := range map[string]string{"m1": "v1.5.0", "m2": "v1.5.0", "m3": "v1.13.0"} {
+				ms := omni.NewMachineStatus(id)
+				ms.TypedSpec().Value.TalosVersion = version
+
+				require.NoError(t, tc.State.Create(ctx, ms))
+			}
+
+			rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationTalosVersionBelowFloorDisconnectedID, func(res *omni.Notification, a *assert.Assertions) {
+				a.Contains(res.TypedSpec().Value.Body, "2 machine(s)")
+				a.Contains(res.TypedSpec().Value.Body, "are disconnected from Omni")
+				a.Contains(res.TypedSpec().Value.Body, "reinstall them")
+				a.Equal(specs.NotificationSpec_WARNING, res.TypedSpec().Value.Type)
+				a.False(res.TypedSpec().Value.Undismissible)
+			})
+
+			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationTalosVersionBelowFloorID)
 		},
 	)
 }

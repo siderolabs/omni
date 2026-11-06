@@ -4,3 +4,5 @@
 // included in the LICENSE file.
 
 package siderolink
+
+var DisconnectedBelowFloor = disconnectedBelowFloor

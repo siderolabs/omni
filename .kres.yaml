@@ -699,6 +699,20 @@ spec:
           WITH_FACTORY_MIGRATION: "true"
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
           INTEGRATION_TEST_ARGS: "" # the migration flow selects its own suites per run
+      - name: e2e-talos-version-floor
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-talemu-enterprise, e2e-auth0, e2e-saml, e2e-helm]
+        crons:
+          - "30 1 * * *"
+        runnerGroup: large
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-talos-version-floor
+        artifacts:
+          skipArtifactDownload: true
+        environmentOverride:
+          WITH_TALOS_VERSION_FLOOR: "true"
+          INTEGRATION_TEST_ARGS: "" # the floor flow selects its own suites per run
 ---
 kind: common.Build
 spec:
