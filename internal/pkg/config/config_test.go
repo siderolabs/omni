@@ -949,3 +949,15 @@ func unset(t *testing.T, key string) {
 
 	require.NoError(t, os.Unsetenv(key))
 }
+
+func TestDisconnectBelowTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	var params config.Params
+
+	assert.Equal(t, config.TalosVersionFloorEnforced, params.DisconnectBelowTalosVersionFloor())
+
+	params.Services.Siderolink.SetDisconnectTalosBelow16(true)
+
+	assert.True(t, params.DisconnectBelowTalosVersionFloor())
+}

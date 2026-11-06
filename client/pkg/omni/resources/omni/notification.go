@@ -42,6 +42,14 @@ const (
 	// NotificationTalosVersionEndOfSupportID is the ID for the notification shown when machines have reached Talos version end of support.
 	// tsgen:NotificationTalosVersionEndOfSupportID
 	NotificationTalosVersionEndOfSupportID = "talos-version-end-of-support"
+
+	// NotificationTalosVersionBelowFloorID is the ID for the notification shown when machines run Talos versions which will not be able to connect to Omni.
+	// tsgen:NotificationTalosVersionBelowFloorID
+	NotificationTalosVersionBelowFloorID = "talos-version-below-floor"
+
+	// NotificationTalosVersionBelowFloorDisconnectedID is the ID for the notification shown when machines are disconnected for running Talos versions below the floor.
+	// tsgen:NotificationTalosVersionBelowFloorDisconnectedID
+	NotificationTalosVersionBelowFloorDisconnectedID = "talos-version-below-floor-disconnected"
 )
 
 // Notification describes a generic notification emitted by a controller.

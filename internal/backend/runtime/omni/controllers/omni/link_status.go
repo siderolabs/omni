@@ -20,7 +20,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkclient "github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -31,11 +33,12 @@ type siderolinkSpecWrapper interface {
 }
 
 // NewLinkStatusController initializes LinkStatusController.
-func NewLinkStatusController[T siderolinkSpecWrapper](peers *siderolink.PeersPool) *qtransform.QController[T, *siderolinkres.LinkStatus] {
+func NewLinkStatusController[T siderolinkSpecWrapper](peers *siderolink.PeersPool, disconnectBelowTalosVersionFloor bool) *qtransform.QController[T, *siderolinkres.LinkStatus] {
 	var r T
 
 	handler := &linkStatusHandler[T]{
-		peers: peers,
+		peers:                            peers,
+		disconnectBelowTalosVersionFloor: disconnectBelowTalosVersionFloor,
 	}
 
 	return qtransform.NewQController(
@@ -71,7 +74,8 @@ func NewLinkStatusController[T siderolinkSpecWrapper](peers *siderolink.PeersPoo
 }
 
 type linkStatusHandler[T siderolinkSpecWrapper] struct {
-	peers *siderolink.PeersPool
+	peers                            *siderolink.PeersPool
+	disconnectBelowTalosVersionFloor bool
 }
 
 func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, r controller.Reader, _ *zap.Logger, link T, linkStatus *siderolinkres.LinkStatus) error {
@@ -96,6 +100,21 @@ func (handler *linkStatusHandler[T]) reconcileRunning(ctx context.Context, r con
 
 			return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("removed peer")
 		}
+	}
+
+	if handler.disconnectBelowTalosVersionFloor && siderolinkclient.IsBelowTalosVersionFloorOrMissing(link.TypedSpec().Value.TalosVersion) {
+		statusPeerID := siderolink.GetPeerID(linkStatus.TypedSpec().Value)
+		if err := handler.peers.Remove(ctx, statusPeerID, link.Metadata()); err != nil {
+			return err
+		}
+
+		if linkPeerID := siderolink.GetPeerID(link.TypedSpec().Value); linkPeerID != statusPeerID {
+			if err := handler.peers.Remove(ctx, linkPeerID, link.Metadata()); err != nil {
+				return err
+			}
+		}
+
+		return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("removed peer, Talos version %q is below %s", link.TypedSpec().Value.TalosVersion, constants.TalosVersionFloor)
 	}
 
 	if handler.needsPeerUpdate(linkStatus.TypedSpec().Value, link.TypedSpec().Value) {

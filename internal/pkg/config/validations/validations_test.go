@@ -20,7 +20,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config/validations"
 )
 
-func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
+func TestEnsureNoMachinesBelowTalosVersionFloor(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -29,25 +29,24 @@ func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name:     "no machines",
-			versions: nil,
+			name: "no machines",
 		},
 		{
-			name:      "machine below MinTalosVersion",
-			versions:  map[string]string{"m1": "v1.9.0"},
+			name:      "machine below the floor",
+			versions:  map[string]string{"m1": "v1.5.0"},
 			expectErr: true,
 		},
 		{
-			name:     "machine at MinTalosVersion",
-			versions: map[string]string{"m1": "v1.10.0"},
+			name:     "machine at the floor",
+			versions: map[string]string{"m1": "v1.6.0"},
 		},
 		{
-			name:     "machine above MinTalosVersion",
-			versions: map[string]string{"m1": "v1.11.0"},
+			name:     "machine below MinTalosVersion but above the floor",
+			versions: map[string]string{"m1": "v1.9.0"},
 		},
 		{
 			name:      "mix of below and above",
-			versions:  map[string]string{"m1": "v1.7.0", "m2": "v1.11.0"},
+			versions:  map[string]string{"m1": "v1.5.0", "m2": "v1.11.0"},
 			expectErr: true,
 		},
 		{
@@ -70,9 +69,9 @@ func TestEnsureNoMachinesBelowMinTalosVersion(t *testing.T) {
 				require.NoError(t, st.Create(ctx, ms))
 			}
 
-			err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st)
+			err := validations.EnsureNoMachinesBelowTalosVersionFloor(ctx, st)
 			if tt.expectErr {
-				assert.ErrorContains(t, err, "running unsupported Talos versions")
+				assert.ErrorContains(t, err, "--siderolink-disconnect-talos-below-1-6")
 			} else {
 				assert.NoError(t, err)
 			}

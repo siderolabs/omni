@@ -1535,6 +1535,17 @@ func (s *SiderolinkService) SetDisableLastEndpoint(v bool) {
 	s.DisableLastEndpoint = &v
 }
 
+func (s *SiderolinkService) GetDisconnectTalosBelow16() bool {
+	if s == nil || s.DisconnectTalosBelow16 == nil {
+		return *new(bool)
+	}
+	return *s.DisconnectTalosBelow16
+}
+
+func (s *SiderolinkService) SetDisconnectTalosBelow16(v bool) {
+	s.DisconnectTalosBelow16 = &v
+}
+
 func (s *SiderolinkService) GetEventSinkPort() int {
 	if s == nil || s.EventSinkPort == nil {
 		return *new(int)

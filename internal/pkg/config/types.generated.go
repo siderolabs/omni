@@ -880,6 +880,11 @@ type SiderolinkService struct {
 	// the last known endpoint of a node when it becomes unreachable via WireGuard.
 	DisableLastEndpoint *bool `json:"disableLastEndpoint,omitempty,omitzero" yaml:"disableLastEndpoint,omitempty"`
 
+	// DisconnectTalosBelow1_6 disconnects the machines running Talos versions below
+	// 1.6 from Omni. Once the Talos version floor is enforced, such machines are
+	// disconnected anyway and Omni refuses to start with them unless it is set.
+	DisconnectTalosBelow16 *bool `json:"disconnectTalosBelow1_6,omitempty,omitzero" yaml:"disconnectTalosBelow1_6,omitempty"`
+
 	// EventSinkPort is the port to be used by the nodes to publish their events over
 	// SideroLink to Omni.
 	EventSinkPort *int `json:"eventSinkPort,omitempty,omitzero" yaml:"eventSinkPort,omitempty"`

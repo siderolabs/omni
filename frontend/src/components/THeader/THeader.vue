@@ -40,7 +40,7 @@ const currentOffset = ref(0)
 
 const notifications = computed(() =>
   data.value
-    .filter((d) => !dismissedNotifications.value.includes(d.metadata.id!))
+    .filter((d) => d.spec.undismissible || !dismissedNotifications.value.includes(d.metadata.id!))
     .sort((a, b) => (b.spec.type ?? 0) - (a.spec.type ?? 0)),
 )
 const currentNotification = computed(() => notifications.value.at(currentOffset.value))
@@ -170,7 +170,11 @@ function dismissNotification(id: string) {
           <span class="max-sm:sr-only">Next</span>
         </TButton>
 
-        <IconButton icon="close" @click="dismissNotification(currentNotification.metadata.id!)" />
+        <IconButton
+          v-if="!currentNotification.spec.undismissible"
+          icon="close"
+          @click="dismissNotification(currentNotification.metadata.id!)"
+        />
       </div>
     </div>
 

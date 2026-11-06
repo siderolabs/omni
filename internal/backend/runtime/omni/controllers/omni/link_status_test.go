@@ -18,6 +18,7 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -26,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -92,8 +94,8 @@ func (suite *LinkStatusControllerSuite) TestReconcile() {
 	peers := siderolink.NewPeersPool(logger, wgHandler)
 
 	suite.Require().NoError(
-		suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers)),
-		suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers)),
+		suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers, false)),
+		suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers, false)),
 	)
 
 	severalReferences := "12345"
@@ -217,4 +219,111 @@ func TestLinkStatusControllerSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(LinkStatusControllerSuite))
+}
+
+func TestLinkStatusControllerTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	assertPeers := func(t *testing.T, wgHandler *fakeWireguardHandler, keys ...string) {
+		t.Helper()
+
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			assert.ElementsMatch(c, keys, xmaps.Keys(wgHandler.GetPeersMap()))
+		}, 5*time.Second, 50*time.Millisecond)
+	}
+
+	for _, tt := range []struct {
+		name                 string
+		expectedPeers        []string
+		expectedAfterUpdate  []string
+		disconnectBelowFloor bool
+	}{
+		{
+			name:                 "disconnect below the floor",
+			disconnectBelowFloor: true,
+			expectedPeers:        []string{"above-key"},
+			expectedAfterUpdate:  []string{"above-key", "unknown-key"},
+		},
+		{
+			name:                "keep all peers",
+			expectedPeers:       []string{"below-key", "above-key", "unknown-key"},
+			expectedAfterUpdate: []string{"below-key", "above-key", "unknown-key"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			t.Cleanup(cancel)
+
+			wgHandler := &fakeWireguardHandler{peers: map[string]wgtypes.Peer{}}
+
+			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+				func(_ context.Context, tc testutils.TestContext) {
+					peers := siderolink.NewPeersPool(tc.Logger, wgHandler)
+
+					require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers, tt.disconnectBelowFloor)))
+				},
+				func(ctx context.Context, tc testutils.TestContext) {
+					for id, version := range map[string]string{"below": "v1.5.0", "above": "v1.6.0", "unknown": ""} {
+						link := siderolinkres.NewLink(id, &specs.SiderolinkSpec{NodePublicKey: id + "-key", TalosVersion: version})
+
+						require.NoError(t, tc.State.Create(ctx, link))
+					}
+
+					assertPeers(t, wgHandler, tt.expectedPeers...)
+
+					_, err := safe.StateUpdateWithConflicts(ctx, tc.State, siderolinkres.NewLink("unknown", nil).Metadata(), func(res *siderolinkres.Link) error {
+						res.TypedSpec().Value.TalosVersion = "v1.14.5"
+
+						return nil
+					})
+					require.NoError(t, err)
+
+					assertPeers(t, wgHandler, tt.expectedAfterUpdate...)
+				},
+			)
+		})
+	}
+}
+
+func TestLinkStatusControllerRemovesExistingPeerBelowFloor(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	wgHandler := &fakeWireguardHandler{peers: map[string]wgtypes.Peer{}}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			peers := siderolink.NewPeersPool(tc.Logger, wgHandler)
+
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers, true)))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			link := siderolinkres.NewLink("machine", &specs.SiderolinkSpec{NodePublicKey: "machine-key", TalosVersion: "v1.6.0"})
+
+			require.NoError(t, tc.State.Create(ctx, link))
+
+			linkStatusID := siderolinkres.NewLinkStatus(link).Metadata().ID()
+
+			rtestutils.AssertResources(ctx, t, tc.State, []string{linkStatusID}, func(*siderolinkres.LinkStatus, *assert.Assertions) {})
+
+			assert.EventuallyWithT(t, func(c *assert.CollectT) {
+				assert.Contains(c, wgHandler.GetPeersMap(), "machine-key")
+			}, 5*time.Second, 50*time.Millisecond)
+
+			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, link.Metadata(), func(res *siderolinkres.Link) error {
+				res.TypedSpec().Value.TalosVersion = "v1.5.0"
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertNoResource[*siderolinkres.LinkStatus](ctx, t, tc.State, linkStatusID)
+
+			assert.NotContains(t, wgHandler.GetPeersMap(), "machine-key")
+		},
+	)
 }

@@ -804,7 +804,7 @@ func TestProvision(t *testing.T) {
 		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		// Override the handler with one that has a limit of 2.
-		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 2)
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 2, false)
 
 		// Create 2 links to reach the limit.
 		for _, id := range []string{"m1", "m2"} {
@@ -834,7 +834,7 @@ func TestProvision(t *testing.T) {
 
 		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
-		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 5)
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 5, false)
 
 		require.NoError(t, st.Create(ctx, siderolinkres.NewLink("m1", &specs.SiderolinkSpec{})))
 
@@ -859,7 +859,7 @@ func TestProvision(t *testing.T) {
 
 		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
-		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 
 		for _, id := range []string{"m1", "m2", "m3"} {
 			require.NoError(t, st.Create(ctx, siderolinkres.NewLink(id, &specs.SiderolinkSpec{})))
@@ -888,7 +888,7 @@ func TestProvision(t *testing.T) {
 
 		observedCore, observedLogs := observer.New(zapcore.DebugLevel)
 
-		provisionHandler := siderolink.NewProvisionHandler(zap.New(observedCore), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+		provisionHandler := siderolink.NewProvisionHandler(zap.New(observedCore), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0, false)
 
 		uniqueToken, tokenErr := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
 		require.NoError(t, tokenErr)
@@ -961,8 +961,8 @@ func provisionFixture(
 
 	peers := siderolink.NewPeersPool(logger, device)
 
-	require.NoError(t, rt.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers)))
-	require.NoError(t, rt.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers)))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers, false)))
+	require.NoError(t, rt.RegisterQController(omnictrl.NewLinkStatusController[*siderolinkres.Link](peers, false)))
 	require.NoError(t, rt.RegisterQController(omnictrl.NewProviderJoinConfigController()))
 	require.NoError(t, rt.RegisterQController(newPendingMachineStatusController(talosInstalled)))
 
@@ -985,7 +985,7 @@ func provisionFixture(
 		require.NoError(t, eg.Wait())
 	})
 
-	provisionHandler := siderolink.NewProvisionHandler(logger, st, mode, false, 0)
+	provisionHandler := siderolink.NewProvisionHandler(logger, st, mode, false, 0, false)
 
 	cfg := siderolinkres.NewConfig()
 	cfg.TypedSpec().Value.ServerAddress = "127.0.0.1"
@@ -2236,5 +2236,114 @@ func TestProvisionTokenFingerprint(t *testing.T) {
 				assertion.Equal(realToken, r.TypedSpec().Value.TokenId)
 			},
 		)
+	})
+}
+
+func TestProvisionTalosVersionFloor(t *testing.T) {
+	t.Parallel()
+
+	joinToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), "joinToken").Encode()
+	require.NoError(t, err)
+
+	setup := func(ctx context.Context, t *testing.T) (state.State, *siderolink.ProvisionHandler, *siderolink.ProvisionHandler) {
+		st, allowingHandler := provisionFixture(ctx, t, config.SiderolinkServiceJoinTokensModeLegacyAllowed, joinToken,
+			&fakeWireguardHandler{peers: map[string]wgtypes.Peer{}},
+			func(*siderolinkres.PendingMachine) bool { return true },
+		)
+
+		disconnectingHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeLegacyAllowed, false, 0, true)
+
+		return st, allowingHandler, disconnectingHandler
+	}
+
+	request := func(nodeUUID, nodePublicKey string, talosVersion *string) *pb.ProvisionRequest {
+		return &pb.ProvisionRequest{
+			NodeUuid:      nodeUUID,
+			NodePublicKey: nodePublicKey,
+			JoinToken:     new(joinToken),
+			TalosVersion:  talosVersion,
+		}
+	}
+
+	assertLinkTalosVersion := func(ctx context.Context, t *testing.T, st state.State, nodeUUID, expected string) {
+		t.Helper()
+
+		link, err := safe.StateGetByID[*siderolinkres.Link](ctx, st, nodeUUID)
+		require.NoError(t, err)
+
+		assert.Equal(t, expected, link.TypedSpec().Value.TalosVersion)
+	}
+
+	t.Run("requested version below the floor", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		st, allowingHandler, disconnectingHandler := setup(ctx, t)
+
+		_, err := disconnectingHandler.Provision(ctx, request("m1", genPublicKey(t), new("v1.5.0")))
+		require.Equal(t, codes.FailedPrecondition, status.Code(err))
+
+		_, err = allowingHandler.Provision(ctx, request("m1", genPublicKey(t), new("v1.5.0")))
+		require.NoError(t, err)
+
+		assertLinkTalosVersion(ctx, t, st, "m1", "v1.5.0")
+	})
+
+	t.Run("request without a version", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		st, allowingHandler, disconnectingHandler := setup(ctx, t)
+
+		key := genPublicKey(t)
+
+		_, err := allowingHandler.Provision(ctx, request("m1", key, new("v1.5.0")))
+		require.NoError(t, err)
+
+		_, err = allowingHandler.Provision(ctx, request("m1", key, nil))
+		require.NoError(t, err)
+
+		assertLinkTalosVersion(ctx, t, st, "m1", "")
+
+		_, err = disconnectingHandler.Provision(ctx, request("m1", key, nil))
+		require.Equal(t, codes.FailedPrecondition, status.Code(err))
+	})
+
+	t.Run("rejection is warned once per machine", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		st, _, _ := setup(ctx, t)
+
+		observedCore, logs := observer.New(zap.DebugLevel)
+		disconnectingHandler := siderolink.NewProvisionHandler(zap.New(observedCore), st, config.SiderolinkServiceJoinTokensModeLegacyAllowed, false, 0, true)
+
+		for range 3 {
+			_, err := disconnectingHandler.Provision(ctx, request("m1", genPublicKey(t), nil))
+			require.Equal(t, codes.FailedPrecondition, status.Code(err))
+		}
+
+		rejections := logs.FilterMessage("rejected machine running a Talos version below the floor")
+
+		assert.Equal(t, 1, rejections.FilterLevelExact(zap.WarnLevel).Len())
+		assert.Equal(t, 2, rejections.FilterLevelExact(zap.DebugLevel).Len())
+	})
+
+	t.Run("version at the floor is accepted", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		_, _, disconnectingHandler := setup(ctx, t)
+
+		_, err := disconnectingHandler.Provision(ctx, request("m1", genPublicKey(t), new("v1.6.0")))
+		require.NoError(t, err)
 	})
 }
