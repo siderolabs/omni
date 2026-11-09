@@ -30,11 +30,12 @@ const test = base.extend<AuthFixtures>({
 
       await page.getByRole('textbox', { name: 'email address' }).fill(process.env.AUTH_USERNAME)
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
-      await page.getByRole('button', { name: 'Login' }).click()
 
-      await page.getByRole('heading', { name: 'Home' }).waitFor({
-        timeout: milliseconds({ seconds: 15 }),
-      })
+      // Retry the submission incase the form was not ready
+      await expect(async () => {
+        await page.getByRole('button', { name: 'Login' }).click()
+        await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      }, 'Submit Dex login').toPass({ timeout: milliseconds({ seconds: 20 }) })
 
       await use()
     },
