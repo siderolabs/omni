@@ -339,12 +339,20 @@ func (st *State) checkAccess(ctx context.Context, ns resource.Namespace, resType
 
 	// not an infra provider, run regular user checks
 
-	if !isReadAccess && resType != infra.ProviderType && resType != infra.MachineRequestType {
-		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "users are not allowed to modify %q resources", resType)
-	}
-
-	if !isReadAccess && resType == infra.MachineRequestType && checkResult.Role.Check(role.Operator) != nil {
-		return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only operators and admins are allowed to modify %q resources", resType)
+	if !isReadAccess {
+		switch resType {
+		case infra.ProviderType:
+			// registering an infra provider admits a new identity, and deleting one revokes its access
+			if checkResult.Role.Check(role.Admin) != nil {
+				return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only admins are allowed to modify %q resources", resType)
+			}
+		case infra.MachineRequestType:
+			if checkResult.Role.Check(role.Operator) != nil {
+				return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "only operators and admins are allowed to modify %q resources", resType)
+			}
+		default:
+			return accessCheckResult{}, status.Errorf(codes.PermissionDenied, "users are not allowed to modify %q resources", resType)
+		}
 	}
 
 	if config.onlyAdminCanRead && checkResult.Role != role.Admin {

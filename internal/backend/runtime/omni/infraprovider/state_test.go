@@ -598,3 +598,53 @@ type testResSpec struct {
 func (t testResSpec) DeepCopy() testResSpec {
 	return t
 }
+
+func TestProviderWritesRequireAdmin(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		role         role.Role
+		writeAllowed bool
+	}{
+		{role: role.Reader},
+		{role: role.Auditor},
+		{role: role.Operator},
+		{role: role.Admin, writeAllowed: true},
+	} {
+		t.Run(string(tt.role), func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+			t.Cleanup(cancel)
+
+			persistentState := namespaced.NewState(inmem.Build)
+			st := state.WrapCore(infraprovider.NewState(persistentState, namespaced.NewState(inmem.Build), zaptest.NewLogger(t)))
+
+			existing := infra.NewProvider("existing")
+
+			require.NoError(t, persistentState.Create(ctx, existing))
+
+			ctx = prepareRole(ctx, tt.role)
+
+			_, err := st.Get(ctx, existing.Metadata())
+			require.NoError(t, err)
+
+			assertWrite := func(err error) {
+				t.Helper()
+
+				if tt.writeAllowed {
+					require.NoError(t, err)
+
+					return
+				}
+
+				assert.Equal(t, codes.PermissionDenied, status.Code(err))
+				assert.ErrorContains(t, err, "only admins are allowed to modify")
+			}
+
+			assertWrite(st.Create(ctx, infra.NewProvider("new")))
+			assertWrite(st.Update(ctx, existing))
+			assertWrite(st.Destroy(ctx, existing.Metadata()))
+		})
+	}
+}
