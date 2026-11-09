@@ -1,3 +1,60 @@
+## [Omni 1.13.3](https://github.com/siderolabs/omni/releases/tag/v1.13.3) (2026-11-09)
+
+Welcome to the v1.13.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind boltdb`) is deprecated and will be removed in a future release. It keeps working in this release and Omni logs a warning at startup when it runs on it. There is no automated migration between the two backends, so if your Omni runs on BoltDB, plan the move to etcd, which is the default, before the removal lands.
+
+The metrics endpoint now listens on `127.0.0.1:2122` by default instead of `0.0.0.0:2122`. If you scrape the Omni metrics from another host or from outside the Omni container (e.g., through a published Docker port), set `services.metrics.endpoint` (`--metrics-bind-addr`) to `0.0.0.0:2122` explicitly. The Helm chart still binds it to `0.0.0.0:2122` when `metrics.enabled` is set.
+
+The embedded etcd server no longer listens on any address by default, Omni connects to it in-memory. Previously, it listened on `storage.default.etcd.endpoints` (`http://localhost:2379` by default) without TLS, and backups taken with `etcdctl` relied on it. To access the embedded etcd from outside, set `storage.default.etcd.embeddedCertFile` and `embeddedKeyFile` (`--etcd-embedded-cert-path`, `--etcd-embedded-key-path`), and optionally `embeddedCaFile` (`--etcd-embedded-ca-path`). The embedded etcd server then listens on the `storage.default.etcd.endpoints` addresses with TLS, and only accepts clients with a certificate signed by the given CA. When no CA is set, the certificate file must contain a single certificate, which is used as the CA, so clients can use the same certificate and key.
+
+Omni no longer installs Talos from the installer registry set in `registries.talos` (`--talos-installer-registry`, `ghcr.io/siderolabs/installer` by default). The setting is deprecated and has no effect, every install image now comes from an image factory. Machines with an invalid schematic (e.g., booted from an imager-built ISO with extensions) get an image factory schematic built from their join kernel args at their next install, without their custom extensions. If you mirrored the installer image for an air-gapped setup, make sure Omni can reach an image factory instead.
+
+
+### Contributors
+
+* Utku Ozdemir
+* Edward Sammut Alessi
+* Oguz Kilcan
+
+### Changes
+<details><summary>18 commits</summary>
+<p>
+
+* [`2544b93a`](https://github.com/siderolabs/omni/commit/2544b93ac6e5726ac9fcf533d6f9d9d771076b3a) test(frontend): fix machine class scale assertion
+* [`a0cc3dff`](https://github.com/siderolabs/omni/commit/a0cc3dffcf212b7c6e601a5b962219d6d9054a89) test: set the Traefik service type in the key its chart reads
+* [`b2bfae8a`](https://github.com/siderolabs/omni/commit/b2bfae8add168110f2181d58b3a318c7d70d99e5) fix(frontend): report volume encryption as unknown until prepared
+* [`383bcf6e`](https://github.com/siderolabs/omni/commit/383bcf6ee5ab3c12bfc828c6e5cf8abb98a86140) fix(frontend): show whole-disk volumes and RAID membership on disks view
+* [`deab04a9`](https://github.com/siderolabs/omni/commit/deab04a983c46f4e4a630106861c66d691d3cbf5) fix(frontend): update incorrect string match on cluster overview
+* [`c3c62009`](https://github.com/siderolabs/omni/commit/c3c62009751801206267f7e57a3ac8ad9d6f9a50) fix(frontend): scale header contents down for mobile
+* [`034acb2a`](https://github.com/siderolabs/omni/commit/034acb2a2cdf4923cf393870adc063b6bf362875) fix(frontend): adjust mobile layout for cluster overview
+* [`0a067afb`](https://github.com/siderolabs/omni/commit/0a067afb96faba3b01ba63ae09b20cc7aaee8f5c) fix(frontend): fix some minor design issues
+* [`3da4eb41`](https://github.com/siderolabs/omni/commit/3da4eb41e89f8536d4f7a1f90b3696ff07a8233c) fix: require list access to a type to get its label completions
+* [`96ecf27e`](https://github.com/siderolabs/omni/commit/96ecf27e31e3722131c3b3b5a0434b3bbc7adf58) fix: return not found when getting a support resource with a wrong ID
+* [`649b0c63`](https://github.com/siderolabs/omni/commit/649b0c639e22db7a7fb3d60be3113cd4adcb18ad) fix: register the VersionContract resource type
+* [`4ce84926`](https://github.com/siderolabs/omni/commit/4ce84926087293243963ec56c5afa8bd83c6c82b) fix: check infra provider types outside their namespaces like any other type
+* [`61e08610`](https://github.com/siderolabs/omni/commit/61e08610d05eaf6fa50dc8f66e3ae763f1890e7c) fix: allow only admins to register and remove infra providers
+* [`02253c5e`](https://github.com/siderolabs/omni/commit/02253c5e7142b735f1328c4f9ddf0d0f34288216) fix: log join token fingerprints instead of tokens in the audit log
+* [`af7c9bfb`](https://github.com/siderolabs/omni/commit/af7c9bfb0dc69df653a2b646c8f161431de3487e) fix: do not send max_age in the OIDC login request
+* [`2a8a3a6e`](https://github.com/siderolabs/omni/commit/2a8a3a6e9085f515aaffade9c2757e30b6d12782) fix: prune removed bootstrap manifest objects on manifest sync
+* [`1f92d935`](https://github.com/siderolabs/omni/commit/1f92d935ddb236d9fca80ba17a61e23efb83f6da) fix: do not fail the manifest sync dry run on missing objects
+* [`d7315ef7`](https://github.com/siderolabs/omni/commit/d7315ef7f697cede68332910cc74bc2f8af0b221) fix: bump COSI runtime to v1.16.5 to stop a task restart loop
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**  v1.16.4 -> v1.16.5
+
+Previous release can be found at [v1.13.2](https://github.com/siderolabs/omni/releases/tag/v1.13.2)
+
 ## [Omni 1.13.2](https://github.com/siderolabs/omni/releases/tag/v1.13.2) (2026-11-02)
 
 Welcome to the v1.13.2 release of Omni!
