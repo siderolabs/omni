@@ -237,15 +237,17 @@ const clusterLocked = computed(() => {
 })
 
 const machineLockedForTalosUpgrade = computed(() => {
-  return talosUpgradeStatus.value?.spec.status === 'upgrade paused'
+  return talosUpgradeStatus.value?.spec.status === 'waiting for machines to be unlocked'
 })
 
 const machineLockedForKubernetesUpgrade = computed(() => {
-  return kubernetesUpgradeStatus.value?.spec.status === 'waiting for machine to be unlocked'
+  return /^waiting for a machine from .* to be unlocked$/.test(
+    kubernetesUpgradeStatus.value?.spec.status ?? '',
+  )
 })
 
 const machineLockedForSecretRotation = computed(() => {
-  return secretRotationStatus.value?.spec.status === 'rotation paused'
+  return secretRotationStatus.value?.spec.status?.startsWith('rotation paused at phase ') ?? false
 })
 </script>
 
