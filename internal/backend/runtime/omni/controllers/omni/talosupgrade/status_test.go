@@ -7,8 +7,10 @@ package talosupgrade_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,13 +29,25 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	testoptions "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
+
+type fakeKubernetesRuntime struct {
+	getClientCalls atomic.Int32
+}
+
+func (f *fakeKubernetesRuntime) GetClient(context.Context, string) (*kubernetes.Client, error) {
+	f.getClientCalls.Add(1)
+
+	return nil, errors.New("no kubernetes client in tests")
+}
 
 const (
 	defaultSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
@@ -593,6 +607,168 @@ func TestStatusController(t *testing.T) {
 						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
 						assertions.NotContains(res.TypedSpec().Value.MachineSetsUpgradeQuota, cpMachineSetID)
 					})
+
+				// Upgrade the workers only, the control planes are already on the new version.
+				rmock.Mock[*omni.Cluster](ctx, t, st, testoptions.WithID(clusterName),
+					testoptions.Modify(func(res *omni.Cluster) error {
+						res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+						return nil
+					}))
+
+				for _, machine := range machines[:3] {
+					rmock.Mock[*omni.SchematicConfiguration](ctx, t, st, testoptions.SameID(machine),
+						testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+							res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+							return nil
+						}))
+
+					rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, st, testoptions.SameID(machine),
+						testoptions.Modify(func(res *omni.ClusterMachineConfigStatus) error {
+							res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+							return nil
+						}))
+				}
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal(specs.TalosUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
+					})
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
+					})
+
+				// A rebooting worker reduces the quota until it is seen as holding the upgrade lock, which already takes a slot.
+				upgradingWorker := machines[3]
+
+				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, testoptions.SameID(upgradingWorker),
+					testoptions.Modify(func(res *omni.ClusterMachineStatus) error {
+						helpers.CopyAllLabels(upgradingWorker, res)
+
+						res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_REBOOTING
+
+						return nil
+					}))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Empty(res.TypedSpec().Value.MachineSetsUpgradeQuota)
+					})
+
+				require.NoError(t, st.AddFinalizer(ctx, upgradingWorker.Metadata(), machineconfig.UpgradeFinalizer))
+
+				t.Cleanup(func() {
+					require.NoError(t, st.RemoveFinalizer(context.WithoutCancel(ctx), upgradingWorker.Metadata(), machineconfig.UpgradeFinalizer))
+				})
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
+					})
+			},
+		)
+	})
+
+	// The health checks must wait for a rebooting machine which holds the upgrade lock but is not in outdatedMachines.upgrading,
+	// as it has no schematic yet.
+	t.Run("healthChecksWaitForUpgradeLock", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		t.Cleanup(cancel)
+
+		kubernetesRuntime := &fakeKubernetesRuntime{}
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
+			func(_ context.Context, testContext testutils.TestContext) {
+				require.NoError(t, testContext.Runtime.RegisterQController(talosupgrade.NewStatusController(kubernetesRuntime)))
+			},
+			func(ctx context.Context, testContext testutils.TestContext) {
+				st := testContext.State
+				clusterName := "talos-upgrade-health-checks-lock"
+
+				cluster, machines := createCluster(ctx, t, st, clusterName, 3, 2,
+					testoptions.WithTalosVersion(constants.DefaultTalosVersion))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
+					})
+
+				healthCheck := omni.NewKubernetesHealthCheck("health-check")
+				healthCheck.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+
+				require.NoError(t, st.Create(ctx, healthCheck))
+
+				lockHolder := machines[3]
+
+				rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, st, testoptions.SameID(lockHolder),
+					testoptions.Modify(func(res *omni.ClusterMachineConfigStatus) error {
+						res.TypedSpec().Value.SchematicId = ""
+
+						return nil
+					}))
+
+				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, testoptions.SameID(lockHolder),
+					testoptions.Modify(func(res *omni.ClusterMachineStatus) error {
+						res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_REBOOTING
+						res.TypedSpec().Value.Ready = false
+
+						return nil
+					}))
+
+				require.NoError(t, st.AddFinalizer(ctx, lockHolder.Metadata(), machineconfig.UpgradeFinalizer))
+
+				// Upgrade the workers only, the control planes are already on the new version.
+				rmock.Mock[*omni.Cluster](ctx, t, st, testoptions.SameID(cluster),
+					testoptions.Modify(func(res *omni.Cluster) error {
+						res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+						return nil
+					}))
+
+				for _, machine := range machines[:3] {
+					rmock.Mock[*omni.SchematicConfiguration](ctx, t, st, testoptions.SameID(machine),
+						testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+							res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+							return nil
+						}))
+
+					rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, st, testoptions.SameID(machine),
+						testoptions.Modify(func(res *omni.ClusterMachineConfigStatus) error {
+							res.TypedSpec().Value.TalosVersion = constants.AnotherTalosVersion
+
+							return nil
+						}))
+				}
+
+				// running the health checks fails the reconcile, so the status is only updated if they are skipped
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal(specs.TalosUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
+					})
+
+				assert.Zero(t, kubernetesRuntime.getClientCalls.Load())
+
+				require.NoError(t, st.RemoveFinalizer(ctx, lockHolder.Metadata(), machineconfig.UpgradeFinalizer))
+
+				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, testoptions.SameID(lockHolder),
+					testoptions.Modify(func(res *omni.ClusterMachineStatus) error {
+						res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_RUNNING
+						res.TypedSpec().Value.Ready = true
+
+						return nil
+					}))
+
+				assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+					assert.NotZero(collect, kubernetesRuntime.getClientCalls.Load())
+				}, 10*time.Second, 50*time.Millisecond)
 			},
 		)
 	})

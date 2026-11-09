@@ -96,7 +96,7 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 					return err
 				}
 
-				if err := ctrl.updateRolloutState(ctx, r, logger, outdatedMachines, cluster, upgradeStatus); err != nil {
+				if err := ctrl.updateRolloutState(ctx, r, logger, clusterMachines, outdatedMachines, cluster, upgradeStatus); err != nil {
 					return err
 				}
 
@@ -350,7 +350,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 
 //nolint:gocognit,gocyclo,cyclop
 func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
-	outdatedMachines *outdatedMachines, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus,
+	clusterMachines safe.List[*omni.ClusterMachine], outdatedMachines *outdatedMachines, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus,
 ) error {
 	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(
 		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
@@ -364,7 +364,19 @@ func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context
 		notReadyMachinesCounts int32
 	)
 
+	holdingUpgradeLock := make(map[resource.ID]struct{}, clusterMachines.Len())
+
+	for clusterMachine := range clusterMachines.All() {
+		if clusterMachine.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer) {
+			holdingUpgradeLock[clusterMachine.Metadata().ID()] = struct{}{}
+		}
+	}
+
 	for clusterMachineStatus := range clusterMachineStatuses.All() {
+		if _, ok := holdingUpgradeLock[clusterMachineStatus.Metadata().ID()]; ok {
+			continue // its upgrade lock already takes one slot of the quota
+		}
+
 		if clusterMachineStatus.TypedSpec().Value.Stage != specs.ClusterMachineStatusSpec_RUNNING ||
 			!clusterMachineStatus.TypedSpec().Value.Ready {
 			notReadyMachinesCounts++
@@ -384,7 +396,7 @@ func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context
 	// currently upgrading.
 	healthChecks := healthCheckResult{ready: true}
 
-	if gatesOnHealthChecks(upgradeStatus.TypedSpec().Value.Phase) && notReadyMachinesCounts == 0 && len(outdatedMachines.upgrading) == 0 {
+	if gatesOnHealthChecks(upgradeStatus.TypedSpec().Value.Phase) && notReadyMachinesCounts == 0 && len(outdatedMachines.upgrading) == 0 && len(holdingUpgradeLock) == 0 {
 		healthChecks, err = ctrl.runHealthChecks(ctx, r, logger, cluster)
 		if err != nil {
 			return err
