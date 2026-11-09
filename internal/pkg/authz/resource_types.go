@@ -181,6 +181,8 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.MachineInstallDiskConfigType:                {Verbs: AllVerbs},
 	omni.MachineInstallDiskStatusType:                {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachineLabelsType:                           {Verbs: AllVerbs},
+	omni.MachineOperationType:                        {Verbs: Read},
+	omni.MachineOperationStatusType:                  {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachinePendingUpdatesType:                   {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachineRequestSetType:                       {Verbs: AllVerbs},
 	omni.MachineSetDestroyStatusType:                 {Verbs: Read},

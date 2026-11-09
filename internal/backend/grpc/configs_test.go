@@ -44,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -65,7 +66,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 	rt, err := omniruntime.NewRuntime(config.Default(), nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),
-		nil, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
+		nil, kubernetesRuntime, lifecycle.NewManager(logger, nil, nil, nil, nil, nil), logging.IncreaseLevel(logger, zap.InfoLevel))
 	require.NoError(t, err)
 
 	clusterName := "cluster1"

@@ -42,6 +42,9 @@ const RebootTimeout = time.Minute
 // CordonTimeout bounds the node cordon patch issued before reboot and the uncordon patch issued after it.
 const CordonTimeout = 30 * time.Second
 
+// operationWriteTimeout bounds writing the MachineOperation of a machine.
+const operationWriteTimeout = 10 * time.Second
+
 // LivenessProbeTimeout caps the pre-flight liveness probe so a stale "connected" flag can't commit us to an unresponsive machine.
 const LivenessProbeTimeout = 5 * time.Second
 

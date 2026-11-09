@@ -32,7 +32,23 @@ func (m *Manager) BuildInstallImageForTest(
 
 // AcquireForTest exposes acquire to external tests.
 func (m *Manager) AcquireForTest(machineID string) bool {
-	return m.acquire(machineID)
+	_, acquired := m.acquire(context.Background(), machineID, specs.MachineOperationSpec_PREPARING_IMAGE)
+
+	return acquired
+}
+
+// StartForTest starts an operation on the machine and returns its progress callback.
+func (m *Manager) StartForTest(machineID string) (progress func(string), started bool) {
+	entry, acquired := m.acquire(context.Background(), machineID, specs.MachineOperationSpec_PREPARING_IMAGE)
+	if !acquired {
+		return nil, false
+	}
+
+	cfg := runConfig{progress: func(string) {}}
+
+	m.track(context.Background(), machineID, entry, &cfg)
+
+	return cfg.progress, true
 }
 
 // RunCordonAndDrainForTest exposes runCordonAndDrain to external tests.
@@ -40,10 +56,15 @@ func (m *Manager) RunCordonAndDrainForTest(ctx context.Context, clusterName, nod
 	return m.runCordonAndDrain(ctx, runConfig{
 		cordonDrain: &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort},
 		progress:    progress,
+		stage:       func(specs.MachineOperationSpec_Stage) {},
 	})
 }
 
-// ReleaseForTest exposes release to external tests.
-func (m *Manager) ReleaseForTest(machineID string) {
-	m.release(machineID)
+// ReleaseForTest releases the current operation of the machine.
+func (m *Manager) ReleaseForTest(machineID string, err error) {
+	m.mu.Lock()
+	entry := m.operations[machineID]
+	m.mu.Unlock()
+
+	m.release(context.Background(), machineID, entry, err)
 }

@@ -299,6 +299,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		machine.NewStatusLinkController(linkCounterDeltaCh),
 		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
 		clusterWorkloadProxyController,
+		omnictrl.NewMachineOperationStatusController(lifecycleManager),
 	}
 
 	// register a destroy controller for each user-managed resource type

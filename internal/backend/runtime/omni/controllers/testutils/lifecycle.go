@@ -116,5 +116,6 @@ func NewLifecycleManager(t *testing.T, st state.State, k8sProvider lifecycle.Kub
 		k8sProvider,
 		socketTalosClientFactory{st: st},
 		nil,
+		st,
 	)
 }

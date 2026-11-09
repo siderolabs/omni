@@ -32,6 +32,7 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -92,7 +93,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 
 	suite.runtime, err = omniruntime.NewRuntime(config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
 		nil, nil, nil, nil, nil, mockState, prometheus.NewRegistry(),
-		discoveryClientCache, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
+		discoveryClientCache, kubernetesRuntime, lifecycle.NewManager(logger, nil, nil, nil, nil, nil), logging.IncreaseLevel(logger, zap.InfoLevel))
 
 	suite.Require().NoError(err)
 

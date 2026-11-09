@@ -727,6 +727,43 @@ message ConfigTryStatus {
   string boot_id = 4;
 }
 
+// MachineOperationSpec represents the install or upgrade the lifecycle manager is running on a machine, or the last failed one.
+message MachineOperationSpec {
+  // Stage is a stage of an install or upgrade. UNKNOWN means that no operation is running.
+  enum Stage {
+    UNKNOWN = 0;
+    PREPARING_IMAGE = 1;
+    PULLING_IMAGE = 2;
+    INSTALLING = 3;
+    UPGRADING = 4;
+    PREPARING_REBOOT = 5;
+    CORDONING = 6;
+    DRAINING = 7;
+    REBOOTING = 8;
+    UNCORDONING = 9;
+  }
+
+  Stage stage = 1;
+  string message = 2;
+  google.protobuf.Timestamp stage_started_at = 3;
+  string last_error = 4;
+  Stage failed_stage = 5;
+  // PreRebootBootId is the boot ID of the machine before the operation rebooted it.
+  string pre_reboot_boot_id = 6;
+}
+
+// MachineOperationStatusSpec represents the install or upgrade Omni is running on a machine, or the last failed one.
+message MachineOperationStatusSpec {
+  MachineOperationSpec.Stage stage = 1;
+  // Message is the last progress message of the current stage, or of the stage the failed operation failed in.
+  string message = 2;
+  google.protobuf.Timestamp stage_started_at = 3;
+  // LastError is the error of the last failed operation. It is cleared when the next operation starts.
+  string last_error = 4;
+  // FailedStage is the stage the last failed operation was in when it failed.
+  MachineOperationSpec.Stage failed_stage = 5;
+}
+
 message MachinePendingUpdatesSpec {
   message Upgrade {
     string from_schematic = 1;

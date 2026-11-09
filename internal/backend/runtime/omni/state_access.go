@@ -387,6 +387,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineExtensionsType,
 		omni.MachineInstallDiskConfigType,
 		omni.MachineInstallDiskStatusType,
+		omni.MachineOperationType,
+		omni.MachineOperationStatusType,
 		omni.MachineStatusType,
 		omni.MachineStatusSnapshotType,
 		omni.MachineStatusLinkType,

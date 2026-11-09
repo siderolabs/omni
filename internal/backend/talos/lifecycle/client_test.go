@@ -30,7 +30,7 @@ func TestBuildInstallImage(t *testing.T) {
 	m := lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
 		state.WrapCore(inmem.NewState()),
 		c,
-	), nil, nil, nil)
+	), nil, nil, nil, nil)
 
 	ms := omni.NewMachineStatus("machine-1")
 	ms.TypedSpec().Value.TalosVersion = "1.13.1"
