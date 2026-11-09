@@ -656,6 +656,74 @@ export const WithPartitionGaps: Story = {
   },
 }
 
+// Volumes in other phases than ready: u-scratch failed before it was placed on
+// any disk, so it only shows as an alert; u-logs failed on its partition.
+export const WithVolumeProblems: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [diskResource('vda', { size: 40 * GiB, transport: 'virtio' })],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('vda', { type: 'disk', name: 'gpt', size: 40 * GiB }),
+          ...(
+            [
+              ['EPHEMERAL', 'xfs', 20 * GiB],
+              ['u-data', 'xfs', 10 * GiB],
+              ['u-logs', '', 5 * GiB],
+            ] as const
+          ).map(([label, name, size], i) =>
+            volumeResource(`vda${i + 1}`, {
+              type: 'partition',
+              name,
+              parent: 'vda',
+              partition_index: i + 1,
+              partition_label: label,
+              size,
+            }),
+          ),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [
+          {
+            metadata: { id: 'EPHEMERAL', namespace: TalosRuntimeNamespace },
+            spec: { phase: 'ready', type: 'partition', location: '/dev/vda1', filesystem: 'xfs' },
+          },
+          {
+            metadata: { id: 'u-data', namespace: TalosRuntimeNamespace },
+            spec: { phase: 'provisioned', type: 'partition', location: '/dev/vda2' },
+          },
+          {
+            metadata: { id: 'u-logs', namespace: TalosRuntimeNamespace },
+            spec: {
+              phase: 'failed',
+              preFailPhase: 'provisioned',
+              type: 'partition',
+              location: '/dev/vda3',
+              errorMessage: 'error formatting partition: mkfs.xfs: exit status 1',
+            },
+          },
+          {
+            metadata: { id: 'u-scratch', namespace: TalosRuntimeNamespace },
+            spec: {
+              phase: 'failed',
+              preFailPhase: 'waiting',
+              type: 'partition',
+              errorMessage:
+                'no disks matched for volume (1 matched selector): 1 have not enough space, 0 have wrong format, 0 have other issues',
+            },
+          },
+        ],
+      }).handler,
+    )
+  },
+}
+
 export const NoData: Story = {
   beforeEach({ msw }) {
     msw.use(createWatchStreamHandler().handler)

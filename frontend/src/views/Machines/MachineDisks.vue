@@ -24,6 +24,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { getChildDiskIds, getDiskVolumes, getParentDiskIds } from '@/views/Machines/lib/diskVolumes'
+import { getFailedVolumes } from '@/views/Machines/lib/volumeStatus'
 import DiskPartitionTable from '@/views/Nodes/components/DiskPartitionTable.vue'
 import DiskUsageBar from '@/views/Nodes/components/DiskUsageBar.vue'
 
@@ -117,10 +118,23 @@ const organizedDisks = computed(() =>
     })),
   })),
 )
+
+const failedVolumes = computed(() => getFailedVolumes(volumeStatuses.value))
 </script>
 
 <template>
   <PageContainer class="space-y-compact">
+    <template v-if="!loading && !err">
+      <TAlert
+        v-for="volume in failedVolumes"
+        :key="volume.metadata.id"
+        type="error"
+        :title="`Volume ${volume.metadata.id} failed`"
+      >
+        {{ volume.spec.errorMessage }}
+      </TAlert>
+    </template>
+
     <TAlert v-if="errCode === Code.UNAVAILABLE" type="warn" title="Machine not ready">
       Talos API is not ready yet
     </TAlert>

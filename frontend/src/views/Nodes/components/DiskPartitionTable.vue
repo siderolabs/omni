@@ -10,11 +10,13 @@ import prettyBytes from 'pretty-bytes'
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import { getVolumeDisplayName } from '@/views/Machines/lib/diskVolumes'
 import { isVolumePrepared } from '@/views/Machines/lib/volumeStatus'
+import { getVolumePhaseAppearance } from '@/views/Machines/lib/volumeStatus'
 
 defineProps<{
   partitions: {
@@ -87,6 +89,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
       <template #head>
         <TableRow>
           <TableCell th>Item</TableCell>
+          <TableCell th>Status</TableCell>
           <TableCell th>Filesystem</TableCell>
           <TableCell th>Encryption</TableCell>
           <TableCell th>UUID</TableCell>
@@ -121,6 +124,17 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
                 </div>
               </div>
             </div>
+          </TableCell>
+
+          <TableCell>
+            <StatusPill
+              v-if="volumeStatus"
+              :tone="getVolumePhaseAppearance(volumeStatus.spec.phase).tone"
+              :glyph="getVolumePhaseAppearance(volumeStatus.spec.phase).glyph"
+              :title="volumeStatus.spec.errorMessage"
+            >
+              {{ getVolumePhaseAppearance(volumeStatus.spec.phase).label }}
+            </StatusPill>
           </TableCell>
 
           <TableCell class="font-medium">
