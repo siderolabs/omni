@@ -77,19 +77,19 @@ test('Create cluster using machine classes', async ({ page }) => {
 test('Scale cluster using machine classes', async ({ omnictl, cluster, page }, testInfo) => {
   test.setTimeout(milliseconds({ minutes: 2 }))
 
-  await test.step('Visit clusters page', async () => {
+  await test.step('Visit cluster overview', async () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Clusters' }).click()
 
     await expect(page).toHaveURL('/clusters')
     await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: cluster.name, exact: true }).click()
+    await expect(page.getByRole('heading', { name: cluster.name, exact: true })).toBeVisible()
   })
 
   await expect(
-    page
-      .getByRole('listitem', { name: cluster.name })
-      .getByTestId('cluster-machine-stage-name')
-      .getByText('Running'),
+    page.getByTestId('cluster-machine-stage-name').getByText('Running'),
     'Assert that cluster only has 3 machines',
   ).toHaveCount(3)
 
@@ -125,7 +125,6 @@ test('Scale cluster using machine classes', async ({ omnictl, cluster, page }, t
   })
 
   await test.step('Scale cluster to 5 machines', async () => {
-    await page.getByRole('link', { name: cluster.name }).click()
     await page.getByRole('link', { name: 'Cluster Scaling' }).click()
 
     await expect(page.getByText('Machine Sets', { exact: true })).toBeVisible()
@@ -176,13 +175,15 @@ test('Scale cluster using machine classes', async ({ omnictl, cluster, page }, t
 })
 
 test('Manage patches', async ({ cluster, page }, testInfo) => {
-  await test.step('Visit cluster page', async () => {
+  await test.step('Visit cluster overview', async () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Clusters' }).click()
 
     await expect(page).toHaveURL('/clusters')
     await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
-    await page.getByRole('link', { name: cluster.name }).click()
+
+    await page.getByRole('link', { name: cluster.name, exact: true }).click()
+    await expect(page.getByRole('heading', { name: cluster.name, exact: true })).toBeVisible()
   })
 
   const envPatch = await fs.readFile(
