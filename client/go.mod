@@ -8,7 +8,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v3 v3.5.2
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cosi-project/runtime v1.17.0
+	github.com/cosi-project/runtime v1.17.1
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/gertd/go-pluralize v0.2.1
