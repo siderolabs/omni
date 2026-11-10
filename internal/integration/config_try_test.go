@@ -201,10 +201,17 @@ func testMaintenanceConfigTryMode(t *testing.T, options *TestOptions) {
 	var hashBefore string
 
 	rtestutils.AssertResource(ctx, t, st, machineID, func(res *omni.MaintenanceConfigStatus, assertion *assert.Assertions) {
+		link, linkErr := safe.StateGetByID[*siderolink.Link](ctx, st, machineID)
+		if !assertion.NoError(linkErr) {
+			return
+		}
+
 		hashBefore = res.TypedSpec().Value.LastAppliedConfigHash
 
 		assertion.NotEmpty(hashBefore)
 		assertion.Nil(res.TypedSpec().Value.ConfigTry, resourceDetails(res))
+		assertion.Equal(link.TypedSpec().Value.NodePublicKey, res.TypedSpec().Value.PublicKeyAtLastApply,
+			"the config must be applied in the current boot, as the first apply of a boot is not tried")
 	})
 
 	patchID := fmt.Sprintf("000-maintenance-config-test-blackhole-%d", time.Now().Unix())
