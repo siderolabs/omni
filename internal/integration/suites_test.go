@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
+	"github.com/siderolabs/omni/internal/integration/authz"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
 )
 
@@ -1312,15 +1313,15 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 			AssertUserManagementAPIFlow(t.Context(), options.omniClient),
 		)
 
-		clientFactory := newTestClientFactory(omniEndpoint, options.omniClient)
+		clientFactory := authz.NewClientFactory(omniEndpoint, options.omniClient)
 
 		t.Cleanup(func() {
-			clientFactory.close() //nolint:errcheck
+			clientFactory.Close() //nolint:errcheck
 		})
 
 		t.Run(
 			"ResourceAuthzShouldWork",
-			AssertResourceAuthz(t.Context(), options.omniClient, clientFactory),
+			authz.AssertResourceAccess(t.Context(), options.omniClient, clientFactory),
 		)
 
 		t.Run(

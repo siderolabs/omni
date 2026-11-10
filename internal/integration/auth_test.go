@@ -10,7 +10,6 @@ package integration_test
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -23,18 +22,14 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/google/uuid"
-	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
 	"github.com/siderolabs/go-api-signature/pkg/message"
@@ -61,121 +56,13 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/integration/authz"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
-
-// testClientFactory creates test clients with specific roles for authorization testing.
-// It uses the root client (automation SA) to create new service accounts with the specified role,
-// then returns a client authenticated as that SA. Clients are cached by role.
-type testClientFactory struct {
-	rootCli  *client.Client
-	clients  map[role.Role]*client.Client
-	endpoint string
-	mu       sync.Mutex
-}
-
-func newTestClientFactory(endpoint string, rootCli *client.Client) *testClientFactory {
-	return &testClientFactory{
-		endpoint: endpoint,
-		rootCli:  rootCli,
-		clients:  make(map[role.Role]*client.Client),
-	}
-}
-
-func (f *testClientFactory) getClient(ctx context.Context, r role.Role) (*client.Client, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if cli, ok := f.clients[r]; ok {
-		return cli, nil
-	}
-
-	cli, err := f.createClientForRole(ctx, r)
-	if err != nil {
-		return nil, err
-	}
-
-	f.clients[r] = cli
-
-	return cli, nil
-}
-
-func (f *testClientFactory) createClientForRole(ctx context.Context, r role.Role) (*client.Client, error) {
-	name := fmt.Sprintf("%x", md5.Sum([]byte(string(r))))
-
-	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
-
-	suffix := access.ServiceAccountNameSuffix
-	if r == role.InfraProvider {
-		suffix = access.InfraProviderServiceAccountNameSuffix
-	}
-
-	serviceAccountEmail := name + suffix
-
-	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
-	if err != nil {
-		return nil, err
-	}
-
-	if r == role.InfraProvider {
-		name = access.InfraProviderServiceAccountPrefix + name
-	}
-
-	armoredPublicKey, err := key.ArmorPublic()
-	if err != nil {
-		return nil, err
-	}
-
-	serviceAccounts, err := f.rootCli.Management().ListServiceAccounts(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if slices.IndexFunc(serviceAccounts, func(account *management.ListServiceAccountsResponse_ServiceAccount) bool {
-		return account.Name == name
-	}) != -1 {
-		if err = f.rootCli.Management().DestroyServiceAccount(ctx, name); err != nil {
-			return nil, err
-		}
-	}
-
-	_, err = f.rootCli.Management().CreateServiceAccount(ctx, name, armoredPublicKey, string(r), false)
-	if err != nil {
-		return nil, err
-	}
-
-	encodedKey, err := serviceaccount.Encode(name, key)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.New(f.endpoint, client.WithServiceAccount(encodedKey))
-}
-
-func (f *testClientFactory) close() error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	var errs []error
-
-	for _, cli := range f.clients {
-		if err := cli.Close(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errors.Join(errs...)
-}
 
 // AssertAnonymousAuthentication tests the authentication without any credentials.
 func AssertAnonymousAuthentication(testCtx context.Context, client *client.Client) TestFunc {
@@ -448,7 +335,7 @@ type apiAuthzTestCase struct {
 // AssertAPIAuthz tests the authorization checks of the API endpoints.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
+func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFactory *authz.ClientFactory, clusterName string) TestFunc {
 	rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
 	assertSuccess := func(t *testing.T, err error) {
@@ -794,7 +681,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 
 			// test with the role which should succeed
 			t.Run(fmt.Sprintf("%s-success", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientFactory.getClient(rootCtx, tc.requiredRole)
+				scopedClient, testErr := clientFactory.Get(rootCtx, tc.requiredRole)
 				require.NoError(t, testErr)
 
 				assertCurrentUserRole(rootCtx, t, scopedClient.Omni().State(), tc.requiredRole)
@@ -817,7 +704,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 			require.NoError(t, err)
 
 			t.Run(fmt.Sprintf("%s-failure", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientFactory.getClient(rootCtx, failureRole)
+				scopedClient, testErr := clientFactory.Get(rootCtx, failureRole)
 				require.NoError(t, testErr)
 
 				assertCurrentUserRole(rootCtx, t, scopedClient.Omni().State(), failureRole)
@@ -826,809 +713,6 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 
 				tc.assertFailure(t, testErr)
 			})
-		}
-	}
-}
-
-type resourceAuthzTestCase struct {
-	resource              resource.Resource
-	allowedVerbSet        map[state.Verb]struct{}
-	isAdminOnly           bool
-	isOperatorOnly        bool
-	isSignatureSufficient bool
-	isPublic              bool
-	isDestroyNotAllowed   bool
-}
-
-// AssertResourceAuthz tests the authorization checks of the resources (state).
-//
-//nolint:gocognit,gocyclo,cyclop,maintidx
-func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory) TestFunc {
-	rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
-
-	return func(t *testing.T) {
-		allRoles := []role.Role{role.None, role.Reader, role.Operator, role.Admin}
-		allVerbs := []state.Verb{state.Get, state.List, state.Create, state.Update, state.Destroy}
-
-		allVerbsSet := xslices.ToSet(allVerbs)
-		readOnlyVerbSet := xslices.ToSet([]state.Verb{state.Get, state.List})
-
-		// fully client-managed resources
-
-		identity := authres.NewIdentity(uuid.New().String())
-		accessPolicy := authres.NewAccessPolicy()
-		identityLabelRule := authres.NewIdentityLabelRule(uuid.New().String())
-		cluster := omni.NewCluster(uuid.New().String())
-		cluster.TypedSpec().Value.TalosVersion = "1.2.2"
-		configPatch := omni.NewConfigPatch(uuid.New().String())
-		machineLabels := omni.NewMachineLabels(uuid.New().String())
-		machineSet := omni.NewMachineSet(uuid.New().String())
-		machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-		machineSetNode := omni.NewMachineSetNode(uuid.New().String(), machineSet)
-		machineClass := omni.NewMachineClass(uuid.New().String())
-		machineRequestSet := omni.NewMachineRequestSet(uuid.New().String())
-		infraMachineConfig := omni.NewInfraMachineConfig(uuid.New().String())
-		grpcTunnelConfig := siderolink.NewGRPCTunnelConfig(uuid.New().String())
-		installationMediaConfig := omni.NewInstallationMediaConfig(uuid.NewString())
-		kubernetesManifest := omni.NewKubernetesManifestGroup(uuid.NewString())
-
-		extensionsConfiguration := omni.NewExtensionsConfiguration(uuid.New().String())
-		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-
-		machineExtensions := omni.NewMachineExtensions(uuid.New().String())
-		machineExtensions.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
-
-		machineExtensionsStatus := omni.NewMachineExtensionsStatus(uuid.New().String())
-		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
-
-		kernelArgs := omni.NewKernelArgs(uuid.New().String())
-		kernelArgsStatus := omni.NewKernelArgsStatus(uuid.New().String())
-
-		installDiskConfig := omni.NewMachineInstallDiskConfig(uuid.New().String())
-		installDiskConfig.TypedSpec().Value.Disk = "/dev/vda"
-
-		installDiskStatus := omni.NewMachineInstallDiskStatus(uuid.New().String())
-
-		joinToken := siderolink.NewJoinToken(uuid.New().String())
-
-		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
-
-		require.NoError(t, err)
-
-		importedClusterSecret := omni.NewImportedClusterSecrets(cluster.Metadata().ID())
-
-		testCases := make([]resourceAuthzTestCase, 0, 139)
-
-		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource:       accessPolicy,
-				allowedVerbSet: allVerbsSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       joinToken,
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
-			},
-			{
-				resource:            defaultJoinToken,
-				allowedVerbSet:      allVerbsSet,
-				isDestroyNotAllowed: true,
-			},
-			{
-				resource:       identityLabelRule,
-				allowedVerbSet: allVerbsSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       omni.NewInfraMachineBMCConfig(uuid.New().String()),
-				allowedVerbSet: allVerbsSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       cluster,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       configPatch,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineLabels,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineSet,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineSetNode,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       installationMediaConfig,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewNodeForceDestroyRequest(uuid.New().String()),
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineClass,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineRequestSet,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       infraMachineConfig,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewEtcdManualBackup(uuid.New().String()),
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewEtcdBackupS3Conf(),
-				allowedVerbSet: allVerbsSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       extensionsConfiguration,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       machineExtensions,
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       machineExtensionsStatus,
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       kernelArgs,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       kernelArgsStatus,
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       installDiskConfig,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       installDiskStatus,
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       importedClusterSecret,
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Create, state.Destroy}),
-				isOperatorOnly: true,
-			},
-			{
-				resource:       grpcTunnelConfig,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewRotateTalosCA(cluster.Metadata().ID()),
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewRotateKubernetesCA(cluster.Metadata().ID()),
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       kubernetesManifest,
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewKubernetesHealthCheck(uuid.New().String()),
-				allowedVerbSet: allVerbsSet,
-			},
-		}...)
-
-		// read-only resources
-
-		resourceDefinition, err := meta.NewResourceDefinition(meta.ResourceDefinitionSpec{
-			Type: "Tests.cosi.dev",
-		})
-		require.NoError(t, err)
-
-		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource:              resourceDefinition,
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              meta.NewNamespace("test", meta.NamespaceSpec{}),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       identity,
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       authres.NewIdentityLastActive(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       authres.NewPublicKeyLastActive(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       authres.NewUser(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:              authres.NewEulaAcceptance(),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewClusterBootstrapStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewKubernetesHealthCheckStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterConfigVersion(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterDestroyStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterEndpoint(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterKubernetesNodes(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineIdentity(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachinePendingUpdates(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineConfigPatches(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineTalosVersion(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachine(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineConfigStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterMachineRequestStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterDiagnostics(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterUUID(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterWorkloadProxyStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewKubernetesNodeAuditResult(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewEtcdBackup(uuid.New().String(), time.Now()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewControlPlaneStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewExposedService(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              omni.NewFeaturesConfig(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewKubernetesStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       virtual.NewKubernetesUsage(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       virtual.NewSBCConfig(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       virtual.NewCloudPlatformConfig(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       virtual.NewMetalPlatformConfig(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       virtual.NewLabelsCompletion(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewKubernetesUpgradeManifestStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewKubernetesUpgradeStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewLoadBalancerConfig(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewLoadBalancerStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachine(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineSetStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineStatusLink(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineStatusSnapshot(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineConfigGenOptions(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              omni.NewOngoingTask("res"),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              omni.NewKubernetesVersion(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              omni.NewTalosVersion(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewTalosUpgradeStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              omni.NewInstallationMedia(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewRedactedClusterMachineConfig(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineConfigDiff(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewImagePullRequest(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewImagePullStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       siderolink.NewConnectionParams(uuid.New().String()), //nolint:staticcheck // deprecated resource is still registered and needs authz coverage.
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              system.NewSysVersion(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              virtual.NewCurrentUser(),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              virtual.NewAdvertisedEndpoints(),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              virtual.NewClusterPermissions(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              virtual.NewPermissions(),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       virtual.NewSupport(),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              virtual.NewQuirks(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              virtual.NewVersionContract(constants.DefaultTalosVersion), // the ID is a Talos version
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewEtcdBackupStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewEtcdBackupOverallStatus(),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineSetDestroyStatus(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewEtcdBackupStoreStatus(),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              omni.NewTalosExtensions(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewSchematicConfiguration(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:              omni.NewMachineStatusMetrics(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              omni.NewNotification(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              omni.NewClusterMetrics(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:              omni.NewClusterStatusMetrics(uuid.New().String()),
-				allowedVerbSet:        readOnlyVerbSet,
-				isSignatureSufficient: true,
-			},
-			{
-				resource:       omni.NewClusterTaint(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       system.NewResourceLabels[*omni.MachineStatus](uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       siderolink.NewLinkStatus(siderolink.NewLink(uuid.NewString(), nil)),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineRequestSetStatus(uuid.New().String()),
-				allowedVerbSet: allVerbsSet,
-			},
-			{
-				resource:       omni.NewMaintenanceConfigStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineConfigExtractionStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewMachineUpgradeStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewDiscoveryAffiliateDeleteTask(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       authres.NewServiceAccountStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       authres.NewIdentityStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-				isAdminOnly:    true,
-			},
-			{
-				resource:       omni.NewInfraProviderCombinedStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       siderolink.NewAPIConfig(),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       siderolink.NewJoinTokenStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       siderolink.NewNodeUniqueTokenStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterSecretsRotationStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewUpgradeRollout(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
-				resource:       omni.NewClusterKubernetesManifestsStatus(uuid.NewString()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-		}...)
-
-		testCases = append(testCases, resourceAuthzTestCase{
-			resource:       oidc.NewJWTPublicKey(uuid.New().String()),
-			allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
-			isAdminOnly:    true,
-		})
-
-		// no access resources
-		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource: omni.NewImageFactoryAuth(uuid.NewString()),
-			},
-			{
-				resource: system.NewDBVersion(uuid.New().String()),
-			},
-			{
-				resource: system.NewCertRefreshTick(uuid.New().String()),
-			},
-			{
-				resource: authres.NewPublicKey(uuid.New().String()),
-			},
-			{
-				resource: omni.NewEtcdAuditResult(uuid.New().String()),
-			},
-			{
-				resource: omni.NewKubeconfig(uuid.New().String()),
-			},
-			{
-				resource: omni.NewTalosConfig(uuid.New().String()),
-			},
-			{
-				resource: siderolink.NewConfig(),
-			},
-			{
-				resource: omni.NewClusterMachineConfig(uuid.New().String()),
-			},
-			{
-				resource: omni.NewClusterSecrets(uuid.New().String()),
-			},
-			{
-				resource: authres.NewSAMLAssertion(uuid.New().String()),
-			},
-			{
-				resource: authres.NewSAMLLabelRule(uuid.New().String()), //nolint:staticcheck // the deprecated type must stay inaccessible
-			},
-			{
-				resource: omni.NewClusterMachineEncryptionKey(uuid.New().String()),
-			},
-			{
-				resource: omni.NewEtcdBackupEncryption(uuid.New().String()),
-			},
-			{
-				resource: omni.NewBackupData(uuid.New().String()),
-			},
-			{
-				resource: siderolink.NewPendingMachineStatus(uuid.NewString()),
-			},
-			{
-				resource: siderolink.NewMachineJoinConfig(uuid.NewString()),
-			},
-			{
-				resource: siderolink.NewJoinTokenUsage(uuid.NewString()),
-			},
-			{
-				resource: siderolink.NewNodeUniqueToken(uuid.NewString()),
-			},
-			{
-				resource: omni.NewClusterMachineSecrets(uuid.NewString()),
-			},
-			{
-				resource: omni.NewSecretRotation(uuid.NewString()),
-			},
-			{
-				resource: omni.NewMachineSetConfigStatus(uuid.NewString()),
-			},
-		}...)
-
-		// custom resources
-
-		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource:       siderolink.NewLink(uuid.New().String(), &specs.SiderolinkSpec{}),
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
-			},
-			{
-				resource:       siderolink.NewPendingMachine(uuid.New().String(), &specs.SiderolinkSpec{}),
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
-			},
-		}...)
-
-		untestedResourceTypes := xslices.ToSetFunc(registry.Resources, func(rd generic.ResourceWithRD) resource.Type {
-			return rd.ResourceDefinition().Type
-		})
-
-		// infra provider resources have their custom authz logic, they are unit-tested in their package, exclude them
-		untestedResourceTypes = maps.Filter(untestedResourceTypes, func(resourceType resource.Type, _ struct{}) bool {
-			return !infraprovider.IsInfraProviderResource(resources.InfraProviderNamespace, resourceType)
-		})
-
-		// delete excluded resources from the untested set
-		delete(untestedResourceTypes, k8s.KubernetesResourceType)
-		delete(untestedResourceTypes, authres.AuthConfigType)
-
-		for _, tc := range testCases {
-			for _, testVerb := range allVerbs {
-				for _, testRole := range allRoles {
-					name := fmt.Sprintf("resource-authz-%s-%s-%s", testRole, tc.resource.Metadata().Type(), verbToString(testVerb))
-
-					// delete the resource type from the untested set
-					delete(untestedResourceTypes, tc.resource.Metadata().Type())
-
-					t.Run(name, func(t *testing.T) {
-						scopedCli, testErr := clientFactory.getClient(rootCtx, testRole)
-						require.NoError(t, testErr)
-
-						// ensure that scopedCli is operating with the correct role
-						assertCurrentUserRole(rootCtx, t, scopedCli.Omni().State(), testRole)
-
-						noSignatureCtx := context.WithValue(rootCtx, interceptor.SkipInterceptorContextKey{}, struct{}{})
-
-						accessErr := accessResource(noSignatureCtx, t, rootCli, scopedCli, tc.resource, testVerb)
-
-						if !tc.isPublic {
-							assert.ErrorContains(t, accessErr, "invalid signature")
-
-							// refresh the error but with a signature this time
-							accessErr = accessResource(rootCtx, t, rootCli, scopedCli, tc.resource, testVerb)
-						}
-
-						if len(tc.allowedVerbSet) == 0 {
-							assert.ErrorContains(t, accessErr, "no access is permitted")
-
-							return
-						}
-
-						isVerbError := accessErr != nil && strings.Contains(accessErr.Error(), "only") && strings.Contains(accessErr.Error(), "access is permitted")
-						isRoleError := accessErr != nil && strings.Contains(accessErr.Error(), "insufficient role:")
-
-						// assert the error
-
-						isReader := testRole.Check(role.Reader) == nil
-						isOperator := testRole.Check(role.Operator) == nil
-						isAdmin := testRole.Check(role.Admin) == nil
-						_, verbAllowed := tc.allowedVerbSet[testVerb]
-
-						var sufficientRole bool
-
-						switch {
-						case tc.isSignatureSufficient || tc.isPublic:
-							sufficientRole = true
-						case tc.isAdminOnly:
-							sufficientRole = isAdmin
-						case tc.isOperatorOnly:
-							sufficientRole = isOperator
-						default:
-							if testVerb.Readonly() {
-								sufficientRole = isReader
-							} else {
-								sufficientRole = isOperator
-							}
-						}
-
-						switch {
-						case !verbAllowed && !sufficientRole:
-							// we check for either of these errors because their order is not guaranteed
-							assert.Truef(t, isVerbError || isRoleError, "expected verb not allowed or insufficient role error, got: %v", accessErr)
-						case !verbAllowed:
-							assert.Truef(t, isVerbError, "expected verb not allowed error, got: %v", accessErr)
-						case !sufficientRole:
-							assert.Truef(t, isRoleError, "expected insufficient role error, got: %v", accessErr)
-						default:
-							if accessErr != nil {
-								toleratedErrors := map[string]string{
-									"NotFoundError":                   "doesn't exist",
-									"ValidationError":                 "failed to validate",
-									"UnsupportedError":                "unsupported resource type",
-									"AlreadyExists(DefaultJoinToken)": "resource DefaultJoinTokens.omni.sidero.dev(default/default@1) already exists",
-									"AlreadyExists(AccessPolicy)":     "resource AccessPolicies.omni.sidero.dev(default/access-policy@undefined) already exists",
-									"VersionConflict(AccessPolicy)":   "failed to update: resource AccessPolicies.omni.sidero.dev(default/access-policy@1) update conflict: expected version",
-								}
-
-								isExpectedError := false
-
-								for _, toleratedErrorSubstring := range toleratedErrors {
-									if strings.Contains(accessErr.Error(), toleratedErrorSubstring) {
-										isExpectedError = true
-
-										break
-									}
-								}
-
-								assert.Truef(t, isExpectedError, "expected one of: %q, got: %v", maps.Keys(toleratedErrors), accessErr)
-							}
-						}
-					})
-				}
-			}
-		}
-
-		// ensure that all resources are tested
-		for untestedResourceType := range untestedResourceTypes {
-			assert.Failf(t, "resource-authz", "resource type %s is not tested", untestedResourceType)
 		}
 	}
 }
@@ -1665,7 +749,7 @@ const grpcMetadataPrefix = "Grpc-Metadata-"
 // being unsupported, when the caller may not reach them.
 //
 //nolint:gocognit,maintidx
-func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
+func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, clientFactory *authz.ClientFactory, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
 		defer cancel()
@@ -1680,7 +764,7 @@ func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, c
 
 		existing := machines.Get(0).Metadata().ID()
 
-		cli, err := clientFactory.getClient(ctx, role.None)
+		cli, err := clientFactory.Get(ctx, role.None)
 		require.NoError(t, err)
 
 		conn := cli.Talos().WithCluster(clusterName).WithNodes(existing, existing)
@@ -1698,7 +782,7 @@ func AssertSeveralNodesDenied(testCtx context.Context, rootCli *client.Client, c
 
 // AssertResolutionErrorsAuthz checks that the Talos API answers a caller without access the same way whichever target
 // it names, so the answer does not depend on the target.
-func AssertResolutionErrorsAuthz(testCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
+func AssertResolutionErrorsAuthz(testCtx context.Context, rootCli *client.Client, clientFactory *authz.ClientFactory, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
 		defer cancel()
@@ -1714,7 +798,7 @@ func AssertResolutionErrorsAuthz(testCtx context.Context, rootCli *client.Client
 		existing := machines.Get(0).Metadata().ID()
 
 		// signed, so the comparison is about access and not about the signature
-		cli, err := clientFactory.getClient(ctx, role.None)
+		cli, err := clientFactory.Get(ctx, role.None)
 		require.NoError(t, err)
 
 		t.Run("Node", func(t *testing.T) {
@@ -2111,32 +1195,6 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client) Tes
 	}
 }
 
-func accessResource(ctx context.Context, t *testing.T, rootCli *client.Client, cli *client.Client, res resource.Resource, verb state.Verb) error {
-	var err error
-
-	md := res.Metadata()
-
-	switch verb { //nolint:exhaustive
-	case state.List:
-		_, err = cli.Omni().State().List(ctx, md)
-	case state.Get:
-		_, err = cli.Omni().State().Get(ctx, md)
-	case state.Destroy:
-		err = cli.Omni().State().Destroy(ctx, md)
-	case state.Create:
-		err = cli.Omni().State().Create(ctx, res)
-		if err == nil {
-			defer destroy(ctx, t, rootCli, md)
-		}
-	case state.Update:
-		err = cli.Omni().State().Update(ctx, res)
-	default:
-		assert.Fail(t, "unsupported test verb: %s", verbToString(verb))
-	}
-
-	return err
-}
-
 func assertCurrentUserRole(ctx context.Context, t *testing.T, st state.State, expected role.Role) {
 	currentUser, currentUserErr := safe.StateGet[*virtual.CurrentUser](ctx, st, virtual.NewCurrentUser().Metadata())
 	require.NoError(t, currentUserErr)
@@ -2230,24 +1288,5 @@ func AssertUserManagementAPIFlow(testCtx context.Context, cli *client.Client) Te
 		// Destroy non-existent user should fail with NotFound.
 		err = cli.Management().DestroyUser(testCtx, "nonexistent@example.com")
 		assert.Equal(t, codes.NotFound, status.Code(err))
-	}
-}
-
-func verbToString(verb state.Verb) string {
-	switch verb {
-	case state.List:
-		return "list"
-	case state.Get:
-		return "get"
-	case state.Create:
-		return "create"
-	case state.Update:
-		return "update"
-	case state.Destroy:
-		return "destroy"
-	case state.Watch:
-		return "watch"
-	default:
-		return "unknown"
 	}
 }
