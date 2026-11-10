@@ -41,20 +41,34 @@ export function isClaimedVolume(volume: Volume): boolean {
 }
 
 /**
+ * Returns where the volume starts on its disk, or undefined when that isn't known.
+ *
+ * Talos 1.12+ reports it, but resets it to 0 when it rescans a partition on its
+ * own, as it does after formatting one, e.g. EPHEMERAL
+ * (https://github.com/siderolabs/talos/pull/14916). No partition can start at
+ * 0, where the partition table is, so 0 is taken to mean unknown for a partition.
+ */
+export function getVolumeOffset(volume: Volume): number | undefined {
+  const { offset, parent } = volume.spec
+
+  return parent && !offset ? undefined : offset
+}
+
+/**
  * Returns the volumes laid out on the disk: its partitions, or when it has none,
  * the whole-disk volume if the disk itself carries a signature (a filesystem, an
  * MD RAID member, an LVM physical volume, ...).
  */
 export function getDiskVolumes(disk: Disk, volumes: Volume[]): Volume[] {
-  const partitions = volumes
-    .filter((v) => v.spec.parent === disk.metadata.id)
-    .sort((a, b) => {
-      if (a.spec.offset !== undefined && b.spec.offset !== undefined) {
-        return a.spec.offset - b.spec.offset
-      }
+  const partitions = volumes.filter((v) => v.spec.parent === disk.metadata.id)
 
-      return (a.spec.partition_index || 0) - (b.spec.partition_index || 0)
-    })
+  // Order by offset only when every partition's is known: comparing by offset
+  // for some pairs and by index for others doesn't give a consistent order.
+  if (partitions.every((v) => getVolumeOffset(v) !== undefined)) {
+    partitions.sort((a, b) => getVolumeOffset(a)! - getVolumeOffset(b)!)
+  } else {
+    partitions.sort((a, b) => (a.spec.partition_index || 0) - (b.spec.partition_index || 0))
+  }
 
   if (partitions.length) return partitions
 
@@ -62,26 +76,6 @@ export function getDiskVolumes(disk: Disk, volumes: Volume[]): Volume[] {
   const name = wholeDisk?.spec.name
 
   return wholeDisk && name && !partitionTableNames.has(name) ? [wholeDisk] : []
-}
-
-/**
- * Returns the IDs of the disks built on top of the given disk, e.g. the MD array
- * a RAID member disk belongs to. Only disks in `candidates` are considered.
- */
-export function getParentDiskIds(disk: Disk, candidates: Disk[]): string[] {
-  return candidates
-    .filter((d) => d.spec.secondary_disks?.includes(disk.metadata.id!))
-    .map((d) => d.metadata.id!)
-}
-
-/**
- * Returns the IDs of the disks the given disk is built from, e.g. the members of
- * an MD array. Only disks in `candidates` are considered.
- */
-export function getChildDiskIds(disk: Disk, candidates: Disk[]): string[] {
-  const ids = new Set(candidates.map((d) => d.metadata.id))
-
-  return (disk.spec.secondary_disks ?? []).filter((id) => ids.has(id))
 }
 
 export function getVolumeDisplayName(volume: Volume): string {
@@ -101,12 +95,12 @@ export type DiskSegment =
  * Splits the disk into volume and unallocated segments, in on-disk order.
  *
  * Talos 1.12+ reports each volume's offset, which places free space between
- * partitions where it actually is. Older versions don't, so all free space is
- * put after the last volume.
+ * partitions where it actually is. When any offset is unknown, all free space
+ * is put after the last volume.
  */
 export function getDiskSegments(diskSize: number, volumes: Volume[]): DiskSegment[] {
   const segments: DiskSegment[] = []
-  const positioned = volumes.length > 0 && volumes.every((v) => v.spec.offset !== undefined)
+  const positioned = volumes.length > 0 && volumes.every((v) => getVolumeOffset(v) !== undefined)
 
   let cursor = 0
 
@@ -114,7 +108,7 @@ export function getDiskSegments(diskSize: number, volumes: Volume[]): DiskSegmen
     const size = volume.spec.size || 0
 
     if (positioned) {
-      const offset = volume.spec.offset!
+      const offset = getVolumeOffset(volume)!
 
       if (offset > cursor) {
         segments.push({ type: 'unallocated', offset: cursor, size: offset - cursor })

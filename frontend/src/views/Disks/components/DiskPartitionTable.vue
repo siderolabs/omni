@@ -14,15 +14,15 @@ import StatusPill from '@/components/Status/StatusPill.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
-import { getVolumeDisplayName } from '@/views/Machines/lib/diskVolumes'
-import { isVolumePrepared } from '@/views/Machines/lib/volumeStatus'
-import { getVolumePhaseAppearance } from '@/views/Machines/lib/volumeStatus'
+import DeviceLink from '@/views/Disks/components/DeviceLink.vue'
+import type { DiskNodeVolume } from '@/views/Disks/lib/diskTopology'
+import { getVolumeDisplayName } from '@/views/Disks/lib/diskVolumes'
+import { getVolumePhaseAppearance, isVolumePrepared } from '@/views/Disks/lib/volumeStatus'
 
 defineProps<{
-  partitions: {
-    volume: Resource<DiscoveredVolumeSpec>
-    volumeStatus?: Resource<VolumeStatusSpec>
-  }[]
+  partitions: DiskNodeVolume[]
+  /** Returns the name to show for a device ID. */
+  nameOf: (id: string) => string
 }>()
 
 enum Encryption {
@@ -51,17 +51,24 @@ const getEffectiveFilesystem = (
   return volume.spec.name || volumeStatus?.spec.filesystem || 'N/A'
 }
 
-const isEncrypted = (item?: Resource<VolumeStatusSpec>) => {
-  if (item?.spec.encryptionProvider) {
+const getEncryption = (
+  volume: Resource<DiscoveredVolumeSpec>,
+  volumeStatus?: Resource<VolumeStatusSpec>,
+) => {
+  // A LUKS header on the volume shows it is encrypted, even when Talos doesn't
+  // manage the volume and so has no status for it.
+  if (volumeStatus?.spec.encryptionProvider || volume.spec.name === 'luks') {
     return Encryption.Enabled
   }
 
   // Encryption is set up when a volume is prepared, so before that its absence means nothing.
-  return item && isVolumePrepared(item.spec.phase) ? Encryption.Disabled : Encryption.Unknown
+  return volumeStatus && isVolumePrepared(volumeStatus.spec.phase)
+    ? Encryption.Disabled
+    : Encryption.Unknown
 }
 
-const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
-  switch (isEncrypted(item)) {
+const getEncryptionClass = (encryption: Encryption) => {
+  switch (encryption) {
     case Encryption.Disabled:
       return 'bg-surface-hover text-content-default'
     case Encryption.Enabled:
@@ -71,8 +78,8 @@ const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
   }
 }
 
-const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
-  switch (isEncrypted(item)) {
+const getEncryptionIcon = (encryption: Encryption): IconType => {
+  switch (encryption) {
     case Encryption.Disabled:
       return 'unlocked'
     case Encryption.Enabled:
@@ -99,7 +106,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
 
       <template #body>
         <TableRow
-          v-for="{ volume, volumeStatus } in partitions"
+          v-for="{ volume, volumeStatus, usedBy } in partitions"
           :key="volume.metadata.id"
           :aria-labelledby="`volume-${volume.metadata.id}-title`"
           class="whitespace-nowrap"
@@ -121,6 +128,13 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
                 </div>
                 <div class="text-xs text-content-muted">
                   {{ volume.spec.dev_path }}
+                  <template v-if="usedBy.length">
+                    · used by
+                    <template v-for="(id, i) in usedBy" :key="id">
+                      <template v-if="i > 0">,&nbsp;</template>
+                      <DeviceLink :id :name="nameOf(id)" />
+                    </template>
+                  </template>
                 </div>
               </div>
             </div>
@@ -144,10 +158,14 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
           <TableCell>
             <span
               class="inline-flex items-center gap-micro rounded p-micro"
-              :class="getEncryptionClass(volumeStatus)"
+              :class="getEncryptionClass(getEncryption(volume, volumeStatus))"
             >
-              <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />
-              <span class="text-xs/none">{{ isEncrypted(volumeStatus) }}</span>
+              <TIcon
+                :icon="getEncryptionIcon(getEncryption(volume, volumeStatus))"
+                class="size-3"
+                aria-hidden
+              />
+              <span class="text-xs/none">{{ getEncryption(volume, volumeStatus) }}</span>
             </span>
           </TableCell>
 

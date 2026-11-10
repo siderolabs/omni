@@ -6,22 +6,106 @@ import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
+  DefaultNamespace,
+  MachineStatusType,
+  TalosBlockDeviceType,
   TalosDiscoveredVolumeType,
   TalosDiskType,
+  TalosLVMLogicalVolumeStatusType,
   TalosRuntimeNamespace,
+  TalosStorageNamespace,
   TalosVolumeStatusType,
 } from '@/api/resources'
 import {
+  type DeviceSpec,
   type DiscoveredVolumeSpec,
   type DiskSpec,
   type VolumeStatusSpec,
 } from '@/api/talos/block.pb'
+import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
 
+import {
+  type CapturedMachine,
+  talos114LuksLvm,
+  talos114LvmRaid1,
+  talos114Maintenance,
+  talos114MdRaid1,
+  talos115LuksLvmRaid1,
+  talos115MdRaid1,
+} from './fixtures'
 import NodeDisks from './MachineDisks.vue'
+
+const machineId = 'machine'
+
+const machineStatusHandler = (talosVersion: string) =>
+  createWatchStreamHandler<MachineStatusSpec>({
+    expectedOptions: { namespace: DefaultNamespace, type: MachineStatusType, id: machineId },
+    initialResources: [
+      {
+        metadata: { id: machineId, namespace: DefaultNamespace, type: MachineStatusType },
+        spec: { talos_version: talosVersion },
+      },
+    ],
+  }).handler
+
+// Each block device with the devices it is built from, e.g. ['md127', ['sda', 'sdb']].
+const blockDevicesHandler = (devices: [id: string, secondaries: string[], spec?: DeviceSpec][]) =>
+  createWatchStreamHandler<DeviceSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosBlockDeviceType },
+    initialResources: devices.map(([id, secondaries, spec]) => ({
+      metadata: { id, namespace: TalosRuntimeNamespace, type: TalosBlockDeviceType },
+      spec: { secondaries, ...spec },
+    })),
+  }).handler
+
+const logicalVolumesHandler = (volumes: LVMLogicalVolumeStatusSpec[]) =>
+  createWatchStreamHandler<LVMLogicalVolumeStatusSpec>({
+    expectedOptions: { namespace: TalosStorageNamespace, type: TalosLVMLogicalVolumeStatusType },
+    initialResources: volumes.map((spec) => ({
+      metadata: {
+        id: spec.fullName!,
+        namespace: TalosStorageNamespace,
+        type: TalosLVMLogicalVolumeStatusType,
+      },
+      spec,
+    })),
+  }).handler
+
+// Serves resources captured from a real machine. See fixtures/README.md.
+const capturedMachineHandlers = (fixture: CapturedMachine) => [
+  machineStatusHandler(fixture.talosVersion),
+  createWatchStreamHandler<DiskSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+    initialResources: fixture.disks,
+  }).handler,
+  createWatchStreamHandler<DeviceSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosBlockDeviceType },
+    initialResources: fixture.blockDevices,
+  }).handler,
+  createWatchStreamHandler<DiscoveredVolumeSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+    initialResources: fixture.volumes,
+  }).handler,
+  createWatchStreamHandler<VolumeStatusSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+    initialResources: fixture.volumeStatuses,
+  }).handler,
+  createWatchStreamHandler<LVMLogicalVolumeStatusSpec>({
+    expectedOptions: { namespace: TalosStorageNamespace, type: TalosLVMLogicalVolumeStatusType },
+    initialResources: fixture.logicalVolumes,
+  }).handler,
+]
 
 const meta: Meta<typeof NodeDisks> = {
   component: NodeDisks,
+  args: { machineId },
+  // Defaults for the watches most stories don't care about. A story's own
+  // handlers take precedence over these.
+  beforeEach({ msw }) {
+    msw.use(machineStatusHandler('v1.15.0'), blockDevicesHandler([]), logicalVolumesHandler([]))
+  },
 }
 
 export default meta
@@ -555,12 +639,13 @@ export const WithRaid: Story = {
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
         initialResources: [],
       }).handler,
+      blockDevicesHandler([['md127', ['sda', 'sdb']]]),
     )
   },
 }
 
 // A whole disk used as an LVM physical volume, with two logical volumes on it.
-// The logical volumes are device-mapper disks, which this view does not show.
+// Talos 1.15+ reports the logical volumes' device-mapper kind and name.
 export const WithLvm: Story = {
   beforeEach({ msw }) {
     msw.use(
@@ -612,6 +697,10 @@ export const WithLvm: Story = {
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
         initialResources: [],
       }).handler,
+      blockDevicesHandler([
+        ['dm-0', ['sdc']],
+        ['dm-1', ['sdc']],
+      ]),
     )
   },
 }
@@ -721,6 +810,275 @@ export const WithVolumeProblems: Story = {
         ],
       }).handler,
     )
+  },
+}
+
+// The same as WithLvm on Talos 1.14, which doesn't report the device-mapper
+// kind: the logical volumes are recognised by their kernel device numbers.
+export const WithLvmOnTalos114: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      machineStatusHandler('v1.14.2'),
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('sdc', { size: 1024 * GiB, transport: 'sata', rotational: true }),
+          diskResource('dm-0', { size: 600 * GiB, secondary_disks: ['sdc'] }),
+          diskResource('dm-1', { size: 200 * GiB, secondary_disks: ['sdc'] }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('sdc', { type: 'disk', name: 'lvm2-pv', offset: 0, size: 1024 * GiB }),
+          volumeResource('dm-0', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'data',
+            offset: 0,
+            size: 600 * GiB,
+          }),
+          volumeResource('dm-1', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'logs',
+            offset: 0,
+            size: 200 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+      blockDevicesHandler([
+        ['dm-0', ['sdc'], { major: 253, minor: 0 }],
+        ['dm-1', ['sdc'], { major: 253, minor: 1 }],
+      ]),
+      logicalVolumesHandler([
+        { fullName: 'vg0/data', kernelMajor: '253', kernelMinor: '0', layout: 'linear' },
+        { fullName: 'vg0/logs', kernelMajor: '253', kernelMinor: '1', layout: 'linear' },
+      ]),
+    )
+  },
+}
+
+// An MD RAID1 array built from one partition on each disk, next to Talos's own
+// partitions on the first disk.
+export const WithRaidOnPartitions: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('nvme0n1', { size: 256 * GiB, transport: 'nvme' }),
+          diskResource('nvme1n1', { size: 256 * GiB, transport: 'nvme' }),
+          diskResource('md0', { size: 128 * GiB, secondary_disks: ['nvme0n1', 'nvme1n1'] }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('nvme0n1', { type: 'disk', name: 'gpt', offset: 0, size: 256 * GiB }),
+          volumeResource('nvme1n1', { type: 'disk', name: 'gpt', offset: 0, size: 256 * GiB }),
+          volumeResource('nvme0n1p1', {
+            type: 'partition',
+            name: 'xfs',
+            parent: 'nvme0n1',
+            partition_index: 1,
+            partition_label: 'EPHEMERAL',
+            offset: 1024 ** 2,
+            size: 100 * GiB,
+          }),
+          ...['nvme0n1', 'nvme1n1'].map((disk, i) =>
+            volumeResource(`${disk}p${2 - i}`, {
+              type: 'partition',
+              name: 'linux_raid_member',
+              parent: disk,
+              partition_index: 2 - i,
+              offset: i ? 1024 ** 2 : 120 * GiB,
+              size: 128 * GiB,
+            }),
+          ),
+          volumeResource('md0', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'data',
+            offset: 0,
+            size: 128 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+      blockDevicesHandler([['md0', ['nvme0n1p2', 'nvme1n1p1']]]),
+    )
+  },
+}
+
+// A LUKS-encrypted partition holding an LVM physical volume. The decrypted
+// device (dm-0) is not shown: the logical volume is backed by the disk.
+export const WithLvmOnLuks: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('sda', { size: 512 * GiB, transport: 'sata' }),
+          diskResource('dm-0', {
+            size: 499 * GiB,
+            secondary_disks: ['sda'],
+            device_mapper_name: 'luks-data',
+            device_mapper_kind: 'crypt',
+          }),
+          diskResource('dm-1', {
+            size: 400 * GiB,
+            secondary_disks: ['dm-0'],
+            device_mapper_name: 'vg0-data',
+            device_mapper_kind: 'lvm',
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('sda', { type: 'disk', name: 'gpt', offset: 0, size: 512 * GiB }),
+          volumeResource('sda1', {
+            type: 'partition',
+            name: 'xfs',
+            parent: 'sda',
+            partition_index: 1,
+            partition_label: 'EPHEMERAL',
+            offset: 1024 ** 2,
+            size: 12 * GiB,
+          }),
+          volumeResource('sda2', {
+            type: 'partition',
+            name: 'luks',
+            parent: 'sda',
+            partition_index: 2,
+            offset: 13 * GiB,
+            size: 499 * GiB,
+          }),
+          volumeResource('dm-0', { type: 'disk', name: 'lvm2-pv', offset: 0, size: 499 * GiB }),
+          volumeResource('dm-1', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'data',
+            offset: 0,
+            size: 400 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+      blockDevicesHandler([
+        ['dm-0', ['sda2']],
+        ['dm-1', ['dm-0']],
+      ]),
+    )
+  },
+}
+
+// A SAN LUN reached through two paths, sdb and sdc, with a logical volume on it.
+export const WithMultipath: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('sdb', { size: 2048 * GiB, transport: 'iscsi' }),
+          diskResource('sdc', { size: 2048 * GiB, transport: 'iscsi' }),
+          diskResource('dm-2', {
+            size: 2048 * GiB,
+            secondary_disks: ['sdb', 'sdc'],
+            device_mapper_name: '3600a098038303053',
+            device_mapper_kind: 'mpath',
+          }),
+          diskResource('dm-3', {
+            size: 1024 * GiB,
+            secondary_disks: ['dm-2'],
+            device_mapper_name: 'san-volumes',
+            device_mapper_kind: 'lvm',
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          ...['sdb', 'sdc', 'dm-2'].map((id) =>
+            volumeResource(id, { type: 'disk', name: 'lvm2-pv', offset: 0, size: 2048 * GiB }),
+          ),
+          volumeResource('dm-3', {
+            type: 'disk',
+            name: 'xfs',
+            label: 'volumes',
+            offset: 0,
+            size: 1024 * GiB,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+      blockDevicesHandler([
+        ['dm-2', ['sdb', 'sdc']],
+        ['dm-3', ['dm-2']],
+      ]),
+    )
+  },
+}
+
+// A Talos 1.14 QEMU machine in maintenance mode, as captured.
+export const CapturedTalos114Maintenance: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos114Maintenance))
+  },
+}
+
+// A Talos 1.14 QEMU machine with an LVM RAID1 logical volume, data/data, over
+// vdc and vdd, as captured. LVM builds it from hidden rmeta/rimage sub-volumes
+// (dm-0..dm-3), which Talos reports as block devices but not as disks.
+export const CapturedTalos114LvmRaid1: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos114LvmRaid1))
+  },
+}
+
+// A Talos 1.14 QEMU machine with an MD RAID1 array, md0, over vdc and vdd, and
+// a user volume on the array, as captured.
+export const CapturedTalos114MdRaid1: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos114MdRaid1))
+  },
+}
+
+// A Talos 1.14 QEMU machine with two LUKS-encrypted volumes on vda, one holding
+// the LVM physical volume behind vg0/data, as captured.
+export const CapturedTalos114LuksLvm: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos114LuksLvm))
+  },
+}
+
+// A Talos 1.15 QEMU machine with an MD RAID1 array, as captured.
+export const CapturedTalos115MdRaid1: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos115MdRaid1))
+  },
+}
+
+// A Talos 1.15 QEMU machine with LUKS volumes and LVM on LUKS on vda, and an
+// LVM RAID1 logical volume over vdc and vdd, as captured. Talos 1.15 reports
+// each device-mapper device's kind.
+export const CapturedTalos115LuksLvmRaid1: Story = {
+  beforeEach({ msw }) {
+    msw.use(...capturedMachineHandlers(talos115LuksLvmRaid1))
   },
 }
 

@@ -8,10 +8,8 @@ import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
 
 import {
-  getChildDiskIds,
   getDiskSegments,
   getDiskVolumes,
-  getParentDiskIds,
   getVolumeDisplayName,
   isClaimedVolume,
 } from './diskVolumes'
@@ -62,26 +60,6 @@ describe('getDiskVolumes', () => {
 
   test('ignores the whole-disk volume of a blank disk', () => {
     expect(getDiskVolumes(disk('sda'), [volume('sda', { type: 'disk' })])).toEqual([])
-  })
-})
-
-describe('getParentDiskIds', () => {
-  test('returns the disks which list the disk as a secondary', () => {
-    const disks = [
-      disk('sda'),
-      disk('md127', { secondary_disks: ['sda', 'sdb'] }),
-      disk('md126', { secondary_disks: ['sdc'] }),
-    ]
-
-    expect(getParentDiskIds(disks[0], disks)).toEqual(['md127'])
-  })
-})
-
-describe('getChildDiskIds', () => {
-  test('returns the visible secondaries of the disk', () => {
-    const disks = [disk('sda'), disk('md127', { secondary_disks: ['sda', 'dm-0'] })]
-
-    expect(getChildDiskIds(disks[1], disks)).toEqual(['sda'])
   })
 })
 

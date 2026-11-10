@@ -15,6 +15,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/perf"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
+	"github.com/siderolabs/talos/pkg/machinery/resources/storage"
 	"github.com/siderolabs/talos/pkg/machinery/resources/v1alpha1"
 )
 
@@ -31,6 +32,10 @@ const (
 	_ = block.DiscoveredVolumeType
 	// tsgen:TalosDiskType
 	_ = block.DiskType
+	// tsgen:TalosBlockDeviceType
+	_ = block.DeviceType
+	// tsgen:TalosLVMLogicalVolumeStatusType
+	_ = storage.LVMLogicalVolumeStatusType
 	// tsgen:TalosMemoryType
 	_ = perf.MemoryType
 	// tsgen:TalosNodenameType
@@ -87,4 +92,6 @@ const (
 	_ = network.NamespaceName
 	// tsgen:TalosKubeSpanNamespace
 	_ = kubespan.NamespaceName
+	// tsgen:TalosStorageNamespace
+	_ = storage.NamespaceName
 )

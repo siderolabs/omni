@@ -14,12 +14,21 @@ import {
   getDiskSegments,
   getVolumeDisplayName,
   isClaimedVolume,
-} from '@/views/Machines/lib/diskVolumes'
+} from '@/views/Disks/lib/diskVolumes'
 
-const { disk, volumes } = defineProps<{
+const {
+  disk,
+  volumes,
+  usedVolumes = [],
+} = defineProps<{
   disk: Resource<DiskSpec>
   volumes: Resource<DiscoveredVolumeSpec>[]
+  /** IDs of volumes a shown device is built on, e.g. a LUKS partition holding an LVM physical volume. */
+  usedVolumes?: string[]
 }>()
+
+const isClaimed = (volume: Resource<DiscoveredVolumeSpec>) =>
+  isClaimedVolume(volume) || usedVolumes.includes(volume.metadata.id!)
 
 const segments = computed(() => getDiskSegments(disk.spec.size || 0, volumes))
 
@@ -49,7 +58,7 @@ const otherVolumeColors = computed(
     new Map(
       volumes
         .filter((v) => {
-          if (isClaimedVolume(v)) return false
+          if (isClaimed(v)) return false
 
           const label = v.spec.partition_label?.toLowerCase()
 
@@ -68,7 +77,7 @@ const claimedVolumeClass =
   'bg-surface-raised text-content-secondary ring-1 ring-border-strong ring-inset'
 
 const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
-  if (isClaimedVolume(volume)) return claimedVolumeClass
+  if (isClaimed(volume)) return claimedVolumeClass
 
   const label = volume.spec.partition_label?.toLowerCase() as keyof typeof knownLabelColors
 

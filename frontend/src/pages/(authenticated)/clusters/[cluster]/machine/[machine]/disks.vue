@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useTitle } from '@/methods/title'
-import MachineDisks from '@/views/Machines/MachineDisks.vue'
+import MachineDisks from '@/views/Disks/MachineDisks.vue'
 
 definePage({ name: 'NodeDisks' })
 
