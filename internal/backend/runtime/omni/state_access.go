@@ -20,8 +20,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	oidcres "github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -32,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -40,83 +39,6 @@ import (
 var PublicResourceTypes = xslices.ToSet([]resource.Type{
 	authres.AuthConfigType,
 })
-
-var (
-	// clusterIDTypeSet is the set of resource types which have the related cluster's ID as their ID.
-	clusterIDTypeSet = xslices.ToSet([]resource.Type{
-		omni.ClusterBootstrapStatusType,
-		omni.ClusterConfigVersionType,
-		omni.ClusterDestroyStatusType,
-		omni.ClusterEndpointType,
-		omni.ClusterWorkloadProxyStatusType,
-		omni.ClusterKubernetesNodesType,
-		omni.ClusterTaintType,
-		omni.ClusterType,
-		omni.ClusterUUIDType,
-		omni.ClusterSecretsType,
-		omni.ClusterStatusType,
-		omni.ClusterDiagnosticsType,
-		omni.EtcdAuditResultType,
-		omni.EtcdBackupStatusType,
-		omni.EtcdManualBackupType,
-		omni.ImportedClusterSecretsType,
-		omni.ClusterSecretsRotationStatusType,
-		omni.RotateTalosCAType,
-		omni.SecretRotationType,
-		omni.RotateKubernetesCAType,
-		omni.ClusterKubernetesManifestsStatusType,
-		omni.KubernetesStatusType,
-		omni.KubernetesUpgradeStatusType,
-		omni.KubernetesUpgradeManifestStatusType,
-		omni.KubernetesNodeAuditResultType,
-		omni.TalosUpgradeStatusType,
-		omni.LoadBalancerConfigType,
-		omni.LoadBalancerStatusType,
-		omni.UpgradeRolloutType,
-	})
-
-	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
-	clusterLabelTypeSet = xslices.ToSet([]resource.Type{
-		omni.ClusterMachineConfigType,
-		omni.ClusterMachineIdentityType,
-		omni.ClusterMachineType,
-		omni.ClusterMachineConfigPatchesType,
-		omni.ClusterMachineConfigStatusType,
-		omni.ClusterMachineTalosVersionType,
-		omni.ClusterMachineStatusType,
-		omni.ClusterMachineRequestStatusType,
-		omni.ConfigPatchType,
-		omni.ControlPlaneStatusType,
-		omni.ExposedServiceType,
-		omni.ImagePullRequestType,
-		omni.ImagePullStatusType,
-		omni.MachineSetType,
-		omni.MachineSetStatusType,
-		omni.MachineSetNodeType,
-		omni.EtcdBackupType,
-		omni.SchematicConfigurationType,
-		omni.ExtensionsConfigurationType,
-		omni.MachineUpgradeStatusType,
-		omni.KernelArgsStatusType,
-		omni.MachineExtensionsStatusType,
-		omni.MachineExtensionsType,
-		omni.MachineInstallDiskStatusType, // the cluster label is present only when the machine is allocated to a cluster
-		omni.NodeForceDestroyRequestType,  // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
-		omni.DiscoveryAffiliateDeleteTaskType,
-		omni.RedactedClusterMachineConfigType,
-		omni.MachineConfigDiffType,
-		omni.MachinePendingUpdatesType,
-		omni.ClusterMachineSecretsType,
-		omni.KubernetesManifestGroupType,
-		infra.InfraMachineType,
-		infra.InfraMachineStatusType,
-		omni.KubernetesHealthCheckType,
-		omni.KubernetesHealthCheckStatusType,
-	})
-
-	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
-	userManagedResourceTypeSet = xslices.ToSet(common.UserManagedResourceTypes)
-)
 
 // authorizationValidationOptions returns the validation options responsible for all authorization checks.
 //
@@ -340,32 +262,25 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 }
 
 func isClusterRelatedType(typ resource.Type) bool {
-	_, ok := clusterIDTypeSet[typ]
-	if ok {
-		return true
-	}
-
-	_, ok = clusterLabelTypeSet[typ]
-
-	return ok
+	return authz.LookupResourceType(typ).Cluster != authz.NoCluster
 }
 
 func clusterIDFromMetadata(resMD *resource.Metadata) resource.ID {
-	if _, ok := clusterIDTypeSet[resMD.Type()]; ok {
+	switch authz.LookupResourceType(resMD.Type()).Cluster {
+	case authz.ClusterByID:
 		return resMD.ID()
-	}
-
-	if _, ok := clusterLabelTypeSet[resMD.Type()]; ok {
+	case authz.ClusterByLabel:
 		cluster, _ := resMD.Labels().Get(omni.LabelCluster)
 
 		return cluster
+	case authz.NoCluster:
 	}
 
 	return ""
 }
 
 func clusterIDFromPointer(ptr resource.Pointer) resource.ID {
-	if _, ok := clusterIDTypeSet[ptr.Type()]; ok {
+	if authz.LookupResourceType(ptr.Type()).Cluster == authz.ClusterByID {
 		return ptr.ID()
 	}
 
@@ -557,148 +472,16 @@ func filterAccess(ctx context.Context, access state.Access) error {
 	return filterAccessByType(access)
 }
 
-// filterAccessByType provides a filter to exclude some resources and operations from external sources.
+// filterAccessByType refuses the verbs no caller of the API is allowed on the resource type.
 func filterAccessByType(access state.Access) error {
-	// allow full access, these resources are managed on the client side
-	if _, ok := userManagedResourceTypeSet[access.ResourceType]; ok {
+	verbs := authz.LookupResourceType(access.ResourceType).Verbs
+
+	switch {
+	case verbs.Has(access.Verb):
 		return nil
-	}
-
-	switch access.ResourceType {
-	case omni.ImportedClusterSecretsType:
-		// External callers can only create and destroy. Reads and updates are denied so the secret
-		// data is never exposed back to the client. Deletion goes through the Teardown RPC which
-		// authorizes as a destroy.
-		if access.Verb == state.Create || access.Verb == state.Destroy {
-			return nil
-		}
-
-		return status.Error(codes.PermissionDenied, "only create and destroy access is permitted for imported cluster secrets")
-	case siderolink.PendingMachineType,
-		siderolink.LinkType,
-		oidcres.JWTPublicKeyType:
-		// Allow read and delete access. For the machine links, teardown goes through the Teardown RPC,
-		// which is authorized as a destroy, so external callers do not need update access.
-		// The JWT public keys are generated by Omni itself, and deleting one invalidates
-		// all the tokens signed by it.
-		if access.Verb.Readonly() || access.Verb == state.Destroy {
-			return nil
-		}
-
-		return status.Error(codes.PermissionDenied, "only read and delete access is permitted")
-	case siderolink.JoinTokenType:
-		// Allow read, update, and destroy. Create must go through the management.CreateJoinToken
-		// API, also enforced in filterAccess upstream.
-		if access.Verb.Readonly() || access.Verb == state.Update || access.Verb == state.Destroy {
-			return nil
-		}
-
-		return status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted; create should be done via the management.CreateJoinToken API call")
-	case
-		omni.ClusterBootstrapStatusType,
-		omni.ClusterConfigVersionType,
-		omni.ClusterDestroyStatusType,
-		omni.ClusterEndpointType,
-		omni.ClusterKubernetesNodesType,
-		omni.ClusterMachineIdentityType,
-		omni.ClusterMachineStatusType,
-		omni.ClusterMachineRequestStatusType,
-		omni.ClusterMachineTalosVersionType,
-		omni.ClusterMachineType,
-		omni.ClusterMachineConfigPatchesType,
-		omni.ClusterMachineConfigStatusType,
-		omni.ClusterSecretsRotationStatusType,
-		omni.ClusterMetricsType,
-		omni.ClusterStatusMetricsType,
-		omni.ClusterStatusType,
-		omni.ClusterDiagnosticsType,
-		omni.ClusterTaintType,
-		omni.ClusterUUIDType,
-		omni.ClusterWorkloadProxyStatusType,
-		omni.ControlPlaneStatusType,
-		omni.ClusterKubernetesManifestsStatusType,
-		omni.DiscoveryAffiliateDeleteTaskType,
-		omni.KubernetesNodeAuditResultType,
-		omni.ExposedServiceType,
-		omni.EtcdBackupType,
-		omni.EtcdBackupStatusType,
-		omni.EtcdBackupOverallStatusType,
-		omni.EtcdBackupStoreStatusType,
-		omni.FeaturesConfigType,
-		omni.ImagePullRequestType,
-		omni.ImagePullStatusType,
-		omni.InfraProviderCombinedStatusType,
-		omni.KubernetesStatusType,
-		omni.KubernetesUpgradeManifestStatusType,
-		omni.KubernetesUpgradeStatusType,
-		omni.LoadBalancerConfigType,
-		omni.LoadBalancerStatusType,
-		omni.MachineType,
-		omni.MachineClassType,
-		omni.MachineConfigGenOptionsType,
-		omni.MachineSetDestroyStatusType,
-		omni.MachineSetStatusType,
-		omni.MachineStatusType,
-		omni.MachineStatusLinkType,
-		omni.MachineStatusSnapshotType,
-		omni.MachinePendingUpdatesType,
-		omni.MaintenanceConfigStatusType,
-		omni.MachineConfigExtractionStatusType,
-		omni.KubernetesVersionType,
-		omni.TalosExtensionsType,
-		omni.TalosVersionType,
-		omni.TalosUpgradeStatusType,
-		omni.InstallationMediaType,
-		omni.InstallationMediaConfigType,
-		omni.OngoingTaskType,
-		omni.RedactedClusterMachineConfigType,
-		omni.MachineConfigDiffType,
-		omni.MachineUpgradeStatusType,
-		omni.KernelArgsStatusType,
-		omni.SchematicConfigurationType,
-		omni.MachineExtensionsStatusType,
-		omni.MachineExtensionsType,
-		omni.MachineInstallDiskStatusType,
-		omni.MachineStatusMetricsType,
-		omni.NotificationType,
-		omni.UpgradeRolloutType,
-		omni.KubernetesHealthCheckStatusType,
-		authres.AuthConfigType,
-		authres.EulaAcceptanceType,
-		authres.IdentityType,
-		authres.IdentityLastActiveType,
-		authres.IdentityStatusType,
-		authres.UserType,
-		authres.PublicKeyLastActiveType,
-		authres.ServiceAccountStatusType,
-		siderolink.JoinTokenStatusType,
-		siderolink.NodeUniqueTokenStatusType,
-		siderolink.ConnectionParamsType,
-		siderolink.LinkStatusType,
-		siderolink.APIConfigType,
-		system.SysVersionType,
-		system.ResourceLabelsType[*omni.MachineStatus](),
-		meta.NamespaceType,
-		meta.ResourceDefinitionType,
-		virtual.SupportType,
-		virtual.AdvertisedEndpointsType,
-		virtual.CurrentUserType,
-		virtual.SBCConfigType,
-		virtual.CloudPlatformConfigType,
-		virtual.MetalPlatformConfigType,
-		virtual.PermissionsType,
-		virtual.KubernetesUsageType,
-		virtual.LabelsCompletionType,
-		virtual.QuirksType,
-		virtual.VersionContractType,
-		virtual.ClusterPermissionsType:
-		// allow read access only. these resources are either managed by controllers or plugins (e.g., infra provider plugins)
-		if access.Verb.Readonly() {
-			return nil
-		}
-
-		return status.Error(codes.PermissionDenied, "only read access is permitted")
-	default:
+	case verbs == 0:
 		return status.Error(codes.PermissionDenied, "access is not permitted")
+	default:
+		return status.Errorf(codes.PermissionDenied, "only %s access is permitted", verbs)
 	}
 }

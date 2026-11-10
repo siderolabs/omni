@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	rescommon "github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
@@ -303,7 +304,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	// register a destroy controller for each user-managed resource type
 	for _, resource := range resourceregistry.Resources {
 		rd := resource.ResourceDefinition()
-		if _, ok := userManagedResourceTypeSet[rd.Type]; !ok { // not user-managed, continue
+		if !slices.Contains(rescommon.UserManagedResourceTypes, rd.Type) {
 			continue
 		}
 
