@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
@@ -269,7 +270,23 @@ func targetsFor(typ resource.Type, ns resource.Namespace) []target {
 		return providerTargets
 	}
 
+	if typ == siderolink.LinkStatusType {
+		return linkStatusTargets()
+	}
+
 	return clusterTargets
+}
+
+// linkStatusTargets are the targets of LinkStatus, whose ID contains the type of the resource it is the status of.
+func linkStatusTargets() []target {
+	targets := slices.Clone(clusterTargets)
+
+	for i := range targets {
+		targets[i].id = siderolink.LinkStatusID(targets[i].id, siderolink.LinkType)
+	}
+
+	// a machine which is not accepted yet can have the ID of a machine in a cluster
+	return append(targets, target{name: "member-machine pending", id: siderolink.LinkStatusID("machine-a", siderolink.PendingMachineType)})
 }
 
 type subjectKey struct {

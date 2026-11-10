@@ -81,6 +81,10 @@ const (
 	ClusterByID
 	// ClusterByLabel is for the resources which have the ID of their cluster in the cluster label.
 	ClusterByLabel
+	// ClusterByMachine is for the resources which have the ID of a machine as their ID.
+	// Reading one is checked against the cluster the machine is a member of, if any.
+	// Lists and writes are checked without a cluster.
+	ClusterByMachine
 )
 
 // ResourceType describes a resource type for the access checks.
@@ -174,8 +178,8 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.LoadBalancerStatusType:                      {Cluster: ClusterByID, Verbs: Read},
 	omni.MachineClassType:                            {Verbs: AllVerbs},
 	omni.MachineConfigDiffType:                       {Cluster: ClusterByLabel, Verbs: Read},
-	omni.MachineConfigExtractionStatusType:           {Verbs: Read},
-	omni.MachineConfigGenOptionsType:                 {Verbs: Read},
+	omni.MachineConfigExtractionStatusType:           {Cluster: ClusterByMachine, Verbs: Read},
+	omni.MachineConfigGenOptionsType:                 {Cluster: ClusterByMachine, Verbs: Read},
 	omni.MachineExtensionsStatusType:                 {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachineExtensionsType:                       {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachineInstallDiskConfigType:                {Verbs: AllVerbs},
@@ -187,13 +191,13 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.MachineSetNodeType:                          {Cluster: ClusterByLabel, Verbs: AllVerbs},
 	omni.MachineSetStatusType:                        {Cluster: ClusterByLabel, Verbs: Read},
 	omni.MachineSetType:                              {Cluster: ClusterByLabel, Verbs: AllVerbs},
-	omni.MachineStatusLinkType:                       {Verbs: Read},
+	omni.MachineStatusLinkType:                       {Cluster: ClusterByMachine, Verbs: Read},
 	omni.MachineStatusMetricsType:                    {Verbs: Read},
-	omni.MachineStatusSnapshotType:                   {Verbs: Read},
-	omni.MachineStatusType:                           {Verbs: Read},
-	omni.MachineType:                                 {Verbs: Read},
+	omni.MachineStatusSnapshotType:                   {Cluster: ClusterByMachine, Verbs: Read},
+	omni.MachineStatusType:                           {Cluster: ClusterByMachine, Verbs: Read},
+	omni.MachineType:                                 {Cluster: ClusterByMachine, Verbs: Read},
 	omni.MachineUpgradeStatusType:                    {Cluster: ClusterByLabel, Verbs: Read},
-	omni.MaintenanceConfigStatusType:                 {Verbs: Read},
+	omni.MaintenanceConfigStatusType:                 {Cluster: ClusterByMachine, Verbs: Read},
 	omni.NodeForceDestroyRequestType:                 {Cluster: ClusterByLabel, Verbs: AllVerbs},
 	omni.NotificationType:                            {Verbs: Read},
 	omni.OngoingTaskType:                             {Verbs: Read},
@@ -212,9 +216,9 @@ var resourceTypes = map[resource.Type]ResourceType{
 	siderolink.GRPCTunnelConfigType:                  {Verbs: AllVerbs},
 	siderolink.JoinTokenStatusType:                   {Verbs: Read},
 	siderolink.JoinTokenType:                         {Verbs: Read | Update | Destroy},
-	siderolink.LinkStatusType:                        {Verbs: Read},
-	siderolink.LinkType:                              {Verbs: Read | Destroy},
-	siderolink.NodeUniqueTokenStatusType:             {Verbs: Read},
+	siderolink.LinkStatusType:                        {Cluster: ClusterByMachine, Verbs: Read},
+	siderolink.LinkType:                              {Cluster: ClusterByMachine, Verbs: Read | Destroy},
+	siderolink.NodeUniqueTokenStatusType:             {Cluster: ClusterByMachine, Verbs: Read},
 	siderolink.PendingMachineType:                    {Verbs: Read | Destroy},
 	system.ResourceLabelsType[*omni.MachineStatus](): {Verbs: Read},
 	system.SysVersionType:                            {Verbs: Read},

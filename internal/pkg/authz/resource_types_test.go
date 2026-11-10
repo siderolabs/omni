@@ -40,6 +40,7 @@ func TestLookupResourceType(t *testing.T) {
 	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByID, Verbs: authz.AllVerbs}, authz.LookupResourceType(omni.ClusterType))
 	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByLabel, Verbs: authz.Read}, authz.LookupResourceType(omni.ClusterMachineType))
 	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByID}, authz.LookupResourceType(omni.ClusterSecretsType))
+	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByMachine, Verbs: authz.Read}, authz.LookupResourceType(omni.MachineStatusType))
 	assert.Equal(t, authz.ResourceType{}, authz.LookupResourceType("Unknown.omni.sidero.dev"))
 }
 

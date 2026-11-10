@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"google.golang.org/grpc/codes"
@@ -88,28 +89,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 			},
 		),
 		validated.WithGetValidations(
-			func(ctx context.Context, ptr resource.Pointer, res resource.Resource, _ ...state.GetOption) error {
-				if res == nil {
-					// resource does not exist, decide whether to return NotFound or PermissionDenied based on the pointer
-					clusterID := clusterIDFromPointer(ptr)
-
-					return checkForRole(ctx, st, state.Access{
-						ResourceNamespace: ptr.Namespace(),
-						ResourceType:      ptr.Type(),
-						ResourceID:        ptr.ID(),
-						Verb:              state.Get,
-					}, clusterID, false)
-				}
-
-				clusterID := clusterIDFromMetadata(res.Metadata())
-
-				return checkForRole(ctx, st, state.Access{
-					ResourceNamespace: res.Metadata().Namespace(),
-					ResourceType:      res.Metadata().Type(),
-					ResourceID:        res.Metadata().ID(),
-					Verb:              state.Get,
-				}, clusterID, false)
-			},
+			getValidation(st),
 			labelsCompletionValidation(st),
 		),
 		validated.WithWatchValidations(
@@ -117,14 +97,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				// todo: watch validation here only works for resources that have same ID as Cluster type,
 				// not for the ones that are related over a label.
 				// we should improve this by checking/filtering the labels for the cluster.
-				clusterID := clusterIDFromPointer(ptr)
-
-				return checkForRole(ctx, st, state.Access{
-					ResourceNamespace: ptr.Namespace(),
-					ResourceType:      ptr.Type(),
-					ResourceID:        ptr.ID(),
-					Verb:              state.Watch,
-				}, clusterID, false)
+				return checkRead(ctx, st, ptr, state.Watch, clusterIDFromPointer(ptr))
 			},
 		),
 		validated.WithCreateValidations(
@@ -206,6 +179,51 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 	}
 }
 
+// getValidation checks a get of a resource, which is nil when it does not exist.
+func getValidation(st state.State) validated.GetValidation {
+	return func(ctx context.Context, ptr resource.Pointer, res resource.Resource, _ ...state.GetOption) error {
+		// when the resource does not exist, the pointer decides between NotFound and PermissionDenied
+		clusterID := clusterIDFromPointer(ptr)
+		if res != nil {
+			clusterID = clusterIDFromMetadata(res.Metadata())
+		}
+
+		return checkRead(ctx, st, ptr, state.Get, clusterID)
+	}
+}
+
+// checkRead checks a get or a watch of a single resource.
+func checkRead(ctx context.Context, st state.State, ptr resource.Pointer, verb state.Verb, clusterID resource.ID) error {
+	access := state.Access{
+		ResourceNamespace: ptr.Namespace(),
+		ResourceType:      ptr.Type(),
+		ResourceID:        ptr.ID(),
+		Verb:              verb,
+	}
+
+	err := checkForRole(ctx, st, access, clusterID, false)
+	if status.Code(err) != codes.PermissionDenied || authz.LookupResourceType(ptr.Type()).Cluster != authz.ClusterByMachine {
+		return err
+	}
+
+	// the cluster of the machine is looked up only when the caller has no access to the machine without it
+	machineID := machineIDOf(ptr)
+	if machineID == "" {
+		return err
+	}
+
+	clusterID, lookupErr := clusterOfMachine(ctx, st, machineID)
+	if lookupErr != nil {
+		return lookupErr
+	}
+
+	if clusterID == "" {
+		return err
+	}
+
+	return checkForRole(ctx, st, access, clusterID, false)
+}
+
 // labelsCompletionValidation requires list access to the type a LabelsCompletion is for, as it is built from all resources of that type.
 func labelsCompletionValidation(st state.State) validated.GetValidation {
 	return func(ctx context.Context, ptr resource.Pointer, _ resource.Resource, _ ...state.GetOption) error {
@@ -261,8 +279,44 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 	}, clusterID, requireAll)
 }
 
+// isClusterRelatedType reports whether a list of the type can be limited to a cluster.
 func isClusterRelatedType(typ resource.Type) bool {
-	return authz.LookupResourceType(typ).Cluster != authz.NoCluster
+	relation := authz.LookupResourceType(typ).Cluster
+
+	return relation == authz.ClusterByID || relation == authz.ClusterByLabel
+}
+
+// machineIDOf returns the ID of the machine a resource of a ClusterByMachine type is for, empty when it is for no machine.
+func machineIDOf(ptr resource.Pointer) resource.ID {
+	if ptr.Type() != siderolink.LinkStatusType {
+		return ptr.ID()
+	}
+
+	// LinkStatus needs special handling, because its ID is not the ID of the machine: it also contains the type of
+	// the resource it is the status of. Only the LinkStatus of a Link is for a machine which can be in a cluster,
+	// the one of a PendingMachine is for a machine which is not accepted yet.
+	id, typ, _ := siderolink.ParseLinkStatusID(ptr.ID())
+	if typ != siderolink.LinkType {
+		return ""
+	}
+
+	return id
+}
+
+// clusterOfMachine returns the ID of the cluster the machine is a member of, empty when it is in no cluster.
+func clusterOfMachine(ctx context.Context, st state.State, machineID resource.ID) (resource.ID, error) {
+	clusterMachine, err := safe.StateGetByID[*omni.ClusterMachine](actor.MarkContextAsInternalActor(ctx), st, machineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	cluster, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+
+	return cluster, nil
 }
 
 func clusterIDFromMetadata(resMD *resource.Metadata) resource.ID {
@@ -273,7 +327,7 @@ func clusterIDFromMetadata(resMD *resource.Metadata) resource.ID {
 		cluster, _ := resMD.Labels().Get(omni.LabelCluster)
 
 		return cluster
-	case authz.NoCluster:
+	case authz.NoCluster, authz.ClusterByMachine:
 	}
 
 	return ""

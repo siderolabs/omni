@@ -5,6 +5,8 @@
 package siderolink
 
 import (
+	"strings"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -17,11 +19,23 @@ import (
 // NewLinkStatus creates new LinkStatus state.
 func NewLinkStatus(res resource.Resource) *LinkStatus {
 	return typed.NewResource[LinkStatusSpec, LinkStatusExtension](
-		resource.NewMetadata(resources.EphemeralNamespace, LinkStatusType, res.Metadata().ID()+"/"+res.Metadata().Type(), resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, LinkStatusType, LinkStatusID(res.Metadata().ID(), res.Metadata().Type()), resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.LinkStatusSpec{
 			LinkId: res.Metadata().ID(),
 		}),
 	)
+}
+
+// LinkStatusID returns the ID of the LinkStatus of a resource, e.g., of a Link or a PendingMachine.
+//
+// It contains the type of the resource, as a Link and a PendingMachine can have the same ID.
+func LinkStatusID(id resource.ID, typ resource.Type) resource.ID {
+	return id + "/" + typ
+}
+
+// ParseLinkStatusID returns the ID and the type of the resource a LinkStatus with the given ID is for.
+func ParseLinkStatusID(linkStatusID resource.ID) (id resource.ID, typ resource.Type, ok bool) {
+	return strings.Cut(linkStatusID, "/")
 }
 
 // LinkStatusType is the type of LinkStatus resource.
@@ -31,7 +45,7 @@ const LinkStatusType = resource.Type("LinkStatuses.omni.sidero.dev")
 
 // LinkStatus resource keeps connected nodes state.
 //
-// LinkStatus resource ID is a machine UUID.
+// LinkStatus resource ID is built by LinkStatusID from the ID and the type of the resource it is for.
 type LinkStatus = typed.Resource[LinkStatusSpec, LinkStatusExtension]
 
 // LinkStatusSpec wraps specs.LinkStatusSpec.
