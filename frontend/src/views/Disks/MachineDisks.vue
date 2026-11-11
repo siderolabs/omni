@@ -21,12 +21,14 @@ import {
   TalosLVMLogicalVolumeStatusType,
   TalosRuntimeNamespace,
   TalosStorageNamespace,
+  TalosSystemDiskType,
   TalosVolumeStatusType,
 } from '@/api/resources'
 import type {
   DeviceSpec,
   DiscoveredVolumeSpec,
   DiskSpec,
+  SystemDiskSpec,
   VolumeStatusSpec,
 } from '@/api/talos/block.pb'
 import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
@@ -121,6 +123,21 @@ const {
   context: context.value,
 }))
 
+// Missing in maintenance mode, where Talos isn't installed.
+const {
+  data: systemDisks,
+  loading: systemDisksLoading,
+  err: systemDisksErr,
+  errCode: systemDisksErrCode,
+} = useResourceWatch<SystemDiskSpec>(() => ({
+  resource: {
+    namespace: TalosRuntimeNamespace,
+    type: TalosSystemDiskType,
+  },
+  runtime: Runtime.Talos,
+  context: context.value,
+}))
+
 // Only needed to recognise logical volumes on Talos 1.14, which doesn't report
 // the device-mapper kind of a disk.
 const {
@@ -145,6 +162,7 @@ const loading = computed(
     volumesLoading.value ||
     volumeStatusesLoading.value ||
     blockDevicesLoading.value ||
+    systemDisksLoading.value ||
     logicalVolumesLoading.value,
 )
 
@@ -154,6 +172,7 @@ const err = computed(
     volumesErr.value ||
     volumeStatusesErr.value ||
     blockDevicesErr.value ||
+    systemDisksErr.value ||
     logicalVolumesErr.value,
 )
 
@@ -163,6 +182,7 @@ const errCode = computed(
     volumesErrCode.value ||
     volumeStatusesErrCode.value ||
     blockDevicesErrCode.value ||
+    systemDisksErrCode.value ||
     logicalVolumesErrCode.value,
 )
 
@@ -173,6 +193,7 @@ const topology = computed(() =>
     volumeStatuses: volumeStatuses.value,
     blockDevices: blockDevices.value,
     logicalVolumes: logicalVolumes.value,
+    systemDisks: systemDisks.value,
   }),
 )
 

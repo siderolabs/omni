@@ -50,6 +50,7 @@ export const TalosNodeAddressType = "NodeAddresses.net.talos.dev";
 export const TalosMountStatusType = "MountStatuses.runtime.talos.dev";
 export const TalosMachineStatusType = "MachineStatuses.runtime.talos.dev";
 export const TalosVolumeStatusType = "VolumeStatuses.block.talos.dev";
+export const TalosSystemDiskType = "SystemDisks.block.talos.dev";
 export const TalosSystemInformationType = "SystemInformations.hardware.talos.dev";
 export const TalosKubeSpanPeerStatusType = "KubeSpanPeerStatuses.kubespan.talos.dev";
 export const TalosLinkStatusType = "LinkStatuses.net.talos.dev";

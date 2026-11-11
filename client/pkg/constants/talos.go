@@ -52,6 +52,8 @@ const (
 	_ = runtime.MachineStatusType
 	// tsgen:TalosVolumeStatusType
 	_ = block.VolumeStatusType
+	// tsgen:TalosSystemDiskType
+	_ = block.SystemDiskType
 	// tsgen:TalosSystemInformationType
 	_ = hardware.SystemInformationType
 	// tsgen:TalosKubeSpanPeerStatusType

@@ -673,5 +673,6 @@
       }
     }
   ],
-  "logicalVolumes": []
+  "logicalVolumes": [],
+  "systemDisks": []
 }

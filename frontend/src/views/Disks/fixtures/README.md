@@ -15,14 +15,15 @@ hand-written mocks.
 | `talos-1.15-md-raid1.json`       | Talos 1.15.0-beta.0: as `talos-1.14-md-raid1.json`.                                                                                          |
 | `talos-1.15-luks-lvm-raid1.json` | Talos 1.15.0-beta.0: as `talos-1.14-luks-lvm.json` (the logical volume named `vg0/secure`), plus LVM RAID1 `data/data` over `vdc` and `vdd`. |
 
-In all of them, `vdb` is the system disk.
+In all of them, `vdb` is the system disk. Only the Talos 1.15 fixtures include
+the `SystemDisk` resource; it wasn't captured from the Talos 1.14 machines.
 
 ## Capturing a machine
 
 Read each resource type from the machine as JSON, through Omni or directly:
 
 ```sh
-for t in disks blockdevices discoveredvolumes volumestatuses lvmlogicalvolumestatuses; do
+for t in disks blockdevices discoveredvolumes volumestatuses lvmlogicalvolumestatuses systemdisks; do
   talosctl -n <machine> get $t -o json > $t.json
 done
 ```
@@ -39,7 +40,8 @@ jq -n --arg v <talos-version> \
   --argjson volumes "$(r discoveredvolumes)" \
   --argjson volumeStatuses "$(r volumestatuses)" \
   --argjson logicalVolumes "$(r lvmlogicalvolumestatuses)" \
-  '{talosVersion: $v, $disks, $blockDevices, $volumes, $volumeStatuses, $logicalVolumes}' \
+  --argjson systemDisks "$(r systemdisks)" \
+  '{talosVersion: $v, $disks, $blockDevices, $volumes, $volumeStatuses, $logicalVolumes, $systemDisks}' \
   > talos-<version>-<setup>.json
 ```
 

@@ -2020,5 +2020,18 @@
         "whenFull": ""
       }
     }
+  ],
+  "systemDisks": [
+    {
+      "metadata": {
+        "id": "system-disk",
+        "namespace": "runtime",
+        "type": "SystemDisks.block.talos.dev"
+      },
+      "spec": {
+        "devPath": "/dev/vdb",
+        "diskID": "vdb"
+      }
+    }
   ]
 }

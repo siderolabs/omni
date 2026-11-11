@@ -152,4 +152,13 @@ describe('buildDiskTopology on captured machines', () => {
       ['EPHEMERAL', 2310012928],
     ])
   })
+
+  test('Talos 1.15 marks the disk Talos is installed on', () => {
+    const topology = buildDiskTopology(talos115MdRaid1)
+
+    expect([...topology.byID.values()].filter((n) => n.system).map((n) => n.id)).toEqual(['vdb'])
+    expect([...buildDiskTopology(talos115Maintenance).byID.values()].some((n) => n.system)).toBe(
+      false,
+    )
+  })
 })

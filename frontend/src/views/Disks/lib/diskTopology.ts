@@ -8,6 +8,7 @@ import type {
   DeviceSpec,
   DiscoveredVolumeSpec,
   DiskSpec,
+  SystemDiskSpec,
   VolumeStatusSpec,
 } from '@/api/talos/block.pb'
 import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
@@ -47,6 +48,8 @@ export interface DiskNode {
   paths: string[]
   /** The RAID level of a RAID logical volume, such as "raid1". */
   raidLevel?: string
+  /** Whether Talos is installed on this disk. */
+  system: boolean
 }
 
 export interface DiskTopology {
@@ -64,6 +67,8 @@ export interface DiskTopologyInput {
   volumeStatuses: Resource<VolumeStatusSpec>[]
   blockDevices: Resource<DeviceSpec>[]
   logicalVolumes: Resource<LVMLogicalVolumeStatusSpec>[]
+  /** The disk Talos is installed on. Missing in maintenance mode. */
+  systemDisks?: Resource<SystemDiskSpec>[]
 }
 
 const physicalKinds = new Set<DiskNodeKind>(['disk', 'cdrom', 'multipath'])
@@ -179,6 +184,7 @@ export function buildDiskTopology(input: DiskTopologyInput): DiskTopology {
         backedBy: [...new Set(resolve(id, diskChildren))],
         paths: kind === 'multipath' ? (disk.spec.secondary_disks ?? []) : [],
         raidLevel: kind === 'lvm' ? getLogicalVolumeRaidLevel(disk, ctx) : undefined,
+        system: !!input.systemDisks?.some((s) => s.spec.diskID === id),
       }
     })
     .sort(byID)

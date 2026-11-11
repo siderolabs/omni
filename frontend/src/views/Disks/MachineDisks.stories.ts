@@ -16,12 +16,14 @@ import {
   TalosLVMLogicalVolumeStatusType,
   TalosRuntimeNamespace,
   TalosStorageNamespace,
+  TalosSystemDiskType,
   TalosVolumeStatusType,
 } from '@/api/resources'
 import {
   type DeviceSpec,
   type DiscoveredVolumeSpec,
   type DiskSpec,
+  type SystemDiskSpec,
   type VolumeStatusSpec,
 } from '@/api/talos/block.pb'
 import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
@@ -60,6 +62,24 @@ const blockDevicesHandler = (devices: [id: string, secondaries: string[], spec?:
     })),
   }).handler
 
+// The disk Talos is installed on, if any.
+const systemDisksHandler = (diskID?: string) =>
+  createWatchStreamHandler<SystemDiskSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosSystemDiskType },
+    initialResources: diskID
+      ? [
+          {
+            metadata: {
+              id: 'system-disk',
+              namespace: TalosRuntimeNamespace,
+              type: TalosSystemDiskType,
+            },
+            spec: { diskID, devPath: `/dev/${diskID}` },
+          },
+        ]
+      : [],
+  }).handler
+
 const logicalVolumesHandler = (volumes: LVMLogicalVolumeStatusSpec[]) =>
   createWatchStreamHandler<LVMLogicalVolumeStatusSpec>({
     expectedOptions: { namespace: TalosStorageNamespace, type: TalosLVMLogicalVolumeStatusType },
@@ -96,6 +116,10 @@ const capturedMachineHandlers = (fixture: CapturedMachine) => [
     expectedOptions: { namespace: TalosStorageNamespace, type: TalosLVMLogicalVolumeStatusType },
     initialResources: fixture.logicalVolumes,
   }).handler,
+  createWatchStreamHandler<SystemDiskSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosSystemDiskType },
+    initialResources: fixture.systemDisks ?? [],
+  }).handler,
 ]
 
 const meta: Meta<typeof NodeDisks> = {
@@ -104,7 +128,12 @@ const meta: Meta<typeof NodeDisks> = {
   // Defaults for the watches most stories don't care about. A story's own
   // handlers take precedence over these.
   beforeEach({ msw }) {
-    msw.use(machineStatusHandler('v1.15.0'), blockDevicesHandler([]), logicalVolumesHandler([]))
+    msw.use(
+      machineStatusHandler('v1.15.0'),
+      blockDevicesHandler([]),
+      logicalVolumesHandler([]),
+      systemDisksHandler(),
+    )
   },
 }
 
@@ -599,6 +628,79 @@ const volumeResource = (id: string, spec: DiscoveredVolumeSpec) => ({
   metadata: { id, namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
   spec: { dev_path: `/dev/${id}`, ...spec },
 })
+
+// An NVMe system disk and a SATA hard disk, with the identifiers Talos reports
+// for real hardware.
+export const WithDiskDetails: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      systemDisksHandler('nvme0n1'),
+      createWatchStreamHandler<DiskSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
+        initialResources: [
+          diskResource('nvme0n1', {
+            size: 1000 * GiB,
+            transport: 'nvme',
+            rotational: false,
+            model: 'Samsung SSD 990 PRO 1TB',
+            serial: 'S73VNJ0W123456X',
+            firmware_version: '4B2QJXD7',
+            wwid: 'eui.002538b231a0b4c1',
+            bus_path: '/pci0000:00/0000:00:1d.0/0000:03:00.0/nvme/nvme0/nvme0n1',
+            symlinks: [
+              '/dev/disk/by-diskseq/1',
+              '/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_1TB_S73VNJ0W123456X',
+              '/dev/disk/by-id/nvme-eui.002538b231a0b4c1',
+              '/dev/disk/by-path/pci-0000:03:00.0-nvme-1',
+            ],
+          }),
+          diskResource('sda', {
+            size: 4000 * GiB,
+            transport: 'sata',
+            rotational: true,
+            model: 'WDC WD40EFPX-68C',
+            serial: 'WD-WX12D3456789',
+            wwid: 'naa.50014ee2b1234567',
+            bus_path: '/pci0000:00/0000:00:17.0/ata1/host0/target0:0:0/0:0:0:0',
+            symlinks: [
+              '/dev/disk/by-id/ata-WDC_WD40EFPX-68C_WD-WX12D3456789',
+              '/dev/disk/by-id/wwn-0x50014ee2b1234567',
+              '/dev/disk/by-path/pci-0000:00:17.0-ata-1',
+            ],
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<DiscoveredVolumeSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiscoveredVolumeType },
+        initialResources: [
+          volumeResource('nvme0n1', { type: 'disk', name: 'gpt', offset: 0, size: 1000 * GiB }),
+          volumeResource('nvme0n1p1', {
+            type: 'partition',
+            name: 'vfat',
+            parent: 'nvme0n1',
+            partition_index: 1,
+            partition_label: 'EFI',
+            offset: 1024 ** 2,
+            size: GiB,
+          }),
+          volumeResource('nvme0n1p2', {
+            type: 'partition',
+            name: 'xfs',
+            parent: 'nvme0n1',
+            partition_index: 2,
+            partition_label: 'EPHEMERAL',
+            offset: GiB + 1024 ** 2,
+            size: 999 * GiB - 2 * 1024 ** 2,
+          }),
+        ],
+      }).handler,
+      createWatchStreamHandler<VolumeStatusSpec>({
+        expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+        initialResources: [],
+      }).handler,
+    )
+  },
+}
 
 // Two whole SATA disks in an MD RAID1 array, which holds a filesystem directly.
 export const WithRaid: Story = {
