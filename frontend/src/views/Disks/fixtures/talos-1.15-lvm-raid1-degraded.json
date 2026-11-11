@@ -1,0 +1,1606 @@
+{
+  "talosVersion": "v1.15.0-beta.0",
+  "disks": [
+    {
+      "metadata": {
+        "id": "loop0",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/virtual",
+        "cdrom": false,
+        "dev_path": "/dev/loop0",
+        "io_size": 512,
+        "pretty_size": "4.1 kB",
+        "readonly": true,
+        "sector_size": 512,
+        "size": 4096,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/25",
+          "/dev/disk/by-loop-inode/0:3-7",
+          "/dev/disk/by-loop-ref/0.sqsh"
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop1",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/virtual",
+        "cdrom": false,
+        "dev_path": "/dev/loop1",
+        "io_size": 512,
+        "pretty_size": "80 MB",
+        "readonly": true,
+        "sector_size": 512,
+        "size": 79765504,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/26",
+          "/dev/disk/by-loop-inode/0:3-6",
+          "/dev/disk/by-loop-ref/\\x2frootfs.sqsh"
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:07.0/nvme",
+        "cdrom": false,
+        "dev_path": "/dev/nvme0n1",
+        "firmware_version": "11.1.3",
+        "io_size": 512,
+        "modalias": "pci:v00001B36d00000010sv00001AF4sd00001100bc01sc08i02",
+        "model": "QEMU NVMe Ctrl",
+        "pretty_size": "5.4 GB",
+        "readonly": false,
+        "sector_size": 512,
+        "serial": "deadbeef",
+        "size": 5368709120,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/27",
+          "/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_deadbeef",
+          "/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_deadbeef_1",
+          "/dev/disk/by-id/nvme-nvme.1b36-6465616462656566-51454d55204e564d65204374726c-00000001",
+          "/dev/disk/by-path/pci-0000:00:07.0-nvme-1"
+        ],
+        "transport": "nvme",
+        "wwid": "nvme.1b36-6465616462656566-51454d55204e564d65204374726c-00000001"
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0",
+        "cdrom": false,
+        "dev_path": "/dev/sda",
+        "io_size": 512,
+        "modalias": "scsi:t-0x00",
+        "model": "QEMU HARDDISK",
+        "pretty_size": "5.4 GB",
+        "readonly": false,
+        "rotational": true,
+        "sector_size": 512,
+        "serial": "QM00001",
+        "size": 5368709120,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/28",
+          "/dev/disk/by-id/ata-QEMU_HARDDISK_QM00001",
+          "/dev/disk/by-path/pci-0000:00:08.0-ata-1",
+          "/dev/disk/by-path/pci-0000:00:08.0-ata-1.0"
+        ],
+        "transport": "sata",
+        "wwid": "t10.ATA     QEMU HARDDISK                           QM00001"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vda",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:06.0/virtio4",
+        "cdrom": false,
+        "dev_path": "/dev/vda",
+        "io_size": 512,
+        "modalias": "virtio:d00000002v00001AF4",
+        "pretty_size": "6.4 GB",
+        "readonly": false,
+        "rotational": true,
+        "sector_size": 512,
+        "size": 6442450944,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/29",
+          "/dev/disk/by-path/pci-0000:00:06.0",
+          "/dev/disk/by-path/virtio-pci-0000:00:06.0"
+        ],
+        "transport": "virtio"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vdb",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:09.0/virtio5",
+        "cdrom": false,
+        "dev_path": "/dev/vdb",
+        "io_size": 512,
+        "modalias": "virtio:d00000002v00001AF4",
+        "pretty_size": "5.4 GB",
+        "readonly": false,
+        "rotational": true,
+        "sector_size": 512,
+        "size": 5368709120,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/30",
+          "/dev/disk/by-path/pci-0000:00:09.0",
+          "/dev/disk/by-path/virtio-pci-0000:00:09.0"
+        ],
+        "transport": "virtio"
+      }
+    }
+  ],
+  "blockDevices": [
+    {
+      "metadata": {
+        "id": "loop0",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop0",
+        "generation": 2,
+        "major": 7,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop1",
+        "generation": 2,
+        "major": 7,
+        "minor": 1,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop2",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop2",
+        "generation": 2,
+        "major": 7,
+        "minor": 2,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop3",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop3",
+        "generation": 2,
+        "major": 7,
+        "minor": 3,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop4",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop4",
+        "generation": 2,
+        "major": 7,
+        "minor": 4,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop5",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop5",
+        "generation": 2,
+        "major": 7,
+        "minor": 5,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop6",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop6",
+        "generation": 2,
+        "major": 7,
+        "minor": 6,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "loop7",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/loop7",
+        "generation": 2,
+        "major": 7,
+        "minor": 7,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1",
+        "generation": 3,
+        "major": 259,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p1",
+        "generation": 2,
+        "major": 259,
+        "minor": 1,
+        "parent": "nvme0n1",
+        "partitionName": "EFI",
+        "partitionNumber": 1,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p2",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p2",
+        "generation": 2,
+        "major": 259,
+        "minor": 2,
+        "parent": "nvme0n1",
+        "partitionName": "META",
+        "partitionNumber": 2,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p3",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p3",
+        "generation": 2,
+        "major": 259,
+        "minor": 3,
+        "parent": "nvme0n1",
+        "partitionName": "STATE",
+        "partitionNumber": 3,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p4",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p4",
+        "generation": 2,
+        "major": 259,
+        "minor": 4,
+        "parent": "nvme0n1",
+        "partitionName": "EPHEMERAL",
+        "partitionNumber": 4,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram0",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram0",
+        "generation": 2,
+        "major": 1,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram1",
+        "generation": 2,
+        "major": 1,
+        "minor": 1,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram10",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram10",
+        "generation": 2,
+        "major": 1,
+        "minor": 10,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram11",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram11",
+        "generation": 2,
+        "major": 1,
+        "minor": 11,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram12",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram12",
+        "generation": 2,
+        "major": 1,
+        "minor": 12,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram13",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram13",
+        "generation": 2,
+        "major": 1,
+        "minor": 13,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram14",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram14",
+        "generation": 2,
+        "major": 1,
+        "minor": 14,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram15",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram15",
+        "generation": 2,
+        "major": 1,
+        "minor": 15,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram2",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram2",
+        "generation": 2,
+        "major": 1,
+        "minor": 2,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram3",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram3",
+        "generation": 2,
+        "major": 1,
+        "minor": 3,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram4",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram4",
+        "generation": 2,
+        "major": 1,
+        "minor": 4,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram5",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram5",
+        "generation": 2,
+        "major": 1,
+        "minor": 5,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram6",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram6",
+        "generation": 2,
+        "major": 1,
+        "minor": 6,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram7",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram7",
+        "generation": 2,
+        "major": 1,
+        "minor": 7,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram8",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram8",
+        "generation": 2,
+        "major": 1,
+        "minor": 8,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ram9",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/virtual/block/ram9",
+        "generation": 2,
+        "major": 1,
+        "minor": 9,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0/block/sda",
+        "generation": 53,
+        "major": 8,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vda",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:06.0/virtio4/block/vda",
+        "generation": 1,
+        "major": 251,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vdb",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:09.0/virtio5/block/vdb",
+        "generation": 57,
+        "major": 251,
+        "minor": 16,
+        "type": "disk"
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "metadata": {
+        "id": "loop1",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 131072,
+        "dev_path": "/dev/loop1",
+        "device_path": "/sys/devices/virtual/block/loop1",
+        "filesystem_block_size": 131072,
+        "io_size": 512,
+        "name": "squashfs",
+        "offset": 0,
+        "pretty_size": "80 MB",
+        "probed_size": 79762432,
+        "sector_size": 512,
+        "size": 79765504,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1",
+        "io_size": 512,
+        "name": "gpt",
+        "offset": 0,
+        "pretty_size": "5.4 GB",
+        "probed_size": 5367643648,
+        "sector_size": 512,
+        "size": 5368709120,
+        "type": "disk",
+        "uuid": "30e3a8f1-26ab-4a97-bcf9-2908f68cd0ff"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p1",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p1",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p1",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "EFI",
+        "name": "vfat",
+        "offset": 1048576,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 1,
+        "partition_label": "EFI",
+        "partition_type": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+        "partition_uuid": "b54ce496-c9e8-448e-80b4-eef3ae855bcc",
+        "pretty_size": "2.2 GB",
+        "probed_size": 2203058176,
+        "sector_size": 512,
+        "size": 2203058176,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p2",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/nvme0n1p2",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p2",
+        "io_size": 512,
+        "name": "talosmeta",
+        "offset": 2204106752,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 2,
+        "partition_label": "META",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "cf14102e-bf92-49d9-888b-e6c1f3c483ce",
+        "pretty_size": "1.0 MB",
+        "probed_size": 524288,
+        "sector_size": 512,
+        "size": 1048576,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p3",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p3",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p3",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "STATE",
+        "name": "xfs",
+        "offset": 2205155328,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 3,
+        "partition_label": "STATE",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "a13c676c-b370-44b3-9bfb-806b952b8c1a",
+        "pretty_size": "105 MB",
+        "probed_size": 96661504,
+        "sector_size": 512,
+        "size": 104857600,
+        "type": "partition",
+        "uuid": "9c6334a7-5c14-40fc-a518-dd129e22a983"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p4",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p4",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p4",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "EPHEMERAL",
+        "name": "xfs",
+        "offset": 2310012928,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 4,
+        "partition_label": "EPHEMERAL",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "1b6d30b3-254b-43cd-a055-ddd9db56b18b",
+        "pretty_size": "3.1 GB",
+        "probed_size": 2990538752,
+        "sector_size": 512,
+        "size": 3057647616,
+        "type": "partition",
+        "uuid": "a40dc721-55e7-4ef8-82d2-5332d007a981"
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/sda",
+        "device_path": "/sys/devices/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0/block/sda",
+        "io_size": 512,
+        "label": "HCrzH4-u82a-IZzQ-NU9F-97BB-J1cd-rGwP1o",
+        "name": "lvm2-pv",
+        "offset": 0,
+        "pretty_size": "5.4 GB",
+        "sector_size": 512,
+        "size": 5368709120,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vda",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/vda",
+        "device_path": "/sys/devices/pci0000:00/0000:00:06.0/virtio4/block/vda",
+        "io_size": 512,
+        "name": "",
+        "offset": 0,
+        "pretty_size": "6.4 GB",
+        "sector_size": 512,
+        "size": 6442450944,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vdb",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/vdb",
+        "device_path": "/sys/devices/pci0000:00/0000:00:09.0/virtio5/block/vdb",
+        "io_size": 512,
+        "label": "hij3lI-aCK7-0oep-50ql-ewEr-BKpY-5h7CLT",
+        "name": "lvm2-pv",
+        "offset": 0,
+        "pretty_size": "5.4 GB",
+        "sector_size": 512,
+        "size": 5368709120,
+        "type": "disk"
+      }
+    }
+  ],
+  "volumeStatuses": [
+    {
+      "metadata": {
+        "id": "/opt",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:opt_t:s0",
+          "targetPath": "/opt"
+        },
+        "parentID": "EPHEMERAL",
+        "phase": "ready",
+        "type": "overlay"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "EPHEMERAL",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
+          "targetPath": "lib"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/cni",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "/var/lib",
+          "projectQuotaSupport": false,
+          "recursiveRelabel": true,
+          "selinuxLabel": "system_u:object_r:cni_state_t:s0",
+          "targetPath": "cni"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/kubelet/seccomp",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "KUBELET",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:seccomp_profile_t:s0",
+          "targetPath": "seccomp"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/kubelet/seccomp/profiles",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "/var/lib/kubelet/seccomp",
+          "projectQuotaSupport": false,
+          "recursiveRelabel": true,
+          "selinuxLabel": "system_u:object_r:seccomp_profile_t:s0",
+          "targetPath": "profiles"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/audit",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "LOG",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:audit_log_t:s0",
+          "targetPath": "audit"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/audit/kube",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "gid": 65534,
+          "parentId": "/var/log/audit",
+          "projectQuotaSupport": false,
+          "recursiveRelabel": true,
+          "selinuxLabel": "system_u:object_r:kube_log_t:s0",
+          "targetPath": "kube",
+          "uid": 65534
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/containers",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "LOG",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:containers_log_t:s0",
+          "targetPath": "containers"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/pods",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "LOG",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:pods_log_t:s0",
+          "targetPath": "pods"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/mnt",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "EPHEMERAL",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
+          "targetPath": "mnt"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/run",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "projectQuotaSupport": false,
+          "selinuxLabel": "",
+          "targetPath": "/var/run"
+        },
+        "phase": "ready",
+        "symlink": {
+          "force": true,
+          "symlinkTargetPath": "/run"
+        },
+        "type": "symlink"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/run/lock",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "/var/run",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:var_lock_t:s0",
+          "targetPath": "lock"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "CRI",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "parentId": "/var/lib",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:containerd_state_t:s0",
+          "targetPath": "containerd"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "EPHEMERAL",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "filesystem": "xfs",
+        "grow": true,
+        "location": "/dev/nvme0n1p4",
+        "mountLocation": "/dev/nvme0n1p4",
+        "mountSpec": {
+          "fileMode": 493,
+          "projectQuotaSupport": true,
+          "secure": true,
+          "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
+          "targetPath": "/var"
+        },
+        "parentLocation": "/dev/nvme0n1",
+        "partitionIndex": 4,
+        "partitionUUID": "1b6d30b3-254b-43cd-a055-ddd9db56b18b",
+        "phase": "ready",
+        "prettySize": "3.1 GB",
+        "size": 3057647616,
+        "trimEnabled": true,
+        "trimInterval": "168h0m0s",
+        "type": "partition",
+        "uuid": "a40dc721-55e7-4ef8-82d2-5332d007a981"
+      }
+    },
+    {
+      "metadata": {
+        "id": "ETCD",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "gid": 60,
+          "parentId": "/var/lib",
+          "projectQuotaSupport": false,
+          "recursiveRelabel": true,
+          "selinuxLabel": "system_u:object_r:etcd_data_t:s0",
+          "targetPath": "etcd",
+          "uid": 60
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "KUBELET",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 448,
+          "parentId": "/var/lib",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:kubelet_state_t:s0",
+          "targetPath": "kubelet"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "LOG",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "EPHEMERAL",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:var_log_t:s0",
+          "targetPath": "log"
+        },
+        "phase": "ready",
+        "type": "directory"
+      }
+    },
+    {
+      "metadata": {
+        "id": "META",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "location": "/dev/nvme0n1p2",
+        "mountLocation": "/dev/nvme0n1p2",
+        "parentLocation": "/dev/nvme0n1",
+        "partitionIndex": 2,
+        "partitionUUID": "cf14102e-bf92-49d9-888b-e6c1f3c483ce",
+        "phase": "ready",
+        "prettySize": "1.0 MB",
+        "size": 1048576,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "STATE",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "filesystem": "xfs",
+        "location": "/dev/nvme0n1p3",
+        "mountLocation": "/dev/nvme0n1p3",
+        "mountSpec": {
+          "fileMode": 448,
+          "noExec": true,
+          "projectQuotaSupport": false,
+          "secure": true,
+          "selinuxLabel": "system_u:object_r:system_state_t:s0",
+          "targetPath": "/system/state"
+        },
+        "parentLocation": "/dev/nvme0n1",
+        "partitionIndex": 3,
+        "partitionUUID": "a13c676c-b370-44b3-9bfb-806b952b8c1a",
+        "phase": "ready",
+        "prettySize": "105 MB",
+        "size": 104857600,
+        "trimEnabled": true,
+        "trimInterval": "168h0m0s",
+        "type": "partition",
+        "uuid": "9c6334a7-5c14-40fc-a518-dd129e22a983"
+      }
+    }
+  ],
+  "logicalVolumes": [
+    {
+      "metadata": {
+        "id": "data-data",
+        "namespace": "storage",
+        "type": "LVMLogicalVolumeStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "active": "",
+        "activeExclusively": "",
+        "activeLocally": "",
+        "activeRemotely": "",
+        "allocationLocked": "",
+        "allocationPolicy": "inherit",
+        "attr": "rwi---r-p-",
+        "convertLV": "",
+        "converting": "",
+        "copyPercent": "",
+        "dataLV": "",
+        "deviceOpen": "unknown",
+        "dmPath": "/dev/mapper/data-data",
+        "fixedMinor": "",
+        "fullName": "data/data",
+        "healthStatus": "partial",
+        "kernelMajor": "-1",
+        "kernelMinor": "-1",
+        "layout": "raid,raid1",
+        "merging": "",
+        "metadataLV": "",
+        "metadataSize": "",
+        "movePV": "",
+        "name": "data",
+        "origin": "",
+        "originSize": "",
+        "path": "/dev/data/data",
+        "permissions": "unknown",
+        "poolLV": "",
+        "prettySize": "4.3 GB",
+        "raidMismatchCount": "",
+        "raidSyncAction": "",
+        "readAhead": "auto",
+        "role": "public",
+        "size": "4290772992",
+        "skipActivation": "",
+        "suspended": "unknown",
+        "tags": [],
+        "uuid": "Bb5aGR-L2HD-k3Q4-gI9L-Qis6-MAKz-22CaQl",
+        "vgName": "data",
+        "whenFull": ""
+      }
+    },
+    {
+      "metadata": {
+        "id": "data-data_rimage_0",
+        "namespace": "storage",
+        "type": "LVMLogicalVolumeStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "active": "",
+        "activeExclusively": "",
+        "activeLocally": "",
+        "activeRemotely": "",
+        "allocationLocked": "",
+        "allocationPolicy": "inherit",
+        "attr": "Iwi---r---",
+        "convertLV": "",
+        "converting": "",
+        "copyPercent": "",
+        "dataLV": "",
+        "deviceOpen": "unknown",
+        "dmPath": "/dev/mapper/data-data_rimage_0",
+        "fixedMinor": "",
+        "fullName": "data/data_rimage_0",
+        "healthStatus": "",
+        "kernelMajor": "-1",
+        "kernelMinor": "-1",
+        "layout": "linear",
+        "merging": "",
+        "metadataLV": "",
+        "metadataSize": "",
+        "movePV": "",
+        "name": "[data_rimage_0]",
+        "origin": "",
+        "originSize": "",
+        "path": "",
+        "permissions": "unknown",
+        "poolLV": "",
+        "prettySize": "4.3 GB",
+        "raidMismatchCount": "",
+        "raidSyncAction": "",
+        "readAhead": "auto",
+        "role": "private,raid,image",
+        "size": "4290772992",
+        "skipActivation": "",
+        "suspended": "unknown",
+        "tags": [],
+        "uuid": "NpQAIp-M4nO-x7Zk-Cvoq-iMO2-kMQK-9Ij07i",
+        "vgName": "data",
+        "whenFull": ""
+      }
+    },
+    {
+      "metadata": {
+        "id": "data-data_rimage_1",
+        "namespace": "storage",
+        "type": "LVMLogicalVolumeStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "active": "",
+        "activeExclusively": "",
+        "activeLocally": "",
+        "activeRemotely": "",
+        "allocationLocked": "",
+        "allocationPolicy": "inherit",
+        "attr": "Iwi---r-p-",
+        "convertLV": "",
+        "converting": "",
+        "copyPercent": "",
+        "dataLV": "",
+        "deviceOpen": "unknown",
+        "dmPath": "/dev/mapper/data-data_rimage_1",
+        "fixedMinor": "",
+        "fullName": "data/data_rimage_1",
+        "healthStatus": "partial",
+        "kernelMajor": "-1",
+        "kernelMinor": "-1",
+        "layout": "linear",
+        "merging": "",
+        "metadataLV": "",
+        "metadataSize": "",
+        "movePV": "",
+        "name": "[data_rimage_1]",
+        "origin": "",
+        "originSize": "",
+        "path": "",
+        "permissions": "unknown",
+        "poolLV": "",
+        "prettySize": "4.3 GB",
+        "raidMismatchCount": "",
+        "raidSyncAction": "",
+        "readAhead": "auto",
+        "role": "private,raid,image",
+        "size": "4290772992",
+        "skipActivation": "",
+        "suspended": "unknown",
+        "tags": [],
+        "uuid": "23KvDm-LqdY-viwE-luXK-r1wd-BHOk-bR1AKa",
+        "vgName": "data",
+        "whenFull": ""
+      }
+    },
+    {
+      "metadata": {
+        "id": "data-data_rmeta_0",
+        "namespace": "storage",
+        "type": "LVMLogicalVolumeStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "active": "",
+        "activeExclusively": "",
+        "activeLocally": "",
+        "activeRemotely": "",
+        "allocationLocked": "",
+        "allocationPolicy": "inherit",
+        "attr": "ewi---r---",
+        "convertLV": "",
+        "converting": "",
+        "copyPercent": "",
+        "dataLV": "",
+        "deviceOpen": "unknown",
+        "dmPath": "/dev/mapper/data-data_rmeta_0",
+        "fixedMinor": "",
+        "fullName": "data/data_rmeta_0",
+        "healthStatus": "",
+        "kernelMajor": "-1",
+        "kernelMinor": "-1",
+        "layout": "linear",
+        "merging": "",
+        "metadataLV": "",
+        "metadataSize": "",
+        "movePV": "",
+        "name": "[data_rmeta_0]",
+        "origin": "",
+        "originSize": "",
+        "path": "",
+        "permissions": "unknown",
+        "poolLV": "",
+        "prettySize": "4.2 MB",
+        "raidMismatchCount": "",
+        "raidSyncAction": "",
+        "readAhead": "auto",
+        "role": "private,raid,metadata",
+        "size": "4194304",
+        "skipActivation": "",
+        "suspended": "unknown",
+        "tags": [],
+        "uuid": "gdC7u4-QKxA-L1Tu-u1cx-uigd-Z4q6-XkPZys",
+        "vgName": "data",
+        "whenFull": ""
+      }
+    },
+    {
+      "metadata": {
+        "id": "data-data_rmeta_1",
+        "namespace": "storage",
+        "type": "LVMLogicalVolumeStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "active": "",
+        "activeExclusively": "",
+        "activeLocally": "",
+        "activeRemotely": "",
+        "allocationLocked": "",
+        "allocationPolicy": "inherit",
+        "attr": "ewi---r-p-",
+        "convertLV": "",
+        "converting": "",
+        "copyPercent": "",
+        "dataLV": "",
+        "deviceOpen": "unknown",
+        "dmPath": "/dev/mapper/data-data_rmeta_1",
+        "fixedMinor": "",
+        "fullName": "data/data_rmeta_1",
+        "healthStatus": "partial",
+        "kernelMajor": "-1",
+        "kernelMinor": "-1",
+        "layout": "linear",
+        "merging": "",
+        "metadataLV": "",
+        "metadataSize": "",
+        "movePV": "",
+        "name": "[data_rmeta_1]",
+        "origin": "",
+        "originSize": "",
+        "path": "",
+        "permissions": "unknown",
+        "poolLV": "",
+        "prettySize": "4.2 MB",
+        "raidMismatchCount": "",
+        "raidSyncAction": "",
+        "readAhead": "auto",
+        "role": "private,raid,metadata",
+        "size": "4194304",
+        "skipActivation": "",
+        "suspended": "unknown",
+        "tags": [],
+        "uuid": "iIer7O-xym1-BNeg-QjYW-8C0l-BZPI-WwcQhx",
+        "vgName": "data",
+        "whenFull": ""
+      }
+    }
+  ],
+  "systemDisks": [
+    {
+      "metadata": {
+        "id": "system-disk",
+        "namespace": "runtime",
+        "type": "SystemDisks.block.talos.dev"
+      },
+      "spec": {
+        "devPath": "/dev/nvme0n1",
+        "diskID": "nvme0n1"
+      }
+    }
+  ],
+  "smartStatuses": [
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "SMARTStatuses.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/nvme0n1",
+        "dev_type": "nvme",
+        "healthy": true,
+        "temperature": 50
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "SMARTStatuses.block.talos.dev"
+      },
+      "spec": {
+        "attributes": [
+          {
+            "current": 100,
+            "id": 1,
+            "name": "Raw_Read_Error_Rate",
+            "raw_value": 0,
+            "threshold": 6,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 3,
+            "name": "Spin_Up_Time",
+            "raw_value": 16,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 4,
+            "name": "Start_Stop_Count",
+            "raw_value": 100,
+            "threshold": 20,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 5,
+            "name": "Reallocated_Sector_Ct",
+            "raw_value": 0,
+            "threshold": 36,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 9,
+            "name": "Power_On_Hours",
+            "raw_value": 1,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 12,
+            "name": "Power_Cycle_Count",
+            "raw_value": 0,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 69,
+            "id": 190,
+            "name": "Airflow_Temperature_Cel",
+            "raw_value": 522125343,
+            "threshold": 50,
+            "worst": 69
+          }
+        ],
+        "dev_path": "/dev/sda",
+        "dev_type": "sata",
+        "healthy": true,
+        "power_on_hours": 1,
+        "power_state": "active",
+        "temperature": 31
+      }
+    }
+  ],
+  "mdArrays": [],
+  "volumeGroups": [
+    {
+      "metadata": {
+        "id": "data",
+        "namespace": "storage",
+        "type": "LVMVolumeGroupStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "allocationPolicy": "normal",
+        "clustered": "",
+        "exported": "",
+        "extendable": "extendable",
+        "extentCount": "3837",
+        "extentSize": "4194304",
+        "format": "lvm2",
+        "free": "7503609856",
+        "freeExtentCount": "1789",
+        "lockType": "",
+        "lvCount": "1",
+        "maxLV": "0",
+        "maxPV": "0",
+        "missingPVCount": "1",
+        "name": "data",
+        "partial": "partial",
+        "permissions": "writeable",
+        "prettyFree": "7.5 GB",
+        "prettySize": "16 GB",
+        "pvCount": "3",
+        "seqNo": "4",
+        "shared": "",
+        "size": "16093544448",
+        "snapCount": "0",
+        "systemID": "",
+        "tags": [],
+        "uuid": "MlXpIX-4ugB-b5xg-Hr4f-A19c-s3hW-n338ar"
+      }
+    }
+  ]
+}

@@ -19,7 +19,10 @@ import {
   TalosDiscoveredVolumeType,
   TalosDiskType,
   TalosLVMLogicalVolumeStatusType,
+  TalosLVMVolumeGroupStatusType,
+  TalosMDArrayStatusType,
   TalosRuntimeNamespace,
+  TalosSMARTStatusType,
   TalosStorageNamespace,
   TalosSystemDiskType,
   TalosVolumeStatusType,
@@ -28,16 +31,27 @@ import type {
   DeviceSpec,
   DiscoveredVolumeSpec,
   DiskSpec,
+  SMARTStatusSpec,
   SystemDiskSpec,
   VolumeStatusSpec,
 } from '@/api/talos/block.pb'
-import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
+import type {
+  LVMLogicalVolumeStatusSpec,
+  LVMVolumeGroupStatusSpec,
+  MDArrayStatusSpec,
+} from '@/api/talos/storage.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import DiskCard from '@/views/Disks/components/DiskCard.vue'
 import { provideDeviceNavigation } from '@/views/Disks/lib/deviceNavigation'
+import {
+  getArraysWithoutDevice,
+  getHealthAlertType,
+  getMDArrayHealth,
+  getVolumeGroupsWithoutDevice,
+} from '@/views/Disks/lib/diskHealth'
 import { buildDiskTopology } from '@/views/Disks/lib/diskTopology'
 import { getFailedVolumes } from '@/views/Disks/lib/volumeStatus'
 
@@ -61,10 +75,18 @@ const { data: machineStatus, loading: machineStatusLoading } = useResourceWatch<
   }),
 )
 
-const hasLogicalVolumeStatuses = computed(() => {
+// Talos 1.14+, which added the storage namespace.
+const isTalos114 = computed(() => {
   const version = coerce(machineStatus.value?.spec.talos_version)
 
   return version !== null && gte(version, '1.14.0')
+})
+
+// Talos 1.15+, which added SMART statuses.
+const isTalos115 = computed(() => {
+  const version = coerce(machineStatus.value?.spec.talos_version)
+
+  return version !== null && gte(version, '1.15.0')
 })
 
 const {
@@ -138,8 +160,8 @@ const {
   context: context.value,
 }))
 
-// Only needed to recognise logical volumes on Talos 1.14, which doesn't report
-// the device-mapper kind of a disk.
+// Identifies logical volumes on Talos 1.14, which doesn't report the
+// device-mapper kind of a disk, and gives their health.
 const {
   data: logicalVolumes,
   loading: logicalVolumesLoading,
@@ -152,9 +174,46 @@ const {
   },
   runtime: Runtime.Talos,
   context: context.value,
-  skip: !hasLogicalVolumeStatuses.value,
+  skip: !isTalos114.value,
 }))
 
+const { data: volumeGroups, loading: volumeGroupsLoading } =
+  useResourceWatch<LVMVolumeGroupStatusSpec>(() => ({
+    resource: {
+      namespace: TalosStorageNamespace,
+      type: TalosLVMVolumeGroupStatusType,
+    },
+    runtime: Runtime.Talos,
+    context: context.value,
+    skip: !isTalos114.value,
+  }))
+
+const { data: mdArrays, loading: mdArraysLoading } = useResourceWatch<MDArrayStatusSpec>(() => ({
+  resource: {
+    namespace: TalosStorageNamespace,
+    type: TalosMDArrayStatusType,
+  },
+  runtime: Runtime.Talos,
+  context: context.value,
+  skip: !isTalos114.value,
+}))
+
+// Only reported when a DiskSMARTConfig document enables SMART monitoring.
+const { data: smartStatuses, loading: smartStatusesLoading } = useResourceWatch<SMARTStatusSpec>(
+  () => ({
+    resource: {
+      namespace: TalosRuntimeNamespace,
+      type: TalosSMARTStatusType,
+    },
+    runtime: Runtime.Talos,
+    context: context.value,
+    skip: !isTalos115.value,
+  }),
+)
+
+// Waiting for the machine status too means the Talos version is known before
+// anything is drawn, so a version-gated watch doesn't start, and swap the page
+// back to a spinner, after the disks are already shown.
 const loading = computed(
   () =>
     machineStatusLoading.value ||
@@ -163,9 +222,14 @@ const loading = computed(
     volumeStatusesLoading.value ||
     blockDevicesLoading.value ||
     systemDisksLoading.value ||
-    logicalVolumesLoading.value,
+    logicalVolumesLoading.value ||
+    volumeGroupsLoading.value ||
+    mdArraysLoading.value ||
+    smartStatusesLoading.value,
 )
 
+// Volume groups, MD arrays and SMART only add health, so if one of them fails,
+// the disks are still shown, without it.
 const err = computed(
   () =>
     disksErr.value ||
@@ -192,8 +256,11 @@ const topology = computed(() =>
     volumes: volumes.value,
     volumeStatuses: volumeStatuses.value,
     blockDevices: blockDevices.value,
-    logicalVolumes: logicalVolumes.value,
     systemDisks: systemDisks.value,
+    logicalVolumes: logicalVolumes.value,
+    volumeGroups: volumeGroups.value,
+    mdArrays: mdArrays.value,
+    smartStatuses: smartStatuses.value,
   }),
 )
 
@@ -209,6 +276,21 @@ const sections = computed(() =>
 provideDeviceNavigation()
 
 const failedVolumes = computed(() => getFailedVolumes(volumeStatuses.value))
+
+const volumeGroupsWithoutDevice = computed(() =>
+  getVolumeGroupsWithoutDevice(
+    volumeGroups.value,
+    logicalVolumes.value,
+    [...topology.value.byID.values()].filter((n) => n.kind === 'lvm').map((n) => n.name),
+  ),
+)
+
+const arraysWithoutDevice = computed(() =>
+  getArraysWithoutDevice(mdArrays.value, disks.value).map((array) => ({
+    id: array.metadata.id!,
+    health: getMDArrayHealth(array.spec),
+  })),
+)
 </script>
 
 <template>
@@ -221,6 +303,24 @@ const failedVolumes = computed(() => getFailedVolumes(volumeStatuses.value))
         :title="`Volume ${volume.metadata.id} failed`"
       >
         {{ volume.spec.errorMessage }}
+      </TAlert>
+
+      <TAlert
+        v-for="array in arraysWithoutDevice"
+        :key="array.id"
+        :type="getHealthAlertType(array.health)"
+        :title="`RAID array ${array.id}: ${array.health.label}`"
+      >
+        <span class="whitespace-pre-wrap">{{ array.health.message }}</span>
+      </TAlert>
+
+      <TAlert
+        v-for="group in volumeGroupsWithoutDevice"
+        :key="group.id"
+        :type="getHealthAlertType(group.health)"
+        :title="`Volume group ${group.id}: ${group.health.label}`"
+      >
+        <span class="whitespace-pre-wrap">{{ group.health.message }}</span>
       </TAlert>
     </template>
 

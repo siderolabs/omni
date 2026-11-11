@@ -2033,5 +2033,81 @@
         "diskID": "vdb"
       }
     }
+  ],
+  "smartStatuses": [],
+  "mdArrays": [],
+  "volumeGroups": [
+    {
+      "metadata": {
+        "id": "data",
+        "namespace": "storage",
+        "type": "LVMVolumeGroupStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "allocationPolicy": "normal",
+        "clustered": "",
+        "exported": "",
+        "extendable": "extendable",
+        "extentCount": "2558",
+        "extentSize": "4194304",
+        "format": "lvm2",
+        "free": "2139095040",
+        "freeExtentCount": "510",
+        "lockType": "",
+        "lvCount": "1",
+        "maxLV": "0",
+        "maxPV": "0",
+        "missingPVCount": "0",
+        "name": "data",
+        "partial": "",
+        "permissions": "writeable",
+        "prettyFree": "2.1 GB",
+        "prettySize": "11 GB",
+        "pvCount": "2",
+        "seqNo": "3",
+        "shared": "",
+        "size": "10729029632",
+        "snapCount": "0",
+        "systemID": "",
+        "tags": [],
+        "uuid": "zG66nL-f3HT-457m-RWkn-GIZK-iOU6-GAZ2aS"
+      }
+    },
+    {
+      "metadata": {
+        "id": "vg0",
+        "namespace": "storage",
+        "type": "LVMVolumeGroupStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "allocationPolicy": "normal",
+        "clustered": "",
+        "exported": "",
+        "extendable": "extendable",
+        "extentCount": "763",
+        "extentSize": "4194304",
+        "format": "lvm2",
+        "free": "641728512",
+        "freeExtentCount": "153",
+        "lockType": "",
+        "lvCount": "1",
+        "maxLV": "0",
+        "maxPV": "0",
+        "missingPVCount": "0",
+        "name": "vg0",
+        "partial": "",
+        "permissions": "writeable",
+        "prettyFree": "642 MB",
+        "prettySize": "3.2 GB",
+        "pvCount": "1",
+        "seqNo": "2",
+        "shared": "",
+        "size": "3200253952",
+        "snapCount": "0",
+        "systemID": "",
+        "tags": [],
+        "uuid": "NJCRA8-zwev-gpXF-U1q0-KXYz-Yxb9-hhQ32i"
+      }
+    }
   ]
 }

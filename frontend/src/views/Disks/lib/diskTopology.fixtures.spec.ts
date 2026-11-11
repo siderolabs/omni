@@ -4,29 +4,43 @@
 // included in the LICENSE file.
 import { describe, expect, test } from 'vitest'
 
+import type { CapturedMachine } from '../fixtures'
 import {
   talos114LuksLvm,
   talos114LvmRaid1,
-  talos114Maintenance,
-  talos114MdRaid1,
+  talos114MdRaid1Failed,
   talos115LuksLvmRaid1,
+  talos115LvmRaid1Degraded,
   talos115Maintenance,
-  talos115MdRaid1,
+  talos115MdRaid1Rebuilding,
+  talos115MdRaid1Smart,
 } from '../fixtures'
+import {
+  getArraysWithoutDevice,
+  getMDArrayHealth,
+  getVolumeGroupsWithoutDevice,
+} from './diskHealth'
 import { buildDiskTopology } from './diskTopology'
 import { getDiskSegments } from './diskVolumes'
+import { getFailedVolumes } from './volumeStatus'
 
-describe('buildDiskTopology on captured machines', () => {
-  test('Talos 1.14 in maintenance mode', () => {
-    const topology = buildDiskTopology(talos114Maintenance)
+// Resources captured from real machines. See fixtures/README.md.
 
-    expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
-    expect(topology.virtual).toEqual([])
-  })
+const freeSpace = (machine: CapturedMachine, id: string) => {
+  const node = buildDiskTopology(machine).byID.get(id)!
 
-  test('Talos 1.14 with an LVM RAID1 logical volume over vdc and vdd', () => {
-    const topology = buildDiskTopology(talos114LvmRaid1)
+  return getDiskSegments(
+    node.disk.spec.size!,
+    node.volumes.map((v) => v.volume),
+  )
+    .filter((s) => s.type === 'unallocated')
+    .reduce((sum, s) => sum + s.size, 0)
+}
 
+describe('Talos 1.14 with LVM RAID1 over vdc and vdd', () => {
+  const topology = buildDiskTopology(talos114LvmRaid1)
+
+  test('shows the logical volume, found by its kernel device number, backed by both disks', () => {
     expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
     expect(topology.virtual.map((n) => n.id)).toEqual(['dm-4'])
 
@@ -35,6 +49,7 @@ describe('buildDiskTopology on captured machines', () => {
       name: 'data/data',
       raidLevel: 'raid1',
       backedBy: ['vdc', 'vdd'],
+      health: { label: 'Healthy' },
     })
 
     for (const id of ['vdc', 'vdd']) {
@@ -45,9 +60,8 @@ describe('buildDiskTopology on captured machines', () => {
     }
   })
 
-  test('Talos 1.14 system disk, whose EPHEMERAL partition is reported at offset 0', () => {
-    const vdb = buildDiskTopology(talos114LvmRaid1).byID.get('vdb')!
-    const volumes = vdb.volumes.map((v) => v.volume)
+  test('lays out the system disk, whose EPHEMERAL partition is reported at offset 0', () => {
+    const volumes = topology.byID.get('vdb')!.volumes.map((v) => v.volume)
 
     expect(volumes.map((v) => v.spec.partition_label)).toEqual([
       'EFI',
@@ -57,34 +71,14 @@ describe('buildDiskTopology on captured machines', () => {
     ])
 
     // The partitions fill the disk but for GPT's own space, not 2.3 GB of it.
-    const free = getDiskSegments(vdb.disk.spec.size!, volumes)
-      .filter((s) => s.type === 'unallocated')
-      .reduce((sum, s) => sum + s.size, 0)
-
-    expect(free).toBeLessThanOrEqual(2 * 1024 ** 2)
+    expect(freeSpace(talos114LvmRaid1, 'vdb')).toBeLessThanOrEqual(2 * 1024 ** 2)
   })
+})
 
-  test('Talos 1.14 with an MD RAID1 array over vdc and vdd, holding a user volume', () => {
-    const topology = buildDiskTopology(talos114MdRaid1)
+describe('Talos 1.14 with encrypted volumes, one holding an LVM physical volume', () => {
+  const topology = buildDiskTopology(talos114LuksLvm)
 
-    expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
-    expect(topology.virtual.map((n) => n.id)).toEqual(['md0'])
-
-    const md0 = topology.byID.get('md0')!
-    expect(md0).toMatchObject({ kind: 'md', backedBy: ['vdc', 'vdd'] })
-    expect(
-      md0.volumes.map((v) => [v.volume.spec.partition_label, v.volumeStatus?.spec.phase]),
-    ).toEqual([['u-raid-data', 'ready']])
-
-    for (const id of ['vdc', 'vdd']) {
-      expect(topology.byID.get(id)!.usedBy).toEqual(['md0'])
-    }
-  })
-
-  test('Talos 1.14 with encrypted volumes, one holding an LVM physical volume', () => {
-    const topology = buildDiskTopology(talos114LuksLvm)
-
-    // The two opened LUKS devices, dm-0 and dm-1, are not shown.
+  test('hides the opened LUKS devices, found by their dm-uuid symlinks', () => {
     expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
     expect(topology.virtual.map((n) => n.id)).toEqual(['dm-2'])
 
@@ -93,8 +87,11 @@ describe('buildDiskTopology on captured machines', () => {
       name: 'vg0/data',
       backedBy: ['vda'],
     })
+  })
 
+  test('shows both volumes as encrypted, and what the second holds', () => {
     const vda = topology.byID.get('vda')!
+
     expect(vda.usedBy).toEqual(['dm-2'])
     expect(
       vda.volumes.map((v) => [
@@ -107,26 +104,33 @@ describe('buildDiskTopology on captured machines', () => {
       ['r-lvmdata', 'luks2', ['dm-2']],
     ])
   })
+})
 
-  test('Talos 1.15 in maintenance mode', () => {
-    const topology = buildDiskTopology(talos115Maintenance)
+describe('Talos 1.14 with an MD RAID1 array that failed to be created', () => {
+  test('has no device to show the array on, so its error stands alone', () => {
+    const { mdArrays = [], disks } = talos114MdRaid1Failed
 
+    expect(buildDiskTopology(talos114MdRaid1Failed).virtual.map((n) => n.id)).toEqual(['dm-4'])
+    expect(getArraysWithoutDevice(mdArrays, disks).map((a) => a.spec.status)).toEqual(['error'])
+  })
+})
+
+describe('Talos 1.15 in maintenance mode', () => {
+  const topology = buildDiskTopology(talos115Maintenance)
+
+  test('shows every disk, and none as the system disk', () => {
     expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
     expect(topology.virtual).toEqual([])
+    expect(topology.physical.some((n) => n.system)).toBe(false)
   })
+})
 
-  test('Talos 1.15 with an MD RAID1 array over vdc and vdd', () => {
-    const topology = buildDiskTopology(talos115MdRaid1)
-
-    expect(topology.virtual.map((n) => n.id)).toEqual(['md0'])
-    expect(topology.byID.get('md0')).toMatchObject({ kind: 'md', backedBy: ['vdc', 'vdd'] })
-  })
-
+describe('Talos 1.15 with LUKS, LVM on LUKS and LVM RAID1', () => {
   // Talos 1.15 reports the device-mapper kind, so no logical volume statuses are needed.
   test.each([
     ['with', talos115LuksLvmRaid1],
     ['without', { ...talos115LuksLvmRaid1, logicalVolumes: [] }],
-  ])('Talos 1.15 with LVM on LUKS and LVM RAID1, %s logical volume statuses', (_, machine) => {
+  ])('finds the logical volumes %s logical volume statuses', (_, machine) => {
     const topology = buildDiskTopology(machine)
 
     expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
@@ -138,27 +142,126 @@ describe('buildDiskTopology on captured machines', () => {
     expect(topology.byID.get('vda')!.volumes.map((v) => v.usedBy)).toEqual([[], ['dm-7']])
   })
 
-  test('Talos 1.15 reports the RAID level of an LVM RAID1 logical volume', () => {
-    expect(buildDiskTopology(talos115LuksLvmRaid1).byID.get('dm-4')!.raidLevel).toBe('raid1')
+  test('reports the RAID level and health of the logical volumes', () => {
+    const topology = buildDiskTopology(talos115LuksLvmRaid1)
+
+    expect(topology.byID.get('dm-4')).toMatchObject({
+      raidLevel: 'raid1',
+      health: { label: 'Healthy' },
+    })
+    expect(topology.byID.get('dm-7')!.health?.label).toBe('Healthy')
+  })
+})
+
+describe("Talos 1.15 with SMART, an MD RAID1 array over sda and vdb, and config that can't be met", () => {
+  const topology = buildDiskTopology(talos115MdRaid1Smart)
+
+  test('marks the system disk', () => {
+    expect([...topology.byID.values()].filter((n) => n.system).map((n) => n.id)).toEqual([
+      'nvme0n1',
+    ])
   })
 
-  test('Talos 1.15 reports partition offsets after formatting EPHEMERAL', () => {
-    const vdb = buildDiskTopology(talos115MdRaid1).byID.get('vdb')!
+  test('shows SMART health for the NVMe and SATA disks, and none for virtio', () => {
+    expect(topology.physical.map((n) => [n.id, n.health?.label, n.smart?.spec.dev_type])).toEqual([
+      ['nvme0n1', 'Failing', 'nvme'],
+      ['sda', 'Healthy', 'sata'],
+      ['vda', undefined, undefined],
+      ['vdb', undefined, undefined],
+    ])
+  })
 
-    expect(vdb.volumes.map((v) => [v.volume.spec.partition_label, v.volume.spec.offset])).toEqual([
+  test('explains the NVMe critical warning, which Talos sends no message for', () => {
+    expect(topology.byID.get('nvme0n1')!.health?.message).toBe(
+      'Reliability is degraded by media or internal errors.',
+    )
+  })
+
+  test('shows the array with its level, health and user volume', () => {
+    const md127 = topology.byID.get('md127')!
+
+    expect(md127).toMatchObject({
+      kind: 'md',
+      raidLevel: 'raid1',
+      backedBy: ['sda', 'vdb'],
+      health: { label: 'Healthy' },
+    })
+    expect(
+      md127.volumes.map((v) => [v.volume.spec.partition_label, v.volumeStatus?.spec.phase]),
+    ).toEqual([['u-raid-data', 'ready']])
+  })
+
+  test('reports partition offsets, including the user volume on the array', () => {
+    const offsets = (id: string) =>
+      topology.byID
+        .get(id)!
+        .volumes.map((v) => [v.volume.spec.partition_label, v.volume.spec.offset])
+
+    // Talos 1.15.0-beta.0 still reports 0 for a partition it has just formatted
+    // (seen for u-raid-data before this machine restarted), but not after a rescan.
+    expect(offsets('nvme0n1')).toEqual([
       ['EFI', 1048576],
       ['META', 2204106752],
       ['STATE', 2205155328],
       ['EPHEMERAL', 2310012928],
     ])
+    expect(offsets('md127')).toEqual([['u-raid-data', 1048576]])
   })
 
-  test('Talos 1.15 marks the disk Talos is installed on', () => {
-    const topology = buildDiskTopology(talos115MdRaid1)
+  test('reports an array configured with too few disks as waiting, with no device', () => {
+    const { mdArrays = [], disks } = talos115MdRaid1Smart
 
-    expect([...topology.byID.values()].filter((n) => n.system).map((n) => n.id)).toEqual(['vdb'])
-    expect([...buildDiskTopology(talos115Maintenance).byID.values()].some((n) => n.system)).toBe(
-      false,
-    )
+    expect(
+      getArraysWithoutDevice(mdArrays, disks).map((a) => [a.metadata.id, getMDArrayHealth(a.spec)]),
+    ).toEqual([
+      [
+        'spare',
+        expect.objectContaining({
+          label: 'Waiting',
+          message: 'waiting for enough member disks: matched 1, required 2',
+        }),
+      ],
+    ])
+  })
+
+  test('reports a user volume whose selector matches no disk as failed', () => {
+    expect(
+      getFailedVolumes(talos115MdRaid1Smart.volumeStatuses).map((v) => [
+        v.metadata.id,
+        v.spec.errorMessage,
+      ]),
+    ).toEqual([['u-nowhere', 'no disks matched selector for volume']])
+  })
+})
+
+describe('Talos 1.15 rebuilding an MD RAID1 array after a member was wiped', () => {
+  test('shows the array as rebuilding', () => {
+    expect(buildDiskTopology(talos115MdRaid1Rebuilding).byID.get('md127')!.health).toMatchObject({
+      label: 'Rebuilding',
+      tone: 'warning',
+    })
+  })
+})
+
+describe('Talos 1.15 with an LVM RAID1 volume group missing a physical volume', () => {
+  const topology = buildDiskTopology(talos115LvmRaid1Degraded)
+
+  test('has no device for the inactive logical volume', () => {
+    expect(topology.virtual).toEqual([])
+  })
+
+  test('reports the volume group, with its inactive logical volume, on its own', () => {
+    const { volumeGroups = [], logicalVolumes } = talos115LvmRaid1Degraded
+
+    expect(getVolumeGroupsWithoutDevice(volumeGroups, logicalVolumes, [])).toEqual([
+      {
+        id: 'data',
+        health: expect.objectContaining({
+          label: 'Degraded',
+          message:
+            'Volume group data is missing 1 physical volume.\nIts logical volume data/data is inactive.',
+        }),
+      },
+    ])
   })
 })

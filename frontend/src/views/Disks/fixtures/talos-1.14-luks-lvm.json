@@ -1559,5 +1559,46 @@
         "whenFull": ""
       }
     }
+  ],
+  "systemDisks": [],
+  "smartStatuses": [],
+  "mdArrays": [],
+  "volumeGroups": [
+    {
+      "metadata": {
+        "id": "vg0",
+        "namespace": "storage",
+        "type": "LVMVolumeGroupStatuses.storage.talos.dev"
+      },
+      "spec": {
+        "allocationPolicy": "normal",
+        "clustered": "",
+        "exported": "",
+        "extendable": "extendable",
+        "extentCount": "763",
+        "extentSize": "4194304",
+        "format": "lvm2",
+        "free": "641728512",
+        "freeExtentCount": "153",
+        "lockType": "",
+        "lvCount": "1",
+        "maxLV": "0",
+        "maxPV": "0",
+        "missingPVCount": "0",
+        "name": "vg0",
+        "partial": "",
+        "permissions": "writeable",
+        "prettyFree": "642 MB",
+        "prettySize": "3.2 GB",
+        "pvCount": "1",
+        "seqNo": "2",
+        "shared": "",
+        "size": "3200253952",
+        "snapCount": "0",
+        "systemID": "",
+        "tags": [],
+        "uuid": "MlbNW5-CVMx-veLP-Mfjx-ldRl-TCBe-tjdY80"
+      }
+    }
   ]
 }

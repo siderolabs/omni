@@ -36,6 +36,10 @@ const (
 	_ = block.DeviceType
 	// tsgen:TalosLVMLogicalVolumeStatusType
 	_ = storage.LVMLogicalVolumeStatusType
+	// tsgen:TalosLVMVolumeGroupStatusType
+	_ = storage.LVMVolumeGroupStatusType
+	// tsgen:TalosMDArrayStatusType
+	_ = storage.MDArrayStatusType
 	// tsgen:TalosMemoryType
 	_ = perf.MemoryType
 	// tsgen:TalosNodenameType
@@ -54,6 +58,8 @@ const (
 	_ = block.VolumeStatusType
 	// tsgen:TalosSystemDiskType
 	_ = block.SystemDiskType
+	// tsgen:TalosSMARTStatusType
+	_ = block.SMARTStatusType
 	// tsgen:TalosSystemInformationType
 	_ = hardware.SystemInformationType
 	// tsgen:TalosKubeSpanPeerStatusType

@@ -8,20 +8,32 @@ import type {
   DeviceSpec,
   DiscoveredVolumeSpec,
   DiskSpec,
+  SMARTStatusSpec,
   SystemDiskSpec,
   VolumeStatusSpec,
 } from '@/api/talos/block.pb'
-import type { LVMLogicalVolumeStatusSpec } from '@/api/talos/storage.pb'
+import type {
+  LVMLogicalVolumeStatusSpec,
+  LVMVolumeGroupStatusSpec,
+  MDArrayStatusSpec,
+} from '@/api/talos/storage.pb'
 
 import {
   classifyDeviceMapper,
   type DeviceMapperContext,
   type DeviceMapperKind,
+  getLogicalVolume,
   getLogicalVolumeName,
   getLogicalVolumeRaidLevel,
   isDeviceMapper,
   isPartitionMapping,
 } from './deviceMapper'
+import {
+  type DiskHealth,
+  getLogicalVolumeHealth,
+  getMDArrayHealth,
+  getSMARTHealth,
+} from './diskHealth'
 import { getDiskVolumes } from './diskVolumes'
 
 export type DiskNodeKind = 'disk' | 'cdrom' | 'md' | DeviceMapperKind
@@ -46,10 +58,14 @@ export interface DiskNode {
   backedBy: string[]
   /** The disks a multipath device reaches its storage through. */
   paths: string[]
-  /** The RAID level of a RAID logical volume, such as "raid1". */
+  /** The RAID level of an MD array or a RAID logical volume, such as "raid1", when known. */
   raidLevel?: string
   /** Whether Talos is installed on this disk. */
   system: boolean
+  /** The device's health, when something reports it. */
+  health?: DiskHealth
+  /** What SMART reports about a disk, on Talos 1.15+ with SMART monitoring configured. */
+  smart?: Resource<SMARTStatusSpec>
 }
 
 export interface DiskTopology {
@@ -69,11 +85,50 @@ export interface DiskTopologyInput {
   logicalVolumes: Resource<LVMLogicalVolumeStatusSpec>[]
   /** The disk Talos is installed on. Missing in maintenance mode. */
   systemDisks?: Resource<SystemDiskSpec>[]
+  /** SMART health of each disk, by disk ID. */
+  smartStatuses?: Resource<SMARTStatusSpec>[]
+  /** The MD arrays Talos manages. Arrays created otherwise have none. */
+  mdArrays?: Resource<MDArrayStatusSpec>[]
+  volumeGroups?: Resource<LVMVolumeGroupStatusSpec>[]
 }
 
 const physicalKinds = new Set<DiskNodeKind>(['disk', 'cdrom', 'multipath'])
 
 const byID = (a: DiskNode, b: DiskNode) => a.id.localeCompare(b.id, undefined, { numeric: true })
+
+// Status sources report on a device; they never decide which devices there are
+// or how they connect.
+const getHealthSources = (
+  disk: Resource<DiskSpec>,
+  kind: DiskNodeKind,
+  input: DiskTopologyInput,
+  ctx: DeviceMapperContext,
+) => {
+  const id = disk.metadata.id!
+
+  if (kind === 'md') {
+    // An array's status names it by its stable /dev/disk/by-id path.
+    const array = input.mdArrays?.find(
+      (a) => a.spec.device && disk.spec.symlinks?.includes(a.spec.device),
+    )
+
+    return { health: array && getMDArrayHealth(array.spec), raidLevel: array?.spec.level }
+  }
+
+  if (kind === 'lvm') {
+    const volume = getLogicalVolume(disk, ctx)
+    const group = input.volumeGroups?.find((g) => g.spec.name === volume?.spec.vgName)
+
+    return {
+      health: volume && getLogicalVolumeHealth(volume.spec, group?.spec),
+      raidLevel: getLogicalVolumeRaidLevel(disk, ctx),
+    }
+  }
+
+  const smart = input.smartStatuses?.find((s) => s.metadata.id === id)
+
+  return { health: smart && getSMARTHealth(smart.spec), smart }
+}
 
 const classifyDisk = (disk: Resource<DiskSpec>, ctx: DeviceMapperContext): DiskNodeKind => {
   if (isDeviceMapper(disk)) return classifyDeviceMapper(disk, ctx)
@@ -183,8 +238,8 @@ export function buildDiskTopology(input: DiskTopologyInput): DiskTopology {
         usedBy: [...new Set(resolve(id, diskParents))],
         backedBy: [...new Set(resolve(id, diskChildren))],
         paths: kind === 'multipath' ? (disk.spec.secondary_disks ?? []) : [],
-        raidLevel: kind === 'lvm' ? getLogicalVolumeRaidLevel(disk, ctx) : undefined,
         system: !!input.systemDisks?.some((s) => s.spec.diskID === id),
+        ...getHealthSources(disk, kind, input, ctx),
       }
     })
     .sort(byID)

@@ -11,11 +11,14 @@ import { computed, useTemplateRef } from 'vue'
 
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
+import TAlert from '@/components/TAlert.vue'
 import DeviceLink from '@/views/Disks/components/DeviceLink.vue'
 import DiskPartitionTable from '@/views/Disks/components/DiskPartitionTable.vue'
 import DiskUsageBar from '@/views/Disks/components/DiskUsageBar.vue'
 import { useDeviceNavigationTarget } from '@/views/Disks/lib/deviceNavigation'
 import { getDiskDetails, getDiskIdentity, getDiskMediaType } from '@/views/Disks/lib/diskDetails'
+import { getHealthAlertType, getSMARTDetails } from '@/views/Disks/lib/diskHealth'
 import type { DiskNode, DiskNodeKind } from '@/views/Disks/lib/diskTopology'
 
 const { node } = defineProps<{
@@ -32,12 +35,24 @@ const kindLabels: Partial<Record<DiskNodeKind, string>> = {
   dm: 'Device mapper',
 }
 
-const kindLabel = computed(() =>
-  [kindLabels[node.kind], node.raidLevel?.toUpperCase()].filter(Boolean).join(' '),
-)
+// An MD array is RAID by definition, so its level alone says enough: "RAID1",
+// but "LVM RAID1".
+const kindLabel = computed(() => {
+  const level = node.raidLevel?.toUpperCase()
+
+  if (node.kind === 'md' && level) return level
+
+  return [kindLabels[node.kind], level].filter(Boolean).join(' ')
+})
 
 const identity = computed(() => getDiskIdentity(node.disk))
 const details = computed(() => getDiskDetails(node.disk))
+const smartDetails = computed(() => (node.smart ? getSMARTDetails(node.smart.spec) : []))
+
+// Only a problem is worth spelling out; a healthy device's pill says enough.
+const healthProblem = computed(() =>
+  node.health?.tone !== 'success' && node.health?.message ? node.health : undefined,
+)
 
 // Talos reports a virtual device as rotational when its members are, so only a
 // disk's own value means anything.
@@ -79,6 +94,14 @@ const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-cont
             {{ prettyBytes(node.disk.spec.size ?? 0) }}
           </span>
           <div class="flex flex-wrap items-center gap-tight">
+            <StatusPill
+              v-if="node.health"
+              :tone="node.health.tone"
+              :glyph="node.health.glyph"
+              :title="node.health.message"
+            >
+              {{ node.health.label }}
+            </StatusPill>
             <span
               v-if="node.system"
               class="rounded bg-status-info-subtle px-tight py-micro text-xs text-status-info-text ring-1 ring-status-info-subtle-border ring-inset"
@@ -123,10 +146,18 @@ const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-cont
     </div>
 
     <div class="space-y-tight bg-surface-card p-compact">
+      <TAlert
+        v-if="healthProblem"
+        :type="getHealthAlertType(healthProblem)"
+        :title="`${node.name}: ${healthProblem.label}`"
+      >
+        <span class="whitespace-pre-wrap">{{ healthProblem.message }}</span>
+      </TAlert>
+
       <DiskUsageBar :disk="node.disk" :volumes="node.volumes.map((v) => v.volume)" :used-volumes />
       <DiskPartitionTable v-if="node.volumes.length" :partitions="node.volumes" :name-of />
 
-      <CollapsibleRoot v-if="details.length" v-slot="{ open }">
+      <CollapsibleRoot v-if="details.length || smartDetails.length" v-slot="{ open }">
         <CollapsibleTrigger
           class="flex items-center gap-micro text-xs text-content-secondary hover:text-content-emphasis"
         >
@@ -140,7 +171,10 @@ const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-cont
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <dl class="mt-tight grid grid-cols-[auto_1fr] gap-x-compact gap-y-micro text-xs">
+          <dl
+            v-if="details.length"
+            class="mt-tight grid grid-cols-[auto_1fr] gap-x-compact gap-y-micro text-xs"
+          >
             <template v-for="detail in details" :key="detail.label">
               <dt class="text-content-secondary">{{ detail.label }}</dt>
               <dd class="min-w-0 space-y-micro">
@@ -157,6 +191,21 @@ const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-cont
               </dd>
             </template>
           </dl>
+
+          <template v-if="smartDetails.length">
+            <p
+              class="text-xs font-medium text-content-emphasis"
+              :class="details.length ? 'mt-compact' : 'mt-tight'"
+            >
+              SMART
+            </p>
+            <dl class="mt-tight grid grid-cols-[auto_1fr] gap-x-compact gap-y-micro text-xs">
+              <template v-for="detail in smartDetails" :key="detail.label">
+                <dt class="text-content-secondary">{{ detail.label }}</dt>
+                <dd class="text-content-default">{{ detail.values.join(', ') }}</dd>
+              </template>
+            </dl>
+          </template>
         </CollapsibleContent>
       </CollapsibleRoot>
     </div>

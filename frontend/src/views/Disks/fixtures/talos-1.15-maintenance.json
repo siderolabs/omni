@@ -674,5 +674,8 @@
     }
   ],
   "logicalVolumes": [],
-  "systemDisks": []
+  "systemDisks": [],
+  "smartStatuses": [],
+  "mdArrays": [],
+  "volumeGroups": []
 }
