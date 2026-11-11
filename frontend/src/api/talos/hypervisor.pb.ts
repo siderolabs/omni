@@ -4,7 +4,7 @@
 // github.com/siderolabs/talos/pkg/machinery/resources/
 
 export type CloudInitSpecSpec = {
-  library?: string
+  pool?: string
   metaData?: string
   userData?: string
   networkConfig?: string
@@ -12,7 +12,7 @@ export type CloudInitSpecSpec = {
 
 export type CloudInitStatusSpec = {
   virtualMachine?: string
-  library?: string
+  pool?: string
   name?: string
   path?: string
   volumeID?: string
@@ -30,6 +30,7 @@ export type ContentLibraryStatusSpec = {
   phase?: string
   error?: string
   fingerprint?: string
+  volumeName?: string
 }
 
 export type VirtualMachineCPUPlacementSpec = {
@@ -178,7 +179,7 @@ export type VirtualMachineInterfaceSpec = {
 }
 
 export type VirtualMachineCloudInitSpec = {
-  library?: string
+  pool?: string
   metaData?: string
   userData?: string
   networkConfig?: string

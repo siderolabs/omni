@@ -34,30 +34,6 @@ export type CPUPartitionSpecSpec = {
   slices?: CPUPartitionSliceSpec[]
 }
 
-export type CPUPartitionTargetStatus = {
-  key?: string
-  initial?: string
-  lastApplied?: string
-  intended?: string
-}
-
-export type CPUPartitionBlock = {
-  reason?: string
-  virtualMachines?: string[]
-  cpus?: string
-}
-
-export type CPUPartitionStatusSpec = {
-  phase?: string
-  targets?: CPUPartitionTargetStatus[]
-  exclusive?: string[]
-  blocked?: CPUPartitionBlock[]
-  enforcementLoss?: string[]
-  error?: string
-  admissionErrors?: CPUPartitionBlock[]
-  waiting?: string
-}
-
 export type DevicesStatusSpec = {
   ready?: boolean
 }

@@ -2,6 +2,8 @@
 //
 // Source of truth: yaml struct tags on the Go types in
 // github.com/siderolabs/talos/pkg/machinery/resources/
+import type { PEMEncodedCertificate } from '../common/common.pb'
+
 
 export type AdmissionPluginSpec = {
   name?: string
@@ -148,11 +150,6 @@ export type KubeletConfigSpec = {
   credentialProviderFiles?: {[key: string]: string}
 }
 
-export type KubeletCPUReservationSpec = {
-  managed?: boolean
-  reservedCPUs?: string
-}
-
 export type KubeletKubeconfigSpec = {
   hash?: string
 }
@@ -185,6 +182,9 @@ export type KubePrismConfigSpec = {
   host?: string
   port?: number
   endpoints?: KubePrismEndpoint[]
+  readinessCheck?: boolean
+  tlsServerName?: string
+  acceptedCAs?: PEMEncodedCertificate[]
 }
 
 export type KubePrismEndpointsSpec = {

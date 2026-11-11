@@ -50,6 +50,11 @@ export type LVMLogicalVolumeStatusSpec = {
   whenFull?: string
   tags?: string[]
   prettySize?: string
+  copyPercent?: string
+  healthStatus?: string
+  attr?: string
+  raidSyncAction?: string
+  raidMismatchCount?: string
 }
 
 export type LVMPhysicalVolumeSpecSpec = {
@@ -150,6 +155,7 @@ export type MDRefreshRequestSpec = {
 
 export type StoragePoolSpecSpec = {
   volumeID?: string
+  volumeName?: string
 }
 
 export type StoragePoolStatusSpec = {
@@ -157,6 +163,13 @@ export type StoragePoolStatusSpec = {
   targetPath?: string
   phase?: string
   error?: string
+  volumeName?: string
+}
+
+export type StoragePoolVolumeCopySpec = {
+  sourceLibrary?: string
+  source?: string
+  digest?: string
 }
 
 export type StoragePoolVolumeSpecSpec = {
@@ -166,6 +179,12 @@ export type StoragePoolVolumeSpecSpec = {
   format?: string
   backingFile?: string
   backingFormat?: string
+  copy?: StoragePoolVolumeCopySpec
+}
+
+export type StoragePoolVolumeCopyStatusSpec = {
+  phase?: string
+  intent?: string
 }
 
 export type StoragePoolVolumeStatusSpec = {
@@ -177,4 +196,5 @@ export type StoragePoolVolumeStatusSpec = {
   pendingCapacity?: number
   phase?: string
   error?: string
+  copy?: StoragePoolVolumeCopyStatusSpec
 }

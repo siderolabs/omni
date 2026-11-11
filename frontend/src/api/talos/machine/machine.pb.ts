@@ -11,6 +11,13 @@ import * as GoogleProtobufDuration from "../../google/protobuf/duration.pb"
 import * as GoogleProtobufEmpty from "../../google/protobuf/empty.pb"
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
 
+export enum LogKind {
+  LOG_KIND_UNSPECIFIED = 0,
+  LOG_KIND_CONTAINER = 1,
+  LOG_KIND_VM = 2,
+  LOG_KIND_SERVICE = 3,
+}
+
 export enum ApplyConfigurationRequestMode {
   REBOOT = 0,
   AUTO = 1,
@@ -452,6 +459,7 @@ export type PlatformInfo = {
 
 export type FeaturesInfo = {
   rbac?: boolean
+  resource_redaction?: boolean
 }
 
 export type LogsRequest = {
@@ -460,6 +468,7 @@ export type LogsRequest = {
   driver?: CommonCommon.ContainerDriver
   follow?: boolean
   tail_lines?: number
+  kind?: LogKind
 }
 
 export type ReadRequest = {

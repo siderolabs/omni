@@ -28,6 +28,8 @@ export type ContainerSecuritySpec = {
   machinedAccess?: boolean
   seccompUnconfined?: boolean
   selinuxLevel?: string
+  seccompLocalhostProfile?: string
+  seccompLocalhostProfileContent?: string
 }
 
 export type ContainerNetworkSpec = {
@@ -40,17 +42,29 @@ export type ContainerResourcesSpec = {
   swapLimit?: number
 }
 
+export type ContainerDependencySpec = {
+  name?: string
+  condition?: string
+}
+
 export type ContainerDependsOnSpec = {
   paths?: string[]
   networks?: string[]
   time?: boolean
-  containers?: string[]
+  containers?: ContainerDependencySpec[]
 }
 
 export type ContainerDeviceSpec = {
   kind?: string
   volumeName?: string
   destination?: string
+}
+
+export type ContainerRestartSpec = {
+  policy?: string
+  maxRetries?: number
+  delay?: string
+  maxDelay?: string
 }
 
 export type ContainerSpecSpec = {
@@ -66,6 +80,8 @@ export type ContainerSpecSpec = {
   resources?: ContainerResourcesSpec
   dependsOn?: ContainerDependsOnSpec
   devices?: ContainerDeviceSpec[]
+  stopTimeout?: string
+  restart?: ContainerRestartSpec
 }
 
 export type ContainerDependencyStatusSpec = {
@@ -117,6 +133,8 @@ export type ContainerInstanceSpecSpec = {
   network?: ContainerNetworkSpec
   resources?: ContainerResourcesSpec
   devices?: ResolvedDeviceSpec[]
+  stopTimeout?: string
+  executionHash?: string
 }
 
 export type ContainerInstanceStatusSpec = {
@@ -128,6 +146,11 @@ export type ContainerInstanceStatusSpec = {
   error?: string
   startedAt?: string
   finishedAt?: string
+  refused?: boolean
+}
+
+export type ContainerLifecycleSpec = {
+  shutdownDeadline?: string
 }
 
 export type ContainerMountStatusSpec = {
@@ -135,6 +158,18 @@ export type ContainerMountStatusSpec = {
   mounts?: ResolvedMountSpec[]
   error?: string
   devices?: ResolvedDeviceSpec[]
+}
+
+export type ContainerRunStatusSpec = {
+  executionHash?: string
+  nextGeneration?: number
+  restarts?: number
+  backoffStep?: number
+  restartedGeneration?: number
+  restarted?: boolean
+  policy?: string
+  finishedGeneration?: number
+  finishedState?: string
 }
 
 export type ContainerStatusSpec = {
@@ -146,4 +181,5 @@ export type ContainerStatusSpec = {
   restartCount?: number
   error?: string
   waitingFor?: string[]
+  generation?: number
 }
