@@ -22,9 +22,10 @@ const MetalAgentExtensionName = "metal-agent"
 const MetalAgentExtensionFullName = OfficialPrefix + MetalAgentExtensionName
 
 var (
-	talosV170 = semver.MustParse("1.7.0")
-	talosV180 = semver.MustParse("1.8.0")
-	talosV190 = semver.MustParse("1.9.0")
+	talosV170  = semver.MustParse("1.7.0")
+	talosV180  = semver.MustParse("1.8.0")
+	talosV190  = semver.MustParse("1.9.0")
+	talosV1150 = semver.MustParse("1.15.0")
 
 	talosV17RenamedExtensions = newBiMap[string, string](map[string]string{
 		OfficialPrefix + "xe-guest-utilities": OfficialPrefix + "xen-guest-agent",
@@ -40,6 +41,12 @@ var (
 	talosV19RenamedExtensions = newBiMap[string, string](map[string]string{
 		OfficialPrefix + "i915-ucode":      OfficialPrefix + "i915",
 		OfficialPrefix + "amdgpu-firmware": OfficialPrefix + "amdgpu",
+	})
+
+	// this is a one-way mapping, as the new name exists in < 1.15, so mapping it back is ambiguous.
+	talosV115RenamedOneWayExtensions = newBiMap[string, string](map[string]string{
+		// the NVIDIA LTS drops the nonfree- variant when moving into 1.15, map it to open-source variant instead.
+		OfficialPrefix + "nonfree-kmod-nvidia-lts": OfficialPrefix + "nvidia-open-gpu-kernel-modules-lts",
 	})
 )
 
@@ -73,14 +80,15 @@ func MapNamesByVersion(extensions []string, talosVersion semver.Version) []strin
 	gte170 := talosVersion.GTE(talosV170)
 	gte180 := talosVersion.GTE(talosV180)
 	gte190 := talosVersion.GTE(talosV190)
+	gte1150 := talosVersion.GTE(talosV1150)
 
 	return xslices.Map(extensions, func(extension string) string {
-		return mapSingleNameByVersion(extension, gte170, gte180, gte190)
+		return mapSingleNameByVersion(extension, gte170, gte180, gte190, gte1150)
 	})
 }
 
 // mapSingleNameByVersion returns the renamed extension based on the talos version.
-func mapSingleNameByVersion(extension string, gte170, gte180, get190 bool) string {
+func mapSingleNameByVersion(extension string, gte170, gte180, gte190, gte1150 bool) string {
 	if gte170 {
 		if name, ok := talosV17RenamedExtensions.Get(extension); ok {
 			return name
@@ -101,12 +109,18 @@ func mapSingleNameByVersion(extension string, gte170, gte180, get190 bool) strin
 		}
 	}
 
-	if get190 {
+	if gte190 {
 		if name, ok := talosV19RenamedExtensions.Get(extension); ok {
 			return name
 		}
 	} else {
 		if name, ok := talosV19RenamedExtensions.GetInverse(extension); ok {
+			return name
+		}
+	}
+
+	if gte1150 {
+		if name, ok := talosV115RenamedOneWayExtensions.Get(extension); ok {
 			return name
 		}
 	}

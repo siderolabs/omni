@@ -86,4 +86,18 @@ func TestMap(t *testing.T) {
 			"siderolabs/amdgpu", // mapped to the new name
 		}, mapped)
 	})
+
+	t.Run("talos-v1.15", func(t *testing.T) {
+		exts := []string{
+			"siderolabs/nonfree-kmod-nvidia-lts",
+			"siderolabs/nvidia-container-toolkit-lts",
+		}
+
+		mapped := extensions.MapNamesByVersion(exts, semver.MustParse("1.15.0"))
+
+		require.Equal(t, []string{
+			"siderolabs/nvidia-open-gpu-kernel-modules-lts", // mapped to the new name
+			"siderolabs/nvidia-container-toolkit-lts",       // kept as-is because not in the renamed list
+		}, mapped)
+	})
 }
