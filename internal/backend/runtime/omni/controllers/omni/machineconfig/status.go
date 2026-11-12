@@ -334,7 +334,7 @@ func (ctrl *StatusController) reconcileRunning(
 	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
 
 	// The machine now carries the desired config (either just applied, or already in sync), so its
-	// high-priority documents are up to date. Recording the hash clears highPriorityPending; it also
+	// high-priority config is up to date. Recording the hash clears highPriorityPending; it also
 	// backfills already-configured machines on the first reconcile after this feature is deployed,
 	// without a re-apply (the whole-config sha still matches, so no apply was needed).
 	machineConfigStatus.TypedSpec().Value.AppliedHighPriorityConfigHash = rc.highPriorityHash
@@ -423,9 +423,10 @@ func (ctrl *StatusController) reconcileUpgrade(
 
 	if rc.hasPendingLifecycleOperation() {
 		switch {
-		// If high-priority config (image factory registry auth / custom CA) changes are pending on an
-		// in-cluster machine, defer the upgrade and let the config be applied first: the upgrade pulls
-		// the installer image and needs those credentials/CA to be on the machine already. We neither
+		// If high-priority config (image factory registry auth / custom CA / grubUseUKICmdline) changes are pending
+		// on an in-cluster machine, defer the upgrade and let the config be applied first: the upgrade pulls
+		// the installer image and needs those credentials/CA to be on the machine already, and the installer
+		// reads grubUseUKICmdline from the config on the machine. We neither
 		// call ctrl.upgrade nor skip-reconcile, so the flow falls through to applyConfig below. The
 		// TalosVersion/SchematicId are not recorded because hasPendingLifecycleOperation() stays true,
 		// so the version-recording branch below is not entered. The upgrade is retried on a later

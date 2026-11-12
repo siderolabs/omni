@@ -52,8 +52,8 @@ type ReconciliationContext struct {
 	lastConfigError string
 	installDisk     string
 	bootID          string
-	// highPriorityHash is the hash of the high-priority config documents (image factory registry auth
-	// and custom CA / trusted roots) present in the desired config. Empty when there are none.
+	// highPriorityHash is the hash of the high-priority config (image factory registry auth, custom CA /
+	// trusted roots and grubUseUKICmdline set to true) in the desired config. Empty when there is none.
 	highPriorityHash      string
 	redactedMachineConfig []byte
 
@@ -63,8 +63,8 @@ type ReconciliationContext struct {
 	locked               bool
 	// tryInFlight is set while the desired config is tried on the machine and may still roll back.
 	tryInFlight bool
-	// highPriorityPending is true when the desired high-priority config documents differ from the ones
-	// last applied to the machine, so they must be applied before any upgrade/install.
+	// highPriorityPending is true when the desired high-priority config differs from the one last applied
+	// to the machine, so it must be applied before any upgrade/install.
 	highPriorityPending bool
 	// maintenanceConfigApplied is true when the maintenance config controller has applied the config it
 	// generated (which carries the high-priority documents) for the machine's current connection, and no
@@ -241,7 +241,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 
 	rc.installImageNotSet = config.Machine() == nil || config.Machine().Install().Image() == ""
 
-	rc.highPriorityHash, err = computeHighPriorityHash(config.Documents())
+	rc.highPriorityHash, err = computeHighPriorityHash(config.Documents(), machineConfig.TypedSpec().Value.GrubUseUkiCmdline)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compute high-priority config hash: %w", err)
 	}
@@ -377,8 +377,13 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 // desired machine config: image factory registry auth (cri.RegistryAuthConfigV1Alpha1) and custom CA /
 // trusted roots (security.TrustedRootsConfigV1Alpha1). These must already be on the machine before any
 // upgrade/install can pull the installer image from a private image factory or a registry behind a
-// custom CA. It returns an empty string when there are no such documents.
-func computeHighPriorityHash(documents []talosconfig.Document) (string, error) {
+// custom CA.
+//
+// It also covers grubUseUKICmdline being true (as recorded on the ClusterMachineConfig): the installer reads it from
+// the config on the machine, so an upgrade running before it is applied writes the GRUB command line without the kernel
+// args added together with switching it to true. It returns an empty string when there are no such documents and the
+// flag is false.
+func computeHighPriorityHash(documents []talosconfig.Document, grubUseUKICmdline bool) (string, error) {
 	var highPriority []talosconfig.Document
 
 	for _, doc := range documents {
@@ -388,7 +393,7 @@ func computeHighPriorityHash(documents []talosconfig.Document) (string, error) {
 		}
 	}
 
-	if len(highPriority) == 0 {
+	if len(highPriority) == 0 && !grubUseUKICmdline {
 		return "", nil
 	}
 
@@ -412,6 +417,10 @@ func computeHighPriorityHash(documents []talosconfig.Document) (string, error) {
 
 		hash.Write(data)
 		hash.Write([]byte{0})
+	}
+
+	if grubUseUKICmdline {
+		hash.Write([]byte("grubUseUKICmdline"))
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil

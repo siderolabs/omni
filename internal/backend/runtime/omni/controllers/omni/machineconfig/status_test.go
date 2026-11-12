@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
@@ -3202,6 +3203,169 @@ func TestClusterUpgradeDeferredForHighPriorityConfig(t *testing.T) {
 			require.Never(t, func() bool {
 				return len(machineServices.Get(id).GetLifecycleUpgradeRequests()) > 0
 			}, time.Second, 50*time.Millisecond)
+		},
+	)
+}
+
+// grubUseUKICmdlineOption returns a Mock option that sets .machine.install.grubUseUKICmdline in a machine's
+// rendered ClusterMachineConfig and records it on the resource, as ClusterMachineConfigController does.
+func grubUseUKICmdlineOption(value bool) options.MockOption {
+	return options.Modify(func(res *omni.ClusterMachineConfig) error {
+		res.TypedSpec().Value.GrubUseUkiCmdline = value
+
+		buffer, err := res.TypedSpec().Value.GetUncompressedData()
+		if err != nil {
+			return err
+		}
+
+		defer buffer.Free()
+
+		patch, err := configpatcher.LoadPatch(fmt.Appendf(nil, "machine:\n  install:\n    grubUseUKICmdline: %t\n", value))
+		if err != nil {
+			return err
+		}
+
+		patched, err := configpatcher.Apply(configpatcher.WithBytes(buffer.Data()), []configpatcher.Patch{patch})
+		if err != nil {
+			return err
+		}
+
+		data, err := patched.Bytes()
+		if err != nil {
+			return err
+		}
+
+		return res.TypedSpec().Value.SetUncompressedData(data)
+	})
+}
+
+// TestClusterUpgradeDeferredForGrubUseUKICmdlineChange verifies that a pending change of grubUseUKICmdline
+// defers an upgrade like a high-priority config document does: the installer reads it from the config on the
+// machine, so it has to be applied before the upgrade.
+func TestClusterUpgradeDeferredForGrubUseUKICmdlineChange(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-grub-defer"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.13.0")))
+			id := machines[0].Metadata().ID()
+
+			// The machine starts with the legacy GRUB command line, applied.
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), grubUseUKICmdlineOption(false))
+
+			require.EventuallyWithT(t, func(collect *assert.CollectT) {
+				requests := machineServices.Get(id).GetApplyRequests()
+				if !assert.NotEmpty(collect, requests) {
+					return
+				}
+
+				assert.Contains(collect, string(requests[len(requests)-1].GetData()), "grubUseUKICmdline: false")
+			}, time.Second*5, 50*time.Millisecond)
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			// Make config apply require a reboot so the change is never recorded as applied and stays pending.
+			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+				m.OnApplyConfig = func(_ context.Context, _ *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
+					//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
+					mode := machine.ApplyConfigurationRequest_REBOOT
+
+					return &machine.ApplyConfigurationResponse{
+						Messages: []*machine.ApplyConfiguration{{Mode: mode}},
+					}, nil
+				}
+			})
+
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), grubUseUKICmdlineOption(true))
+
+			require.EventuallyWithT(t, func(collect *assert.CollectT) {
+				requests := machineServices.Get(id).GetApplyRequests()
+				if !assert.NotEmpty(collect, requests) {
+					return
+				}
+
+				assert.Contains(collect, string(requests[len(requests)-1].GetData()), "grubUseUKICmdline: true")
+			}, time.Second*5, 50*time.Millisecond)
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			require.Never(t, func() bool {
+				return len(machineServices.Get(id).GetLifecycleUpgradeRequests()) > 0
+			}, time.Second, 50*time.Millisecond)
+		},
+	)
+}
+
+// TestClusterUpgradeProceedsWithGrubUseUKICmdlineInSync verifies that a machine whose config already has grubUseUKICmdline
+// set to true is not held back when the flag starts counting as high-priority config (e.g., on the first reconcile after
+// an Omni update): its config is in sync, so the hash is recorded without an apply and the upgrade proceeds.
+func TestClusterUpgradeProceedsWithGrubUseUKICmdlineInSync(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-grub-in-sync"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.13.0")))
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+				a.Empty(res.TypedSpec().Value.AppliedHighPriorityConfigHash)
+			})
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			// Only the recorded flag changes, the config itself stays in sync: the desired hash now differs from the
+			// recorded one, like for every machine with the flag on the first reconcile after this was introduced.
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineConfig) error {
+				res.TypedSpec().Value.GrubUseUkiCmdline = true
+
+				return nil
+			}))
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.AppliedHighPriorityConfigHash)
+				a.NotEmpty(res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			require.NotEmpty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
 		},
 	)
 }
