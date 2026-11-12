@@ -25,6 +25,19 @@ Each fixture covers a setup once, or once per Talos version where the two
 take different paths (LVM and LUKS detection). The Talos 1.14 fixtures were
 captured without the `SystemDisk` resource.
 
+## Space usage
+
+`mountStatuses` and `statfs` give how full each mounted volume is, as the page
+gets it on Talos 1.15+: the `MountStatuses.block.talos.dev` resources say where
+each Talos volume is mounted, and `statfs` holds Talos's `Statfs` result for
+each mount target, keyed by the target. Only `talos-1.15-luks-lvm-raid1.json`
+has them. Capture them with:
+
+```sh
+talosctl -n <machine> get MountStatuses.block.talos.dev -o json > mountstatuses.json
+talosctl -n <machine> df -b   # talosctl 1.15+: SIZE, USED, AVAILABLE and MOUNT POINT
+```
+
 ## Capturing a machine
 
 Read each resource type from the machine as JSON, through Omni or directly:

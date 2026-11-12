@@ -10,6 +10,7 @@ import prettyBytes from 'pretty-bytes'
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
+import ProgressBar from '@/components/ProgressBar/ProgressBar.vue'
 import StatusPill from '@/components/Status/StatusPill.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
@@ -17,12 +18,27 @@ import TableRow from '@/components/Table/TableRow.vue'
 import DeviceLink from '@/views/Disks/components/DeviceLink.vue'
 import type { DiskNodeVolume } from '@/views/Disks/lib/diskTopology'
 import { getVolumePhaseAppearance, isVolumePrepared } from '@/views/Disks/lib/volumeStatus'
+import type { VolumeUsage } from '@/views/Disks/lib/volumeUsage'
 
 defineProps<{
   partitions: DiskNodeVolume[]
   /** Returns the name to show for a device ID. */
   nameOf: (id: string) => string
 }>()
+
+// As df reports it: space reserved for root counts as neither used nor available.
+const usedPercent = (usage: VolumeUsage) =>
+  usage.used + usage.available ? (usage.used / (usage.used + usage.available)) * 100 : 0
+
+// A filesystem close to full is worth noticing.
+const usageColor = (usage: VolumeUsage) => {
+  const percent = usedPercent(usage)
+
+  if (percent >= 90) return 'var(--color-status-danger-default)'
+  if (percent >= 75) return 'var(--color-status-warning-default)'
+
+  return 'var(--color-status-success-default)'
+}
 
 enum Encryption {
   Unknown = 'unknown',
@@ -99,13 +115,14 @@ const getEncryptionIcon = (encryption: Encryption): IconType => {
           <TableCell th>Filesystem</TableCell>
           <TableCell th>Encryption</TableCell>
           <TableCell th>UUID</TableCell>
+          <TableCell th>Used</TableCell>
           <TableCell th>Size</TableCell>
         </TableRow>
       </template>
 
       <template #body>
         <TableRow
-          v-for="{ name, volume, volumeStatus, usedBy } in partitions"
+          v-for="{ name, volume, volumeStatus, usedBy, usage } in partitions"
           :key="volume.metadata.id"
           :aria-labelledby="`volume-${volume.metadata.id}-title`"
           class="whitespace-nowrap"
@@ -170,6 +187,15 @@ const getEncryptionIcon = (encryption: Encryption): IconType => {
 
           <TableCell class="w-full max-w-20 truncate font-medium" :title="volume.spec.uuid">
             {{ volume.spec.uuid }}
+          </TableCell>
+
+          <TableCell>
+            <div v-if="usage" class="w-40 text-xs" :title="`Mounted on ${usage.mountedOn}`">
+              <ProgressBar :model-value="usedPercent(usage)" :color="usageColor(usage)" />
+              <span class="text-content-muted">
+                {{ prettyBytes(usage.used) }} of {{ prettyBytes(usage.size) }}
+              </span>
+            </div>
           </TableCell>
 
           <TableCell class="font-medium">{{ prettyBytes(volume.spec.size ?? 0) }}</TableCell>

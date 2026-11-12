@@ -846,6 +846,9 @@ spec:
     - source: https://raw.githubusercontent.com/siderolabs/talos/0e1fdd26a1a6905ba3b3e9949e84887741981357/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/0e1fdd26a1a6905ba3b3e9949e84887741981357/api/machine/storage.proto
+      subdirectory: talos/machine/
+      genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/09c012d09660f694167adc12ec8a1e81cdc1bb41/proto/v1alpha1/resource.proto
       subdirectory: v1alpha1
       genGateway: true
@@ -983,6 +986,9 @@ spec:
       subdirectory: google/rpc/
       genGateway: true
     - source: https://raw.githubusercontent.com/siderolabs/talos/0e1fdd26a1a6905ba3b3e9949e84887741981357/api/machine/machine.proto
+      subdirectory: talos/machine
+      genGateway: true
+    - source: https://raw.githubusercontent.com/siderolabs/talos/0e1fdd26a1a6905ba3b3e9949e84887741981357/api/machine/storage.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto

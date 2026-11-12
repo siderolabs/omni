@@ -216,5 +216,9 @@ func (*machineService) gateway(ctx context.Context, runtimeMux *gateway.ServeMux
 		return fmt.Errorf("error registering gateway: %w", err)
 	}
 
+	if err := machine.RegisterStorageServiceHandlerFromEndpoint(ctx, runtimeMux, addr, opts); err != nil {
+		return fmt.Errorf("error registering storage service gateway: %w", err)
+	}
+
 	return nil
 }

@@ -35,6 +35,7 @@ import {
   getSMARTHealth,
 } from './diskHealth'
 import { getDiskVolumes, getVolumeDisplayName } from './diskVolumes'
+import type { VolumeUsage } from './volumeUsage'
 
 export type DiskNodeKind = 'disk' | 'cdrom' | 'md' | DeviceMapperKind
 
@@ -45,6 +46,8 @@ export interface DiskNodeVolume {
   volumeStatus?: Resource<VolumeStatusSpec>
   /** Shown devices built on this volume, e.g. the MD array a partition is a member of. */
   usedBy: string[]
+  /** How full the volume's filesystem is, when it is mounted. */
+  usage?: VolumeUsage
 }
 
 export interface DiskNode {
@@ -92,6 +95,8 @@ export interface DiskTopologyInput {
   /** The MD arrays Talos manages. Arrays created otherwise have none. */
   mdArrays?: Resource<MDArrayStatusSpec>[]
   volumeGroups?: Resource<LVMVolumeGroupStatusSpec>[]
+  /** How full each mounted Talos volume is, by volume ID. */
+  volumeUsages?: Map<string, VolumeUsage>
 }
 
 const physicalKinds = new Set<DiskNodeKind>(['disk', 'cdrom', 'multipath'])
@@ -242,6 +247,7 @@ export function buildDiskTopology(input: DiskTopologyInput): DiskTopology {
             volume,
             volumeStatus,
             usedBy: [...new Set(resolve(volume.metadata.id!, deviceParents))],
+            usage: volumeStatus && input.volumeUsages?.get(volumeStatus.metadata.id!),
           }
         }),
         usedBy: [...new Set(resolve(id, diskParents))],

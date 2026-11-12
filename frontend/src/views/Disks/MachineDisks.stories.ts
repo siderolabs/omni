@@ -5,6 +5,7 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -12,6 +13,7 @@ import {
   DefaultNamespace,
   MachineStatusType,
   TalosBlockDeviceType,
+  TalosBlockMountStatusType,
   TalosDiscoveredVolumeType,
   TalosDiskType,
   TalosLVMLogicalVolumeStatusType,
@@ -27,10 +29,15 @@ import {
   type DeviceSpec,
   type DiscoveredVolumeSpec,
   type DiskSpec,
+  type MountStatusSpec,
   type SMARTStatusSpec,
   type SystemDiskSpec,
   type VolumeStatusSpec,
 } from '@/api/talos/block.pb'
+import type {
+  StorageServiceStatfsRequest,
+  StorageServiceStatfsResponse,
+} from '@/api/talos/machine/storage.pb'
 import type {
   LVMLogicalVolumeStatusSpec,
   LVMVolumeGroupStatusSpec,
@@ -105,6 +112,46 @@ const logicalVolumesHandler = (volumes: LVMLogicalVolumeStatusSpec[]) =>
   }).handler
 
 // Serves resources captured from a real machine. See fixtures/README.md.
+// Where Talos volumes are mounted, and how full each filesystem is, by mount target.
+const volumeUsageHandlers = (
+  mountStatuses: Resource<MountStatusSpec>[],
+  statfs: Record<string, StorageServiceStatfsResponse>,
+) => [
+  createWatchStreamHandler<MountStatusSpec>({
+    expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosBlockMountStatusType },
+    initialResources: mountStatuses,
+  }).handler,
+  http.post('/machine.StorageService/Statfs', async ({ request }) => {
+    const { path = '' } = (await request.json()) as StorageServiceStatfsRequest
+
+    return statfs[path] ? HttpResponse.json(statfs[path]) : HttpResponse.json({}, { status: 404 })
+  }),
+]
+
+// A mocked machine's mounted Talos volumes: their mount statuses, and how full
+// each is.
+const mockedVolumeUsage = (
+  mounts: { volumeID: string; source: string; target: string; size: number; used: number }[],
+) =>
+  volumeUsageHandlers(
+    mounts.map(({ volumeID, source, target }) => ({
+      metadata: { id: volumeID, namespace: TalosRuntimeNamespace, type: TalosBlockMountStatusType },
+      spec: { spec: { volumeID }, source, target },
+    })),
+    Object.fromEntries(
+      mounts.map(({ target, size, used }) => [
+        target,
+        { size: String(size), used: String(used), available: String(size - used) },
+      ]),
+    ),
+  )
+
+// A ready volume status, for a mocked volume Talos has mounted.
+const readyVolumeStatus = ({ volumeID, source }: { volumeID: string; source: string }) => ({
+  metadata: { id: volumeID, namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
+  spec: { phase: 'ready', location: source, mountLocation: source, filesystem: 'xfs' },
+})
+
 const smartStatusesHandler = (statuses: Resource<SMARTStatusSpec>[]) =>
   createWatchStreamHandler<SMARTStatusSpec>({
     expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosSMARTStatusType },
@@ -152,6 +199,7 @@ const capturedMachineHandlers = (fixture: CapturedMachine) => [
   smartStatusesHandler(fixture.smartStatuses ?? []),
   mdArraysHandler(fixture.mdArrays ?? []),
   volumeGroupsHandler(fixture.volumeGroups ?? []),
+  ...volumeUsageHandlers(fixture.mountStatuses ?? [], fixture.statfs ?? {}),
 ]
 
 const meta: Meta<typeof NodeDisks> = {
@@ -168,6 +216,7 @@ const meta: Meta<typeof NodeDisks> = {
       smartStatusesHandler([]),
       mdArraysHandler([]),
       volumeGroupsHandler([]),
+      ...volumeUsageHandlers([], {}),
     )
   },
 }
@@ -286,7 +335,7 @@ const handlers = [
           type: TalosDiscoveredVolumeType,
         },
         spec: {
-          dev_path: '/dev/vda4',
+          dev_path: '/dev/vda5',
           name: 'xfs',
           parent: 'vda',
           partition_index: 4,
@@ -361,7 +410,13 @@ const handlers = [
 
 export const Default: Story = {
   beforeEach({ msw }) {
-    msw.use(...handlers)
+    msw.use(
+      ...handlers,
+      // EPHEMERAL is nearly full.
+      ...mockedVolumeUsage([
+        { volumeID: 'EPHEMERAL', source: '/dev/vda4', target: '/var', size: 3.9e9, used: 3.59e9 },
+      ]),
+    )
   },
 }
 
@@ -471,6 +526,10 @@ export const WithCdrom: Story = {
 export const WithLuksEncryption: Story = {
   beforeEach({ msw }) {
     msw.use(
+      // Mounted from the opened LUKS device.
+      ...mockedVolumeUsage([
+        { volumeID: 'EPHEMERAL', source: '/dev/dm-0', target: '/var', size: 20e9, used: 6e9 },
+      ]),
       createWatchStreamHandler<DiskSpec>({
         expectedOptions: {
           namespace: TalosRuntimeNamespace,
@@ -598,9 +657,35 @@ const manyPartitions: [label: string, size: number][] = [
   ['u-backups', 6 * GiB],
 ]
 
+// How full each mounted filesystem is, as a fraction: from nearly empty, to
+// nearly full enough to warn, to full.
+const manyPartitionsUsage: Record<string, number> = {
+  EPHEMERAL: 0.4,
+  'u-data': 0.78,
+  'u-logs': 0.95,
+  'u-cache': 0.1,
+  'u-scratch': 0,
+  'u-backups': 0.6,
+}
+
+const manyPartitionsMounted = manyPartitions.flatMap(([label, size], i) =>
+  label in manyPartitionsUsage
+    ? [
+        {
+          volumeID: label,
+          source: `/dev/nvme0n1p${i + 1}`,
+          target: label === 'EPHEMERAL' ? '/var' : `/var/mnt/${label.slice(2)}`,
+          size: Math.round(size),
+          used: Math.round(size * manyPartitionsUsage[label]),
+        },
+      ]
+    : [],
+)
+
 export const WithManyPartitions: Story = {
   beforeEach({ msw }) {
     msw.use(
+      ...mockedVolumeUsage(manyPartitionsMounted),
       createWatchStreamHandler<DiskSpec>({
         expectedOptions: {
           namespace: TalosRuntimeNamespace,
@@ -648,7 +733,7 @@ export const WithManyPartitions: Story = {
           namespace: TalosRuntimeNamespace,
           type: TalosVolumeStatusType,
         },
-        initialResources: [],
+        initialResources: manyPartitionsMounted.map(readyVolumeStatus),
       }).handler,
     )
   },
@@ -665,9 +750,27 @@ const volumeResource = (id: string, spec: DiscoveredVolumeSpec) => ({
 })
 
 // Talos 1.12+ reports partition offsets, so free space shows where it is on disk.
+const partitionGapsMounted = [
+  {
+    volumeID: 'EPHEMERAL',
+    source: '/dev/vda1',
+    target: '/var',
+    size: 10 * GiB,
+    used: 3 * GiB,
+  },
+  {
+    volumeID: 'u-data',
+    source: '/dev/vda2',
+    target: '/var/mnt/data',
+    size: 10 * GiB,
+    used: 5.5 * GiB,
+  },
+]
+
 export const WithPartitionGaps: Story = {
   beforeEach({ msw }) {
     msw.use(
+      ...mockedVolumeUsage(partitionGapsMounted),
       createWatchStreamHandler<DiskSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
         initialResources: [diskResource('vda', { size: 40 * GiB, transport: 'virtio' })],
@@ -698,7 +801,7 @@ export const WithPartitionGaps: Story = {
       }).handler,
       createWatchStreamHandler<VolumeStatusSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
-        initialResources: [],
+        initialResources: partitionGapsMounted.map(readyVolumeStatus),
       }).handler,
     )
   },
@@ -774,9 +877,27 @@ export const WithVolumeProblems: Story = {
 
 // An MD RAID1 array built from one partition on each disk, next to Talos's own
 // partitions on the first disk.
+const raidOnPartitionsMounted = [
+  {
+    volumeID: 'EPHEMERAL',
+    source: '/dev/nvme0n1p1',
+    target: '/var',
+    size: 100 * GiB,
+    used: 25 * GiB,
+  },
+  {
+    volumeID: 'u-mirror',
+    source: '/dev/md0',
+    target: '/var/mnt/mirror',
+    size: 128 * GiB,
+    used: 64 * GiB,
+  },
+]
+
 export const WithRaidOnPartitions: Story = {
   beforeEach({ msw }) {
     msw.use(
+      ...mockedVolumeUsage(raidOnPartitionsMounted),
       createWatchStreamHandler<DiskSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
         initialResources: [
@@ -820,7 +941,7 @@ export const WithRaidOnPartitions: Story = {
       }).handler,
       createWatchStreamHandler<VolumeStatusSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
-        initialResources: [],
+        initialResources: raidOnPartitionsMounted.map(readyVolumeStatus),
       }).handler,
       blockDevicesHandler([['md0', ['nvme0n1p2', 'nvme1n1p1']]]),
     )
@@ -828,9 +949,20 @@ export const WithRaidOnPartitions: Story = {
 }
 
 // A SAN LUN reached through two paths, sdb and sdc, with a logical volume on it.
+const multipathMounted = [
+  {
+    volumeID: 'u-san',
+    source: '/dev/dm-3',
+    target: '/var/mnt/san',
+    size: 1024 * GiB,
+    used: 724 * GiB,
+  },
+]
+
 export const WithMultipath: Story = {
   beforeEach({ msw }) {
     msw.use(
+      ...mockedVolumeUsage(multipathMounted),
       createWatchStreamHandler<DiskSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosDiskType },
         initialResources: [
@@ -867,7 +999,7 @@ export const WithMultipath: Story = {
       }).handler,
       createWatchStreamHandler<VolumeStatusSpec>({
         expectedOptions: { namespace: TalosRuntimeNamespace, type: TalosVolumeStatusType },
-        initialResources: [],
+        initialResources: multipathMounted.map(readyVolumeStatus),
       }).handler,
       blockDevicesHandler([
         ['dm-2', ['sdb', 'sdc']],
@@ -903,7 +1035,8 @@ export const CapturedTalos114LuksLvm: Story = {
 
 // A Talos 1.15 QEMU machine with LUKS volumes and LVM on LUKS on vda, an LVM
 // RAID1 logical volume over sda and vdb, and a filesystem on each logical
-// volume, as captured. Talos 1.15 reports each device-mapper device's kind.
+// volume, as captured with how full each filesystem is. Talos 1.15 reports each
+// device-mapper device's kind.
 export const CapturedTalos115LuksLvmRaid1: Story = {
   beforeEach({ msw }) {
     msw.use(...capturedMachineHandlers(talos115LuksLvmRaid1))

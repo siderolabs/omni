@@ -6,16 +6,18 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { coerce, gte } from 'semver'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import type { RuntimeContext } from '@/api/options'
+import { withContext, withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
   MachineStatusType,
   TalosBlockDeviceType,
+  TalosBlockMountStatusType,
   TalosDiscoveredVolumeType,
   TalosDiskType,
   TalosLVMLogicalVolumeStatusType,
@@ -31,10 +33,12 @@ import type {
   DeviceSpec,
   DiscoveredVolumeSpec,
   DiskSpec,
+  MountStatusSpec,
   SMARTStatusSpec,
   SystemDiskSpec,
   VolumeStatusSpec,
 } from '@/api/talos/block.pb'
+import { StorageService, type StorageServiceStatfsResponse } from '@/api/talos/machine/storage.pb'
 import type {
   LVMLogicalVolumeStatusSpec,
   LVMVolumeGroupStatusSpec,
@@ -54,6 +58,7 @@ import {
 } from '@/views/Disks/lib/diskHealth'
 import { buildDiskTopology } from '@/views/Disks/lib/diskTopology'
 import { getFailedVolumes } from '@/views/Disks/lib/volumeStatus'
+import { getVolumeMounts, getVolumeUsages } from '@/views/Disks/lib/volumeUsage'
 
 const { machineId } = defineProps<{
   machineId: string
@@ -225,7 +230,79 @@ const loading = computed(
     logicalVolumesLoading.value ||
     volumeGroupsLoading.value ||
     mdArraysLoading.value ||
-    smartStatusesLoading.value,
+    smartStatusesLoading.value ||
+    mountStatusesLoading.value,
+)
+
+// Where each Talos volume is mounted, to measure how full it is. Talos 1.15+
+// can measure a single filesystem with Statfs.
+const { data: mountStatuses, loading: mountStatusesLoading } = useResourceWatch<MountStatusSpec>(
+  () => ({
+    resource: {
+      namespace: TalosRuntimeNamespace,
+      type: TalosBlockMountStatusType,
+    },
+    runtime: Runtime.Talos,
+    context: context.value,
+    skip: !isTalos115.value,
+  }),
+)
+
+const volumeMounts = computed(() => getVolumeMounts(mountStatuses.value))
+
+// Statfs results by mount target, for the shown machine. Each filesystem is
+// measured once, when it is first seen mounted.
+const statfs = ref<Record<string, StorageServiceStatfsResponse>>({})
+
+// Targets being measured, for the machine they're being measured on.
+let measuring = new Set<string>()
+
+const measure = async (node: string, target: string, inFlight: Set<string>) => {
+  try {
+    const result = await StorageService.Statfs(
+      { path: target },
+      withRuntime(Runtime.Talos),
+      withContext({ node }),
+    )
+
+    // Drop a result for a machine no longer shown, or a target since unmounted.
+    if (node === machineId && volumeMounts.value.some((m) => m.target === target)) {
+      statfs.value = { ...statfs.value, [target]: result }
+    }
+  } catch (e) {
+    // The page still works without it: the volume just shows no usage.
+    console.warn(`Failed to measure the filesystem mounted on ${target}`, e)
+  } finally {
+    inFlight.delete(target)
+  }
+}
+
+watch(
+  [() => machineId, mountStatusesLoading, () => volumeMounts.value.map((m) => m.target).join(',')],
+  ([node, loading], [previousNode]) => {
+    // The page is reused when only the machine changes: start over for it.
+    if (node !== previousNode) {
+      statfs.value = {}
+      measuring = new Set()
+    }
+
+    // Until the machine's mount statuses are in, the mounts may be another
+    // machine's, or stale while the stream reconnects.
+    if (loading) return
+
+    const targets = new Set(volumeMounts.value.map((m) => m.target))
+
+    // Forget filesystems since unmounted, and measure only newly mounted ones.
+    statfs.value = Object.fromEntries(Object.entries(statfs.value).filter(([t]) => targets.has(t)))
+
+    for (const target of targets) {
+      if (target in statfs.value || measuring.has(target)) continue
+
+      measuring.add(target)
+      measure(node, target, measuring)
+    }
+  },
+  { immediate: true },
 )
 
 // Volume groups, MD arrays and SMART only add health, so if one of them fails,
@@ -261,6 +338,7 @@ const topology = computed(() =>
     volumeGroups: volumeGroups.value,
     mdArrays: mdArrays.value,
     smartStatuses: smartStatuses.value,
+    volumeUsages: getVolumeUsages(volumeMounts.value, statfs.value),
   }),
 )
 

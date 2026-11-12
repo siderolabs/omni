@@ -13,7 +13,7 @@
         "dev_path": "/dev/dm-4",
         "device_mapper_kind": "lvm",
         "device_mapper_name": "data-data",
-        "device_mapper_uuid": "LVM-W3oNt5oa2kvhwluE3TL1x6mWlA37gQMpsliYdUBGL8uG8g7NUoLYcOy1llbVTm2a",
+        "device_mapper_uuid": "LVM-eTFeQIrJ3HcHfL9arhpt5v0eTyjQMz2mjlSNWIrbswny5mazv7gwFEjLTpfKSFCO",
         "io_size": 512,
         "pretty_size": "4.3 GB",
         "readonly": false,
@@ -25,8 +25,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/37",
           "/dev/disk/by-id/dm-name-data-data",
-          "/dev/disk/by-id/dm-uuid-LVM-W3oNt5oa2kvhwluE3TL1x6mWlA37gQMpsliYdUBGL8uG8g7NUoLYcOy1llbVTm2a",
-          "/dev/disk/by-uuid/93cccfe5-fc90-4f81-b02e-7344a1ced8ca"
+          "/dev/disk/by-id/dm-uuid-LVM-eTFeQIrJ3HcHfL9arhpt5v0eTyjQMz2mjlSNWIrbswny5mazv7gwFEjLTpfKSFCO",
+          "/dev/disk/by-uuid/0f5bc4bb-3f41-4781-a2f2-4d109d37e49f"
         ],
         "transport": "dm"
       }
@@ -43,7 +43,7 @@
         "dev_path": "/dev/dm-5",
         "device_mapper_kind": "crypt",
         "device_mapper_name": "luks2-u-secret",
-        "device_mapper_uuid": "CRYPT-LUKS2-56345c859640497c885c1eaa59861754-luks2-u-secret",
+        "device_mapper_uuid": "CRYPT-LUKS2-6b997069ba5148b893db9bab1eb42561-luks2-u-secret",
         "io_size": 512,
         "pretty_size": "2.1 GB",
         "readonly": false,
@@ -55,8 +55,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/38",
           "/dev/disk/by-id/dm-name-luks2-u-secret",
-          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-56345c859640497c885c1eaa59861754-luks2-u-secret",
-          "/dev/disk/by-uuid/fe65f127-1023-403c-aa36-2d725f5a8104"
+          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-6b997069ba5148b893db9bab1eb42561-luks2-u-secret",
+          "/dev/disk/by-uuid/6829afad-724b-4867-a9a2-adcf8565c77b"
         ],
         "transport": "dm"
       }
@@ -73,7 +73,7 @@
         "dev_path": "/dev/dm-6",
         "device_mapper_kind": "crypt",
         "device_mapper_name": "luks2-r-lvmdata",
-        "device_mapper_uuid": "CRYPT-LUKS2-496a2db36a7047839a70d4c54b240d22-luks2-r-lvmdata",
+        "device_mapper_uuid": "CRYPT-LUKS2-2d16f0835cd74d24977831d21ca8d565-luks2-r-lvmdata",
         "io_size": 512,
         "pretty_size": "3.2 GB",
         "readonly": false,
@@ -85,7 +85,7 @@
         "symlinks": [
           "/dev/disk/by-diskseq/39",
           "/dev/disk/by-id/dm-name-luks2-r-lvmdata",
-          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-496a2db36a7047839a70d4c54b240d22-luks2-r-lvmdata"
+          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-2d16f0835cd74d24977831d21ca8d565-luks2-r-lvmdata"
         ],
         "transport": "dm"
       }
@@ -102,7 +102,7 @@
         "dev_path": "/dev/dm-7",
         "device_mapper_kind": "lvm",
         "device_mapper_name": "vg0-secure",
-        "device_mapper_uuid": "LVM-WV5qUdgn8yzDrCbEPqrYwddVX3DYJjRtdFIctfkLLqLrkXyCH6eFnpOW7R5KRCNg",
+        "device_mapper_uuid": "LVM-FTIaVz0g1Sy00pc5ISoNCHTMdTgNrdvgU1pg3KHkNHt59wZ0BiA3wTv2L22MCKiR",
         "io_size": 512,
         "pretty_size": "2.6 GB",
         "readonly": false,
@@ -114,8 +114,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/40",
           "/dev/disk/by-id/dm-name-vg0-secure",
-          "/dev/disk/by-id/dm-uuid-LVM-WV5qUdgn8yzDrCbEPqrYwddVX3DYJjRtdFIctfkLLqLrkXyCH6eFnpOW7R5KRCNg",
-          "/dev/disk/by-uuid/c7e7fa55-e055-4f69-86f5-36fd04b78998"
+          "/dev/disk/by-id/dm-uuid-LVM-FTIaVz0g1Sy00pc5ISoNCHTMdTgNrdvgU1pg3KHkNHt59wZ0BiA3wTv2L22MCKiR",
+          "/dev/disk/by-uuid/aa7dd3c6-60ba-4fa8-94ea-98c2015fe8a8"
         ],
         "transport": "dm"
       }
@@ -218,7 +218,7 @@
         "size": 5368709120,
         "sub_system": "/sys/class/block",
         "symlinks": [
-          "/dev/disk/by-diskseq/30",
+          "/dev/disk/by-diskseq/28",
           "/dev/disk/by-id/ata-QEMU_HARDDISK_QM00001",
           "/dev/disk/by-path/pci-0000:00:08.0-ata-1",
           "/dev/disk/by-path/pci-0000:00:08.0-ata-1.0"
@@ -246,7 +246,7 @@
         "size": 6442450944,
         "sub_system": "/sys/class/block",
         "symlinks": [
-          "/dev/disk/by-diskseq/28",
+          "/dev/disk/by-diskseq/29",
           "/dev/disk/by-path/pci-0000:00:06.0",
           "/dev/disk/by-path/virtio-pci-0000:00:06.0"
         ],
@@ -272,7 +272,7 @@
         "size": 5368709120,
         "sub_system": "/sys/class/block",
         "symlinks": [
-          "/dev/disk/by-diskseq/29",
+          "/dev/disk/by-diskseq/30",
           "/dev/disk/by-path/pci-0000:00:09.0",
           "/dev/disk/by-path/virtio-pci-0000:00:09.0"
         ],
@@ -535,7 +535,7 @@
       },
       "spec": {
         "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p1",
-        "generation": 5,
+        "generation": 2,
         "major": 259,
         "minor": 1,
         "parent": "nvme0n1",
@@ -567,7 +567,7 @@
       },
       "spec": {
         "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p3",
-        "generation": 7,
+        "generation": 6,
         "major": 259,
         "minor": 6,
         "parent": "nvme0n1",
@@ -867,7 +867,7 @@
       },
       "spec": {
         "devicePath": "/sys/devices/pci0000:00/0000:00:06.0/virtio4/block/vda/vda2",
-        "generation": 7,
+        "generation": 10,
         "major": 251,
         "minor": 2,
         "parent": "vda",
@@ -982,7 +982,7 @@
         "sector_size": 512,
         "size": 4290772992,
         "type": "disk",
-        "uuid": "93cccfe5-fc90-4f81-b02e-7344a1ced8ca"
+        "uuid": "0f5bc4bb-3f41-4781-a2f2-4d109d37e49f"
       }
     },
     {
@@ -1004,7 +1004,7 @@
         "sector_size": 512,
         "size": 2130706432,
         "type": "disk",
-        "uuid": "fe65f127-1023-403c-aa36-2d725f5a8104"
+        "uuid": "6829afad-724b-4867-a9a2-adcf8565c77b"
       }
     },
     {
@@ -1017,7 +1017,7 @@
         "dev_path": "/dev/dm-6",
         "device_path": "/sys/devices/virtual/block/dm-6",
         "io_size": 512,
-        "label": "WqrYPi-E8k9-o7Sh-9eL7-MqCm-J03m-m5I09l",
+        "label": "KKKMEj-PV0Q-pfuC-DC6F-33Ok-48Lk-4JOI1T",
         "name": "lvm2-pv",
         "offset": 0,
         "pretty_size": "3.2 GB",
@@ -1045,7 +1045,7 @@
         "sector_size": 512,
         "size": 2558525440,
         "type": "disk",
-        "uuid": "c7e7fa55-e055-4f69-86f5-36fd04b78998"
+        "uuid": "aa7dd3c6-60ba-4fa8-94ea-98c2015fe8a8"
       }
     },
     {
@@ -1087,7 +1087,7 @@
         "sector_size": 512,
         "size": 5368709120,
         "type": "disk",
-        "uuid": "0277e78f-8420-4001-802b-327884652ca3"
+        "uuid": "141966d7-1850-4d87-b6aa-56f42cfb3254"
       }
     },
     {
@@ -1110,7 +1110,7 @@
         "partition_index": 1,
         "partition_label": "EFI",
         "partition_type": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
-        "partition_uuid": "dd4ffdd1-7316-40e9-a9e7-30e4576cbf6e",
+        "partition_uuid": "cebbf1a3-ff46-4856-9725-676c2511e8f8",
         "pretty_size": "2.2 GB",
         "probed_size": 2203058176,
         "sector_size": 512,
@@ -1135,7 +1135,7 @@
         "partition_index": 2,
         "partition_label": "META",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "20b8a2a7-309f-453e-aed9-f93febb5fc69",
+        "partition_uuid": "9fb5ff46-5b20-479c-9f9c-1e0861c2f6f0",
         "pretty_size": "1.0 MB",
         "probed_size": 524288,
         "sector_size": 512,
@@ -1163,13 +1163,13 @@
         "partition_index": 3,
         "partition_label": "STATE",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "9066a203-eee9-4c04-b50a-2bd937531407",
+        "partition_uuid": "c049a72b-5922-477f-a27e-44f3ab47368e",
         "pretty_size": "105 MB",
         "probed_size": 96661504,
         "sector_size": 512,
         "size": 104857600,
         "type": "partition",
-        "uuid": "26ab5f39-823d-4f3c-991f-0ecda4b5a94e"
+        "uuid": "b633104a-e547-433b-b40b-7e75bb901106"
       }
     },
     {
@@ -1192,13 +1192,13 @@
         "partition_index": 4,
         "partition_label": "EPHEMERAL",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "7b24d82e-e3e6-4cf3-b60b-e9f62c1b74f8",
+        "partition_uuid": "97edf030-ecdd-48a2-ab30-84bdbc1c4417",
         "pretty_size": "3.1 GB",
         "probed_size": 2990538752,
         "sector_size": 512,
         "size": 3057647616,
         "type": "partition",
-        "uuid": "66be985d-3877-4893-a9b8-486ba03e2a0d"
+        "uuid": "c499b2c6-28da-4a75-a083-a6bdcd7c4820"
       }
     },
     {
@@ -1211,7 +1211,7 @@
         "dev_path": "/dev/sda",
         "device_path": "/sys/devices/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0/block/sda",
         "io_size": 512,
-        "label": "dSppM7-v7XO-9YF1-hYty-WIdl-XY5f-u1mqR9",
+        "label": "05zRaw-70BW-ZDDg-YWMc-LPK9-sXF2-3L0wSJ",
         "name": "lvm2-pv",
         "offset": 0,
         "pretty_size": "5.4 GB",
@@ -1238,7 +1238,7 @@
         "sector_size": 512,
         "size": 6442450944,
         "type": "disk",
-        "uuid": "7dca8fed-e88b-4aa7-9d3c-c073b7145b98"
+        "uuid": "debf3eb1-df34-4f8d-9f5e-6738b719b16a"
       }
     },
     {
@@ -1258,12 +1258,12 @@
         "partition_index": 1,
         "partition_label": "u-secret",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "c3c1f791-f25e-4434-a933-cabed166f4a5",
+        "partition_uuid": "42548f47-6e13-4017-97ff-503055e24295",
         "pretty_size": "2.1 GB",
         "sector_size": 512,
         "size": 2147483648,
         "type": "partition",
-        "uuid": "56345c85-9640-497c-885c-1eaa59861754"
+        "uuid": "6b997069-ba51-48b8-93db-9bab1eb42561"
       }
     },
     {
@@ -1283,12 +1283,12 @@
         "partition_index": 2,
         "partition_label": "r-lvmdata",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "283a7180-a5ed-43dd-83b6-af0237b83b0e",
+        "partition_uuid": "58cd4326-9e26-4395-b2b4-1cb16b45ea7b",
         "pretty_size": "3.2 GB",
         "sector_size": 512,
         "size": 3221225472,
         "type": "partition",
-        "uuid": "496a2db3-6a70-4783-9a70-d4c54b240d22"
+        "uuid": "2d16f083-5cd7-4d24-9778-31d21ca8d565"
       }
     },
     {
@@ -1301,7 +1301,7 @@
         "dev_path": "/dev/vdb",
         "device_path": "/sys/devices/pci0000:00/0000:00:09.0/virtio5/block/vdb",
         "io_size": 512,
-        "label": "xZR1rB-seAJ-lEgE-vRiG-HsJZ-0f7g-RrE03J",
+        "label": "Pec8tj-QnUa-ajZi-kViZ-E1lS-UR3x-pG7zdd",
         "name": "lvm2-pv",
         "offset": 0,
         "pretty_size": "5.4 GB",
@@ -1572,7 +1572,7 @@
         },
         "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 4,
-        "partitionUUID": "7b24d82e-e3e6-4cf3-b60b-e9f62c1b74f8",
+        "partitionUUID": "97edf030-ecdd-48a2-ab30-84bdbc1c4417",
         "phase": "ready",
         "prettySize": "3.1 GB",
         "size": 3057647616,
@@ -1649,7 +1649,7 @@
         "mountLocation": "/dev/nvme0n1p2",
         "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 2,
-        "partitionUUID": "20b8a2a7-309f-453e-aed9-f93febb5fc69",
+        "partitionUUID": "9fb5ff46-5b20-479c-9f9c-1e0861c2f6f0",
         "phase": "ready",
         "prettySize": "1.0 MB",
         "size": 1048576,
@@ -1676,7 +1676,7 @@
         },
         "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 3,
-        "partitionUUID": "9066a203-eee9-4c04-b50a-2bd937531407",
+        "partitionUUID": "c049a72b-5922-477f-a27e-44f3ab47368e",
         "phase": "ready",
         "prettySize": "105 MB",
         "size": 104857600,
@@ -1699,7 +1699,7 @@
         "mountLocation": "/dev/dm-6",
         "parentLocation": "/dev/vda",
         "partitionIndex": 2,
-        "partitionUUID": "283a7180-a5ed-43dd-83b6-af0237b83b0e",
+        "partitionUUID": "58cd4326-9e26-4395-b2b4-1cb16b45ea7b",
         "phase": "ready",
         "prettySize": "3.2 GB",
         "size": 3221225472,
@@ -1780,7 +1780,7 @@
         },
         "parentLocation": "/dev/vda",
         "partitionIndex": 1,
-        "partitionUUID": "c3c1f791-f25e-4434-a933-cabed166f4a5",
+        "partitionUUID": "42548f47-6e13-4017-97ff-503055e24295",
         "phase": "ready",
         "prettySize": "2.1 GB",
         "size": 2147483648,
@@ -1807,7 +1807,7 @@
         "attr": "rwi-aor---",
         "convertLV": "",
         "converting": "",
-        "copyPercent": "76.42",
+        "copyPercent": "84.13",
         "dataLV": "",
         "deviceOpen": "open",
         "dmPath": "/dev/mapper/data-data",
@@ -1836,7 +1836,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "sliYdU-BGL8-uG8g-7NUo-LYcO-y1ll-bVTm2a",
+        "uuid": "jlSNWI-rbsw-ny5m-azv7-gwFE-jLTp-fKSFCO",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1886,7 +1886,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "fCu1tI-Y3Gf-bxAk-4xdd-mYEo-WUNS-Tlnv00",
+        "uuid": "IIqgnc-pkXO-mJSP-GDwj-xBBK-IdCY-H7Xsra",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1936,7 +1936,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "oUWU1E-OB22-1EwZ-3JWh-17we-klj9-1BOVCJ",
+        "uuid": "kEktm7-MXr5-CC33-p7y4-jleu-Qv18-qWUNKk",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1986,7 +1986,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "eWXoQe-tSya-626J-0q5y-rHYE-UDbI-7Pj8zi",
+        "uuid": "TyvxIE-TbER-WiG4-DHOB-RQBW-u1oo-Fizxh6",
         "vgName": "data",
         "whenFull": ""
       }
@@ -2036,7 +2036,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "L5ihp9-lWwN-vPEa-M8mh-lN4L-fuAf-O3IY8x",
+        "uuid": "akVT2e-3eNX-AGZd-xcLn-AYPr-ppjj-xWoD7h",
         "vgName": "data",
         "whenFull": ""
       }
@@ -2086,7 +2086,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "dFIctf-kLLq-LrkX-yCH6-eFnp-OW7R-5KRCNg",
+        "uuid": "U1pg3K-HkNH-t59w-Z0Bi-A3wT-v2L2-2MCKiR",
         "vgName": "vg0",
         "whenFull": ""
       }
@@ -2228,7 +2228,7 @@
         "snapCount": "0",
         "systemID": "",
         "tags": [],
-        "uuid": "W3oNt5-oa2k-vhwl-uE3T-L1x6-mWlA-37gQMp"
+        "uuid": "eTFeQI-rJ3H-cHfL-9arh-pt5v-0eTy-jQMz2m"
       }
     },
     {
@@ -2264,8 +2264,481 @@
         "snapCount": "0",
         "systemID": "",
         "tags": [],
-        "uuid": "WV5qUd-gn8y-zDrC-bEPq-rYwd-dVX3-DYJjRt"
+        "uuid": "FTIaVz-0g1S-y00p-c5IS-oNCH-TMdT-gNrdvg"
       }
     }
-  ]
+  ],
+  "mountStatuses": [
+    {
+      "metadata": {
+        "id": "/opt",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "",
+          "readOnly": false,
+          "requesterIDs": ["/opt", "service/cri-/opt"],
+          "requesters": ["cri", "service/cri"],
+          "volumeID": "/opt"
+        },
+        "target": "/opt"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "EPHEMERAL",
+          "readOnly": false,
+          "requesterIDs": [
+            "k8s.KubeletServiceController-/var/lib",
+            "service/cri-/var/lib",
+            "service/kubelet-/var/lib"
+          ],
+          "requesters": ["k8s.KubeletServiceController", "service/cri", "service/kubelet"],
+          "volumeID": "/var/lib"
+        },
+        "target": "/var/lib"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/cni",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/lib",
+          "readOnly": false,
+          "requesterIDs": ["service/cri-/var/lib/cni"],
+          "requesters": ["service/cri"],
+          "volumeID": "/var/lib/cni"
+        },
+        "target": "/var/lib/cni"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/kubelet/seccomp",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "KUBELET",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/lib/kubelet/seccomp"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/lib/kubelet/seccomp"
+        },
+        "target": "/var/lib/kubelet/seccomp"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/lib/kubelet/seccomp/profiles",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/lib/kubelet/seccomp",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/lib/kubelet/seccomp/profiles"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/lib/kubelet/seccomp/profiles"
+        },
+        "target": "/var/lib/kubelet/seccomp/profiles"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/audit",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "LOG",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/log/audit"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/log/audit"
+        },
+        "target": "/var/log/audit"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/audit/kube",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/log/audit",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/log/audit/kube"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/log/audit/kube"
+        },
+        "target": "/var/log/audit/kube"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/containers",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "LOG",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/log/containers"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/log/containers"
+        },
+        "target": "/var/log/containers"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/log/pods",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "LOG",
+          "readOnly": false,
+          "requesterIDs": ["service/kubelet-/var/log/pods"],
+          "requesters": ["service/kubelet"],
+          "volumeID": "/var/log/pods"
+        },
+        "target": "/var/log/pods"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/mnt",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "EPHEMERAL",
+          "readOnly": false,
+          "requesterIDs": ["/var/mnt", "service/kubelet-/var/mnt"],
+          "requesters": ["block.VolumeConfigController", "service/kubelet"],
+          "volumeID": "/var/mnt"
+        },
+        "target": "/var/mnt"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/run",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "",
+          "readOnly": false,
+          "requesterIDs": ["service/cri-/var/run"],
+          "requesters": ["service/cri"],
+          "volumeID": "/var/run"
+        },
+        "target": "/var/run"
+      }
+    },
+    {
+      "metadata": {
+        "id": "/var/run/lock",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/run",
+          "readOnly": false,
+          "requesterIDs": ["service/cri-/var/run/lock"],
+          "requesters": ["service/cri"],
+          "volumeID": "/var/run/lock"
+        },
+        "target": "/var/run/lock"
+      }
+    },
+    {
+      "metadata": {
+        "id": "CRI",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/lib",
+          "readOnly": false,
+          "requesterIDs": ["service/cri-CRI"],
+          "requesters": ["service/cri"],
+          "volumeID": "CRI"
+        },
+        "target": "/var/lib/containerd"
+      }
+    },
+    {
+      "metadata": {
+        "id": "EPHEMERAL",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "xfs",
+        "projectQuotaSupport": true,
+        "readOnly": false,
+        "source": "/dev/nvme0n1p4",
+        "spec": {
+          "detached": false,
+          "parentID": "",
+          "readOnly": false,
+          "requesterIDs": ["EPHEMERAL"],
+          "requesters": ["sequencer"],
+          "secure": true,
+          "volumeID": "EPHEMERAL"
+        },
+        "target": "/var"
+      }
+    },
+    {
+      "metadata": {
+        "id": "KUBELET",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "/var/lib",
+          "readOnly": false,
+          "requesterIDs": ["k8s.KubeletServiceController-KUBELET", "service/kubelet-KUBELET"],
+          "requesters": ["k8s.KubeletServiceController", "service/kubelet"],
+          "volumeID": "KUBELET"
+        },
+        "target": "/var/lib/kubelet"
+      }
+    },
+    {
+      "metadata": {
+        "id": "LOG",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "none",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "",
+        "spec": {
+          "detached": false,
+          "parentID": "EPHEMERAL",
+          "readOnly": false,
+          "requesterIDs": ["runtime.LogPersistenceController-/var/log", "service/kubelet-LOG"],
+          "requesters": ["runtime.LogPersistenceController", "service/kubelet"],
+          "volumeID": "LOG"
+        },
+        "target": "/var/log"
+      }
+    },
+    {
+      "metadata": {
+        "id": "u-lv-data",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "xfs",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "/dev/dm-4",
+        "spec": {
+          "detached": false,
+          "noExec": true,
+          "parentID": "/var/mnt",
+          "readOnly": false,
+          "requesterIDs": ["u-lv-data"],
+          "requesters": ["block.VolumeConfigController"],
+          "secure": true,
+          "volumeID": "u-lv-data"
+        },
+        "target": "/var/mnt/lv-data"
+      }
+    },
+    {
+      "metadata": {
+        "id": "u-lv-secure",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "filesystem": "xfs",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "/dev/dm-7",
+        "spec": {
+          "detached": false,
+          "noExec": true,
+          "parentID": "/var/mnt",
+          "readOnly": false,
+          "requesterIDs": ["u-lv-secure"],
+          "requesters": ["block.VolumeConfigController"],
+          "secure": true,
+          "volumeID": "u-lv-secure"
+        },
+        "target": "/var/mnt/lv-secure"
+      }
+    },
+    {
+      "metadata": {
+        "id": "u-secret",
+        "namespace": "runtime",
+        "type": "MountStatuses.block.talos.dev"
+      },
+      "spec": {
+        "detached": false,
+        "encryptionProvider": "luks2",
+        "filesystem": "xfs",
+        "projectQuotaSupport": false,
+        "readOnly": false,
+        "source": "/dev/dm-5",
+        "spec": {
+          "detached": false,
+          "noExec": true,
+          "parentID": "/var/mnt",
+          "readOnly": false,
+          "requesterIDs": ["u-secret"],
+          "requesters": ["block.VolumeConfigController"],
+          "secure": true,
+          "volumeID": "u-secret"
+        },
+        "target": "/var/mnt/secret"
+      }
+    }
+  ],
+  "statfs": {
+    "/var": {
+      "size": "2990538752",
+      "used": "509919232",
+      "available": "2480619520"
+    },
+    "/var/mnt/lv-data": {
+      "size": "4223664128",
+      "used": "114769920",
+      "available": "4108894208"
+    },
+    "/var/mnt/lv-secure": {
+      "size": "2491416576",
+      "used": "81563648",
+      "available": "2409852928"
+    },
+    "/var/mnt/secret": {
+      "size": "2063597568",
+      "used": "73404416",
+      "available": "1990193152"
+    }
+  }
 }

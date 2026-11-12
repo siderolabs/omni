@@ -23,6 +23,7 @@ import {
 import { buildDiskTopology } from './diskTopology'
 import { getDiskSegments } from './diskVolumes'
 import { getFailedVolumes } from './volumeStatus'
+import { getVolumeMounts, getVolumeUsages } from './volumeUsage'
 
 // Resources captured from real machines. See fixtures/README.md.
 
@@ -150,6 +151,30 @@ describe('Talos 1.15 with LUKS, LVM on LUKS and LVM RAID1', () => {
       health: { label: 'Healthy' },
     })
     expect(topology.byID.get('dm-7')!.health?.label).toBe('Healthy')
+  })
+
+  test('shows how full each mounted filesystem is, joined by volume ID', () => {
+    const { mountStatuses = [], statfs = {} } = talos115LuksLvmRaid1
+    const topology = buildDiskTopology({
+      ...talos115LuksLvmRaid1,
+      volumeUsages: getVolumeUsages(getVolumeMounts(mountStatuses), statfs),
+    })
+
+    const usage = (id: string) =>
+      topology.byID.get(id)!.volumes.map((v) => [v.name, v.usage?.used, v.usage?.mountedOn])
+
+    expect(usage('nvme0n1')).toEqual([
+      ['EFI', undefined, undefined],
+      ['META', undefined, undefined],
+      ['STATE', undefined, undefined],
+      ['EPHEMERAL', 509919232, '/var'],
+    ])
+    expect(usage('vda')).toEqual([
+      ['u-secret', 73404416, '/var/mnt/secret'],
+      ['r-lvmdata', undefined, undefined],
+    ])
+    expect(usage('dm-4')).toEqual([['u-lv-data', 114769920, '/var/mnt/lv-data']])
+    expect(usage('dm-7')).toEqual([['u-lv-secure', 81563648, '/var/mnt/lv-secure']])
   })
 
   test('names the volume on each logical volume after its Talos volume', () => {

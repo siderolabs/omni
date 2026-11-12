@@ -58,6 +58,8 @@ const (
 	_ = block.VolumeStatusType
 	// tsgen:TalosSystemDiskType
 	_ = block.SystemDiskType
+	// tsgen:TalosBlockMountStatusType
+	_ = block.MountStatusType
 	// tsgen:TalosSMARTStatusType
 	_ = block.SMARTStatusType
 	// tsgen:TalosSystemInformationType

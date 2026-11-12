@@ -3,6 +3,9 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import type { Resource } from '@/api/grpc'
+import type { MountStatusSpec } from '@/api/talos/block.pb'
+import type { StorageServiceStatfsResponse } from '@/api/talos/machine/storage.pb'
 import type { DiskTopologyInput } from '@/views/Disks/lib/diskTopology'
 
 import talos114LuksLvmJSON from './talos-1.14-luks-lvm.json'
@@ -17,6 +20,10 @@ import talos115MdRaid1SmartJSON from './talos-1.15-md-raid1-smart.json'
 /** The disks view's resources, captured from a real machine. See README.md. */
 export interface CapturedMachine extends DiskTopologyInput {
   talosVersion: string
+  /** Where Talos volumes are mounted. Talos 1.15+ fixtures captured after usage was added only. */
+  mountStatuses?: Resource<MountStatusSpec>[]
+  /** Talos's Statfs result for each mount target, from `talosctl df -b`. */
+  statfs?: Record<string, StorageServiceStatfsResponse>
 }
 
 /**
@@ -45,7 +52,7 @@ export const talos115Maintenance: CapturedMachine = talos115MaintenanceJSON
  * A Talos 1.15 QEMU machine with emulated NVMe and SATA disks: on vda, an
  * encrypted user volume, u-secret, and an encrypted raw volume holding the PV of
  * vg0/secure; LVM RAID1 data/data over sda and vdb; and a user volume on each
- * logical volume. nvme0n1 is the system disk.
+ * logical volume, with how full each filesystem is. nvme0n1 is the system disk.
  */
 export const talos115LuksLvmRaid1: CapturedMachine = talos115LuksLvmRaid1JSON
 
