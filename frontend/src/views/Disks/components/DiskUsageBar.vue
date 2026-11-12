@@ -10,27 +10,26 @@ import { computed } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
-import {
-  getDiskSegments,
-  getVolumeDisplayName,
-  isClaimedVolume,
-} from '@/views/Disks/lib/diskVolumes'
+import type { DiskNodeVolume } from '@/views/Disks/lib/diskTopology'
+import { getDiskSegments, isClaimedVolume } from '@/views/Disks/lib/diskVolumes'
 
-const {
-  disk,
-  volumes,
-  usedVolumes = [],
-} = defineProps<{
+const { disk, nodeVolumes } = defineProps<{
   disk: Resource<DiskSpec>
-  volumes: Resource<DiscoveredVolumeSpec>[]
-  /** IDs of volumes a shown device is built on, e.g. a LUKS partition holding an LVM physical volume. */
-  usedVolumes?: string[]
+  nodeVolumes: DiskNodeVolume[]
 }>()
 
-const isClaimed = (volume: Resource<DiscoveredVolumeSpec>) =>
-  isClaimedVolume(volume) || usedVolumes.includes(volume.metadata.id!)
+const volumes = computed(() => nodeVolumes.map((v) => v.volume))
+const byID = computed(() => new Map(nodeVolumes.map((v) => [v.volume.metadata.id!, v])))
 
-const segments = computed(() => getDiskSegments(disk.spec.size || 0, volumes))
+const nameOf = (volume: Resource<DiscoveredVolumeSpec>) =>
+  byID.value.get(volume.metadata.id!)?.name ?? volume.metadata.id!
+
+// A volume a shown device is built on, e.g. a LUKS partition holding an LVM
+// physical volume, is claimed even without a member signature of its own.
+const isClaimed = (volume: Resource<DiscoveredVolumeSpec>) =>
+  isClaimedVolume(volume) || !!byID.value.get(volume.metadata.id!)?.usedBy.length
+
+const segments = computed(() => getDiskSegments(disk.spec.size || 0, volumes.value))
 
 const unallocatedSpace = computed(() =>
   segments.value.reduce((sum, s) => (s.type === 'unallocated' ? sum + s.size : sum), 0),
@@ -56,7 +55,7 @@ const otherLabelColors = ['bg-series-6 text-on-series-6', 'bg-series-7 text-on-s
 const otherVolumeColors = computed(
   () =>
     new Map(
-      volumes
+      volumes.value
         .filter((v) => {
           if (isClaimed(v)) return false
 
@@ -92,13 +91,13 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         <div
           v-if="segment.type === 'volume'"
           :key="segment.volume.metadata.id"
-          :title="`${getVolumeDisplayName(segment.volume)} — ${prettyBytes(segment.size)}`"
+          :title="`${nameOf(segment.volume)} — ${prettyBytes(segment.size)}`"
           :class="getVolumeClass(segment.volume)"
           :style="{ width: `${segmentPercent(segment.size)}%` }"
           class="flex min-w-0 items-center justify-center overflow-hidden"
         >
           <span v-if="segmentPercent(segment.size) > 10" class="truncate px-micro font-medium">
-            {{ getVolumeDisplayName(segment.volume) }}
+            {{ nameOf(segment.volume) }}
             <span>
               {{ prettyBytes(segment.size) }}
             </span>
@@ -127,7 +126,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       >
         <span class="inline-block size-2.5 rounded-sm" :class="getVolumeClass(volume)" />
         <span class="font-medium text-content-default">
-          {{ getVolumeDisplayName(volume) }}
+          {{ nameOf(volume) }}
         </span>
         <span class="font-medium text-content-muted">
           {{ prettyBytes(volume.spec.size ?? 0) }}

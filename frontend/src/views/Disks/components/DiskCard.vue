@@ -58,10 +58,6 @@ const healthProblem = computed(() =>
 // disk's own value means anything.
 const mediaType = computed(() => (node.kind === 'disk' ? getDiskMediaType(node.disk) : undefined))
 
-const usedVolumes = computed(() =>
-  node.volumes.filter((v) => v.usedBy.length).map((v) => v.volume.metadata.id!),
-)
-
 useDeviceNavigationTarget(() => node.id, useTemplateRef('card'))
 
 const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-content-default'
@@ -154,7 +150,7 @@ const badgeClass = 'rounded bg-surface-inert px-tight py-micro text-xs text-cont
         <span class="whitespace-pre-wrap">{{ healthProblem.message }}</span>
       </TAlert>
 
-      <DiskUsageBar :disk="node.disk" :volumes="node.volumes.map((v) => v.volume)" :used-volumes />
+      <DiskUsageBar :disk="node.disk" :node-volumes="node.volumes" />
       <DiskPartitionTable v-if="node.volumes.length" :partitions="node.volumes" :name-of />
 
       <CollapsibleRoot v-if="details.length || smartDetails.length" v-slot="{ open }">

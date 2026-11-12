@@ -16,7 +16,6 @@ import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import DeviceLink from '@/views/Disks/components/DeviceLink.vue'
 import type { DiskNodeVolume } from '@/views/Disks/lib/diskTopology'
-import { getVolumeDisplayName } from '@/views/Disks/lib/diskVolumes'
 import { getVolumePhaseAppearance, isVolumePrepared } from '@/views/Disks/lib/volumeStatus'
 
 defineProps<{
@@ -106,7 +105,7 @@ const getEncryptionIcon = (encryption: Encryption): IconType => {
 
       <template #body>
         <TableRow
-          v-for="{ volume, volumeStatus, usedBy } in partitions"
+          v-for="{ name, volume, volumeStatus, usedBy } in partitions"
           :key="volume.metadata.id"
           :aria-labelledby="`volume-${volume.metadata.id}-title`"
           class="whitespace-nowrap"
@@ -122,9 +121,9 @@ const getEncryptionIcon = (encryption: Encryption): IconType => {
                 <div
                   :id="`volume-${volume.metadata.id}-title`"
                   class="max-w-40 truncate font-medium text-content-emphasis"
-                  :title="getVolumeDisplayName(volume)"
+                  :title="name"
                 >
-                  {{ getVolumeDisplayName(volume) }}
+                  {{ name }}
                 </div>
                 <div class="text-xs text-content-muted">
                   {{ volume.spec.dev_path }}

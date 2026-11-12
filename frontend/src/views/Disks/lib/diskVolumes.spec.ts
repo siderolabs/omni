@@ -76,6 +76,15 @@ describe('isClaimedVolume', () => {
 })
 
 describe('getVolumeDisplayName', () => {
+  test('names a volume with no partition label after its Talos volume', () => {
+    expect(
+      getVolumeDisplayName(volume('dm-4', { name: 'xfs' }), {
+        metadata: { id: 'u-lv-data' },
+        spec: {},
+      }),
+    ).toBe('u-lv-data')
+  })
+
   test('prefers the partition label', () => {
     expect(getVolumeDisplayName(volume('sda1', { partition_label: 'EPHEMERAL', label: 'x' }))).toBe(
       'EPHEMERAL',

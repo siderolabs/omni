@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 
 import type { Resource } from '@/api/grpc'
-import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
+import type { DiscoveredVolumeSpec, DiskSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 
 type Volume = Resource<DiscoveredVolumeSpec>
 type Disk = Resource<DiskSpec>
@@ -78,9 +78,17 @@ export function getDiskVolumes(disk: Disk, volumes: Volume[]): Volume[] {
   return wholeDisk && name && !partitionTableNames.has(name) ? [wholeDisk] : []
 }
 
-export function getVolumeDisplayName(volume: Volume): string {
+/**
+ * Returns the name to show for a volume: its partition label, or for a volume
+ * with none, such as one taking a whole disk, the name Talos gives it.
+ */
+export function getVolumeDisplayName(
+  volume: Volume,
+  volumeStatus?: Resource<VolumeStatusSpec>,
+): string {
   return (
     volume.spec.partition_label ||
+    volumeStatus?.metadata.id ||
     getMemberSignatureName(volume.spec.name) ||
     volume.spec.label ||
     volume.metadata.id!

@@ -42,9 +42,10 @@ export const talos114MdRaid1Failed: CapturedMachine = talos114MdRaid1FailedJSON
 export const talos115Maintenance: CapturedMachine = talos115MaintenanceJSON
 
 /**
- * A Talos 1.15 QEMU machine with the setup of talos114LuksLvm on vda, its
- * logical volume named vg0/secure, and an LVM RAID1 logical volume, data/data,
- * over vdc and vdd. vdb is the system disk.
+ * A Talos 1.15 QEMU machine with emulated NVMe and SATA disks: on vda, an
+ * encrypted user volume, u-secret, and an encrypted raw volume holding the PV of
+ * vg0/secure; LVM RAID1 data/data over sda and vdb; and a user volume on each
+ * logical volume. nvme0n1 is the system disk.
  */
 export const talos115LuksLvmRaid1: CapturedMachine = talos115LuksLvmRaid1JSON
 

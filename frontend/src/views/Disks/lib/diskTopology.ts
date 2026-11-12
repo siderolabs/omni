@@ -34,11 +34,13 @@ import {
   getMDArrayHealth,
   getSMARTHealth,
 } from './diskHealth'
-import { getDiskVolumes } from './diskVolumes'
+import { getDiskVolumes, getVolumeDisplayName } from './diskVolumes'
 
 export type DiskNodeKind = 'disk' | 'cdrom' | 'md' | DeviceMapperKind
 
 export interface DiskNodeVolume {
+  /** The name to show: the partition label, or the name Talos gives the volume. */
+  name: string
   volume: Resource<DiscoveredVolumeSpec>
   volumeStatus?: Resource<VolumeStatusSpec>
   /** Shown devices built on this volume, e.g. the MD array a partition is a member of. */
@@ -230,11 +232,18 @@ export function buildDiskTopology(input: DiskTopologyInput): DiskTopology {
           (kind === 'lvm' && getLogicalVolumeName(disk, ctx)) || disk.spec.device_mapper_name || id,
         kind,
         disk,
-        volumes: getDiskVolumes(disk, input.volumes).map((volume) => ({
-          volume,
-          volumeStatus: input.volumeStatuses.find((s) => s.spec.location === volume.spec.dev_path),
-          usedBy: [...new Set(resolve(volume.metadata.id!, deviceParents))],
-        })),
+        volumes: getDiskVolumes(disk, input.volumes).map((volume) => {
+          const volumeStatus = input.volumeStatuses.find(
+            (s) => s.spec.location === volume.spec.dev_path,
+          )
+
+          return {
+            name: getVolumeDisplayName(volume, volumeStatus),
+            volume,
+            volumeStatus,
+            usedBy: [...new Set(resolve(volume.metadata.id!, deviceParents))],
+          }
+        }),
         usedBy: [...new Set(resolve(id, diskParents))],
         backedBy: [...new Set(resolve(id, diskChildren))],
         paths: kind === 'multipath' ? (disk.spec.secondary_disks ?? []) : [],

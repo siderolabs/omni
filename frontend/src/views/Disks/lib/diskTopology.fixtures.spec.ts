@@ -133,9 +133,9 @@ describe('Talos 1.15 with LUKS, LVM on LUKS and LVM RAID1', () => {
   ])('finds the logical volumes %s logical volume statuses', (_, machine) => {
     const topology = buildDiskTopology(machine)
 
-    expect(topology.physical.map((n) => n.id)).toEqual(['vda', 'vdb', 'vdc', 'vdd'])
+    expect(topology.physical.map((n) => n.id)).toEqual(['nvme0n1', 'sda', 'vda', 'vdb'])
     expect(topology.virtual.map((n) => [n.id, n.kind, n.name, n.backedBy])).toEqual([
-      ['dm-4', 'lvm', 'data/data', ['vdc', 'vdd']],
+      ['dm-4', 'lvm', 'data/data', ['sda', 'vdb']],
       ['dm-7', 'lvm', 'vg0/secure', ['vda']],
     ])
 
@@ -150,6 +150,13 @@ describe('Talos 1.15 with LUKS, LVM on LUKS and LVM RAID1', () => {
       health: { label: 'Healthy' },
     })
     expect(topology.byID.get('dm-7')!.health?.label).toBe('Healthy')
+  })
+
+  test('names the volume on each logical volume after its Talos volume', () => {
+    const topology = buildDiskTopology(talos115LuksLvmRaid1)
+
+    expect(topology.byID.get('dm-4')!.volumes.map((v) => v.name)).toEqual(['u-lv-data'])
+    expect(topology.byID.get('dm-7')!.volumes.map((v) => v.name)).toEqual(['u-lv-secure'])
   })
 })
 

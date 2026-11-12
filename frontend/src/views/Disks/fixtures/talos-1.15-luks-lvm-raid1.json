@@ -13,7 +13,7 @@
         "dev_path": "/dev/dm-4",
         "device_mapper_kind": "lvm",
         "device_mapper_name": "data-data",
-        "device_mapper_uuid": "LVM-zG66nLf3HT457mRWknGIZKiOU6GAZ2aSUe5wJ7vFcZ9oZFvBpTGIX3pYxH1c9cMD",
+        "device_mapper_uuid": "LVM-W3oNt5oa2kvhwluE3TL1x6mWlA37gQMpsliYdUBGL8uG8g7NUoLYcOy1llbVTm2a",
         "io_size": 512,
         "pretty_size": "4.3 GB",
         "readonly": false,
@@ -25,7 +25,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/37",
           "/dev/disk/by-id/dm-name-data-data",
-          "/dev/disk/by-id/dm-uuid-LVM-zG66nLf3HT457mRWknGIZKiOU6GAZ2aSUe5wJ7vFcZ9oZFvBpTGIX3pYxH1c9cMD"
+          "/dev/disk/by-id/dm-uuid-LVM-W3oNt5oa2kvhwluE3TL1x6mWlA37gQMpsliYdUBGL8uG8g7NUoLYcOy1llbVTm2a",
+          "/dev/disk/by-uuid/93cccfe5-fc90-4f81-b02e-7344a1ced8ca"
         ],
         "transport": "dm"
       }
@@ -42,7 +43,7 @@
         "dev_path": "/dev/dm-5",
         "device_mapper_kind": "crypt",
         "device_mapper_name": "luks2-u-secret",
-        "device_mapper_uuid": "CRYPT-LUKS2-e89e6f99cc6c47f2b478a7dc97df1cd2-luks2-u-secret",
+        "device_mapper_uuid": "CRYPT-LUKS2-56345c859640497c885c1eaa59861754-luks2-u-secret",
         "io_size": 512,
         "pretty_size": "2.1 GB",
         "readonly": false,
@@ -54,8 +55,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/38",
           "/dev/disk/by-id/dm-name-luks2-u-secret",
-          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-e89e6f99cc6c47f2b478a7dc97df1cd2-luks2-u-secret",
-          "/dev/disk/by-uuid/4e7cede3-4c1a-43ad-b433-27079c55f4d4"
+          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-56345c859640497c885c1eaa59861754-luks2-u-secret",
+          "/dev/disk/by-uuid/fe65f127-1023-403c-aa36-2d725f5a8104"
         ],
         "transport": "dm"
       }
@@ -72,7 +73,7 @@
         "dev_path": "/dev/dm-6",
         "device_mapper_kind": "crypt",
         "device_mapper_name": "luks2-r-lvmdata",
-        "device_mapper_uuid": "CRYPT-LUKS2-4fd05aba1b4641098006ce2a133ec8bb-luks2-r-lvmdata",
+        "device_mapper_uuid": "CRYPT-LUKS2-496a2db36a7047839a70d4c54b240d22-luks2-r-lvmdata",
         "io_size": 512,
         "pretty_size": "3.2 GB",
         "readonly": false,
@@ -84,7 +85,7 @@
         "symlinks": [
           "/dev/disk/by-diskseq/39",
           "/dev/disk/by-id/dm-name-luks2-r-lvmdata",
-          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-4fd05aba1b4641098006ce2a133ec8bb-luks2-r-lvmdata"
+          "/dev/disk/by-id/dm-uuid-CRYPT-LUKS2-496a2db36a7047839a70d4c54b240d22-luks2-r-lvmdata"
         ],
         "transport": "dm"
       }
@@ -101,7 +102,7 @@
         "dev_path": "/dev/dm-7",
         "device_mapper_kind": "lvm",
         "device_mapper_name": "vg0-secure",
-        "device_mapper_uuid": "LVM-NJCRA8zwevgpXFU1q0KXYzYxb9hhQ32iQTaEjjzuJvFpKzmiIAM190D5LgdV6KR6",
+        "device_mapper_uuid": "LVM-WV5qUdgn8yzDrCbEPqrYwddVX3DYJjRtdFIctfkLLqLrkXyCH6eFnpOW7R5KRCNg",
         "io_size": 512,
         "pretty_size": "2.6 GB",
         "readonly": false,
@@ -113,7 +114,8 @@
         "symlinks": [
           "/dev/disk/by-diskseq/40",
           "/dev/disk/by-id/dm-name-vg0-secure",
-          "/dev/disk/by-id/dm-uuid-LVM-NJCRA8zwevgpXFU1q0KXYzYxb9hhQ32iQTaEjjzuJvFpKzmiIAM190D5LgdV6KR6"
+          "/dev/disk/by-id/dm-uuid-LVM-WV5qUdgn8yzDrCbEPqrYwddVX3DYJjRtdFIctfkLLqLrkXyCH6eFnpOW7R5KRCNg",
+          "/dev/disk/by-uuid/c7e7fa55-e055-4f69-86f5-36fd04b78998"
         ],
         "transport": "dm"
       }
@@ -166,6 +168,67 @@
     },
     {
       "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:07.0/nvme",
+        "cdrom": false,
+        "dev_path": "/dev/nvme0n1",
+        "firmware_version": "11.1.3",
+        "io_size": 512,
+        "modalias": "pci:v00001B36d00000010sv00001AF4sd00001100bc01sc08i02",
+        "model": "QEMU NVMe Ctrl",
+        "pretty_size": "5.4 GB",
+        "readonly": false,
+        "sector_size": 512,
+        "serial": "deadbeef",
+        "size": 5368709120,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/27",
+          "/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_deadbeef",
+          "/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_deadbeef_1",
+          "/dev/disk/by-id/nvme-nvme.1b36-6465616462656566-51454d55204e564d65204374726c-00000001",
+          "/dev/disk/by-path/pci-0000:00:07.0-nvme-1"
+        ],
+        "transport": "nvme",
+        "wwid": "nvme.1b36-6465616462656566-51454d55204e564d65204374726c-00000001"
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "Disks.block.talos.dev"
+      },
+      "spec": {
+        "bus_path": "/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0",
+        "cdrom": false,
+        "dev_path": "/dev/sda",
+        "io_size": 512,
+        "modalias": "scsi:t-0x00",
+        "model": "QEMU HARDDISK",
+        "pretty_size": "5.4 GB",
+        "readonly": false,
+        "rotational": true,
+        "sector_size": 512,
+        "serial": "QM00001",
+        "size": 5368709120,
+        "sub_system": "/sys/class/block",
+        "symlinks": [
+          "/dev/disk/by-diskseq/30",
+          "/dev/disk/by-id/ata-QEMU_HARDDISK_QM00001",
+          "/dev/disk/by-path/pci-0000:00:08.0-ata-1",
+          "/dev/disk/by-path/pci-0000:00:08.0-ata-1.0"
+        ],
+        "transport": "sata",
+        "wwid": "t10.ATA     QEMU HARDDISK                           QM00001"
+      }
+    },
+    {
+      "metadata": {
         "id": "vda",
         "namespace": "runtime",
         "type": "Disks.block.talos.dev"
@@ -183,7 +246,7 @@
         "size": 6442450944,
         "sub_system": "/sys/class/block",
         "symlinks": [
-          "/dev/disk/by-diskseq/27",
+          "/dev/disk/by-diskseq/28",
           "/dev/disk/by-path/pci-0000:00:06.0",
           "/dev/disk/by-path/virtio-pci-0000:00:06.0"
         ],
@@ -197,7 +260,7 @@
         "type": "Disks.block.talos.dev"
       },
       "spec": {
-        "bus_path": "/pci0000:00/0000:00:07.0/virtio5",
+        "bus_path": "/pci0000:00/0000:00:09.0/virtio5",
         "cdrom": false,
         "dev_path": "/dev/vdb",
         "io_size": 512,
@@ -209,59 +272,7 @@
         "size": 5368709120,
         "sub_system": "/sys/class/block",
         "symlinks": [
-          "/dev/disk/by-diskseq/28",
-          "/dev/disk/by-path/pci-0000:00:07.0",
-          "/dev/disk/by-path/virtio-pci-0000:00:07.0"
-        ],
-        "transport": "virtio"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdc",
-        "namespace": "runtime",
-        "type": "Disks.block.talos.dev"
-      },
-      "spec": {
-        "bus_path": "/pci0000:00/0000:00:08.0/virtio6",
-        "cdrom": false,
-        "dev_path": "/dev/vdc",
-        "io_size": 512,
-        "modalias": "virtio:d00000002v00001AF4",
-        "pretty_size": "5.4 GB",
-        "readonly": false,
-        "rotational": true,
-        "sector_size": 512,
-        "size": 5368709120,
-        "sub_system": "/sys/class/block",
-        "symlinks": [
           "/dev/disk/by-diskseq/29",
-          "/dev/disk/by-path/pci-0000:00:08.0",
-          "/dev/disk/by-path/virtio-pci-0000:00:08.0"
-        ],
-        "transport": "virtio"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdd",
-        "namespace": "runtime",
-        "type": "Disks.block.talos.dev"
-      },
-      "spec": {
-        "bus_path": "/pci0000:00/0000:00:09.0/virtio7",
-        "cdrom": false,
-        "dev_path": "/dev/vdd",
-        "io_size": 512,
-        "modalias": "virtio:d00000002v00001AF4",
-        "pretty_size": "5.4 GB",
-        "readonly": false,
-        "rotational": true,
-        "sector_size": 512,
-        "size": 5368709120,
-        "sub_system": "/sys/class/block",
-        "symlinks": [
-          "/dev/disk/by-diskseq/30",
           "/dev/disk/by-path/pci-0000:00:09.0",
           "/dev/disk/by-path/virtio-pci-0000:00:09.0"
         ],
@@ -281,7 +292,7 @@
         "generation": 2,
         "major": 252,
         "minor": 0,
-        "secondaries": ["vdc"],
+        "secondaries": ["sda"],
         "type": "disk"
       }
     },
@@ -296,7 +307,7 @@
         "generation": 2,
         "major": 252,
         "minor": 1,
-        "secondaries": ["vdc"],
+        "secondaries": ["sda"],
         "type": "disk"
       }
     },
@@ -311,7 +322,7 @@
         "generation": 2,
         "major": 252,
         "minor": 2,
-        "secondaries": ["vdd"],
+        "secondaries": ["vdb"],
         "type": "disk"
       }
     },
@@ -326,7 +337,7 @@
         "generation": 2,
         "major": 252,
         "minor": 3,
-        "secondaries": ["vdd"],
+        "secondaries": ["vdb"],
         "type": "disk"
       }
     },
@@ -338,7 +349,7 @@
       },
       "spec": {
         "devicePath": "/sys/devices/virtual/block/dm-4",
-        "generation": 4,
+        "generation": 6,
         "major": 252,
         "minor": 4,
         "secondaries": ["dm-0", "dm-1", "dm-2", "dm-3"],
@@ -383,7 +394,7 @@
       },
       "spec": {
         "devicePath": "/sys/devices/virtual/block/dm-7",
-        "generation": 4,
+        "generation": 6,
         "major": 252,
         "minor": 7,
         "secondaries": ["dm-6"],
@@ -500,6 +511,84 @@
         "major": 7,
         "minor": 7,
         "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1",
+        "generation": 5,
+        "major": 259,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p1",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p1",
+        "generation": 5,
+        "major": 259,
+        "minor": 1,
+        "parent": "nvme0n1",
+        "partitionNumber": 1,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p2",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p2",
+        "generation": 7,
+        "major": 259,
+        "minor": 2,
+        "parent": "nvme0n1",
+        "partitionNumber": 2,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p3",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p3",
+        "generation": 7,
+        "major": 259,
+        "minor": 6,
+        "parent": "nvme0n1",
+        "partitionNumber": 3,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p4",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p4",
+        "generation": 4,
+        "major": 259,
+        "minor": 7,
+        "parent": "nvme0n1",
+        "partitionNumber": 4,
+        "type": "partition"
       }
     },
     {
@@ -728,6 +817,20 @@
     },
     {
       "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "BlockDevices.block.talos.dev"
+      },
+      "spec": {
+        "devicePath": "/sys/devices/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0/block/sda",
+        "generation": 10,
+        "major": 8,
+        "minor": 0,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
         "id": "vda",
         "namespace": "runtime",
         "type": "BlockDevices.block.talos.dev"
@@ -779,102 +882,10 @@
         "type": "BlockDevices.block.talos.dev"
       },
       "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb",
-        "generation": 5,
+        "devicePath": "/sys/devices/pci0000:00/0000:00:09.0/virtio5/block/vdb",
+        "generation": 11,
         "major": 251,
         "minor": 16,
-        "type": "disk"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb1",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb1",
-        "generation": 5,
-        "major": 251,
-        "minor": 17,
-        "parent": "vdb",
-        "partitionNumber": 1,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb2",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb2",
-        "generation": 2,
-        "major": 251,
-        "minor": 18,
-        "parent": "vdb",
-        "partitionNumber": 2,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb3",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb3",
-        "generation": 7,
-        "major": 251,
-        "minor": 19,
-        "parent": "vdb",
-        "partitionNumber": 3,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb4",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb4",
-        "generation": 4,
-        "major": 251,
-        "minor": 20,
-        "parent": "vdb",
-        "partitionNumber": 4,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdc",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:08.0/virtio6/block/vdc",
-        "generation": 11,
-        "major": 251,
-        "minor": 32,
-        "type": "disk"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdd",
-        "namespace": "runtime",
-        "type": "BlockDevices.block.talos.dev"
-      },
-      "spec": {
-        "devicePath": "/sys/devices/pci0000:00/0000:00:09.0/virtio7/block/vdd",
-        "generation": 11,
-        "major": 251,
-        "minor": 48,
         "type": "disk"
       }
     }
@@ -959,15 +970,19 @@
         "type": "DiscoveredVolumes.block.talos.dev"
       },
       "spec": {
+        "block_size": 512,
         "dev_path": "/dev/dm-4",
         "device_path": "/sys/devices/virtual/block/dm-4",
+        "filesystem_block_size": 4096,
         "io_size": 512,
-        "name": "",
+        "name": "xfs",
         "offset": 0,
         "pretty_size": "4.3 GB",
+        "probed_size": 4223664128,
         "sector_size": 512,
         "size": 4290772992,
-        "type": "disk"
+        "type": "disk",
+        "uuid": "93cccfe5-fc90-4f81-b02e-7344a1ced8ca"
       }
     },
     {
@@ -989,7 +1004,7 @@
         "sector_size": 512,
         "size": 2130706432,
         "type": "disk",
-        "uuid": "4e7cede3-4c1a-43ad-b433-27079c55f4d4"
+        "uuid": "fe65f127-1023-403c-aa36-2d725f5a8104"
       }
     },
     {
@@ -1002,7 +1017,7 @@
         "dev_path": "/dev/dm-6",
         "device_path": "/sys/devices/virtual/block/dm-6",
         "io_size": 512,
-        "label": "bY8uJp-EBAJ-bUrL-ogTN-qpiI-eV5k-Y8qXJq",
+        "label": "WqrYPi-E8k9-o7Sh-9eL7-MqCm-J03m-m5I09l",
         "name": "lvm2-pv",
         "offset": 0,
         "pretty_size": "3.2 GB",
@@ -1018,15 +1033,19 @@
         "type": "DiscoveredVolumes.block.talos.dev"
       },
       "spec": {
+        "block_size": 512,
         "dev_path": "/dev/dm-7",
         "device_path": "/sys/devices/virtual/block/dm-7",
+        "filesystem_block_size": 4096,
         "io_size": 512,
-        "name": "",
+        "name": "xfs",
         "offset": 0,
         "pretty_size": "2.6 GB",
+        "probed_size": 2491416576,
         "sector_size": 512,
         "size": 2558525440,
-        "type": "disk"
+        "type": "disk",
+        "uuid": "c7e7fa55-e055-4f69-86f5-36fd04b78998"
       }
     },
     {
@@ -1052,6 +1071,157 @@
     },
     {
       "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1",
+        "io_size": 512,
+        "name": "gpt",
+        "offset": 0,
+        "pretty_size": "5.4 GB",
+        "probed_size": 5367643648,
+        "sector_size": 512,
+        "size": 5368709120,
+        "type": "disk",
+        "uuid": "0277e78f-8420-4001-802b-327884652ca3"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p1",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p1",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p1",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "EFI",
+        "name": "vfat",
+        "offset": 1048576,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 1,
+        "partition_label": "EFI",
+        "partition_type": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+        "partition_uuid": "dd4ffdd1-7316-40e9-a9e7-30e4576cbf6e",
+        "pretty_size": "2.2 GB",
+        "probed_size": 2203058176,
+        "sector_size": 512,
+        "size": 2203058176,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p2",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/nvme0n1p2",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p2",
+        "io_size": 512,
+        "name": "talosmeta",
+        "offset": 2204106752,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 2,
+        "partition_label": "META",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "20b8a2a7-309f-453e-aed9-f93febb5fc69",
+        "pretty_size": "1.0 MB",
+        "probed_size": 524288,
+        "sector_size": 512,
+        "size": 1048576,
+        "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p3",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p3",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p3",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "STATE",
+        "name": "xfs",
+        "offset": 2205155328,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 3,
+        "partition_label": "STATE",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "9066a203-eee9-4c04-b50a-2bd937531407",
+        "pretty_size": "105 MB",
+        "probed_size": 96661504,
+        "sector_size": 512,
+        "size": 104857600,
+        "type": "partition",
+        "uuid": "26ab5f39-823d-4f3c-991f-0ecda4b5a94e"
+      }
+    },
+    {
+      "metadata": {
+        "id": "nvme0n1p4",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "block_size": 512,
+        "dev_path": "/dev/nvme0n1p4",
+        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/nvme/nvme0/nvme0n1/nvme0n1p4",
+        "filesystem_block_size": 4096,
+        "io_size": 512,
+        "label": "EPHEMERAL",
+        "name": "xfs",
+        "offset": 2310012928,
+        "parent": "nvme0n1",
+        "parent_dev_path": "/dev/nvme0n1",
+        "partition_index": 4,
+        "partition_label": "EPHEMERAL",
+        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "partition_uuid": "7b24d82e-e3e6-4cf3-b60b-e9f62c1b74f8",
+        "pretty_size": "3.1 GB",
+        "probed_size": 2990538752,
+        "sector_size": 512,
+        "size": 3057647616,
+        "type": "partition",
+        "uuid": "66be985d-3877-4893-a9b8-486ba03e2a0d"
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "DiscoveredVolumes.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/sda",
+        "device_path": "/sys/devices/pci0000:00/0000:00:08.0/ata1/host0/target0:0:0/0:0:0:0/block/sda",
+        "io_size": 512,
+        "label": "dSppM7-v7XO-9YF1-hYty-WIdl-XY5f-u1mqR9",
+        "name": "lvm2-pv",
+        "offset": 0,
+        "pretty_size": "5.4 GB",
+        "sector_size": 512,
+        "size": 5368709120,
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
         "id": "vda",
         "namespace": "runtime",
         "type": "DiscoveredVolumes.block.talos.dev"
@@ -1068,7 +1238,7 @@
         "sector_size": 512,
         "size": 6442450944,
         "type": "disk",
-        "uuid": "7a8068b5-d917-4fc8-a875-b6e8d450fe8c"
+        "uuid": "7dca8fed-e88b-4aa7-9d3c-c073b7145b98"
       }
     },
     {
@@ -1088,12 +1258,12 @@
         "partition_index": 1,
         "partition_label": "u-secret",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "9cd4065b-46c6-4631-a808-4574ff1b651a",
+        "partition_uuid": "c3c1f791-f25e-4434-a933-cabed166f4a5",
         "pretty_size": "2.1 GB",
         "sector_size": 512,
         "size": 2147483648,
         "type": "partition",
-        "uuid": "e89e6f99-cc6c-47f2-b478-a7dc97df1cd2"
+        "uuid": "56345c85-9640-497c-885c-1eaa59861754"
       }
     },
     {
@@ -1113,12 +1283,12 @@
         "partition_index": 2,
         "partition_label": "r-lvmdata",
         "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "90d46427-35ce-403f-bf50-56e5906bf3f7",
+        "partition_uuid": "283a7180-a5ed-43dd-83b6-af0237b83b0e",
         "pretty_size": "3.2 GB",
         "sector_size": 512,
         "size": 3221225472,
         "type": "partition",
-        "uuid": "4fd05aba-1b46-4109-8006-ce2a133ec8bb"
+        "uuid": "496a2db3-6a70-4783-9a70-d4c54b240d22"
       }
     },
     {
@@ -1128,161 +1298,10 @@
         "type": "DiscoveredVolumes.block.talos.dev"
       },
       "spec": {
-        "block_size": 512,
         "dev_path": "/dev/vdb",
-        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb",
+        "device_path": "/sys/devices/pci0000:00/0000:00:09.0/virtio5/block/vdb",
         "io_size": 512,
-        "name": "gpt",
-        "offset": 0,
-        "pretty_size": "5.4 GB",
-        "probed_size": 5367643648,
-        "sector_size": 512,
-        "size": 5368709120,
-        "type": "disk",
-        "uuid": "6507b30f-5e41-492c-874d-0264638b31ca"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb1",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "block_size": 512,
-        "dev_path": "/dev/vdb1",
-        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb1",
-        "filesystem_block_size": 4096,
-        "io_size": 512,
-        "label": "EFI",
-        "name": "vfat",
-        "offset": 1048576,
-        "parent": "vdb",
-        "parent_dev_path": "/dev/vdb",
-        "partition_index": 1,
-        "partition_label": "EFI",
-        "partition_type": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
-        "partition_uuid": "04bf4b00-7876-4bb0-b4c9-b7ad989033ca",
-        "pretty_size": "2.2 GB",
-        "probed_size": 2203052544,
-        "sector_size": 512,
-        "size": 2203058176,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb2",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "dev_path": "/dev/vdb2",
-        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb2",
-        "io_size": 512,
-        "name": "talosmeta",
-        "offset": 2204106752,
-        "parent": "vdb",
-        "parent_dev_path": "/dev/vdb",
-        "partition_index": 2,
-        "partition_label": "META",
-        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "2628a72b-539a-4f39-9dc1-ca2dca0430dc",
-        "pretty_size": "1.0 MB",
-        "probed_size": 524288,
-        "sector_size": 512,
-        "size": 1048576,
-        "type": "partition"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb3",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "block_size": 512,
-        "dev_path": "/dev/vdb3",
-        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb3",
-        "filesystem_block_size": 4096,
-        "io_size": 512,
-        "label": "STATE",
-        "name": "xfs",
-        "offset": 2205155328,
-        "parent": "vdb",
-        "parent_dev_path": "/dev/vdb",
-        "partition_index": 3,
-        "partition_label": "STATE",
-        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "005aac30-a4f4-4df8-8848-c242ab714d2d",
-        "pretty_size": "105 MB",
-        "probed_size": 96661504,
-        "sector_size": 512,
-        "size": 104857600,
-        "type": "partition",
-        "uuid": "e829559f-88a5-4bbe-88a9-94eb87968db1"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdb4",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "block_size": 512,
-        "dev_path": "/dev/vdb4",
-        "device_path": "/sys/devices/pci0000:00/0000:00:07.0/virtio5/block/vdb/vdb4",
-        "filesystem_block_size": 4096,
-        "io_size": 512,
-        "label": "EPHEMERAL",
-        "name": "xfs",
-        "offset": 2310012928,
-        "parent": "vdb",
-        "parent_dev_path": "/dev/vdb",
-        "partition_index": 4,
-        "partition_label": "EPHEMERAL",
-        "partition_type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
-        "partition_uuid": "1db4d80d-84c7-4170-b9e7-6bd6eca3ef38",
-        "pretty_size": "3.1 GB",
-        "probed_size": 2990538752,
-        "sector_size": 512,
-        "size": 3057647616,
-        "type": "partition",
-        "uuid": "561a81c5-f977-4fca-8f90-f28d887f7aa3"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdc",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "dev_path": "/dev/vdc",
-        "device_path": "/sys/devices/pci0000:00/0000:00:08.0/virtio6/block/vdc",
-        "io_size": 512,
-        "label": "WIgKPH-1HcD-eh56-ooXa-tzx3-WxR9-5NA2rW",
-        "name": "lvm2-pv",
-        "offset": 0,
-        "pretty_size": "5.4 GB",
-        "sector_size": 512,
-        "size": 5368709120,
-        "type": "disk"
-      }
-    },
-    {
-      "metadata": {
-        "id": "vdd",
-        "namespace": "runtime",
-        "type": "DiscoveredVolumes.block.talos.dev"
-      },
-      "spec": {
-        "dev_path": "/dev/vdd",
-        "device_path": "/sys/devices/pci0000:00/0000:00:09.0/virtio7/block/vdd",
-        "io_size": 512,
-        "label": "D8jhdd-dUyE-BkOL-beGo-fcbo-dY7F-ebnB0P",
+        "label": "xZR1rB-seAJ-lEgE-vRiG-HsJZ-0f7g-RrE03J",
         "name": "lvm2-pv",
         "offset": 0,
         "pretty_size": "5.4 GB",
@@ -1542,8 +1561,8 @@
       "spec": {
         "filesystem": "xfs",
         "grow": true,
-        "location": "/dev/vdb4",
-        "mountLocation": "/dev/vdb4",
+        "location": "/dev/nvme0n1p4",
+        "mountLocation": "/dev/nvme0n1p4",
         "mountSpec": {
           "fileMode": 493,
           "projectQuotaSupport": true,
@@ -1551,9 +1570,9 @@
           "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
           "targetPath": "/var"
         },
-        "parentLocation": "/dev/vdb",
+        "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 4,
-        "partitionUUID": "1db4d80d-84c7-4170-b9e7-6bd6eca3ef38",
+        "partitionUUID": "7b24d82e-e3e6-4cf3-b60b-e9f62c1b74f8",
         "phase": "ready",
         "prettySize": "3.1 GB",
         "size": 3057647616,
@@ -1626,11 +1645,11 @@
         "type": "VolumeStatuses.block.talos.dev"
       },
       "spec": {
-        "location": "/dev/vdb2",
-        "mountLocation": "/dev/vdb2",
-        "parentLocation": "/dev/vdb",
+        "location": "/dev/nvme0n1p2",
+        "mountLocation": "/dev/nvme0n1p2",
+        "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 2,
-        "partitionUUID": "2628a72b-539a-4f39-9dc1-ca2dca0430dc",
+        "partitionUUID": "20b8a2a7-309f-453e-aed9-f93febb5fc69",
         "phase": "ready",
         "prettySize": "1.0 MB",
         "size": 1048576,
@@ -1645,8 +1664,8 @@
       },
       "spec": {
         "filesystem": "xfs",
-        "location": "/dev/vdb3",
-        "mountLocation": "/dev/vdb3",
+        "location": "/dev/nvme0n1p3",
+        "mountLocation": "/dev/nvme0n1p3",
         "mountSpec": {
           "fileMode": 448,
           "noExec": true,
@@ -1655,9 +1674,9 @@
           "selinuxLabel": "system_u:object_r:system_state_t:s0",
           "targetPath": "/system/state"
         },
-        "parentLocation": "/dev/vdb",
+        "parentLocation": "/dev/nvme0n1",
         "partitionIndex": 3,
-        "partitionUUID": "005aac30-a4f4-4df8-8848-c242ab714d2d",
+        "partitionUUID": "9066a203-eee9-4c04-b50a-2bd937531407",
         "phase": "ready",
         "prettySize": "105 MB",
         "size": 104857600,
@@ -1680,11 +1699,63 @@
         "mountLocation": "/dev/dm-6",
         "parentLocation": "/dev/vda",
         "partitionIndex": 2,
-        "partitionUUID": "90d46427-35ce-403f-bf50-56e5906bf3f7",
+        "partitionUUID": "283a7180-a5ed-43dd-83b6-af0237b83b0e",
         "phase": "ready",
         "prettySize": "3.2 GB",
         "size": 3221225472,
         "type": "partition"
+      }
+    },
+    {
+      "metadata": {
+        "id": "u-lv-data",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "filesystem": "xfs",
+        "grow": true,
+        "location": "/dev/dm-4",
+        "mountLocation": "/dev/dm-4",
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "/var/mnt",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
+          "targetPath": "lv-data"
+        },
+        "phase": "ready",
+        "prettySize": "4.3 GB",
+        "size": 4290772992,
+        "trimEnabled": true,
+        "trimInterval": "168h0m0s",
+        "type": "disk"
+      }
+    },
+    {
+      "metadata": {
+        "id": "u-lv-secure",
+        "namespace": "runtime",
+        "type": "VolumeStatuses.block.talos.dev"
+      },
+      "spec": {
+        "filesystem": "xfs",
+        "grow": true,
+        "location": "/dev/dm-7",
+        "mountLocation": "/dev/dm-7",
+        "mountSpec": {
+          "fileMode": 493,
+          "parentId": "/var/mnt",
+          "projectQuotaSupport": false,
+          "selinuxLabel": "system_u:object_r:ephemeral_t:s0",
+          "targetPath": "lv-secure"
+        },
+        "phase": "ready",
+        "prettySize": "2.6 GB",
+        "size": 2558525440,
+        "trimEnabled": true,
+        "trimInterval": "168h0m0s",
+        "type": "disk"
       }
     },
     {
@@ -1709,7 +1780,7 @@
         },
         "parentLocation": "/dev/vda",
         "partitionIndex": 1,
-        "partitionUUID": "9cd4065b-46c6-4631-a808-4574ff1b651a",
+        "partitionUUID": "c3c1f791-f25e-4434-a933-cabed166f4a5",
         "phase": "ready",
         "prettySize": "2.1 GB",
         "size": 2147483648,
@@ -1733,12 +1804,12 @@
         "activeRemotely": "",
         "allocationLocked": "",
         "allocationPolicy": "inherit",
-        "attr": "rwi-a-r---",
+        "attr": "rwi-aor---",
         "convertLV": "",
         "converting": "",
-        "copyPercent": "100.00",
+        "copyPercent": "76.42",
         "dataLV": "",
-        "deviceOpen": "",
+        "deviceOpen": "open",
         "dmPath": "/dev/mapper/data-data",
         "fixedMinor": "",
         "fullName": "data/data",
@@ -1758,14 +1829,14 @@
         "poolLV": "",
         "prettySize": "4.3 GB",
         "raidMismatchCount": "0",
-        "raidSyncAction": "idle",
+        "raidSyncAction": "resync",
         "readAhead": "auto",
         "role": "public",
         "size": "4290772992",
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "Ue5wJ7-vFcZ-9oZF-vBpT-GIX3-pYxH-1c9cMD",
+        "uuid": "sliYdU-BGL8-uG8g-7NUo-LYcO-y1ll-bVTm2a",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1815,7 +1886,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "rHVd0U-e5aX-yP3F-hlb8-PZEw-pEZ6-iHLJbn",
+        "uuid": "fCu1tI-Y3Gf-bxAk-4xdd-mYEo-WUNS-Tlnv00",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1833,7 +1904,7 @@
         "activeRemotely": "",
         "allocationLocked": "",
         "allocationPolicy": "inherit",
-        "attr": "iwi-aor---",
+        "attr": "Iwi-aor---",
         "convertLV": "",
         "converting": "",
         "copyPercent": "",
@@ -1865,7 +1936,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "F02ew0-z2Uj-OrLQ-aZuk-UNjJ-CEHn-wN6PM3",
+        "uuid": "oUWU1E-OB22-1EwZ-3JWh-17we-klj9-1BOVCJ",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1915,7 +1986,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "XVXyFR-lzYB-4t7K-GYh6-tfuC-jlMo-tSSi5k",
+        "uuid": "eWXoQe-tSya-626J-0q5y-rHYE-UDbI-7Pj8zi",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1965,7 +2036,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "8ztn19-Xvu5-YLrw-Nuzj-3oBM-8ayU-Aw2pFC",
+        "uuid": "L5ihp9-lWwN-vPEa-M8mh-lN4L-fuAf-O3IY8x",
         "vgName": "data",
         "whenFull": ""
       }
@@ -1983,12 +2054,12 @@
         "activeRemotely": "",
         "allocationLocked": "",
         "allocationPolicy": "inherit",
-        "attr": "-wi-a-----",
+        "attr": "-wi-ao----",
         "convertLV": "",
         "converting": "",
         "copyPercent": "",
         "dataLV": "",
-        "deviceOpen": "",
+        "deviceOpen": "open",
         "dmPath": "/dev/mapper/vg0-secure",
         "fixedMinor": "",
         "fullName": "vg0/secure",
@@ -2015,7 +2086,7 @@
         "skipActivation": "",
         "suspended": "",
         "tags": [],
-        "uuid": "QTaEjj-zuJv-FpKz-miIA-M190-D5Lg-dV6KR6",
+        "uuid": "dFIctf-kLLq-LrkX-yCH6-eFnp-OW7R-5KRCNg",
         "vgName": "vg0",
         "whenFull": ""
       }
@@ -2029,12 +2100,99 @@
         "type": "SystemDisks.block.talos.dev"
       },
       "spec": {
-        "devPath": "/dev/vdb",
-        "diskID": "vdb"
+        "devPath": "/dev/nvme0n1",
+        "diskID": "nvme0n1"
       }
     }
   ],
-  "smartStatuses": [],
+  "smartStatuses": [
+    {
+      "metadata": {
+        "id": "nvme0n1",
+        "namespace": "runtime",
+        "type": "SMARTStatuses.block.talos.dev"
+      },
+      "spec": {
+        "dev_path": "/dev/nvme0n1",
+        "dev_type": "nvme",
+        "healthy": true,
+        "temperature": 50
+      }
+    },
+    {
+      "metadata": {
+        "id": "sda",
+        "namespace": "runtime",
+        "type": "SMARTStatuses.block.talos.dev"
+      },
+      "spec": {
+        "attributes": [
+          {
+            "current": 100,
+            "id": 1,
+            "name": "Raw_Read_Error_Rate",
+            "raw_value": 0,
+            "threshold": 6,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 3,
+            "name": "Spin_Up_Time",
+            "raw_value": 16,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 4,
+            "name": "Start_Stop_Count",
+            "raw_value": 100,
+            "threshold": 20,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 5,
+            "name": "Reallocated_Sector_Ct",
+            "raw_value": 0,
+            "threshold": 36,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 9,
+            "name": "Power_On_Hours",
+            "raw_value": 1,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 100,
+            "id": 12,
+            "name": "Power_Cycle_Count",
+            "raw_value": 0,
+            "threshold": 0,
+            "worst": 100
+          },
+          {
+            "current": 69,
+            "id": 190,
+            "name": "Airflow_Temperature_Cel",
+            "raw_value": 522125343,
+            "threshold": 50,
+            "worst": 69
+          }
+        ],
+        "dev_path": "/dev/sda",
+        "dev_type": "sata",
+        "healthy": true,
+        "power_on_hours": 1,
+        "power_state": "active",
+        "temperature": 31
+      }
+    }
+  ],
   "mdArrays": [],
   "volumeGroups": [
     {
@@ -2070,7 +2228,7 @@
         "snapCount": "0",
         "systemID": "",
         "tags": [],
-        "uuid": "zG66nL-f3HT-457m-RWkn-GIZK-iOU6-GAZ2aS"
+        "uuid": "W3oNt5-oa2k-vhwl-uE3T-L1x6-mWlA-37gQMp"
       }
     },
     {
@@ -2106,7 +2264,7 @@
         "snapCount": "0",
         "systemID": "",
         "tags": [],
-        "uuid": "NJCRA8-zwev-gpXF-U1q0-KXYz-Yxb9-hhQ32i"
+        "uuid": "WV5qUd-gn8y-zDrC-bEPq-rYwd-dVX3-DYJjRt"
       }
     }
   ]

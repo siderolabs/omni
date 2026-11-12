@@ -901,9 +901,9 @@ export const CapturedTalos114LuksLvm: Story = {
   },
 }
 
-// A Talos 1.15 QEMU machine with LUKS volumes and LVM on LUKS on vda, and an
-// LVM RAID1 logical volume over vdc and vdd, as captured. Talos 1.15 reports
-// each device-mapper device's kind.
+// A Talos 1.15 QEMU machine with LUKS volumes and LVM on LUKS on vda, an LVM
+// RAID1 logical volume over sda and vdb, and a filesystem on each logical
+// volume, as captured. Talos 1.15 reports each device-mapper device's kind.
 export const CapturedTalos115LuksLvmRaid1: Story = {
   beforeEach({ msw }) {
     msw.use(...capturedMachineHandlers(talos115LuksLvmRaid1))
