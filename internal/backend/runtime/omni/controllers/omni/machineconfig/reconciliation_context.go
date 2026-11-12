@@ -239,7 +239,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to redact secrets: %w", err)
 	}
 
-	rc.installImageNotSet = config.Machine() == nil || config.Machine().Install().Image() == ""
+	rc.installImageNotSet = config.Machine() == nil || config.Machine().Install() == nil || config.Machine().Install().Image() == ""
 
 	rc.highPriorityHash, err = computeHighPriorityHash(config.Documents(), machineConfig.TypedSpec().Value.GrubUseUkiCmdline)
 	if err != nil {

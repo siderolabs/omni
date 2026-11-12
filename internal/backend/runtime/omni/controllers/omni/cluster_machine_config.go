@@ -431,6 +431,11 @@ func grubUseUKICmdline(cfg config.Provider, initialTalosVersion string) (bool, e
 		return true, nil
 	}
 
+	// without an install section, the installer uses the UKI command line
+	if cfg.Machine() == nil || cfg.Machine().Install() == nil {
+		return true, nil
+	}
+
 	return cfg.Machine().Install().GrubUseUKICmdline(), nil
 }
 
@@ -716,11 +721,11 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 // resource.
 func overrideInstallDisk(generatedConfig, patchedConfig config.Provider) (config.Provider, error) {
 	generatedDisk := ""
-	if generatedConfig.Machine() != nil {
+	if generatedConfig.Machine() != nil && generatedConfig.Machine().Install() != nil {
 		generatedDisk = generatedConfig.Machine().Install().Disk()
 	}
 
-	if patchedConfig.Machine() == nil || patchedConfig.Machine().Install().Disk() == generatedDisk {
+	if patchedConfig.Machine() == nil || patchedConfig.Machine().Install() == nil || patchedConfig.Machine().Install().Disk() == generatedDisk {
 		return patchedConfig, nil
 	}
 
