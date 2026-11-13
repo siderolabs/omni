@@ -33,8 +33,21 @@ type readRequest interface {
 	GetType() string
 }
 
+type sensitiveReadsKey struct{}
+
+// withSensitiveReads lets the sensitive reads of a request through the guard, as its nodes redact them.
+func withSensitiveReads(ctx context.Context) context.Context {
+	return context.WithValue(ctx, sensitiveReadsKey{}, true)
+}
+
+func sensitiveReadsAllowed(ctx context.Context) bool {
+	allowed, ok := ctx.Value(sensitiveReadsKey{}).(bool)
+
+	return ok && allowed
+}
+
 // sensitiveReadGuard returns a client interceptor for the connections to the Talos nodes, which denies the COSI
-// resource reads of sensitive types.
+// resource reads of sensitive types, unless the request is marked with withSensitiveReads.
 //
 // Talos denies them itself for the roles Omni forwards, but not on its maintenance API, which grants every SideroLink
 // peer, Omni included, all the roles: the reads would run as os:admin there. The guard decodes the resource type out of
@@ -126,7 +139,7 @@ func (s *guardedStream) check(m any) error {
 
 	node := state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(protoCodecConn{s.cc})))
 
-	return talos.CheckSensitivity(s.Context(), node, s.request.GetType())
+	return talos.CheckSensitivity(s.Context(), node, s.request.GetType(), sensitiveReadsAllowed(s.Context()))
 }
 
 // protoCodecConn makes typed calls over a connection which forwards raw messages by default.
