@@ -29,4 +29,12 @@ func TestLinkStatusID(t *testing.T) {
 
 	_, _, ok = siderolink.ParseLinkStatusID("machine-1")
 	assert.False(t, ok)
+
+	// the ID of a PendingMachine is a public key in base64, which can contain slashes
+	const publicKey = "a/bc+de/f="
+
+	id, typ, ok = siderolink.ParseLinkStatusID(siderolink.LinkStatusID(publicKey, siderolink.PendingMachineType))
+	assert.True(t, ok)
+	assert.Equal(t, publicKey, id)
+	assert.Equal(t, siderolink.PendingMachineType, typ)
 }

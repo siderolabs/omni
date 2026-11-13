@@ -34,8 +34,11 @@ func LinkStatusID(id resource.ID, typ resource.Type) resource.ID {
 }
 
 // ParseLinkStatusID returns the ID and the type of the resource a LinkStatus with the given ID is for.
+//
+// The type is what follows the last slash: a type never contains a slash, but the ID of the resource can,
+// e.g., the ID of a PendingMachine is a public key in base64.
 func ParseLinkStatusID(linkStatusID resource.ID) (id resource.ID, typ resource.Type, ok bool) {
-	return strings.Cut(linkStatusID, "/")
+	return strings.CutLast(linkStatusID, "/")
 }
 
 // LinkStatusType is the type of LinkStatus resource.
