@@ -45,11 +45,6 @@ func EmbeddedEtcdServer(st EtcdState) *embed.Etcd {
 	return st.(*embeddedEtcd).embeddedServer //nolint:errcheck,forcetypeassert
 }
 
-// FilterAccessByType exposes filterAccessByType for tests.
-func FilterAccessByType(access state.Access) error {
-	return filterAccessByType(access)
-}
-
 // CheckForKindAccess exposes checkForKindAccess for tests.
 func CheckForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm) error {
 	return checkForKindAccess(ctx, st, verb, kind, labelTerms)
