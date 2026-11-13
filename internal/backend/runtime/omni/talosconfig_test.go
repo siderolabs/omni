@@ -27,6 +27,7 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	omniconfig "github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
@@ -47,7 +48,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
 
 	r, err := omniruntime.NewRuntime(omniconfig.Default(), clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil, nil,
-		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
+		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, lifecycle.NewManager(logger, nil, nil, nil, nil, nil), logging.IncreaseLevel(logger, zap.InfoLevel))
 
 	require.NoError(t, err)
 

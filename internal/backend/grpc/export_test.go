@@ -59,7 +59,7 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
 		auditLogFollowLease: auditLogFollowDefaultLease,
-		lifecycleManager:    lifecycle.NewManager(logger, imageFactoryClients, nil, nil, nil),
+		lifecycleManager:    lifecycle.NewManager(logger, imageFactoryClients, nil, nil, nil, nil),
 	}
 
 	for _, opt := range opts {

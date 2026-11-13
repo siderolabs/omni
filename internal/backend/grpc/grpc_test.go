@@ -50,6 +50,7 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
@@ -107,7 +108,7 @@ func (suite *GrpcSuite) SetupTest() {
 	suite.runtime, err = omniruntime.NewRuntime(
 		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
 		imagefactory.NewClients(suite.state, imageFactoryClient), nil, nil, nil, nil, st,
-		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel),
+		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, lifecycle.NewManager(logger, nil, nil, nil, nil, nil), logging.IncreaseLevel(logger, zap.InfoLevel),
 	)
 	suite.Require().NoError(err)
 

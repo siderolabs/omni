@@ -107,6 +107,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		kubernetesRuntime,
 		talosClientFactory,
 		installEventCh,
+		state.Default(),
 	)
 
 	omniRuntime, err := omni.NewRuntime(

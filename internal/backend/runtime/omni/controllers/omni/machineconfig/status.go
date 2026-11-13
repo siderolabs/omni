@@ -65,7 +65,8 @@ const (
 type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
-	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
+	FinalizeReboot(ctx context.Context, machineID string, opts ...lifecycle.Option) error
+	Forget(machineID string, machineRemoved bool)
 }
 
 // StatusController manages the ClusterMachineConfigStatus resource lifecycle.
@@ -369,6 +370,9 @@ func (ctrl *StatusController) reconcileTearingDown(ctx context.Context, r contro
 		return nil
 	}
 
+	// the machine left the cluster, so nothing retries its failed uncordon
+	ctrl.lifecycleManager.Forget(machineConfig.Metadata().ID(), false)
+
 	if err = ctrl.releaseConfigUpdateLock(ctx, r, clusterMachine); err != nil {
 		return err
 	}
@@ -417,7 +421,7 @@ func (ctrl *StatusController) reconcileUpgrade(
 	rc *ReconciliationContext,
 ) error {
 	// The legacy path doesn't use the reboot marker, so clear it lest a stale ID debounce a later operation.
-	if rc.lifecycleOp == lifecycle.OpLegacyUpgrade {
+	if rc.lifecycleOp == lifecycle.OpLegacyUpgrade && rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId != "" {
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 	}
 
@@ -517,6 +521,11 @@ func (ctrl *StatusController) reconcileUpgrade(
 // maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
 func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
 	if rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId == "" {
+		// a failed upgrade is kept while it is still pending, e.g., deferred behind the high-priority config
+		if !rc.hasPendingLifecycleOperation() {
+			ctrl.lifecycleManager.Forget(rc.ID(), false)
+		}
+
 		return nil
 	}
 
@@ -530,13 +539,20 @@ func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.R
 			}
 
 			if nodeName != "" {
-				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
+				err = ctrl.lifecycleManager.FinalizeReboot(ctx, rc.ID(), lifecycle.WithUncordon(clusterName, nodeName))
+				if errors.Is(err, lifecycle.ErrAlreadyInFlight) {
+					return controller.NewRequeueInterval(lifecycle.RetryInterval)
+				}
+
+				if err != nil {
 					// Keep PreRebootBootId so the next reconcile retries the uncordon.
 					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycle.RetryInterval)
 				}
 			}
 		}
 	}
+
+	ctrl.lifecycleManager.Forget(rc.ID(), false) // a failed uncordon is not retried once the reboot marker is cleared
 
 	rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 
