@@ -14,6 +14,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/redactable"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,10 +48,11 @@ import (
 // sensitiveType is a sensitive resource type served by the fake Talos node.
 const sensitiveType = "ApiCertificates.secrets.talos.dev"
 
-// fakeTalos serves the COSI resource API of a Talos node over a unix socket, recording the Talos roles of each request.
+// fakeTalos serves the COSI resource API of a Talos node over a unix socket, recording the roles and redaction mode of each request.
 type fakeTalos struct {
 	address string
 	roles   [][]string
+	modes   [][]string
 	mu      sync.Mutex
 }
 
@@ -87,6 +90,7 @@ func startFakeTalos(ctx context.Context, t *testing.T) *fakeTalos {
 		defer fake.mu.Unlock()
 
 		fake.roles = append(fake.roles, md.Get(talosconstants.APIAuthzRoleMetadataKey))
+		fake.modes = append(fake.modes, md.Get(redactable.Header))
 	}
 
 	srv := grpc.NewServer(
@@ -131,6 +135,14 @@ func (f *fakeTalos) lastRoles() []string {
 	return f.roles[len(f.roles)-1]
 }
 
+// modesSince returns the redaction headers of the requests after the first n.
+func (f *fakeTalos) modesSince(n int) [][]string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return slices.Clone(f.modes[n:])
+}
+
 // requests returns the number of requests the fake node served.
 func (f *fakeTalos) requests() int {
 	f.mu.Lock()
@@ -148,7 +160,7 @@ func callerContext(ctx context.Context, r role.Role) context.Context {
 
 // TestRuntimeCallerRoles checks that the resource requests made on behalf of a caller are authorized against the
 // cluster of their target, and pass no Talos role: the role is the os:reader of the certificate, whatever the caller's
-// Omni role, so the sensitive resources stay unreadable.
+// Omni role, so the sensitive resources stay unreadable in full.
 func TestRuntimeCallerRoles(t *testing.T) {
 	t.Parallel()
 
@@ -302,7 +314,7 @@ func TestReaderClientCache(t *testing.T) {
 	})
 }
 
-// TestRuntimeSensitivity checks that the sensitive resources stay unreadable on Omni's side, whatever the node enforces.
+// TestRuntimeSensitivity checks that sensitive resources stay unreadable for nodes without redaction support.
 //
 // The maintenance API of Talos grants every SideroLink peer, Omni included, all the roles, so this is the only check
 // for a machine in maintenance mode; for the others it backs the os:reader certificate.
@@ -353,5 +365,71 @@ func TestRuntimeSensitivity(t *testing.T) {
 		err := list(callerContext(ctx, role.Admin), "secrets", "Unknowns.secrets.talos.dev")
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+}
+
+// TestRuntimeRedaction checks that reads always use enforce, and sensitive reads pass only on versions with redaction.
+func TestRuntimeRedaction(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		st := testContext.State
+		fake := startFakeTalos(ctx, t)
+
+		clientFactory := talos.NewClientFactory(st, testContext.Logger)
+		talosRuntime := talos.New(clientFactory, testContext.Logger)
+
+		// maintenance mode grants Omni all the roles, so only redaction keeps secrets out
+		for id, version := range map[string]string{
+			"redacting":     "v1.15.0-beta.0",
+			"not-redacting": "v1.15.0-alpha.2",
+			"unknown":       "",
+		} {
+			machineStatus := omni.NewMachineStatus(id)
+			machineStatus.TypedSpec().Value.Cluster = "alpha"
+			machineStatus.TypedSpec().Value.Maintenance = true
+			machineStatus.TypedSpec().Value.ManagementAddress = fake.address
+			machineStatus.TypedSpec().Value.TalosVersion = version
+			require.NoError(t, st.Create(ctx, machineStatus))
+
+			machine := omni.NewMachine(id)
+			machine.TypedSpec().Value.Connected = true
+			require.NoError(t, st.Create(ctx, machine))
+		}
+
+		list := func(machine, namespace, resourceType string) error {
+			_, err := talosRuntime.List(callerContext(ctx, role.Reader),
+				runtime.WithMachines(machine),
+				runtime.WithNamespace(namespace),
+				runtime.WithResource(resourceType),
+			)
+
+			return err
+		}
+
+		requests := fake.requests()
+
+		require.NoError(t, list("redacting", "secrets", sensitiveType))
+		require.NoError(t, list("redacting", meta.NamespaceName, meta.ResourceDefinitionType))
+
+		// a sensitivity check and a read per list
+		modes := fake.modesSince(requests)
+		require.Len(t, modes, 4)
+
+		for _, mode := range modes {
+			assert.Equal(t, []string{string(redactable.ModeEnforce)}, mode)
+		}
+
+		for _, machine := range []string{"not-redacting", "unknown"} {
+			err := list(machine, "secrets", sensitiveType)
+			require.Error(t, err, machine)
+			assert.Equal(t, codes.PermissionDenied, status.Code(err), "%s: %v", machine, err)
+
+			require.NoError(t, list(machine, meta.NamespaceName, meta.ResourceDefinitionType), machine)
+		}
 	})
 }

@@ -62,6 +62,7 @@ func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse
 
 func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse, setters ...runtime.QueryOption) error {
 	opts := runtime.NewQueryOptions(setters...)
+	ctx = WithRedaction(ctx)
 
 	var (
 		st      state.State
@@ -116,6 +117,7 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 // Get implements runtime.Runtime.
 func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any, error) {
 	opts := runtime.NewQueryOptions(setters...)
+	ctx = WithRedaction(ctx)
 
 	var (
 		st      state.State
@@ -178,6 +180,8 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 
 // list lists the resources on a single machine, or on the cluster if the machine is empty.
 func (r *Runtime) list(ctx context.Context, machine string, opts *runtime.QueryOptions) ([]pkgruntime.ListItem, error) {
+	ctx = WithRedaction(ctx)
+
 	var (
 		st      state.State
 		release func()
@@ -263,6 +267,20 @@ func (r *Runtime) authorize(ctx context.Context, clusterID, machineID string) (c
 	return ctx, clusterID, nil
 }
 
+// redacts reports whether reads of the machine are redacted. Cluster reads may hit any node, so they never are.
+func (r *Runtime) redacts(ctx context.Context, machineID string) (bool, error) {
+	if machineID == "" {
+		return false, nil
+	}
+
+	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, r.clientFactory.omniState, omni.NewMachineStatus(machineID).Metadata())
+	if err != nil {
+		return false, err
+	}
+
+	return SupportsRedaction(machineStatus.TypedSpec().Value.TalosVersion), nil
+}
+
 func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourceType string) (state.State, func(), error) {
 	ctx, clusterID, err := r.authorize(ctx, clusterID, machineID)
 	if err != nil {
@@ -288,7 +306,15 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 		return nil, nil, status.Errorf(codes.Unavailable, "machine %q changed its cluster", machineID)
 	}
 
-	if err = CheckSensitivity(ctx, c.State(), resourceType); err != nil {
+	redaction, err := r.redacts(ctx, machineID)
+	if err != nil {
+		c.Close() //nolint:errcheck
+
+		return nil, nil, err
+	}
+
+	// Get, list and watch already added WithRedaction to ctx
+	if err = CheckSensitivity(ctx, c.State(), resourceType, redaction); err != nil {
 		c.Close() //nolint:errcheck
 
 		return nil, nil, err

@@ -7,6 +7,7 @@ package router
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -15,13 +16,17 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/redactable"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
@@ -173,9 +178,38 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 
 	backend.setRoleHeaders(ctx, md, fullMethodName, nodes, hasModifyAccess)
 
+	ctx, err = backend.setRedactionHeader(ctx, md, nodes)
+	if err != nil {
+		return ctx, nil, err
+	}
+
 	outCtx := metadata.NewOutgoingContext(ctx, md)
 
 	return outCtx, backend.conn, nil
+}
+
+// setRedactionHeader forwards a client's redaction request as enforce, and allows sensitive reads if every node supports it.
+//
+// Clients that didn't ask for redaction stay denied, as they can't recognize redacted values.
+// Enforce, because accept serves os:admin in full, and the maintenance API grants Omni all the roles.
+func (backend *TalosBackend) setRedactionHeader(ctx context.Context, md metadata.MD, nodes []dns.Info) (context.Context, error) {
+	mode, err := redactable.ModeFromIncomingContext(ctx)
+	if err != nil {
+		return ctx, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if mode == redactable.ModeDisabled {
+		return ctx, nil
+	}
+
+	md.Set(redactable.Header, string(redactable.ModeEnforce))
+
+	// one node of an unknown or older version keeps sensitive reads denied
+	if len(nodes) == 0 || slices.ContainsFunc(nodes, func(node dns.Info) bool { return !talos.SupportsRedaction(node.TalosVersion) }) {
+		return ctx, nil
+	}
+
+	return withSensitiveReads(ctx), nil
 }
 
 // checkAccess decides whether the caller may reach this backend, and whether it may modify.
