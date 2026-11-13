@@ -31,7 +31,7 @@ import (
 
 func registerMachineSetStatusController(t *testing.T) testutils.TestFunc {
 	return func(_ context.Context, tc testutils.TestContext) {
-		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetStatusController(nil)))
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 const (
@@ -35,11 +36,12 @@ const (
 // ControlPlaneStatusController creates ControlPlaneStatus resource for controlplane MachineSets.
 type ControlPlaneStatusController struct {
 	*qtransform.QController[*omni.MachineSet, *omni.ControlPlaneStatus]
+	talosClientFactory *talos.ClientFactory
 }
 
 // NewControlPlaneStatusController initializes ControlPlaneStatusController.
-func NewControlPlaneStatusController() *ControlPlaneStatusController {
-	ctrl := &ControlPlaneStatusController{}
+func NewControlPlaneStatusController(talosClientFactory *talos.ClientFactory) *ControlPlaneStatusController {
+	ctrl := &ControlPlaneStatusController{talosClientFactory: talosClientFactory}
 
 	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.ControlPlaneStatus]{
@@ -86,7 +88,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 }
 
 //nolint:gocyclo
-func (*ControlPlaneStatusController) transform(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, cpStatus *omni.ControlPlaneStatus) error {
+func (ctrl *ControlPlaneStatusController) transform(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, cpStatus *omni.ControlPlaneStatus) error {
 	if _, isControlplane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); !isControlplane {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not a controlplane machineset")
 	}
@@ -114,7 +116,9 @@ func (*ControlPlaneStatusController) transform(ctx context.Context, r controller
 		},
 		{
 			condition: specs.ConditionType_Etcd,
-			check:     check.Etcd,
+			check: func(ctx context.Context, r controller.Reader, clusterName string) error {
+				return check.Etcd(ctx, r, ctrl.talosClientFactory, clusterName)
+			},
 		},
 	}
 
