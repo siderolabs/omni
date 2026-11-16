@@ -51,7 +51,7 @@ func ParseTalosVersionLifecycleSupport(version string) (semver.Version, bool) {
 		return semver.Version{}, false
 	}
 
-	return parsed, talosVersionSupportsLifecycleService(parsed)
+	return parsed, TalosVersionSupportsLifecycleService(parsed)
 }
 
 // versionCompatibleWithCluster applies the version/installed compatibility rules to extracted inputs.
@@ -82,19 +82,12 @@ func versionCompatibleWithCluster(machineVersion semver.Version, installed bool,
 // InstallsOverLifecycleService reports whether Omni installs Talos targetVersion on a machine running Talos runningVersion over the
 // LifecycleService: both versions have to support it. The zero version, returned for a version that cannot be parsed, does not.
 func InstallsOverLifecycleService(runningVersion, targetVersion semver.Version) bool {
-	return talosVersionSupportsLifecycleService(runningVersion) && talosVersionSupportsLifecycleService(targetVersion)
+	return TalosVersionSupportsLifecycleService(runningVersion) && TalosVersionSupportsLifecycleService(targetVersion)
 }
 
-// talosVersionSupportsLifecycleService reports whether the Talos version exposes the LifecycleService install/upgrade APIs.
-func talosVersionSupportsLifecycleService(v semver.Version) bool {
-	minTalosVersion, _ := semver.ParseTolerant(LifecycleServiceMinTalosVersion) //nolint:errcheck
-	if v.Major > minTalosVersion.Major {
-		return true
-	}
+// TalosVersionSupportsLifecycleService reports whether the Talos version exposes the LifecycleService install/upgrade APIs.
+func TalosVersionSupportsLifecycleService(v semver.Version) bool {
+	v.Pre = nil // the pre-releases of the minimum version support it too
 
-	if v.Major < minTalosVersion.Major {
-		return false
-	}
-
-	return v.Minor >= minTalosVersion.Minor
+	return v.GTE(semver.MustParse(LifecycleServiceMinTalosVersion + ".0"))
 }

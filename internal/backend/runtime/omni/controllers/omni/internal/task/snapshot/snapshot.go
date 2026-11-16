@@ -35,9 +35,6 @@ const (
 	bootIDProbeInterval = 30 * time.Second
 	// apiCallTimeout is how long the collect task waits for a unary Talos API call.
 	apiCallTimeout = 5 * time.Second
-	// minTalosVersionForRead is the earliest Talos version whose maintenance mode serves the Read RPC
-	// (below it, maintenance mode answers Unimplemented), so boot ID collection is skipped below it.
-	minTalosVersionForRead = "1.13"
 )
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -198,15 +195,13 @@ func (spec CollectTaskSpec) talosSupportsBootID(ctx context.Context, c *client.C
 		return false, fmt.Errorf("failed to read talos version for boot id support check: %w", err)
 	}
 
-	minVersion := semver.MustParse(minTalosVersionForRead + ".0")
-
 	for _, msg := range versionResp.GetMessages() {
 		version, versionErr := semver.ParseTolerant(msg.GetVersion().GetTag())
 		if versionErr != nil {
 			return false, fmt.Errorf("failed to parse talos version for boot id support check: %w", versionErr)
 		}
 
-		if version.GTE(minVersion) {
+		if omni.TalosVersionSupportsLifecycleService(version) {
 			return true, nil
 		}
 	}

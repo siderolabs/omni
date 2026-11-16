@@ -41,6 +41,14 @@ func TestCollectTaskBootID(t *testing.T) {
 		assert.Equal(t, testBootID, firstSnapshot(ctx, t, spec).TypedSpec().Value.BootId)
 	})
 
+	t.Run("boot ID is reported on a pre-release of Talos 1.13", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, spec, _ := setupCollectTask(t, "v1.13.0-beta.1")
+
+		assert.Equal(t, testBootID, firstSnapshot(ctx, t, spec).TypedSpec().Value.BootId)
+	})
+
 	t.Run("a failed read restarts the task", func(t *testing.T) {
 		t.Parallel()
 
