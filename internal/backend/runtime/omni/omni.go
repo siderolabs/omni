@@ -44,6 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/powerstage"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -112,7 +113,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, imageFactoryTokens *tokenfile.Set, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
 	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime,
-	lifecycleManager *lifecycle.Manager, logger *zap.Logger,
+	lifecycleManager *lifecycle.Manager, machineOperations *machineoperation.Reporter, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -299,6 +300,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		machine.NewStatusLinkController(linkCounterDeltaCh),
 		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
 		clusterWorkloadProxyController,
+		omnictrl.NewMachineOperationStatusController(machineOperations),
 	}
 
 	// register a destroy controller for each user-managed resource type

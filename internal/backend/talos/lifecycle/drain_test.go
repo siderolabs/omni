@@ -46,7 +46,7 @@ func newDrainTestManager(t *testing.T, clientset k8s.Interface) *lifecycle.Manag
 	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
 		state.WrapCore(inmem.NewState()),
 		c,
-	), fixedClientsetProvider{clientset: clientset}, nil, nil)
+	), fixedClientsetProvider{clientset: clientset}, nil, nil, nil)
 }
 
 // TestCordonAndDrain verifies the two cordon/drain modes: the normal mode cordons and drains with
@@ -171,7 +171,7 @@ func TestFinalizeRebootUncordon(t *testing.T) {
 		manager := newDrainTestManager(t, clientset)
 
 		require.NoError(t, manager.RunCordonAndDrainForTest(ctx, clusterName, nodeName, false, func(string) {}))
-		require.NoError(t, manager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)))
+		require.NoError(t, manager.FinalizeReboot(ctx, "machine", lifecycle.WithUncordon(clusterName, nodeName)))
 
 		got, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		require.NoError(t, err)

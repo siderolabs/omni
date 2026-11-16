@@ -94,6 +94,7 @@ resources:
       - MachineInstallDiskStatuses.omni.sidero.dev
       - MachineJoinConfigs.omni.sidero.dev
       - MachineLabels.omni.sidero.dev
+      - MachineOperationStatuses.omni.sidero.dev
       - MachinePendingUpdates.omni.sidero.dev
       - MachineRequestSetStatuses.omni.sidero.dev
       - MachineRequestSets.omni.sidero.dev

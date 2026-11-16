@@ -23,6 +23,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
@@ -110,11 +111,17 @@ func (f socketTalosClientFactory) GetForMachine(ctx context.Context, machineID s
 // NewLifecycleManager builds a real lifecycle.Manager wired to a Talos client factory that reaches the
 // machine mocks over their sockets and to the given Kubernetes client provider.
 func NewLifecycleManager(t *testing.T, st state.State, k8sProvider lifecycle.KubernetesClientProvider) *lifecycle.Manager {
+	return NewReportingLifecycleManager(t, st, k8sProvider, nil)
+}
+
+// NewReportingLifecycleManager builds the lifecycle.Manager of NewLifecycleManager which reports its operations to operations.
+func NewReportingLifecycleManager(t *testing.T, st state.State, k8sProvider lifecycle.KubernetesClientProvider, operations *machineoperation.Reporter) *lifecycle.Manager {
 	return lifecycle.NewManager(
 		zap.NewNop(),
 		NewImageFactoryClients(t, st),
 		k8sProvider,
 		socketTalosClientFactory{st: st},
 		nil,
+		operations,
 	)
 }

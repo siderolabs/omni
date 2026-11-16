@@ -40,6 +40,7 @@ func (m *Manager) RunCordonAndDrainForTest(ctx context.Context, clusterName, nod
 	return m.runCordonAndDrain(ctx, runConfig{
 		cordonDrain: &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort},
 		progress:    progress,
+		podProgress: progress,
 	})
 }
 

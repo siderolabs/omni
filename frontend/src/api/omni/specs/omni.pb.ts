@@ -106,6 +106,19 @@ export enum ClusterStatusSpecPhase {
   DESTROYING = 4,
 }
 
+export enum MachineOperationStatusSpecStage {
+  UNKNOWN = 0,
+  PREPARING_IMAGE = 1,
+  PULLING_IMAGE = 2,
+  INSTALLING = 3,
+  UPGRADING = 4,
+  PREPARING_REBOOT = 5,
+  CORDONING = 6,
+  DRAINING = 7,
+  REBOOTING = 8,
+  UNCORDONING = 9,
+}
+
 export enum MachineSetSpecUpdateStrategy {
   Unset = 0,
   Rolling = 1,
@@ -567,6 +580,12 @@ export type ConfigTryStatus = {
   attempts?: number
   started_at?: GoogleProtobufTimestamp.Timestamp
   boot_id?: string
+}
+
+export type MachineOperationStatusSpec = {
+  stage?: MachineOperationStatusSpecStage
+  message?: string
+  stage_started_at?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {

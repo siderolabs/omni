@@ -65,7 +65,7 @@ const (
 type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
-	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
+	FinalizeReboot(ctx context.Context, machineID string, opts ...lifecycle.Option) error
 }
 
 // StatusController manages the ClusterMachineConfigStatus resource lifecycle.
@@ -563,7 +563,7 @@ func (ctrl *StatusController) uncordonNode(ctx context.Context, r controller.Rea
 		return nil
 	}
 
-	if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
+	if err = ctrl.lifecycleManager.FinalizeReboot(ctx, rc.ID(), lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
 		return controller.NewRequeueError(fmt.Errorf("failed to uncordon node %q of machine %q: %w", nodeName, rc.ID(), err), lifecycle.RetryInterval)
 	}
 
@@ -761,6 +761,7 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 
 	operation := lifecycle.Operation{
 		MachineID:     machineID,
+		BootID:        rc.bootID,
 		MachineStatus: rc.machineStatus,
 		Version:       rc.installImage.TalosVersion,
 		InstallImage:  rc.installImage,
@@ -890,6 +891,7 @@ func (ctrl *StatusController) runClusterLifecycle(
 
 	operation := lifecycle.Operation{
 		MachineID:     machineID,
+		BootID:        rc.bootID,
 		MachineStatus: rc.machineStatus,
 		Version:       rc.installImage.TalosVersion,
 		InstallImage:  rc.installImage,

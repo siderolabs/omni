@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -101,19 +102,22 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	prometheus.MustRegister(discoveryClientCache)
 
+	machineOperations := machineoperation.NewReporter()
+
 	lifecycleManager := lifecycle.NewManager(
 		logger.With(logging.Component("talos_lifecycle")),
 		imageFactoryClients,
 		kubernetesRuntime,
 		talosClientFactory,
 		installEventCh,
+		machineOperations,
 	)
 
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClients, factoryTokenFiles, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime,
-		lifecycleManager, logger.With(logging.Component("omni_runtime")),
+		lifecycleManager, machineOperations, logger.With(logging.Component("omni_runtime")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up the controller runtime: %w", err)

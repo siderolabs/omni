@@ -730,6 +730,28 @@ message ConfigTryStatus {
   string boot_id = 4;
 }
 
+// MachineOperationStatusSpec represents the install or upgrade Omni is running on a machine right now.
+message MachineOperationStatusSpec {
+  // Stage is the step of an install or upgrade.
+  enum Stage {
+    UNKNOWN = 0;
+    PREPARING_IMAGE = 1;
+    PULLING_IMAGE = 2;
+    INSTALLING = 3;
+    UPGRADING = 4;
+    PREPARING_REBOOT = 5;
+    CORDONING = 6;
+    DRAINING = 7;
+    REBOOTING = 8;
+    UNCORDONING = 9;
+  }
+
+  Stage stage = 1;
+  // Message is the last progress message of the current stage.
+  string message = 2;
+  google.protobuf.Timestamp stage_started_at = 3;
+}
+
 message MachinePendingUpdatesSpec {
   message Upgrade {
     string from_schematic = 1;

@@ -137,6 +137,7 @@ resources:
       - MachineExtensions.omni.sidero.dev
       - MachineExtensionsStatuses.omni.sidero.dev
       - MachineInstallDiskStatuses.omni.sidero.dev
+      - MachineOperationStatuses.omni.sidero.dev
       - MachinePendingUpdates.omni.sidero.dev
       - MachineSetDestroyStatuses.omni.sidero.dev
       - MachineSetStatuses.omni.sidero.dev

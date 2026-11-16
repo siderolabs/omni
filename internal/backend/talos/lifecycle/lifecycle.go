@@ -77,6 +77,8 @@ type Operation struct {
 	// InstallImage is the target install image spec. When nil, the image is built from the machine's current schematic at Version (for callers without a target, e.g. the management RPC).
 	InstallImage *specs.MachineConfigGenOptionsSpec_InstallImage
 	MachineID    string
+	// BootID is the current boot ID of the machine, if known. When set, the operation is reported as rebooting until the machine gets another one.
+	BootID string
 	// Version is the Talos version to install ("" = the machine's running version). Ignored when InstallImage is set.
 	Version string
 	// Disk is the target install disk (e.g. "/dev/sda"). Required for KindInstall; ignored for KindUpgrade.

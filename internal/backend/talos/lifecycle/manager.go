@@ -18,8 +18,10 @@ import (
 	"google.golang.org/grpc/status"
 	k8s "k8s.io/client-go/kubernetes"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -42,17 +44,20 @@ type Manager struct {
 	inFlight                 map[string]struct{}
 	installEventCh           chan<- resource.ID
 	imageFactoryClients      *imagefactory.Clients
+	operations               *machineoperation.Reporter
 	mu                       sync.Mutex
 }
 
 // NewManager creates a Manager. kubernetesClients may be nil for callers that never cordon/drain.
 // installEventCh may be nil for callers that don't track install completion (e.g. tests).
+// operations may be nil for callers that don't report the operations (e.g. tests).
 func NewManager(
 	logger *zap.Logger,
 	imageFactoryClients *imagefactory.Clients,
 	kubernetesClientProvider KubernetesClientProvider,
 	talosClientFactory TalosClientFactory,
 	installEventCh chan<- resource.ID,
+	operations *machineoperation.Reporter,
 ) *Manager {
 	return &Manager{
 		logger:                   logger,
@@ -65,6 +70,7 @@ func NewManager(
 		},
 		inFlight:       map[string]struct{}{},
 		installEventCh: installEventCh,
+		operations:     operations,
 	}
 }
 
@@ -89,9 +95,12 @@ type nodeRef struct {
 
 // runConfig holds the per-call options resolved from Option values.
 type runConfig struct {
-	audit       AuditFunc
-	progress    func(string)
+	audit    AuditFunc
+	progress func(string)
+	// podProgress receives the drain messages of every pod, which are kept out of the operation as a node can run many pods.
+	podProgress func(string)
 	onCordon    func()
+	operation   *machineoperation.Operation
 	cordonDrain *nodeRef
 	uncordon    *nodeRef
 	preReboot   []PreRebootHook
@@ -197,6 +206,12 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	defer m.release(op.MachineID)
 
+	var rebootBootID string // set after the reboot is requested
+
+	m.report(op.MachineID, specs.MachineOperationStatusSpec_PREPARING_IMAGE, &cfg)
+
+	defer func() { cfg.operation.End(rebootBootID) }()
+
 	installImageStr, err := m.buildInstallImage(ctx, op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
 	if err != nil {
 		return WrapErr(err, "failed to build install image")
@@ -217,35 +232,20 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	talosClient := nodeClient.Client
 
+	cfg.operation.SetStage(specs.MachineOperationStatusSpec_PULLING_IMAGE)
+
 	// Install/Upgrade expect the image already present in containerd so we pull it here.
 	resolvedImage, err := m.pullInstallerImage(ctx, talosClient, installImageStr, op.MachineID, cfg)
 	if err != nil {
 		return WrapErr(err, "failed to pull installer image")
 	}
 
-	switch op.Kind {
-	case KindInstall:
-		err = m.install(ctx, talosClient, resolvedImage, op.Disk, op.MachineID, cfg)
+	if err = m.installOrUpgrade(ctx, talosClient, resolvedImage, op, cfg); err != nil {
+		return err
+	}
 
-		// AlreadyExists means Talos already has Talos on disk, which is the precondition Upgrade needs.
-		// The intent is "bring the machine to the target image", so fall back to upgrade.
-		if status.Code(err) == codes.AlreadyExists {
-			cfg.progress("[omni] Talos is already installed on disk; falling back to upgrade")
-
-			m.logger.Info("install rejected as already installed, falling back to upgrade", zap.String("machine_id", op.MachineID))
-
-			err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
-		}
-
-		if err != nil {
-			return err
-		}
-	case KindUpgrade:
-		if err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg); err != nil {
-			return err
-		}
-	default:
-		return status.Errorf(codes.InvalidArgument, "unknown operation kind: %d", op.Kind)
+	if len(cfg.preReboot) > 0 {
+		cfg.operation.SetStage(specs.MachineOperationStatusSpec_PREPARING_REBOOT)
 	}
 
 	for _, hook := range cfg.preReboot {
@@ -258,9 +258,13 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 		return WrapErr(err, "cordon/drain before reboot failed")
 	}
 
+	cfg.operation.SetStage(specs.MachineOperationStatusSpec_REBOOTING)
+
 	if err = m.reboot(ctx, talosClient, op.MachineID, cfg); err != nil {
 		return WrapErr(err, "failed to reboot machine after install/upgrade")
 	}
+
+	rebootBootID = op.BootID
 
 	// The install succeeded and the machine rebooted into it. This path emits no Talos boot event for
 	// the event sink to catch, so signal it here to bump InstallEventId.
@@ -273,6 +277,36 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 	}
 
 	return nil
+}
+
+// installOrUpgrade installs or upgrades Talos on the machine.
+func (m *Manager) installOrUpgrade(ctx context.Context, talosClient *talosclient.Client, resolvedImage string, op Operation, cfg runConfig) error {
+	switch op.Kind {
+	case KindInstall:
+		cfg.operation.SetStage(specs.MachineOperationStatusSpec_INSTALLING)
+
+		err := m.install(ctx, talosClient, resolvedImage, op.Disk, op.MachineID, cfg)
+
+		// AlreadyExists means Talos already has Talos on disk, which is the precondition Upgrade needs.
+		// The intent is "bring the machine to the target image", so fall back to upgrade.
+		if status.Code(err) == codes.AlreadyExists {
+			cfg.operation.SetStage(specs.MachineOperationStatusSpec_UPGRADING)
+
+			cfg.progress("[omni] Talos is already installed on disk; falling back to upgrade")
+
+			m.logger.Info("install rejected as already installed, falling back to upgrade", zap.String("machine_id", op.MachineID))
+
+			err = m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
+		}
+
+		return err
+	case KindUpgrade:
+		cfg.operation.SetStage(specs.MachineOperationStatusSpec_UPGRADING)
+
+		return m.upgrade(ctx, talosClient, resolvedImage, op.MachineID, cfg)
+	default:
+		return status.Errorf(codes.InvalidArgument, "unknown operation kind: %d", op.Kind)
+	}
 }
 
 // runPreRebootHook runs a single pre-reboot hook under its own timeout.
@@ -307,6 +341,8 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 	cordonCtx, cancel := context.WithTimeout(ctx, CordonTimeout)
 	defer cancel()
 
+	cfg.operation.SetStage(specs.MachineOperationStatusSpec_CORDONING)
+
 	emitf(cfg.progress, "[omni] cordoning node %s", target.nodeName)
 
 	if err = nodedrain.Cordon(cordonCtx, clientset, target.nodeName, omni.KubernetesNodeCordoned); err != nil {
@@ -339,10 +375,12 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 
 // drain evicts the node's pods, bounding itself with nodedrain's own drain timeout.
 func drain(ctx context.Context, clientset k8s.Interface, cfg runConfig, nodeName string) error {
+	cfg.operation.SetStage(specs.MachineOperationStatusSpec_DRAINING)
+
 	emitf(cfg.progress, "[omni] draining node %s", nodeName)
 
 	if err := nodedrain.Drain(ctx, clientset, nodeName, nodedrain.DrainOptions{
-		Progress: func(msg string) { cfg.progress("[omni] " + msg) },
+		Progress: func(msg string) { emitf(cfg.podProgress, "[omni] %s", msg) },
 	}); err != nil {
 		return err
 	}
@@ -353,7 +391,7 @@ func drain(ctx context.Context, clientset k8s.Interface, cfg runConfig, nodeName
 }
 
 // FinalizeReboot uncordons the node, separate from Run because the caller decides when the machine is back.
-func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
+func (m *Manager) FinalizeReboot(ctx context.Context, machineID string, opts ...Option) error {
 	cfg := runConfig{progress: func(string) {}}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -362,6 +400,10 @@ func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
 	if cfg.uncordon == nil {
 		return nil
 	}
+
+	m.report(machineID, specs.MachineOperationStatusSpec_UNCORDONING, &cfg)
+
+	defer cfg.operation.End("")
 
 	target := cfg.uncordon
 
@@ -380,6 +422,20 @@ func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
 	}
 
 	return nil
+}
+
+// report starts reporting the operation of the machine, including its progress messages.
+func (m *Manager) report(machineID string, stage machineoperation.Stage, cfg *runConfig) {
+	cfg.operation = m.operations.Start(machineID, stage)
+
+	progress := cfg.progress
+
+	cfg.podProgress = progress
+	cfg.progress = func(msg string) {
+		cfg.operation.SetMessage(msg)
+
+		progress(msg)
+	}
 }
 
 // acquire claims the in-flight slot for the machine, returning false if one is already held.
