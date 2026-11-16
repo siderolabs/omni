@@ -80,13 +80,13 @@ const dynamicProps = computed(() => {
       cn(
         'flex items-center justify-center gap-micro rounded border transition-colors duration-200',
         {
-          'border-border-strong bg-surface-raised text-content-default hover:border-accent-fill hover:bg-accent-fill hover:text-content-on-accent focus:border-accent-fill focus:bg-accent-fill-hover focus:text-content-on-accent active:border-accent-fill-active active:bg-accent-fill-active active:text-content-on-accent disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
+          'border-border-strong bg-surface-raised text-content-default hover:border-accent-fill hover:bg-accent-fill hover:text-content-on-accent focus-visible:border-accent-fill focus-visible:bg-accent-fill-hover focus-visible:text-content-on-accent active:border-accent-fill-active active:bg-accent-fill-active active:text-content-on-accent disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
             variant === 'primary',
-          'border-border-strong bg-transparent text-content-secondary hover:bg-surface-hover hover:text-content-emphasis focus:border-border-strong focus:bg-surface-hover focus:text-content-emphasis active:border-border-strong active:bg-surface-inert active:text-content-emphasis disabled:cursor-not-allowed disabled:border-border-default disabled:bg-transparent disabled:text-content-disabled':
+          'border-border-strong bg-transparent text-content-secondary hover:bg-surface-hover hover:text-content-emphasis focus-visible:border-border-strong focus-visible:bg-surface-hover focus-visible:text-content-emphasis active:border-border-strong active:bg-surface-inert active:text-content-emphasis disabled:cursor-not-allowed disabled:border-border-default disabled:bg-transparent disabled:text-content-disabled':
             variant === 'secondary',
-          'border-none bg-transparent text-content-emphasis hover:text-accent-text focus:text-accent-hover focus:underline active:text-accent-text active:no-underline disabled:cursor-not-allowed disabled:text-content-disabled':
+          'border-none bg-transparent text-content-emphasis hover:text-accent-text focus-visible:text-accent-hover focus-visible:underline active:text-accent-text active:no-underline disabled:cursor-not-allowed disabled:text-content-disabled':
             variant === 'subtle',
-          'border-accent-fill bg-accent-fill text-content-on-accent hover:border-accent-fill-hover hover:bg-accent-fill-hover focus:border-accent-fill-hover focus:bg-accent-fill-hover active:border-accent-fill-active active:bg-accent-fill-active disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
+          'border-accent-fill bg-accent-fill text-content-on-accent hover:border-accent-fill-hover hover:bg-accent-fill-hover focus-visible:border-accent-fill-hover focus-visible:bg-accent-fill-hover active:border-accent-fill-active active:bg-accent-fill-active disabled:cursor-not-allowed disabled:border-border-default disabled:bg-surface-hover disabled:text-content-disabled':
             variant === 'highlighted',
           'px-compact py-tight text-sm': size === 'md',
           'px-tight py-micro text-sm': size === 'sm',
