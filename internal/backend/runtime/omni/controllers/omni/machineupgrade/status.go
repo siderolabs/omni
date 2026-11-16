@@ -187,6 +187,13 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
+	if _, assigned := ms.Metadata().Labels().Get(omni.LabelCluster); assigned {
+		status.TypedSpec().Value.Status = "assigned to a cluster, ClusterMachineConfigStatusController upgrades it"
+		status.TypedSpec().Value.Error = ""
+
+		return nil
+	}
+
 	if omni.GetMachineStatusSystemDisk(ms) == "" {
 		status.TypedSpec().Value.Status = "no system disk, Talos is not installed"
 		status.TypedSpec().Value.Error = ""
