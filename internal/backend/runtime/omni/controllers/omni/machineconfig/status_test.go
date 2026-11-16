@@ -40,6 +40,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	ktesting "k8s.io/client-go/testing"
 
@@ -3358,10 +3359,14 @@ func TestClusterUpgradeProceedsWithGrubUseUKICmdlineInSync(t *testing.T) {
 				return nil
 			}))
 
+			// an upgrade which runs before the flag is seen holds the config apply back until the machine reboots, which it does not do here
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.AppliedHighPriorityConfigHash)
+			})
+
 			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
 
 			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
-				a.NotEmpty(res.TypedSpec().Value.AppliedHighPriorityConfigHash)
 				a.NotEmpty(res.TypedSpec().Value.PreRebootBootId)
 			})
 
@@ -3419,6 +3424,90 @@ func TestClusterUpgradeProceedsAfterHighPriorityConfigApplied(t *testing.T) {
 			require.NotEmpty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
 		},
 	)
+}
+
+// TestClusterUpgradeWaitsForRebootWithHighPriorityConfig verifies that a high-priority config change which arrives while the machine reboots
+// after its upgrade does not uncordon the node and does not release the upgrade lock before the machine is back.
+func TestClusterUpgradeWaitsForRebootWithHighPriorityConfig(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-hp-reboot"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			clientset := testutils.NewFakeKubernetesClientset(nodeName)
+			provider.SetClientset(clientset)
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal("boot-"+id, res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			addHighPriorityConfig(ctx, t, st, id)
+			assertPendingConfigDiff(ctx, t, st, id, "RegistryAuthConfig")
+
+			// the reconciles of a machine run one by one, so the one which saw the high-priority config has finished once the next one is seen
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), grubUseUKICmdlineOption(true))
+			assertPendingConfigDiff(ctx, t, st, id, "grubUseUKICmdline: true")
+
+			node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.True(t, node.Spec.Unschedulable, "the node must stay cordoned while the machine reboots")
+
+			clusterMachine, err := safe.StateGetByID[*omni.ClusterMachine](ctx, st, id)
+			require.NoError(t, err)
+			assert.True(t, clusterMachine.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be held while the machine reboots")
+
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.BootId = "boot-after"
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Empty(res.TypedSpec().Value.PreRebootBootId, "the reboot must be finalized once the machine is back")
+			})
+		},
+	)
+}
+
+func assertPendingConfigDiff(ctx context.Context, t *testing.T, st state.State, id, diff string) {
+	t.Helper()
+
+	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachinePendingUpdates, a *assert.Assertions) {
+		buffer, err := res.TypedSpec().Value.GetUncompressedData()
+		if !a.NoError(err) {
+			return
+		}
+
+		defer buffer.Free()
+
+		a.Contains(string(buffer.Data()), diff)
+	})
 }
 
 // TestMaintenanceInstallGatedOnHighPriorityConfig verifies that a maintenance-mode machine with

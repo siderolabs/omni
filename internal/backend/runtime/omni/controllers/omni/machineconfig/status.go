@@ -516,8 +516,13 @@ func (ctrl *StatusController) reconcileUpgrade(
 // finalizeReboot uncordons the node, then clears the reboot marker. The marker is shared with the
 // maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
 func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
-	if rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId == "" {
+	preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId
+	if preRebootBootID == "" {
 		return nil
+	}
+
+	if preRebootBootID == rc.bootID {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot: %s", rc.ID())
 	}
 
 	// A machine still in maintenance was never a Kubernetes node, so there is nothing to uncordon.
