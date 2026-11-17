@@ -15,10 +15,10 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -43,11 +43,11 @@ func (c *AuthConfig) Unary() grpc.UnaryServerInterceptor {
 			switch info.FullMethod {
 			case resapi.ResourceService_Get_FullMethodName:
 				if getReq, ok := req.(*resapi.GetRequest); ok {
-					_, isPublicResourceRequest = omni.PublicResourceTypes[getReq.Type]
+					isPublicResourceRequest = authz.LookupResourceType(getReq.Type).Access == authz.Public
 				}
 			case resapi.ResourceService_List_FullMethodName:
 				if listReq, ok := req.(*resapi.ListRequest); ok {
-					_, isPublicResourceRequest = omni.PublicResourceTypes[listReq.Type]
+					isPublicResourceRequest = authz.LookupResourceType(listReq.Type).Access == authz.Public
 				}
 			}
 		}

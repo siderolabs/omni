@@ -34,13 +34,35 @@ func TestUserManagedResourceTypes(t *testing.T) {
 	}
 }
 
+// TestResourceTypesHaveAGroup checks that a type which can be accessed either needs no grant or belongs to a resource group.
+//
+// It is a tripwire for new resource types: a type which is added to the table with verbs, but without a group,
+// would be accessible to nobody, as no role could grant it. This test fails for it.
+func TestResourceTypesHaveAGroup(t *testing.T) {
+	t.Parallel()
+
+	for _, res := range registry.Resources {
+		typ := res.ResourceDefinition().Type
+		resourceType := authz.LookupResourceType(typ)
+
+		if resourceType.Verbs == 0 {
+			assert.Empty(t, resourceType.Group, "type %s allows no verbs, but has a resource group", typ)
+
+			continue
+		}
+
+		assert.Equal(t, resourceType.Access == authz.RequiresGrant, resourceType.Group != "", "type %s", typ)
+	}
+}
+
 func TestLookupResourceType(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByID, Verbs: authz.AllVerbs}, authz.LookupResourceType(omni.ClusterType))
-	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByLabel, Verbs: authz.Read}, authz.LookupResourceType(omni.ClusterMachineType))
+	assert.Equal(t, authz.ResourceType{Group: authz.Clusters, Cluster: authz.ClusterByID, Verbs: authz.AllVerbs}, authz.LookupResourceType(omni.ClusterType))
+	assert.Equal(t, authz.ResourceType{Group: authz.Clusters, Cluster: authz.ClusterByLabel, Verbs: authz.Read}, authz.LookupResourceType(omni.ClusterMachineType))
 	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByID}, authz.LookupResourceType(omni.ClusterSecretsType))
-	assert.Equal(t, authz.ResourceType{Cluster: authz.ClusterByMachine, Verbs: authz.Read}, authz.LookupResourceType(omni.MachineStatusType))
+	assert.Equal(t, authz.ResourceType{Group: authz.Machines, Cluster: authz.ClusterByMachine, Verbs: authz.Read}, authz.LookupResourceType(omni.MachineStatusType))
+	assert.Equal(t, authz.ResourceType{Access: authz.RequiresAuthentication, Verbs: authz.Read}, authz.LookupResourceType(omni.TalosVersionType))
 	assert.Equal(t, authz.ResourceType{}, authz.LookupResourceType("Unknown.omni.sidero.dev"))
 }
 

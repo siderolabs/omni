@@ -67,10 +67,11 @@ func New(st state.State, suspended bool) auth.AuthenticatorFunc {
 		}
 
 		return &auth.Authenticator{
-			UserID:   userID,
-			Identity: pubKey.TypedSpec().Value.GetIdentity().GetEmail(),
-			Role:     finalRole,
-			Verifier: verifier,
+			UserID:    userID,
+			Identity:  pubKey.TypedSpec().Value.GetIdentity().GetEmail(),
+			Role:      finalRole,
+			Verifier:  verifier,
+			Suspended: suspended, // the access checks need it: on a suspended instance they allow only reads, whatever grants access
 		}, nil
 	}
 }

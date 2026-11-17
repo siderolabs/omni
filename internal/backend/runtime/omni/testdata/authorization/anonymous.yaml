@@ -12,6 +12,8 @@
 resources:
   - types:
       - AccessPolicies.omni.sidero.dev
+      - BackupDatas.omni.sidero.dev
+      - CertRefreshTicks.system.sidero.dev
       - ClusterBootstrapStatuses.omni.sidero.dev
       - ClusterConfigVersions.omni.sidero.dev
       - ClusterDestroyStatuses.omni.sidero.dev
@@ -21,12 +23,16 @@ resources:
       - ClusterKubernetesNodes.omni.sidero.dev
       - ClusterMachineConfigPatches.omni.sidero.dev
       - ClusterMachineConfigStatuses.omni.sidero.dev
+      - ClusterMachineConfigs.omni.sidero.dev
+      - ClusterMachineEncryptionKeys.omni.sidero.dev
       - ClusterMachineIdentities.omni.sidero.dev
       - ClusterMachineRequestStatuses.omni.sidero.dev
+      - ClusterMachineSecrets.omni.sidero.dev
       - ClusterMachineStatuses.omni.sidero.dev
       - ClusterMachineTalosVersions.omni.sidero.dev
       - ClusterMachines.omni.sidero.dev
       - ClusterMetrics.omni.sidero.dev
+      - ClusterSecrets.omni.sidero.dev
       - ClusterSecretsRotationStatuses.omni.sidero.dev
       - ClusterStatusMetrics.omni.sidero.dev
       - ClusterStatuses.omni.sidero.dev
@@ -35,10 +41,14 @@ resources:
       - ClusterWorkloadProxyStatuses.omni.sidero.dev
       - Clusters.omni.sidero.dev
       - ConfigPatches.omni.sidero.dev
+      - Configs.omni.sidero.dev
       - ConnectionParams.omni.sidero.dev
       - ControlPlaneStatuses.omni.sidero.dev
+      - DBVersions.system.sidero.dev
       - DefaultJoinTokens.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - EtcdAuditResults.omni.sidero.dev
+      - EtcdBackupEncryptions.omni.sidero.dev
       - EtcdBackupOverallStatuses.omni.sidero.dev
       - EtcdBackupS3Configs.omni.sidero.dev
       - EtcdBackupStatuses.omni.sidero.dev
@@ -53,6 +63,7 @@ resources:
       - IdentityLabelRules.omni.sidero.dev
       - IdentityLastActives.omni.sidero.dev
       - IdentityStatuses.omni.sidero.dev
+      - ImageFactoryAuths.omni.sidero.dev
       - ImagePullRequests.omni.sidero.dev
       - ImagePullStatuses.omni.sidero.dev
       - ImportedClusterSecrets.omni.sidero.dev
@@ -63,9 +74,11 @@ resources:
       - InstallationMedias.omni.sidero.dev
       - JWTPublicKeys.system.sidero.dev
       - JoinTokenStatuses.omni.sidero.dev
+      - JoinTokenUsages.omni.sidero.dev
       - JoinTokens.omni.sidero.dev
       - KernelArgs.omni.sidero.dev
       - KernelArgsStatuses.omni.sidero.dev
+      - Kubeconfigs.omni.sidero.dev
       - KubernetesHealthCheckStatuses.omni.sidero.dev
       - KubernetesHealthChecks.omni.sidero.dev
       - KubernetesManifestGroups.omni.sidero.dev
@@ -85,11 +98,13 @@ resources:
       - MachineExtensionsStatuses.omni.sidero.dev
       - MachineInstallDiskConfigs.omni.sidero.dev
       - MachineInstallDiskStatuses.omni.sidero.dev
+      - MachineJoinConfigs.omni.sidero.dev
       - MachineLabels.omni.sidero.dev
       - MachineOperationStatuses.omni.sidero.dev
       - MachinePendingUpdates.omni.sidero.dev
       - MachineRequestSetStatuses.omni.sidero.dev
       - MachineRequestSets.omni.sidero.dev
+      - MachineSetConfigStatuses.omni.sidero.dev
       - MachineSetDestroyStatuses.omni.sidero.dev
       - MachineSetNodes.omni.sidero.dev
       - MachineSetStatuses.omni.sidero.dev
@@ -105,18 +120,25 @@ resources:
       - Namespaces.meta.cosi.dev
       - NodeForceDestroyRequests.omni.sidero.dev
       - NodeUniqueTokenStatuses.omni.sidero.dev
+      - NodeUniqueTokens.omni.sidero.dev
       - Notifications.omni.sidero.dev
       - OngoingTasks.omni.sidero.dev
+      - PendingMachineStatuses.omni.sidero.dev
       - PendingMachines.omni.sidero.dev
       - PublicKeyLastActives.omni.sidero.dev
+      - PublicKeys.omni.sidero.dev
       - RedactedClusterMachineConfigs.omni.sidero.dev
       - ResourceDefinitions.meta.cosi.dev
       - RotateKubernetesCAs.omni.sidero.dev
       - RotateTalosCAs.omni.sidero.dev
+      - SAMLAssertions.omni.sidero.dev
+      - SAMLLabelRules.omni.sidero.dev
       - SchematicConfigurations.omni.sidero.dev
+      - SecretRotations.omni.sidero.dev
       - ServiceAccountStatuses.omni.sidero.dev
       - SiderolinkAPIConfigs.omni.sidero.dev
       - SysVersions.system.sidero.dev
+      - TalosConfigs.omni.sidero.dev
       - TalosExtensions.omni.sidero.dev
       - TalosUpgradeStatuses.omni.sidero.dev
       - TalosVersions.omni.sidero.dev
@@ -230,53 +252,6 @@ resources:
         unauthenticated: [list, watch]
       - case: all resources not in cluster-a
         unauthenticated: [list, watch]
-
-  - types:
-      - BackupDatas.omni.sidero.dev
-      - CertRefreshTicks.system.sidero.dev
-      - ClusterMachineConfigs.omni.sidero.dev
-      - ClusterMachineEncryptionKeys.omni.sidero.dev
-      - ClusterMachineSecrets.omni.sidero.dev
-      - ClusterSecrets.omni.sidero.dev
-      - Configs.omni.sidero.dev
-      - DBVersions.system.sidero.dev
-      - EtcdAuditResults.omni.sidero.dev
-      - EtcdBackupEncryptions.omni.sidero.dev
-      - ImageFactoryAuths.omni.sidero.dev
-      - JoinTokenUsages.omni.sidero.dev
-      - Kubeconfigs.omni.sidero.dev
-      - MachineJoinConfigs.omni.sidero.dev
-      - MachineSetConfigStatuses.omni.sidero.dev
-      - NodeUniqueTokens.omni.sidero.dev
-      - PendingMachineStatuses.omni.sidero.dev
-      - PublicKeys.omni.sidero.dev
-      - SAMLAssertions.omni.sidero.dev
-      - SAMLLabelRules.omni.sidero.dev
-      - SecretRotations.omni.sidero.dev
-      - TalosConfigs.omni.sidero.dev
-    cases:
-      - case: a resource in cluster-a
-        denied: [get, watch, create, update, destroy]
-      - case: a resource in cluster-b
-        denied: [get, watch, create, update, destroy]
-      - case: a resource of a machine in cluster-a
-        denied: [get, watch, create, update, destroy]
-      - case: a resource of a machine in no cluster
-        denied: [get, watch, create, update, destroy]
-      - case: moving a resource from cluster-a to cluster-b
-        denied: [move]
-      - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
-      - case: all resources
-        denied: [list, watch]
-      - case: all resources in cluster-a
-        denied: [list, watch]
-      - case: all resources in cluster-b
-        denied: [list, watch]
-      - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
-      - case: all resources not in cluster-a
-        denied: [list, watch]
 
   - types:
       - CloudPlatformConfigs.omni.sidero.dev

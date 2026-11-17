@@ -1144,7 +1144,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client) Tes
 
 		// try to create an unauthorized cluster using the user client
 		err = userState.Create(ctx, clusterUnauthorized)
-		assert.ErrorContains(t, err, "insufficient role")
+		assert.ErrorContains(t, err, "no role grants")
 
 		// create it using the admin client
 		require.NoError(t, rootState.Create(ctx, clusterUnauthorized))
@@ -1169,7 +1169,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client) Tes
 		clusterUnauthorized.TypedSpec().Value.TalosVersion = "1.4.5"
 
 		err = userState.Update(ctx, clusterUnauthorized)
-		assert.ErrorContains(t, err, "insufficient role")
+		assert.ErrorContains(t, err, "no role grants")
 
 		// try to get the authorized cluster using the user client
 		_, err = userState.Get(ctx, clusterAuthorized.Metadata())
@@ -1179,7 +1179,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client) Tes
 		configPatchUnauthorized := omni.NewConfigPatch("unauthorized-" + testID)
 
 		err = userState.Create(ctx, configPatchUnauthorized)
-		assert.ErrorContains(t, err, "insufficient role")
+		assert.ErrorContains(t, err, "no role grants")
 
 		// test the logic for a config patch with an authorized cluster association
 		configPatchAuthorized := omni.NewConfigPatch("authorized" + testID)

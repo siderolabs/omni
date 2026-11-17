@@ -52,7 +52,6 @@ resources:
       - MachineRequestSets.omni.sidero.dev
       - MachineSetConfigStatuses.omni.sidero.dev
       - MachineSetDestroyStatuses.omni.sidero.dev
-      - MachineStatusLabels.omni.sidero.dev
       - NodeUniqueTokens.omni.sidero.dev
       - PendingMachineStatuses.omni.sidero.dev
       - PendingMachines.omni.sidero.dev
@@ -195,19 +194,24 @@ resources:
       - CloudPlatformConfigs.omni.sidero.dev
     cases:
       - case: the resource "aws"
-        denied: [get, watch, create, update, destroy]
+        allowed: [get]
+        denied: [create, update, destroy]
+        unsupported: [watch]
       - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
+        denied: [create, update, destroy]
+        not-found: [get]
+        unsupported: [watch]
       - case: all resources
-        denied: [list, watch]
+        allowed: [list]
+        unsupported: [watch]
       - case: all resources in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources not in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
 
   - types:
       - ClusterBootstrapStatuses.omni.sidero.dev
@@ -294,13 +298,13 @@ resources:
       - SchematicConfigurations.omni.sidero.dev
     cases:
       - case: a resource in cluster-a
-        allowed: [get]
-        denied: [watch, create, update, destroy]
+        allowed: [get, watch]
+        denied: [create, update, destroy]
       - case: a resource in cluster-b
         denied: [get, watch, create, update, destroy]
       - case: a resource of a machine in cluster-a
-        allowed: [get]
-        denied: [watch, create, update, destroy]
+        allowed: [get, watch]
+        denied: [create, update, destroy]
       - case: a resource of a machine in no cluster
         denied: [get, watch, create, update, destroy]
       - case: moving a resource from cluster-a to cluster-b
@@ -404,21 +408,24 @@ resources:
       - LabelsCompletions.omni.sidero.dev
     cases:
       - case: the resource "Clusters.omni.sidero.dev"
-        denied: [get, watch, create, update, destroy]
+        denied: [get, create, update, destroy]
+        unsupported: [watch]
       - case: the resource "Identities.omni.sidero.dev"
-        denied: [get, watch, create, update, destroy]
+        denied: [get, create, update, destroy]
+        unsupported: [watch]
       - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
+        denied: [get, create, update, destroy]
+        unsupported: [watch]
       - case: all resources
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources not in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
 
   - types:
       - LinkStatuses.omni.sidero.dev
@@ -453,6 +460,7 @@ resources:
       - Links.omni.sidero.dev
       - MachineConfigExtractionStatuses.omni.sidero.dev
       - MachineConfigGenOptions.omni.sidero.dev
+      - MachineStatusLabels.omni.sidero.dev
       - MachineStatusLinks.omni.sidero.dev
       - MachineStatusSnapshots.omni.sidero.dev
       - MachineStatuses.omni.sidero.dev
@@ -488,19 +496,24 @@ resources:
       - MetalPlatformConfigs.omni.sidero.dev
     cases:
       - case: the resource "metal"
-        denied: [get, watch, create, update, destroy]
+        allowed: [get]
+        denied: [create, update, destroy]
+        unsupported: [watch]
       - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
+        denied: [create, update, destroy]
+        not-found: [get]
+        unsupported: [watch]
       - case: all resources
-        denied: [list, watch]
+        allowed: [list]
+        unsupported: [watch]
       - case: all resources in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources not in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
 
   - types:
       - Permissions.omni.sidero.dev
@@ -552,37 +565,46 @@ resources:
       - SBCConfigs.omni.sidero.dev
     cases:
       - case: the resource "rpi_generic"
-        denied: [get, watch, create, update, destroy]
+        allowed: [get]
+        denied: [create, update, destroy]
+        unsupported: [watch]
       - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
+        denied: [create, update, destroy]
+        not-found: [get]
+        unsupported: [watch]
       - case: all resources
-        denied: [list, watch]
+        allowed: [list]
+        unsupported: [watch]
       - case: all resources in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources not in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
 
   - types:
       - Supports.omni.sidero.dev
     cases:
       - case: the resource "support"
-        denied: [get, watch, create, update, destroy]
+        allowed: [get]
+        denied: [create, update, destroy]
+        unsupported: [watch]
       - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
+        denied: [create, update, destroy]
+        not-found: [get]
+        unsupported: [watch]
       - case: all resources
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
+        unsupported: [list, watch]
       - case: all resources not in cluster-a
-        denied: [list, watch]
+        unsupported: [list, watch]
 
   - types:
       - VersionContracts.omni.sidero.dev

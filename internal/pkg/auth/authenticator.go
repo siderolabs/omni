@@ -20,6 +20,8 @@ type Authenticator struct {
 	Identity string
 	UserID   string
 	Role     role.Role
+	// Suspended is set when the instance is suspended.
+	Suspended bool
 }
 
 // AuthenticatorFunc represents a function that returns an authenticator for the given public key fingerprint.
@@ -31,6 +33,10 @@ func ContextWithAuthenticator(ctx context.Context, authenticator *Authenticator,
 	ctx = ctxstore.WithValue(ctx, IdentityContextKey{Identity: authenticator.Identity})
 	ctx = ctxstore.WithValue(ctx, RoleContextKey{Role: authenticator.Role})
 	ctx = ctxstore.WithValue(ctx, FingerprintContextKey{Fingerprint: fingerprint})
+
+	if authenticator.Suspended {
+		ctx = ctxstore.WithValue(ctx, SuspendedContextKey{})
+	}
 
 	return ctx
 }

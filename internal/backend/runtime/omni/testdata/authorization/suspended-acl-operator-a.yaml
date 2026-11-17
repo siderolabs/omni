@@ -28,6 +28,7 @@ resources:
       - IdentityLastActives.omni.sidero.dev
       - IdentityStatuses.omni.sidero.dev
       - ImageFactoryAuths.omni.sidero.dev
+      - ImportedClusterSecrets.omni.sidero.dev
       - InfraMachineBMCConfigs.omni.sidero.dev
       - JWTPublicKeys.system.sidero.dev
       - JoinTokenUsages.omni.sidero.dev
@@ -114,6 +115,8 @@ resources:
       - ClusterTaints.omni.sidero.dev
       - ClusterUUIDs.omni.sidero.dev
       - ClusterWorkloadProxyStatuses.omni.sidero.dev
+      - Clusters.omni.sidero.dev
+      - ConfigPatches.omni.sidero.dev
       - ConnectionParams.omni.sidero.dev
       - ControlPlaneStatuses.omni.sidero.dev
       - DefaultJoinTokens.omni.sidero.dev
@@ -121,8 +124,10 @@ resources:
       - EtcdBackupOverallStatuses.omni.sidero.dev
       - EtcdBackupStatuses.omni.sidero.dev
       - EtcdBackupStoreStatuses.omni.sidero.dev
+      - EtcdManualBackups.omni.sidero.dev
       - EulaAcceptances.omni.sidero.dev
       - ExposedServices.omni.sidero.dev
+      - ExtensionsConfigurations.omni.sidero.dev
       - FeaturesConfigs.omni.sidero.dev
       - GRPCTunnelConfigs.omni.sidero.dev
       - ImagePullRequests.omni.sidero.dev
@@ -136,6 +141,8 @@ resources:
       - KernelArgs.omni.sidero.dev
       - KernelArgsStatuses.omni.sidero.dev
       - KubernetesHealthCheckStatuses.omni.sidero.dev
+      - KubernetesHealthChecks.omni.sidero.dev
+      - KubernetesManifestGroups.omni.sidero.dev
       - KubernetesNodeAuditResults.omni.sidero.dev
       - KubernetesStatuses.omni.sidero.dev
       - KubernetesUpgradeManifestStatuses.omni.sidero.dev
@@ -157,7 +164,9 @@ resources:
       - MachinePendingUpdates.omni.sidero.dev
       - MachineRequestSets.omni.sidero.dev
       - MachineSetDestroyStatuses.omni.sidero.dev
+      - MachineSetNodes.omni.sidero.dev
       - MachineSetStatuses.omni.sidero.dev
+      - MachineSets.omni.sidero.dev
       - MachineStatusLabels.omni.sidero.dev
       - MachineStatusLinks.omni.sidero.dev
       - MachineStatusMetrics.omni.sidero.dev
@@ -167,12 +176,15 @@ resources:
       - Machines.omni.sidero.dev
       - MaintenanceConfigStatuses.omni.sidero.dev
       - Namespaces.meta.cosi.dev
+      - NodeForceDestroyRequests.omni.sidero.dev
       - NodeUniqueTokenStatuses.omni.sidero.dev
       - Notifications.omni.sidero.dev
       - OngoingTasks.omni.sidero.dev
       - PendingMachines.omni.sidero.dev
       - RedactedClusterMachineConfigs.omni.sidero.dev
       - ResourceDefinitions.meta.cosi.dev
+      - RotateKubernetesCAs.omni.sidero.dev
+      - RotateTalosCAs.omni.sidero.dev
       - SchematicConfigurations.omni.sidero.dev
       - SiderolinkAPIConfigs.omni.sidero.dev
       - SysVersions.system.sidero.dev
@@ -280,39 +292,6 @@ resources:
         unsupported: [list, watch]
 
   - types:
-      - Clusters.omni.sidero.dev
-      - EtcdManualBackups.omni.sidero.dev
-      - RotateKubernetesCAs.omni.sidero.dev
-      - RotateTalosCAs.omni.sidero.dev
-    cases:
-      - case: a resource in cluster-a
-        allowed: [get, watch, create, update, destroy]
-      - case: a resource in cluster-b
-        allowed: [get, watch]
-        denied: [create, update, destroy]
-      - case: a resource of a machine in cluster-a
-        allowed: [get, watch, create, update, destroy]
-      - case: a resource of a machine in no cluster
-        allowed: [get, watch]
-        denied: [create, update, destroy]
-      - case: moving a resource from cluster-a to cluster-b
-        allowed: [move]
-      - case: a resource which does not exist
-        allowed: [watch]
-        denied: [create, update, destroy]
-        not-found: [get]
-      - case: all resources
-        allowed: [list, watch]
-      - case: all resources in cluster-a
-        allowed: [list, watch]
-      - case: all resources in cluster-b
-        allowed: [list, watch]
-      - case: all resources in cluster-a or cluster-b
-        allowed: [list, watch]
-      - case: all resources not in cluster-a
-        allowed: [list, watch]
-
-  - types:
       - ConfigPatchRequests.omni.sidero.dev
       - InfraMachineRegistrations.omni.sidero.dev
       - InfraMachineStatuses.omni.sidero.dev
@@ -339,42 +318,6 @@ resources:
         allowed: [watch]
         denied: [create]
         not-found: [get, update, destroy]
-      - case: all resources
-        allowed: [list, watch]
-      - case: all resources in cluster-a
-        allowed: [list, watch]
-      - case: all resources in cluster-b
-        allowed: [list, watch]
-      - case: all resources in cluster-a or cluster-b
-        allowed: [list, watch]
-      - case: all resources not in cluster-a
-        allowed: [list, watch]
-
-  - types:
-      - ConfigPatches.omni.sidero.dev
-      - ExtensionsConfigurations.omni.sidero.dev
-      - KubernetesHealthChecks.omni.sidero.dev
-      - KubernetesManifestGroups.omni.sidero.dev
-      - MachineSetNodes.omni.sidero.dev
-      - MachineSets.omni.sidero.dev
-      - NodeForceDestroyRequests.omni.sidero.dev
-    cases:
-      - case: a resource in cluster-a
-        allowed: [get, watch, create, update, destroy]
-      - case: a resource in cluster-b
-        allowed: [get, watch]
-        denied: [create, update, destroy]
-      - case: a resource of a machine in cluster-a
-        allowed: [get, watch, create, update, destroy]
-      - case: a resource of a machine in no cluster
-        allowed: [get, watch]
-        denied: [create, update, destroy]
-      - case: moving a resource from cluster-a to cluster-b
-        denied: [move]
-      - case: a resource which does not exist
-        allowed: [watch]
-        denied: [create, update, destroy]
-        not-found: [get]
       - case: all resources
         allowed: [list, watch]
       - case: all resources in cluster-a
@@ -431,34 +374,6 @@ resources:
       - case: all resources not in cluster-a
         unsupported: [watch]
         error: [list]
-
-  - types:
-      - ImportedClusterSecrets.omni.sidero.dev
-    cases:
-      - case: a resource in cluster-a
-        allowed: [create, destroy]
-        denied: [get, watch, update]
-      - case: a resource in cluster-b
-        denied: [get, watch, create, update, destroy]
-      - case: a resource of a machine in cluster-a
-        allowed: [create, destroy]
-        denied: [get, watch, update]
-      - case: a resource of a machine in no cluster
-        denied: [get, watch, create, update, destroy]
-      - case: moving a resource from cluster-a to cluster-b
-        denied: [move]
-      - case: a resource which does not exist
-        denied: [get, watch, create, update, destroy]
-      - case: all resources
-        denied: [list, watch]
-      - case: all resources in cluster-a
-        denied: [list, watch]
-      - case: all resources in cluster-b
-        denied: [list, watch]
-      - case: all resources in cluster-a or cluster-b
-        denied: [list, watch]
-      - case: all resources not in cluster-a
-        denied: [list, watch]
 
   - types:
       - KubernetesUsages.omni.sidero.dev

@@ -22,68 +22,13 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
-
-var allVerbs = []state.Verb{
-	state.Get,
-	state.List,
-	state.Watch,
-	state.Create,
-	state.Update,
-	state.Destroy,
-}
-
-// TestUserManagedResourceTypesAllowAllOperations verifies that every type in
-// common.UserManagedResourceTypes is permitted for every CRUD verb by filterAccessByType.
-//
-// This is the structural invariant of the "user-managed" list: a type belongs in there only if
-// users can perform all operations on it via the state API.
-func TestUserManagedResourceTypesAllowAllOperations(t *testing.T) {
-	t.Parallel()
-
-	for _, rt := range common.UserManagedResourceTypes {
-		for _, verb := range allVerbs {
-			err := omni.FilterAccessByType(state.Access{ResourceType: rt, Verb: verb})
-
-			assert.NoError(t, err, "user-managed type %q should allow verb %v", rt, verb)
-		}
-	}
-}
-
-// TestFilterAccessByTypeAllRegisteredResources exercises filterAccessByType against every
-// resource type registered in registry.Resources with every CRUD verb.
-//
-// It guards against panics or unexpected error codes and ensures the access filter has a
-// deterministic answer (allow or PermissionDenied) for every known resource type.
-func TestFilterAccessByTypeAllRegisteredResources(t *testing.T) {
-	t.Parallel()
-
-	for _, rd := range registry.Resources {
-		rds := rd.ResourceDefinition()
-
-		for _, verb := range allVerbs {
-			err := omni.FilterAccessByType(state.Access{
-				ResourceNamespace: rds.DefaultNamespace,
-				ResourceType:      rds.Type,
-				Verb:              verb,
-			})
-			if err == nil {
-				continue
-			}
-
-			assert.Equal(t, codes.PermissionDenied, status.Code(err),
-				"type %q with verb %v returned unexpected error code: %v", rds.Type, verb, err)
-		}
-	}
-}
 
 // TestCheckForKindAccessClusterTerms covers the cluster a label query is authorized against.
 //
@@ -235,4 +180,22 @@ func TestInfraProviderTypesOutsideTheirNamespaces(t *testing.T) {
 			assert.Equal(t, codes.PermissionDenied, status.Code(err), "role %s, type %s", r, res.Metadata().Type())
 		}
 	}
+}
+
+// TestInfraProviderSpecificNamespace checks that the resources in the namespace of an infra provider, which have types of its own,
+// are left to the infra provider state.
+func TestInfraProviderSpecificNamespace(t *testing.T) {
+	t.Parallel()
+
+	innerSt := state.WrapCore(inmem.NewState())
+	st := state.WrapCore(validated.NewState(innerSt, omni.AuthorizationValidationOptions(innerSt)...))
+
+	ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.InfraProvider})
+
+	res := typed.NewResource[infra.ProviderSpec, infra.ProviderExtension](
+		resource.NewMetadata(resources.InfraProviderSpecificNamespacePrefix+"qemu-1", "TestRess.qemu-1.infraprovider.sidero.dev", "test", resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.InfraProviderSpec{}),
+	)
+
+	require.NoError(t, st.Create(ctx, res))
 }

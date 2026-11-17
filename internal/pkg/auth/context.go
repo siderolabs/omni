@@ -29,6 +29,9 @@ type RoleContextKey struct{ Role role.Role }
 // IdentityContextKey is the context key for the user identity.
 type IdentityContextKey struct{ Identity string }
 
+// SuspendedContextKey is the context key which is set for the requests to a suspended instance.
+type SuspendedContextKey struct{}
+
 // FingerprintContextKey is the context key for the public key fingerprint used to sign the request.
 type FingerprintContextKey struct{ Fingerprint string }
 
