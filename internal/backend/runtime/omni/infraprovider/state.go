@@ -121,9 +121,44 @@ func (st *State) Create(ctx context.Context, resource resource.Resource, option 
 		}
 	}
 
+	if err = checkAssignedToProvider(ctx, access, resource); err != nil {
+		return err
+	}
+
 	resource.Metadata().Labels().Set(omni.LabelInfraProviderID, access.infraProviderID)
 
 	return access.targetState.Create(ctx, resource, option...)
+}
+
+// checkAssignedToProvider checks that a status which an infra provider creates is for a machine request or an infra machine
+// which Omni assigned to that infra provider.
+//
+// A machine request status has the ID of its machine request, and an infra machine status the ID of its infra machine.
+// Omni creates both of those, with the ID of the infra provider on them.
+func checkAssignedToProvider(ctx context.Context, access accessCheckResult, res resource.Resource) error {
+	var statusOf resource.Pointer
+
+	switch res.Metadata().Type() {
+	case infra.MachineRequestStatusType:
+		statusOf = infra.NewMachineRequest(res.Metadata().ID()).Metadata()
+	case infra.InfraMachineStatusType:
+		statusOf = infra.NewMachine(res.Metadata().ID()).Metadata()
+	default:
+		return nil
+	}
+
+	assigned, err := access.targetState.Get(ctx, statusOf)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if assigned != nil {
+		if providerID, ok := assigned.Metadata().Labels().Get(omni.LabelInfraProviderID); ok && providerID == access.infraProviderID {
+			return nil
+		}
+	}
+
+	return status.Errorf(codes.PermissionDenied, "%s %q is not assigned to the infra provider %q", statusOf.Type(), statusOf.ID(), access.infraProviderID)
 }
 
 // Update implements state.CoreState interface.

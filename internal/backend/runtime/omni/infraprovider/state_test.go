@@ -57,6 +57,18 @@ func TestInfraProviderAccess(t *testing.T) {
 
 	require.NoError(t, persistentState.Create(ctx, infra.NewProvider("qemu-1")))
 
+	// the machine requests and infra machines which the statuses below are for
+	for assigned, providerID := range map[resource.Resource]string{
+		infra.NewMachineRequest("test-mrs"):           infraProviderID,
+		infra.NewMachine("test-ims"):                  infraProviderID,
+		infra.NewMachineRequest("request-of-another"): "another",
+		infra.NewMachine("machine-of-another"):        "another",
+	} {
+		assigned.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+		require.NoError(t, persistentState.Create(ctx, assigned))
+	}
+
 	// MachineRequest
 
 	mr := infra.NewMachineRequest("test-mr")
@@ -88,6 +100,14 @@ func TestInfraProviderAccess(t *testing.T) {
 	})
 
 	// MachineRequestStatus
+
+	// a status can only be created for a machine request or an infra machine which is assigned to the infra provider
+	for _, res := range []resource.Resource{
+		infra.NewMachineRequestStatus("no-request"), infra.NewMachineStatus("no-machine"),
+		infra.NewMachineRequestStatus("request-of-another"), infra.NewMachineStatus("machine-of-another"),
+	} {
+		assert.Equal(t, codes.PermissionDenied, status.Code(st.Create(ctx, res)), "%s", res.Metadata())
+	}
 
 	testInfraProviderAccessOutputResource(ctx, t, st, persistentState, infra.NewMachineRequestStatus("test-mrs"), func(res *infra.MachineRequestStatus) error {
 		res.TypedSpec().Value.Id = "12345"

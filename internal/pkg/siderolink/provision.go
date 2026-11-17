@@ -475,6 +475,33 @@ func pendingMachineFields(pendingMachine *siderolinkres.PendingMachine) []zap.Fi
 	}
 }
 
+// removeMachineRequestOfAnotherProvider removes the machine request label which came from the join token, unless the machine request
+// is of the infra provider in the same token. The label binds the machine to the machine request.
+func removeMachineRequestOfAnotherProvider(ctx context.Context, st state.State, link resource.Resource) error {
+	machineRequestID, ok := link.Metadata().Labels().Get(omni.LabelMachineRequest)
+	if !ok {
+		return nil
+	}
+
+	machineRequest, err := safe.ReaderGetByID[*infra.MachineRequest](ctx, st, machineRequestID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if machineRequest != nil {
+		requestProviderID, _ := machineRequest.Metadata().Labels().Get(omni.LabelInfraProviderID)
+		linkProviderID, _ := link.Metadata().Labels().Get(omni.LabelInfraProviderID)
+
+		if requestProviderID != "" && requestProviderID == linkProviderID {
+			return nil
+		}
+	}
+
+	link.Metadata().Labels().Delete(omni.LabelMachineRequest)
+
+	return nil
+}
+
 func establishLink[T res](ctx context.Context, h *ProvisionHandler, logger *zap.Logger, provisionContext *provisionContext,
 	annotationsToAdd []string, annotationsToRemove []string,
 ) (*pb.ProvisionResponse, error) {
@@ -482,6 +509,10 @@ func establishLink[T res](ctx context.Context, h *ProvisionHandler, logger *zap.
 
 	link, err := newLink[T](provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = removeMachineRequestOfAnotherProvider(ctx, st, link); err != nil {
 		return nil, err
 	}
 

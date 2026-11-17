@@ -7,7 +7,6 @@ package omni
 
 import (
 	"context"
-	"errors"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
@@ -52,8 +52,20 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 					return err
 				}
 
-				if machineRequestStatus.TypedSpec().Value.Id == "" {
-					return errors.New("failed to create config patch from the request: machine request status doesn't have machine UUID")
+				if !sameInfraProvider(request, machineRequestStatus) {
+					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("machine request %q is not of the infra provider of the patch request", machineRequestID)
+				}
+
+				// the UUID in the status is reported by the infra provider, it counts only when that machine is bound to the machine request
+				machineID := machineRequestStatus.TypedSpec().Value.Id
+
+				machineIDs, err := machinesOfRequest(ctx, r.List, machineRequestID)
+				if err != nil {
+					return err
+				}
+
+				if !slices.Contains(machineIDs, machineID) {
+					return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("the machine reported for the machine request %q is not bound to it", machineRequestID)
 				}
 
 				patch.TypedSpec().Value = request.TypedSpec().Value
@@ -61,25 +73,40 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 				helpers.CopyAllLabels(request, patch)
 
 				patch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
-				patch.Metadata().Labels().Set(omni.LabelMachine, machineRequestStatus.TypedSpec().Value.Id)
+				patch.Metadata().Labels().Set(omni.LabelMachine, machineID)
 
 				return nil
 			},
 		},
 		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machineRequestStatus controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				patchRequests, err := safe.ReaderListAll[*infra.ConfigPatchRequest](
-					ctx, r, state.WithLabelQuery(
-						resource.LabelEqual(omni.LabelMachineRequest, machineRequestStatus.ID()),
-					),
-				)
-				if err != nil {
-					return nil, err
+				return patchRequestsOfMachineRequest(ctx, r, machineRequestStatus.ID())
+			},
+		),
+		// a link gets bound to a machine request after the patch request was created
+		qtransform.WithExtraMappedInput[*siderolink.Link](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, link controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machineRequestID, ok := link.Labels().Get(omni.LabelMachineRequest)
+				if !ok {
+					return nil, nil
 				}
 
-				return slices.Collect(patchRequests.Pointers()), nil
+				return patchRequestsOfMachineRequest(ctx, r, machineRequestID)
 			},
 		),
 		qtransform.WithOutputKind(controller.OutputShared),
 	)
+}
+
+func patchRequestsOfMachineRequest(ctx context.Context, r controller.Reader, machineRequestID resource.ID) ([]resource.Pointer, error) {
+	patchRequests, err := safe.ReaderListAll[*infra.ConfigPatchRequest](
+		ctx, r, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelMachineRequest, machineRequestID),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.Collect(patchRequests.Pointers()), nil
 }

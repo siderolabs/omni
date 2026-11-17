@@ -629,9 +629,23 @@ func (w *world) resourceResults(t *testing.T, ctx context.Context, typ resource.
 	// the create is done last, on the resource which is removed for it
 	w.reset(internalCtx, t, res, false)
 
+	// a status which an infra provider writes can only be created for the resource it is the status of, which Omni creates
+	if statusOfType, ok := infraProviderStatusOf[typ]; ok {
+		statusOf := newResource(t, statusOfType, ns, tgt)
+
+		w.reset(internalCtx, t, statusOf, true)
+		defer w.reset(internalCtx, t, statusOf, false)
+	}
+
 	create := result{verb: "create", outcome: outcome(w.authorized.Create(ctx, res.DeepCopy()))}
 
 	return []result{get, watch, create, updated, destroy}
+}
+
+// infraProviderStatusOf maps the status types which an infra provider writes to the type of the resource they are the status of.
+var infraProviderStatusOf = map[resource.Type]resource.Type{
+	infra.MachineRequestStatusType: infra.MachineRequestType,
+	infra.InfraMachineStatusType:   infra.InfraMachineType,
 }
 
 // kindResults does a list and a watch of a whole type as the subject in the context.

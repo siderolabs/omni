@@ -641,6 +641,12 @@ func TestProvision(t *testing.T) {
 
 		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
+		// the machine request exists, but the token names no infra provider
+		machineRequest := infra.NewMachineRequest("hi")
+		machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, "test")
+
+		require.NoError(t, state.Create(ctx, machineRequest))
+
 		token, err := jointoken.NewWithExtraData(validToken, jointoken.Version1, map[string]string{
 			omni.LabelMachineRequest: "hi",
 		})
@@ -669,9 +675,9 @@ func TestProvision(t *testing.T) {
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 
-				requestID, ok := r.Metadata().Labels().Get(omni.LabelMachineRequest)
-				assertion.True(ok)
-				assertion.Equal("hi", requestID)
+				// a token which names no infra provider cannot bind the machine to a machine request
+				_, ok := r.Metadata().Labels().Get(omni.LabelMachineRequest)
+				assertion.False(ok)
 			},
 		)
 
@@ -698,41 +704,67 @@ func TestProvision(t *testing.T) {
 			providerUniqueToken = cfg.TypedSpec().Value.JoinToken
 		})
 
-		token, err := jointoken.NewWithExtraData(providerUniqueToken, jointoken.Version2, map[string]string{
-			omni.LabelInfraProviderID: providerID,
-		})
+		// a machine request of the provider, and one of another provider
+		for requestID, requestProviderID := range map[string]string{"own-request": providerID, "request-of-another": "another"} {
+			machineRequest := infra.NewMachineRequest(requestID)
+			machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, requestProviderID)
 
-		require.NoError(t, err)
-
-		encoded, err := token.Encode()
-		require.NoError(t, err)
-
-		uniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "so-unique").Encode()
-		require.NoError(t, err)
-
-		request := &pb.ProvisionRequest{
-			NodeUuid:        "machine-from-provider",
-			NodePublicKey:   genKey(),
-			TalosVersion:    new("v1.9.4"),
-			JoinToken:       &encoded,
-			NodeUniqueToken: new(uniqueToken),
+			require.NoError(t, state.Create(ctx, machineRequest))
 		}
 
-		_, err = provisionHandler.Provision(ctx, request)
-		require.NoError(t, err)
+		publicKeys := map[string]string{}
+
+		provision := func(machineUUID, machineRequestID string) {
+			token, err := jointoken.NewWithExtraData(providerUniqueToken, jointoken.Version2, map[string]string{
+				omni.LabelInfraProviderID: providerID,
+				omni.LabelMachineRequest:  machineRequestID,
+			})
+
+			require.NoError(t, err)
+
+			encoded, err := token.Encode()
+			require.NoError(t, err)
+
+			uniqueToken, err := jointoken.NewNodeUniqueToken("fingerprint", "so-unique-"+machineUUID).Encode()
+			require.NoError(t, err)
+
+			publicKeys[machineUUID] = genKey()
+
+			_, err = provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+				NodeUuid:        machineUUID,
+				NodePublicKey:   publicKeys[machineUUID],
+				TalosVersion:    new("v1.9.4"),
+				JoinToken:       &encoded,
+				NodeUniqueToken: new(uniqueToken),
+			})
+			require.NoError(t, err)
+		}
+
+		provision("machine-from-provider", "own-request")
+		provision("machine-with-request-of-another", "request-of-another")
 
 		rtestutils.AssertResources(
-			ctx, t, state, []string{request.NodeUuid},
+			ctx, t, state, []string{"machine-from-provider", "machine-with-request-of-another"},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
-				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
+				assertion.Equal(publicKeys[r.Metadata().ID()], r.TypedSpec().Value.NodePublicKey)
 
 				providerID, ok := r.Metadata().Labels().Get(omni.LabelInfraProviderID)
 				assertion.True(ok)
 				assertion.Equal("test", providerID)
+
+				// the machine is bound to the machine request in its token only when that request is of the same infra provider
+				requestID, bound := r.Metadata().Labels().Get(omni.LabelMachineRequest)
+				assertion.Equal(r.Metadata().ID() == "machine-from-provider", bound)
+
+				if bound {
+					assertion.Equal("own-request", requestID)
+				}
 			},
 		)
 
-		rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, request.NodePublicKey)
+		for _, publicKey := range publicKeys {
+			rtestutils.AssertNoResource[*siderolinkres.PendingMachine](ctx, t, state, publicKey)
+		}
 	})
 
 	t.Run("provider unique token invalid", func(t *testing.T) {

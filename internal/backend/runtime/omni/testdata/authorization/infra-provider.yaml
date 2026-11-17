@@ -304,8 +304,6 @@ resources:
 
   - types:
       - ConfigPatchRequests.omni.sidero.dev
-      - InfraMachineStatuses.omni.sidero.dev
-      - MachineRequestStatuses.omni.sidero.dev
     cases:
       - case: a resource of the infra provider "own"
         allowed: [get, watch, create, update, destroy]
@@ -369,6 +367,37 @@ resources:
         denied: [list, watch]
       - case: all resources not in cluster-a
         denied: [list, watch]
+
+  - types:
+      - InfraMachineStatuses.omni.sidero.dev
+      - MachineRequestStatuses.omni.sidero.dev
+    cases:
+      - case: a resource of the infra provider "own"
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of the infra provider "other"
+        allowed: [watch]
+        denied: [create]
+        not-found: [get, update, destroy]
+      - case: a resource of no infra provider
+        allowed: [watch]
+        denied: [create]
+        not-found: [get, update, destroy]
+      - case: a resource of the infra provider "own", in the default namespace
+        denied: [get, watch, create, update, destroy]
+      - case: a resource which does not exist
+        allowed: [watch]
+        denied: [create]
+        not-found: [get, update, destroy]
+      - case: all resources
+        allowed: [list, watch]
+      - case: all resources in cluster-a
+        allowed: [list, watch]
+      - case: all resources in cluster-b
+        allowed: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        allowed: [list, watch]
+      - case: all resources not in cluster-a
+        allowed: [list, watch]
 
   - types:
       - InfraProviderHealthStatuses.omni.sidero.dev

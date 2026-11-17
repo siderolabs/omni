@@ -32,14 +32,16 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 			Name: "MachineRequestStatusCleanupController",
 			Handler: cleanup.Combine(
 				customcleanup.NewHandler[*infra.MachineRequestStatus, *omni.MachineSetNode](
-					customcleanup.IDHandleFunc[*infra.MachineRequestStatus, *omni.MachineSetNode](func(req *infra.MachineRequestStatus) resource.ID {
-						return req.TypedSpec().Value.Id
-					}, true),
+					forMachinesOfRequest(func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, machineID resource.ID) error {
+						return customcleanup.IDHandleFunc[*infra.MachineRequestStatus, *omni.MachineSetNode](func(*infra.MachineRequestStatus) resource.ID {
+							return machineID
+						}, true)(ctx, r, req)
+					}),
 					customcleanup.HandlerOptions{},
 				),
 				customcleanup.NewHandler[*infra.MachineRequestStatus, *omni.ClusterMachine](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
-						_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, req.TypedSpec().Value.Id)
+					forMachinesOfRequest(func(ctx context.Context, r controller.Runtime, _ *infra.MachineRequestStatus, machineID resource.ID) error {
+						_, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineID)
 						if err != nil {
 							if state.IsNotFoundError(err) {
 								return nil
@@ -49,14 +51,14 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 						}
 
 						return xerrors.NewTaggedf[cleanup.SkipReconcileTag]("cluster machine is still present")
-					},
+					}),
 					customcleanup.HandlerOptions{
 						NoOutputs: true,
 					},
 				),
 				customcleanup.NewHandler[*infra.MachineRequestStatus, *siderolink.Link](
-					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
-						_, err := r.Teardown(ctx, siderolink.NewLink(req.TypedSpec().Value.Id, nil).Metadata(), controller.WithOwner(""))
+					forMachinesOfRequest(func(ctx context.Context, r controller.Runtime, _ *infra.MachineRequestStatus, machineID resource.ID) error {
+						_, err := r.Teardown(ctx, siderolink.NewLink(machineID, nil).Metadata(), controller.WithOwner(""))
 						if err != nil {
 							if state.IsNotFoundError(err) {
 								return nil
@@ -66,10 +68,33 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 						}
 
 						return nil
-					},
+					}),
 					customcleanup.HandlerOptions{},
 				),
 			),
 		},
 	)
+}
+
+// forMachinesOfRequest runs the cleanup step for each machine which is bound to the machine request.
+//
+// The machines are found by the machine request label on their links, and not by the UUID in the status, which is reported by the infra provider.
+func forMachinesOfRequest(
+	step func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus, machineID resource.ID) error,
+) customcleanup.HandlerFunc[*infra.MachineRequestStatus] {
+	return func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
+		// uncached: with a stale cache which misses the link, the cleanup would be skipped for good
+		machineIDs, err := machinesOfRequest(ctx, r.ListUncached, req.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		for _, machineID := range machineIDs {
+			if err = step(ctx, r, req, machineID); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
 }
