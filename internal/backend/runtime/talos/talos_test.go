@@ -25,6 +25,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/runtime/pkg/state/registry"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/redactable"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -34,6 +35,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -56,7 +58,26 @@ type fakeTalos struct {
 	mu      sync.Mutex
 }
 
-func startFakeTalos(ctx context.Context, t *testing.T) *fakeTalos {
+// fakeMachine answers Version once per entry of redacts, with the entry as the ResourceRedaction feature. Without
+// redacts, the fake node doesn't serve Version.
+type fakeMachine struct {
+	machine.UnimplementedMachineServiceServer
+
+	redacts []bool
+}
+
+func (m *fakeMachine) Version(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+	resp := &machine.VersionResponse{}
+
+	for _, redacts := range m.redacts {
+		resp.Messages = append(resp.Messages, &machine.Version{Features: &machine.FeaturesInfo{ResourceRedaction: redacts}})
+	}
+
+	return resp, nil
+}
+
+// startFakeTalos starts a fake Talos node, answering Version as fakeMachine does.
+func startFakeTalos(ctx context.Context, t *testing.T, redacts ...bool) *fakeTalos {
 	// a short path, as unix socket paths are limited to 108 bytes
 	dir, err := os.MkdirTemp("", "talos")
 	require.NoError(t, err)
@@ -107,6 +128,10 @@ func startFakeTalos(ctx context.Context, t *testing.T) *fakeTalos {
 	)
 
 	v1alpha1.RegisterStateServer(srv, server.NewState(st))
+
+	if redacts != nil {
+		machine.RegisterMachineServiceServer(srv, &fakeMachine{redacts: redacts})
+	}
 
 	errCh := make(chan error, 1)
 
@@ -368,7 +393,8 @@ func TestRuntimeSensitivity(t *testing.T) {
 	})
 }
 
-// TestRuntimeRedaction checks that reads always use enforce, and sensitive reads pass only on versions with redaction.
+// TestRuntimeRedaction checks that reads always use enforce, and sensitive reads pass only when the machine supports
+// redaction.
 func TestRuntimeRedaction(t *testing.T) {
 	t.Parallel()
 
@@ -378,22 +404,30 @@ func TestRuntimeRedaction(t *testing.T) {
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		st := testContext.State
-		fake := startFakeTalos(ctx, t)
+		fake := startFakeTalos(ctx, t, true)
+		downgraded := startFakeTalos(ctx, t, false)
+		unanswering := startFakeTalos(ctx, t)
 
 		clientFactory := talos.NewClientFactory(st, testContext.Logger)
 		talosRuntime := talos.New(clientFactory, testContext.Logger)
 
 		// maintenance mode grants Omni all the roles, so only redaction keeps secrets out
-		for id, version := range map[string]string{
-			"redacting":     "v1.15.0-beta.0",
-			"not-redacting": "v1.15.0-alpha.2",
-			"unknown":       "",
+		for id, machine := range map[string]struct {
+			address string
+			version string
+		}{
+			"redacting": {address: fake.address, version: "v1.15.0"},
+			// no version recorded
+			"unrecorded": {address: fake.address, version: ""},
+			// recorded as supporting redaction, but doesn't
+			"downgraded":  {address: downgraded.address, version: "v1.15.0"},
+			"unanswering": {address: unanswering.address, version: "v1.15.0"},
 		} {
 			machineStatus := omni.NewMachineStatus(id)
 			machineStatus.TypedSpec().Value.Cluster = "alpha"
 			machineStatus.TypedSpec().Value.Maintenance = true
-			machineStatus.TypedSpec().Value.ManagementAddress = fake.address
-			machineStatus.TypedSpec().Value.TalosVersion = version
+			machineStatus.TypedSpec().Value.ManagementAddress = machine.address
+			machineStatus.TypedSpec().Value.TalosVersion = machine.version
 			require.NoError(t, st.Create(ctx, machineStatus))
 
 			machine := omni.NewMachine(id)
@@ -416,15 +450,17 @@ func TestRuntimeRedaction(t *testing.T) {
 		require.NoError(t, list("redacting", "secrets", sensitiveType))
 		require.NoError(t, list("redacting", meta.NamespaceName, meta.ResourceDefinitionType))
 
-		// a sensitivity check and a read per list
+		// per list a type lookup and a read, plus the redaction check of the sensitive one
 		modes := fake.modesSince(requests)
-		require.Len(t, modes, 4)
+		require.Len(t, modes, 5)
 
 		for _, mode := range modes {
 			assert.Equal(t, []string{string(redactable.ModeEnforce)}, mode)
 		}
 
-		for _, machine := range []string{"not-redacting", "unknown"} {
+		require.NoError(t, list("unrecorded", "secrets", sensitiveType))
+
+		for _, machine := range []string{"downgraded", "unanswering"} {
 			err := list(machine, "secrets", sensitiveType)
 			require.Error(t, err, machine)
 			assert.Equal(t, codes.PermissionDenied, status.Code(err), "%s: %v", machine, err)

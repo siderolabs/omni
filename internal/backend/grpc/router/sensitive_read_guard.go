@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/client"
 	"github.com/siderolabs/grpc-proxy/proxy"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"
@@ -33,26 +34,27 @@ type readRequest interface {
 	GetType() string
 }
 
-type sensitiveReadsKey struct{}
+type redactionRequestedKey struct{}
 
-// withSensitiveReads lets the sensitive reads of a request through the guard, as its nodes redact them.
-func withSensitiveReads(ctx context.Context) context.Context {
-	return context.WithValue(ctx, sensitiveReadsKey{}, true)
+// withRedactionRequested records that the request asked for redaction.
+func withRedactionRequested(ctx context.Context) context.Context {
+	return context.WithValue(ctx, redactionRequestedKey{}, true)
 }
 
-func sensitiveReadsAllowed(ctx context.Context) bool {
-	allowed, ok := ctx.Value(sensitiveReadsKey{}).(bool)
+// redactionRequested reports whether withRedactionRequested recorded the request.
+func redactionRequested(ctx context.Context) bool {
+	requested, ok := ctx.Value(redactionRequestedKey{}).(bool)
 
-	return ok && allowed
+	return ok && requested
 }
 
 // sensitiveReadGuard returns a client interceptor for the connections to the Talos nodes, which denies the COSI
-// resource reads of sensitive types, unless the request is marked with withSensitiveReads.
+// resource reads of sensitive types, unless the request asked for redaction and its node supports it.
 //
 // Talos denies them itself for the roles Omni forwards, but not on its maintenance API, which grants every SideroLink
 // peer, Omni included, all the roles: the reads would run as os:admin there. The guard decodes the resource type out of
-// the request the proxy forwards and refuses the sensitive types on every node, as talos.CheckSensitivity does for the
-// resource API, so that the denial never depends on the node.
+// the request the proxy forwards and refuses the sensitive types, as talos.CheckSensitivity does for the resource API,
+// unless the node reports it supports redaction.
 func sensitiveReadGuard() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		var request readRequest
@@ -137,9 +139,16 @@ func (s *guardedStream) check(m any) error {
 		return status.Errorf(codes.InvalidArgument, "failed to decode the request: %v", err)
 	}
 
-	node := state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(protoCodecConn{s.cc})))
+	conn := protoCodecConn{s.cc}
+	node := state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(conn)))
 
-	return talos.CheckSensitivity(s.Context(), node, s.request.GetType(), sensitiveReadsAllowed(s.Context()))
+	var machineClient machine.MachineServiceClient
+
+	if redactionRequested(s.Context()) {
+		machineClient = machine.NewMachineServiceClient(conn)
+	}
+
+	return talos.CheckSensitivity(s.Context(), node, machineClient, s.request.GetType())
 }
 
 // protoCodecConn makes typed calls over a connection which forwards raw messages by default.

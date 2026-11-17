@@ -14,6 +14,7 @@ import (
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -267,20 +268,6 @@ func (r *Runtime) authorize(ctx context.Context, clusterID, machineID string) (c
 	return ctx, clusterID, nil
 }
 
-// redacts reports whether reads of the machine are redacted. Cluster reads may hit any node, so they never are.
-func (r *Runtime) redacts(ctx context.Context, machineID string) (bool, error) {
-	if machineID == "" {
-		return false, nil
-	}
-
-	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, r.clientFactory.omniState, omni.NewMachineStatus(machineID).Metadata())
-	if err != nil {
-		return false, err
-	}
-
-	return SupportsRedaction(machineStatus.TypedSpec().Value.TalosVersion), nil
-}
-
 func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourceType string) (state.State, func(), error) {
 	ctx, clusterID, err := r.authorize(ctx, clusterID, machineID)
 	if err != nil {
@@ -306,15 +293,15 @@ func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourc
 		return nil, nil, status.Errorf(codes.Unavailable, "machine %q changed its cluster", machineID)
 	}
 
-	redaction, err := r.redacts(ctx, machineID)
-	if err != nil {
-		c.Close() //nolint:errcheck
+	// a cluster read may be served by another node than the one answering the check
+	var machineClient machineapi.MachineServiceClient
 
-		return nil, nil, err
+	if machineID != "" {
+		machineClient = c.MachineService()
 	}
 
 	// Get, list and watch already added WithRedaction to ctx
-	if err = CheckSensitivity(ctx, c.State(), resourceType, redaction); err != nil {
+	if err = CheckSensitivity(ctx, c.State(), machineClient, resourceType); err != nil {
 		c.Close() //nolint:errcheck
 
 		return nil, nil, err

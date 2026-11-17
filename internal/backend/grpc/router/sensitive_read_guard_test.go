@@ -25,6 +25,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/grpc-proxy/proxy"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/redactable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,6 +35,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
@@ -61,9 +63,27 @@ func (n *fakeNode) lastMode() string {
 	return n.modes[len(n.modes)-1]
 }
 
+// fakeMachine answers Version once per entry of redacts, with the entry as the ResourceRedaction feature. Without
+// redacts, the fake node doesn't serve Version.
+type fakeMachine struct {
+	machine.UnimplementedMachineServiceServer
+
+	redacts []bool
+}
+
+func (m *fakeMachine) Version(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+	resp := &machine.VersionResponse{}
+
+	for _, redacts := range m.redacts {
+		resp.Messages = append(resp.Messages, &machine.Version{Features: &machine.FeaturesInfo{ResourceRedaction: redacts}})
+	}
+
+	return resp, nil
+}
+
 // startFakeNode serves the COSI resource API of a node, with a sensitive resource type registered, without any
 // access control: as a node in maintenance mode does for a SideroLink peer, and as a node must not be relied on for.
-func startFakeNode(ctx context.Context, t *testing.T) *fakeNode {
+func startFakeNode(ctx context.Context, t *testing.T, redacts ...bool) *fakeNode {
 	t.Helper()
 
 	st := state.WrapCore(inmem.NewState())
@@ -95,6 +115,10 @@ func startFakeNode(ctx context.Context, t *testing.T) *fakeNode {
 	srv := grpc.NewServer(grpc.StreamInterceptor(record))
 	v1alpha1.RegisterStateServer(srv, server.NewState(st))
 
+	if redacts != nil {
+		machine.RegisterMachineServiceServer(srv, &fakeMachine{redacts: redacts})
+	}
+
 	errCh := make(chan error, 1)
 
 	go func() { errCh <- srv.Serve(lis) }()
@@ -112,17 +136,12 @@ func startFakeNode(ctx context.Context, t *testing.T) *fakeNode {
 	return node
 }
 
-// versionResolver resolves nodes to the Talos version in nodeVersions, or talosVersion by default.
+// versionResolver resolves every node to a machine recorded as running talosVersion.
 type versionResolver struct {
-	nodeVersions map[string]string
 	talosVersion string
 }
 
-func (r versionResolver) Resolve(_, node string) (dns.Info, error) {
-	if version, ok := r.nodeVersions[node]; ok {
-		return dns.Info{TalosVersion: version}, nil
-	}
-
+func (r versionResolver) Resolve(_, _ string) (dns.Info, error) {
 	return dns.Info{TalosVersion: r.talosVersion}, nil
 }
 
@@ -183,7 +202,7 @@ func TestSensitiveReadGuard(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// a node with redaction support, and a client that didn't ask for it
-	fake := startFakeNode(ctx, t)
+	fake := startFakeNode(ctx, t, true)
 	node := startGuardedProxy(ctx, t, fake.address, versionResolver{talosVersion: "v1.15.0"})
 	ctx = metadata.AppendToOutgoingContext(ctx, "node", "node-1")
 
@@ -243,55 +262,66 @@ func TestSensitiveReadGuardRedaction(t *testing.T) {
 
 	sensitive := resource.NewMetadata("secrets", sensitiveType, "", resource.VersionUndefined)
 
+	// talosVersion is what Omni recorded, redacts what the nodes answer
 	for _, tc := range []struct {
 		name         string
 		talosVersion string
-		forwarded    string
+		header       string
+		nodes        string
 		mode         redactable.Mode
+		redacts      []bool
 		code         codes.Code
 	}{
-		{name: "accept on a node which redacts", talosVersion: "v1.15.0-beta.0", mode: redactable.ModeAccept, code: codes.OK, forwarded: "enforce"},
-		{name: "enforce on a node which redacts", talosVersion: "v1.15.0", mode: redactable.ModeEnforce, code: codes.OK, forwarded: "enforce"},
-		{name: "accept on a node which doesn't redact", talosVersion: "v1.15.0-alpha.2", mode: redactable.ModeAccept, code: codes.PermissionDenied},
-		{name: "accept on a node of an unknown version", talosVersion: "", mode: redactable.ModeAccept, code: codes.PermissionDenied},
-		{name: "no redaction asked", talosVersion: "v1.15.0", mode: redactable.ModeDisabled, code: codes.PermissionDenied},
+		{
+			name: "accept on a node which redacts", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			redacts: []bool{true}, mode: redactable.ModeAccept, code: codes.OK,
+		},
+		{
+			name: "enforce on a node which redacts", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			redacts: []bool{true}, mode: redactable.ModeEnforce, code: codes.OK,
+		},
+		{
+			name: "no redaction asked", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			redacts: []bool{true}, mode: redactable.ModeDisabled, code: codes.PermissionDenied,
+		},
+		{
+			name: "node which doesn't redact, recorded as one which does", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			redacts: []bool{false}, mode: redactable.ModeAccept, code: codes.PermissionDenied,
+		},
+		{
+			name: "recorded version is unknown", talosVersion: "", header: "node", nodes: "node-1",
+			redacts: []bool{true}, mode: redactable.ModeAccept, code: codes.OK,
+		},
+		{
+			name: "node which doesn't answer", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			redacts: []bool{}, mode: redactable.ModeAccept, code: codes.PermissionDenied,
+		},
+		{
+			name: "node without Version", talosVersion: "v1.15.0", header: "node", nodes: "node-1",
+			mode: redactable.ModeAccept, code: codes.PermissionDenied,
+		},
+		{
+			name: "several nodes", talosVersion: "v1.15.0", header: "nodes", nodes: "node-1,node-2",
+			redacts: []bool{true, true}, mode: redactable.ModeAccept, code: codes.PermissionDenied,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			fake := startFakeNode(ctx, t)
+			fake := startFakeNode(ctx, t, tc.redacts...)
 			node := startGuardedProxy(ctx, t, fake.address, versionResolver{talosVersion: tc.talosVersion})
 
-			reqCtx := redactable.WithMode(metadata.AppendToOutgoingContext(ctx, "node", "node-1"), tc.mode)
+			reqCtx := redactable.WithMode(metadata.AppendToOutgoingContext(ctx, tc.header, tc.nodes), tc.mode)
 
 			_, err := node.List(reqCtx, sensitive)
 			assert.Equal(t, tc.code, status.Code(err), "%v", err)
 
 			if tc.code == codes.OK {
-				assert.Equal(t, tc.forwarded, fake.lastMode())
+				assert.Equal(t, string(redactable.ModeEnforce), fake.lastMode())
 			}
 		})
 	}
 
-	t.Run("one of the nodes of an unknown version", func(t *testing.T) {
-		fake := startFakeNode(ctx, t)
-		node := startGuardedProxy(ctx, t, fake.address, versionResolver{
-			talosVersion: "v1.15.0",
-			nodeVersions: map[string]string{"node-2": ""},
-		})
-
-		reqCtx := redactable.WithMode(metadata.AppendToOutgoingContext(ctx, "nodes", "node-1,node-2"), redactable.ModeAccept)
-
-		_, err := node.List(reqCtx, sensitive)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err), "%v", err)
-
-		// both nodes support redaction
-		node = startGuardedProxy(ctx, t, fake.address, versionResolver{talosVersion: "v1.15.0"})
-
-		_, err = node.List(reqCtx, sensitive)
-		assert.NoError(t, err)
-	})
-
 	t.Run("invalid mode", func(t *testing.T) {
-		fake := startFakeNode(ctx, t)
+		fake := startFakeNode(ctx, t, true)
 		node := startGuardedProxy(ctx, t, fake.address, versionResolver{talosVersion: "v1.15.0"})
 
 		reqCtx := metadata.AppendToOutgoingContext(ctx, "node", "node-1", redactable.Header, "everything")

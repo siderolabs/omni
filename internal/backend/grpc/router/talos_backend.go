@@ -7,7 +7,6 @@ package router
 
 import (
 	"context"
-	"slices"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -26,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
-	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
@@ -188,7 +186,7 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	return outCtx, backend.conn, nil
 }
 
-// setRedactionHeader forwards a client's redaction request as enforce, and allows sensitive reads if every node supports it.
+// setRedactionHeader forwards a client's redaction request as enforce, and records it for the sensitive read guard.
 //
 // Clients that didn't ask for redaction stay denied, as they can't recognize redacted values.
 // Enforce, because accept serves os:admin in full, and the maintenance API grants Omni all the roles.
@@ -204,12 +202,13 @@ func (backend *TalosBackend) setRedactionHeader(ctx context.Context, md metadata
 
 	md.Set(redactable.Header, string(redactable.ModeEnforce))
 
-	// one node of an unknown or older version keeps sensitive reads denied
-	if len(nodes) == 0 || slices.ContainsFunc(nodes, func(node dns.Info) bool { return !talos.SupportsRedaction(node.TalosVersion) }) {
+	// sensitive reads only go to a single node: without one, the read may be served by another node than the one
+	// answering the check, and Talos doesn't proxy resource reads to several nodes
+	if len(nodes) != 1 {
 		return ctx, nil
 	}
 
-	return withSensitiveReads(ctx), nil
+	return withRedactionRequested(ctx), nil
 }
 
 // checkAccess decides whether the caller may reach this backend, and whether it may modify.
