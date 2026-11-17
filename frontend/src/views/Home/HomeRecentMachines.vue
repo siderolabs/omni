@@ -5,8 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import type { MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import { LabelCluster } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import Card from '@/components/Card/Card.vue'
@@ -15,10 +18,13 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import MachineStage from '@/components/Status/MachineStage.vue'
 import { getMachineName } from '@/methods/node'
 
-defineProps<{
+const { operations = [] } = defineProps<{
   machines: Resource<MachineStatusLinkSpec>[]
+  operations?: Resource<MachineOperationStatusSpec>[]
   loading: boolean
 }>()
+
+const operationsByMachine = computed(() => new Map(operations.map((o) => [o.metadata.id!, o.spec])))
 </script>
 
 <template>
@@ -65,7 +71,11 @@ defineProps<{
         </span>
       </div>
 
-      <MachineStage :machine="item" class="place-self-end" />
+      <MachineStage
+        :machine="item"
+        :operation="operationsByMachine.get(item.metadata.id!)"
+        class="place-self-end"
+      />
     </div>
   </Card>
 </template>

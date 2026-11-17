@@ -22,6 +22,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -193,14 +194,21 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
+	operations := machineoperation.NewReporter()
+
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController(testutils.NewImageFactoryClients(t, testContext.State), testutils.NewLifecycleManager(t, testContext.State, nil))
+		lifecycleManager := testutils.NewReportingLifecycleManager(t, testContext.State, nil, operations)
+		ctrl := machineupgrade.NewStatusController(testutils.NewImageFactoryClients(t, testContext.State), lifecycleManager)
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		const id = "test-lifecycle"
 
 		st := testContext.State
+
+		snapshot := omni.NewMachineStatusSnapshot(id)
+		snapshot.TypedSpec().Value.BootId = "boot-before-upgrade"
+		require.NoError(t, st.Create(ctx, snapshot))
 
 		machineServices := testutils.NewMachineServices(t, st)
 		machineService := machineServices.Create(ctx, id)
@@ -215,6 +223,10 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 			assertion.Equal("Talos upgrade initiated", res.TypedSpec().Value.Status)
 			assertion.Empty(res.TypedSpec().Value.Error)
 		})
+
+		operation := operations.Snapshot()[id]
+		assert.Equal(t, specs.MachineOperationStatusSpec_REBOOTING, operation.Stage)
+		assert.Equal(t, "boot-before-upgrade", operation.BootID)
 
 		updatedSchematicRaw, err := updatedSchematic.Marshal()
 		require.NoError(t, err)

@@ -11,7 +11,7 @@ import { computed, ref, watchEffect } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineOperationStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import {
   DefaultNamespace,
   MachineStatusLinkType,
@@ -28,8 +28,9 @@ import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 
-const { machineId } = defineProps<{
+const { machineId, operation } = defineProps<{
   machineId: string
+  operation?: MachineOperationStatusSpec
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -65,13 +66,9 @@ watchEffect(() => {
   if (open.value) selectedVersion.value = currentVersion.value ?? ''
 })
 
-const { installing, upgrading } = useDerivedMachineStage(() => machine.value?.spec.snapshot)
-
-const inProgress = computed(() => installing.value || upgrading.value)
-const inProgressMessage = computed(() =>
-  installing.value
-    ? 'A Talos install is already in progress on this machine.'
-    : 'A Talos upgrade is already in progress on this machine.',
+const { operationInProgress: inProgress } = useDerivedMachineStage(
+  () => machine.value?.spec,
+  () => operation,
 )
 
 const upgradeVersions = computed(() => talosUpgradeTargets(versionMap.value, currentVersion.value))
@@ -123,7 +120,7 @@ const upgradeClick = async () => {
     </div>
 
     <TAlert v-if="inProgress" type="warn" title="Upgrade in progress">
-      {{ inProgressMessage }}
+      A Talos install or upgrade is already in progress on this machine.
     </TAlert>
 
     <TrustedRootsVersionWarning

@@ -6,7 +6,10 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import { MachineStatusSnapshotSpecPowerStage } from '@/api/omni/specs/omni.pb'
+import {
+  MachineOperationStatusSpecStage,
+  MachineStatusSnapshotSpecPowerStage,
+} from '@/api/omni/specs/omni.pb'
 import {
   MachineStatusLabelConnected,
   MachineStatusLinkType,
@@ -78,6 +81,13 @@ export const Upgrading: Story = {
 export const Rebooting: Story = {
   args: {
     machine: makeMachine({ stage: MachineStatusEventMachineStage.REBOOTING }),
+  },
+}
+
+export const Draining: Story = {
+  args: {
+    machine: makeMachine({ stage: MachineStatusEventMachineStage.RUNNING }),
+    operation: { stage: MachineOperationStatusSpecStage.DRAINING },
   },
 }
 

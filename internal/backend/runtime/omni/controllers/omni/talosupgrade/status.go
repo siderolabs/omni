@@ -215,7 +215,7 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 	return ctrl
 }
 
-//nolint:gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r controller.ReaderWriter,
 	clusterMachines safe.List[*omni.ClusterMachine], outdatedMachines *outdatedMachines,
 	cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus,
@@ -330,10 +330,12 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 	}
 
 	if len(outdatedMachines.upgrading) > 0 {
-		upgradeStatus.TypedSpec().Value.Step = fmt.Sprintf(
-			"current %s: %s", pluralize.NewClient().Pluralize("machine", len(outdatedMachines.upgrading), false),
-			strings.Join(outdatedMachines.upgrading, ", "),
-		)
+		step, err := currentMachinesStep(ctx, r, outdatedMachines.upgrading)
+		if err != nil {
+			return err
+		}
+
+		upgradeStatus.TypedSpec().Value.Step = step
 
 		return nil
 	}
@@ -461,6 +463,30 @@ func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context
 	}
 
 	return nil
+}
+
+// currentMachinesStep lists the upgrading machines by their node names, or by their IDs while the node name is not known yet.
+func currentMachinesStep(ctx context.Context, r controller.Reader, machineIDs []string) (string, error) {
+	names := make([]string, 0, len(machineIDs))
+
+	for _, machineID := range machineIDs {
+		clusterMachineStatus, err := safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, r, machineID)
+		if err != nil && !state.IsNotFoundError(err) {
+			return "", err
+		}
+
+		name := machineID
+
+		if clusterMachineStatus != nil {
+			if nodeName, _ := clusterMachineStatus.Metadata().Labels().Get(omni.ClusterMachineStatusLabelNodeName); nodeName != "" {
+				name = nodeName
+			}
+		}
+
+		names = append(names, name)
+	}
+
+	return fmt.Sprintf("current %s: %s", pluralize.NewClient().Pluralize("machine", len(names), false), strings.Join(names, ", ")), nil
 }
 
 func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster,

@@ -19,6 +19,8 @@ import (
 // NodeWrapper wraps cluster status resources for tree rendering.
 type NodeWrapper struct {
 	resource.Resource
+
+	Operation *omni.MachineOperationStatus
 }
 
 func (t NodeWrapper) String() string {
@@ -59,7 +61,7 @@ func (t NodeWrapper) String() string {
 		)
 	case *omni.ClusterMachineStatus:
 		return fmt.Sprintf(
-			"%s %q%s %s%s%s%s%s%s",
+			"%s %q%s %s%s%s%s%s%s%s",
 			color.YellowString("Machine"),
 			node.Metadata().ID(),
 			clusterMachineNodeNameString(node),
@@ -69,6 +71,7 @@ func (t NodeWrapper) String() string {
 			clusterMachineLockedString(node),
 			clusterMachineConfigOutdated(!node.TypedSpec().Value.ConfigUpToDate),
 			clusterMachineConfigStatus(node),
+			clusterMachineOperationString(t.Operation),
 		)
 	case *omni.ControlPlaneStatus:
 		return fmt.Sprintf(

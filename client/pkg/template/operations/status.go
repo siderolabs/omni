@@ -18,6 +18,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/xlab/treeprint"
 	"golang.org/x/term"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -70,29 +72,38 @@ func statusTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		return err
 	}
 
-	resourceTypes := []resource.Type{
-		omni.MachineSetStatusType,
-		omni.ControlPlaneStatusType,
-		omni.LoadBalancerStatusType,
-		omni.KubernetesUpgradeStatusType,
-		omni.TalosUpgradeStatusType,
-		omni.ClusterMachineStatusType,
+	resourceKinds := []resource.Metadata{
+		resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.ControlPlaneStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.LoadBalancerStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.KubernetesUpgradeStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.TalosUpgradeStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.ClusterMachineStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, omni.MachineOperationStatusType, "", resource.VersionUndefined),
 	}
 
-	for _, resourceType := range resourceTypes {
-		if err = st.WatchKind(
+	pendingBootstraps := 0
+
+	for _, resourceKind := range resourceKinds {
+		err = st.WatchKind(
 			ctx,
-			resource.NewMetadata(resources.DefaultNamespace, resourceType, "", resource.VersionUndefined),
+			resourceKind,
 			watchCh,
 			state.WithBootstrapContents(true),
 			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		); err != nil {
+		)
+
+		switch {
+		case err == nil:
+			pendingBootstraps++
+		case resourceKind.Type() == omni.MachineOperationStatusType && status.Code(err) == codes.PermissionDenied:
+			// refused by older Omni versions with the same API version, the status is shown without the operations
+		default:
 			return err
 		}
 	}
 
 	resources := map[string]resource.Resource{}
-	pendingBootstraps := len(resourceTypes)
 
 	var (
 		clusterBootstrapped, startedRendering, hasUpdates bool
@@ -182,9 +193,19 @@ func expandTree(tree treeprint.Tree, item statustree.NodeWrapper, resources map[
 	var nextLevel []statustree.NodeWrapper
 
 	for _, r := range resources {
-		if item.IsParentOf(r) {
-			nextLevel = append(nextLevel, statustree.NodeWrapper{Resource: r})
+		if !item.IsParentOf(r) {
+			continue
 		}
+
+		child := statustree.NodeWrapper{Resource: r}
+
+		if _, isMachine := r.(*omni.ClusterMachineStatus); isMachine {
+			if operation, isOperation := resources[resource.String(omni.NewMachineOperationStatus(r.Metadata().ID()))].(*omni.MachineOperationStatus); isOperation {
+				child.Operation = operation
+			}
+		}
+
+		nextLevel = append(nextLevel, child)
 	}
 
 	slices.SortFunc(nextLevel, statustree.NodeWrapper.Compare)

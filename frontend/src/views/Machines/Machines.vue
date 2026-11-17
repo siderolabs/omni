@@ -12,7 +12,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
-import type { MachineStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineOperationStatusSpec, MachineStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
 import {
   EphemeralNamespace,
   InfraProviderNamespace,
@@ -20,6 +20,7 @@ import {
   LabelInfraProviderID,
   LabelIsManagedByStaticInfraProvider,
   LabelMachineRequest,
+  MachineOperationStatusType,
   MachineStatusLinkType,
   MachineStatusMetricsID,
   MachineStatusMetricsType,
@@ -179,6 +180,18 @@ const {
 
 const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
 const openDocs = () => window.open(docsLink, '_blank')?.focus()
+
+const { data: operationStatuses } = useResourceWatch<MachineOperationStatusSpec>({
+  resource: {
+    type: MachineOperationStatusType,
+    namespace: EphemeralNamespace,
+  },
+  runtime: Runtime.Omni,
+})
+
+const operations = computed(
+  () => new Map(operationStatuses.value.map((s) => [s.metadata.id!, s.spec])),
+)
 
 const { data: machineStatusMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
@@ -364,6 +377,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
               v-for="item in items"
               :key="item.metadata.id"
               :machine="item"
+              :operation="operations.get(item.metadata.id!)"
               :search-query="searchQuery"
               :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
               :selected="selectedMachines.has(item.metadata.id ?? '')"
@@ -425,6 +439,7 @@ watch(currentPage, () => (sidePanelOpen.value = false))
       v-if="maintenaceUpdateModalMachine"
       v-model:open="maintenaceUpdateModalOpen"
       :machine-id="maintenaceUpdateModalMachine"
+      :operation="operations.get(maintenaceUpdateModalMachine)"
     />
 
     <MaintenanceUpgradeModal

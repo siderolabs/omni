@@ -5,13 +5,18 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { Resource } from '@/api/grpc'
-import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterMachineStatusSpec, MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelConnected } from '@/api/resources'
 import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
 import StatusPill from '@/components/Status/StatusPill.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { clusterMachineShowsOperation, machineOperationStageName } from '@/methods/machineOperation'
+
+import ClusterMachineOperationDescription from './ClusterMachineOperationDescription.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   if (
@@ -85,26 +90,62 @@ const stageStatus = (machine: Resource<ClusterMachineStatusSpec>): StatusAppeara
   }
 }
 
-type Props = {
-  machine: Resource<ClusterMachineStatusSpec>
+type Phase = {
+  name: string
+  appearance: StatusAppearance
+  unreachable?: boolean
+  operation?: MachineOperationStatusSpec
 }
 
-defineProps<Props>()
+const { machine, operation } = defineProps<{
+  machine: Resource<ClusterMachineStatusSpec>
+  operation?: MachineOperationStatusSpec
+}>()
+
+const phase = computed((): Phase => {
+  const operationName = clusterMachineShowsOperation(machine.spec.stage)
+    ? machineOperationStageName(operation)
+    : ''
+
+  if (!connected(machine)) {
+    return {
+      name: operationName || stageName(machine),
+      appearance: stageStatus(machine),
+      unreachable: true,
+    }
+  }
+
+  if (operationName) {
+    return {
+      name: operationName,
+      appearance: { tone: 'warning', glyph: 'progress' },
+      operation,
+    }
+  }
+
+  return { name: stageName(machine), appearance: stageStatus(machine) }
+})
 </script>
 
 <template>
   <div>
-    <Tooltip
-      placement="bottom"
-      :description="
-        connected(machine) ? undefined : 'The machine is unreachable. The last known state is shown'
-      "
-    >
-      <StatusPill v-bind="stageStatus(machine)">
+    <Tooltip placement="bottom">
+      <StatusPill v-bind="phase.appearance">
         <span data-testid="cluster-machine-stage-name" class="truncate">
-          {{ stageName(machine) || '' }}
+          {{ phase.name }}
         </span>
       </StatusPill>
+
+      <template v-if="phase.unreachable || phase.operation" #description>
+        <p v-if="phase.unreachable" class="whitespace-pre">
+          The machine is unreachable. The last known state is shown
+        </p>
+
+        <ClusterMachineOperationDescription
+          v-else-if="phase.operation"
+          :operation="phase.operation"
+        />
+      </template>
     </Tooltip>
   </div>
 </template>

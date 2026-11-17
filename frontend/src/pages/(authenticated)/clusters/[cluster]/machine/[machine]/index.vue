@@ -14,10 +14,13 @@ import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterMachineStatusSpec, MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ConfigApplyStatus } from '@/api/omni/specs/omni.pb'
 import {
+  EphemeralNamespace,
   kubernetes,
+  LabelCluster,
+  MachineOperationStatusType,
   MachineStatusLinkType,
   MetricsNamespace,
   TalosAddressRoutedNoK8s,
@@ -34,14 +37,17 @@ import type { NodenameSpec } from '@/api/talos/k8s.pb'
 import type { NodeAddressSpec } from '@/api/talos/network.pb'
 import type { MachineStatusSpec } from '@/api/talos/runtime.pb'
 import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { clusterMachineShowsOperation, machineOperationProgress } from '@/methods/machineOperation'
 import { formatFullDateTime } from '@/methods/time'
 import { useTitle } from '@/methods/title'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
@@ -129,6 +135,25 @@ const { data: machineStatus } = useResourceWatch<MachineStatusLinkSpec>(() => ({
     namespace: MetricsNamespace,
   },
 }))
+
+const { data: operationStatuses } = useResourceWatch<MachineOperationStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    type: MachineOperationStatusType,
+    namespace: EphemeralNamespace,
+  },
+  selectors: [`${LabelCluster}=${route.params.cluster}`],
+}))
+
+const operation = computed(
+  () => operationStatuses.value.find((s) => s.metadata.id === route.params.machine)?.spec,
+)
+
+const progress = computed(() =>
+  clusterMachineShowsOperation(clusterMachine.spec.stage)
+    ? machineOperationProgress(operation.value)
+    : '',
+)
 
 const supportsEvents = computed(
   () =>
@@ -286,7 +311,23 @@ useTitle('Overview')
         <h4 class="overview-data-heading">Machine Status</h4>
         <div class="overview-data-row">
           <p class="overview-data-name">Stage</p>
-          <ClusterMachinePhase :machine="clusterMachine" class="text-xs" />
+          <ClusterMachinePhase :machine="clusterMachine" :operation class="text-xs" />
+        </div>
+        <div v-if="progress" class="overview-data-row overview-data-row-top">
+          <p class="overview-data-name">Progress</p>
+          <Tooltip placement="bottom-end" :offset-skid="0">
+            <p
+              class="line-clamp-2 min-h-[2lh] min-w-0 flex-1 font-mono text-xs wrap-anywhere text-content-default"
+              data-testid="cluster-machine-progress"
+            >
+              {{ progress }}
+            </p>
+
+            <template #description>
+              <p class="max-w-md font-mono wrap-anywhere">{{ progress }}</p>
+            </template>
+          </Tooltip>
+          <CopyButton :text="progress" />
         </div>
         <div v-if="talosMachineStatus" class="overview-data-row">
           <p class="overview-data-name">Unmet Conditions</p>
@@ -426,6 +467,9 @@ useTitle('Overview')
   @apply flex w-full items-center justify-between gap-tight;
   padding: 14px 16px 10px 16px;
 }
+.overview-data-row-top {
+  @apply items-start;
+}
 .overview-data-row:last-of-type {
   padding-bottom: 12px;
 }
@@ -433,7 +477,7 @@ useTitle('Overview')
   @apply text-xs text-content-secondary;
 }
 .overview-data {
-  @apply text-xs text-content-default;
+  @apply text-right text-xs text-content-default;
 }
 .overview-data-roles {
   @apply flex;

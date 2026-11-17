@@ -328,6 +328,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			listOptions: clusterQuery,
 		},
 		{
+			rt:          omni.MachineOperationStatusType,
+			listOptions: clusterQuery,
+		},
+		{
 			rt:          omni.RedactedClusterMachineConfigType,
 			listOptions: clusterQuery,
 		},

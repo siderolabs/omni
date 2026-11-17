@@ -14,6 +14,7 @@ import type { Resource } from '@/api/grpc'
 import type {
   ClusterMachineRequestStatusSpec,
   ClusterMachineStatusSpec,
+  MachineOperationStatusSpec,
   MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { MachineSetSpecMachineAllocationType } from '@/api/omni/specs/omni.pb'
@@ -21,10 +22,12 @@ import {
   ClusterMachineRequestStatusType,
   ClusterMachineStatusType,
   DefaultNamespace,
+  EphemeralNamespace,
   LabelCluster,
   LabelControlPlaneRole,
   LabelMachineRequestInUse,
   LabelMachineSet,
+  MachineOperationStatusType,
   MachineSetStatusType,
 } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
@@ -84,6 +87,20 @@ const { data: machines } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
   selectors: [`${LabelCluster}=${clusterID.value}`, `${LabelMachineSet}=${machineSetId}`],
   limit: showMachinesCount.value,
 }))
+
+const { data: operationStatuses } = useResourceWatch<MachineOperationStatusSpec>(() => ({
+  skip: !clusterID.value,
+  resource: {
+    namespace: EphemeralNamespace,
+    type: MachineOperationStatusType,
+  },
+  runtime: Runtime.Omni,
+  selectors: [`${LabelCluster}=${clusterID.value}`, `${LabelMachineSet}=${machineSetId}`],
+}))
+
+const operations = computed(
+  () => new Map(operationStatuses.value.map((s) => [s.metadata.id!, s.spec])),
+)
 
 const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() => ({
   skip: !clusterID.value || !isMachineSetScalable(machineSet.value),
@@ -245,6 +262,7 @@ function isMachineSetScalable(
         class="border-t border-border-default last-of-type:rounded-b-md"
         :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
         :machine="machine"
+        :operation="operations.get(machine.metadata.id!)"
         :remove-disabled="!canRemoveMachine"
       />
 

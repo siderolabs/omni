@@ -648,6 +648,7 @@ func TestStatusController(t *testing.T) {
 				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, testoptions.SameID(upgradingWorker),
 					testoptions.Modify(func(res *omni.ClusterMachineStatus) error {
 						helpers.CopyAllLabels(upgradingWorker, res)
+						res.Metadata().Labels().Set(omni.ClusterMachineStatusLabelNodeName, "upgrading-worker")
 
 						res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_REBOOTING
 
@@ -660,6 +661,11 @@ func TestStatusController(t *testing.T) {
 					})
 
 				require.NoError(t, st.AddFinalizer(ctx, upgradingWorker.Metadata(), machineconfig.UpgradeFinalizer))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+						assertions.Equal("current machine: upgrading-worker", res.TypedSpec().Value.Step)
+					})
 
 				t.Cleanup(func() {
 					require.NoError(t, st.RemoveFinalizer(context.WithoutCancel(ctx), upgradingWorker.Metadata(), machineconfig.UpgradeFinalizer))

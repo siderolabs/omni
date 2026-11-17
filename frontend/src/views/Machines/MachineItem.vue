@@ -13,6 +13,7 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import type { MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   LabelCluster,
   MachineStatusLabelConnected,
@@ -36,10 +37,12 @@ import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
 const {
   machine,
+  operation,
   showUUID,
   searchQuery = '',
 } = defineProps<{
   machine: Resource<MachineStatusLinkSpec>
+  operation?: MachineOperationStatusSpec
   panelOpen?: boolean
   showUUID?: boolean
   searchQuery?: string
@@ -71,7 +74,10 @@ const machineName = computed(() => {
 
 const clusterName = computed(() => machine.spec.message_status?.cluster)
 
-const { installing, upgrading } = useDerivedMachineStage(() => machine.spec.snapshot)
+const { operationInProgress } = useDerivedMachineStage(
+  () => machine.spec,
+  () => operation,
+)
 
 const connectionLabel = computed(() => {
   const labels = machine.metadata.labels ?? {}
@@ -88,7 +94,7 @@ const canDoMaintenanceUpdate = computed(() => {
     return false
   }
 
-  if (installing.value || upgrading.value) {
+  if (operationInProgress.value) {
     return false
   }
 
@@ -106,12 +112,8 @@ const maintenanceUpdateDescription = computed(() => {
     return 'Maintenance upgrade is not possible: machine is a part of a cluster'
   }
 
-  if (installing.value) {
-    return 'Maintenance upgrade is not possible: a Talos install is already in progress on this machine'
-  }
-
-  if (upgrading.value) {
-    return 'Maintenance upgrade is not possible: a Talos upgrade is already in progress on this machine'
+  if (operationInProgress.value) {
+    return 'Maintenance upgrade is not possible: a Talos install or upgrade is already in progress on this machine'
   }
 
   if (machine.spec.message_status?.schematic?.in_agent_mode) {
@@ -179,7 +181,7 @@ const canUseLifecycleUpgrade = computed(() => {
           <CopyButton :text="machineName" class="shrink-0" />
         </Tooltip>
 
-        <MachineStage :machine />
+        <MachineStage :machine :operation />
 
         <Tooltip
           v-if="machine.spec.maintenance_config_error"
@@ -251,7 +253,7 @@ const canUseLifecycleUpgrade = computed(() => {
             <TActionsBoxItem
               v-if="canShowMaintenanceInstall"
               icon="upgrade"
-              :disabled="installing || upgrading"
+              :disabled="operationInProgress"
               @select="$emit('openMaintenanceInstall', machine.metadata.id!)"
             >
               Install Talos

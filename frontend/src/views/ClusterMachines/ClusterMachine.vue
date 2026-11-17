@@ -9,7 +9,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
-import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterMachineStatusSpec, MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   LabelCluster,
@@ -30,6 +30,7 @@ import ClusterMachinePhase from './ClusterMachinePhase.vue'
 
 const { machine } = defineProps<{
   machine: Resource<ClusterMachineStatusSpec>
+  operation?: MachineOperationStatusSpec
   removeDisabled?: boolean
   hasDiagnosticInfo?: boolean
 }>()
@@ -105,7 +106,7 @@ const updateLock = async () => {
     </div>
 
     <div class="col-span-2 flex items-center gap-tight">
-      <ClusterMachinePhase :machine="machine" />
+      <ClusterMachinePhase :machine="machine" :operation="operation" />
       <RouterLink
         v-if="lockedUpdate"
         :to="{

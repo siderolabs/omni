@@ -7,10 +7,12 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterStatusSpec, MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterStatusType,
   DefaultNamespace,
+  EphemeralNamespace,
+  MachineOperationStatusType,
   MachineStatusLinkType,
   MetricsNamespace,
 } from '@/api/resources'
@@ -51,6 +53,15 @@ const { data: machines, loading: machinesLoading } = useResourceWatch<MachineSta
   }),
 )
 
+const { data: operationStatuses } = useResourceWatch<MachineOperationStatusSpec>(() => ({
+  skip: !canReadMachines.value,
+  resource: {
+    namespace: EphemeralNamespace,
+    type: MachineOperationStatusType,
+  },
+  runtime: Runtime.Omni,
+}))
+
 // Disabled entirely until we decide where to get the information from
 const showReleaseNotes = false
 </script>
@@ -86,7 +97,12 @@ const showReleaseNotes = false
 
           <div class="flex flex-col gap-tight">
             <HomeRecentClusters v-if="canReadClusters" :clusters :loading="clustersLoading" />
-            <HomeRecentMachines v-if="canReadMachines" :machines :loading="machinesLoading" />
+            <HomeRecentMachines
+              v-if="canReadMachines"
+              :machines
+              :operations="operationStatuses"
+              :loading="machinesLoading"
+            />
           </div>
         </div>
 

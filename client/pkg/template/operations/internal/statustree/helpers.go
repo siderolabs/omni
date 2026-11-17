@@ -191,6 +191,20 @@ func clusterMachineConfigStatus(node *omni.ClusterMachineStatus) string {
 	}
 }
 
+func clusterMachineOperationString(operation *omni.MachineOperationStatus) string {
+	if operation == nil || operation.TypedSpec().Value.Stage == specs.MachineOperationStatusSpec_UNKNOWN {
+		return ""
+	}
+
+	result := " - " + color.HiYellowString(operation.TypedSpec().Value.Stage.String())
+
+	if operation.TypedSpec().Value.Message != "" {
+		result += ": " + safeout.Cell(operation.TypedSpec().Value.Message)
+	}
+
+	return result
+}
+
 func clusterMachineReadyString(clusterMachine *omni.ClusterMachineStatus) string {
 	if clusterMachine.TypedSpec().Value.Stage != specs.ClusterMachineStatusSpec_RUNNING {
 		return ""

@@ -1163,6 +1163,11 @@ func (s *managementServer) MaintenanceLifecycle(
 
 	installImage := omnires.NewInstallImage(machineStatus, req.Version, schematicID, factoryURLParsed.Host, true)
 
+	snapshot, err := safe.StateGetByID[*omnires.MachineStatusSnapshot](ctx, s.omniState, req.MachineId)
+	if err != nil && !state.IsNotFoundError(err) {
+		return lifecycle.WrapErr(err, "failed to get machine status snapshot")
+	}
+
 	operation := lifecycle.Operation{
 		MachineID:     req.MachineId,
 		MachineStatus: machineStatus,
@@ -1170,6 +1175,10 @@ func (s *managementServer) MaintenanceLifecycle(
 		Version:       req.Version,
 		Disk:          req.Disk,
 		InstallImage:  installImage,
+	}
+
+	if snapshot != nil {
+		operation.BootID = snapshot.TypedSpec().Value.BootId
 	}
 
 	err = s.lifecycleManager.Run(

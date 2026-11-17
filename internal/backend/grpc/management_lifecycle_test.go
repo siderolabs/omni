@@ -193,21 +193,7 @@ func TestMaintenanceLifecycleInFlightGuard(t *testing.T) {
 		machineID  = "machine-1"
 	)
 
-	// fixture passes every precondition up through SchematicReady, so the in-flight guard is the next check.
-	st := newMaintenanceLifecycleTestState(t, identityID, machineID, true, "", func(s *specs.MachineStatusSpec) {
-		s.Maintenance = true
-		s.TalosVersion = "v1.13.0"
-		s.Schematic = &specs.MachineStatusSpec_Schematic{FullId: "schematic-full-id"}
-		s.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: "metal"}
-		s.SecurityState = &specs.SecurityState{}
-	})
-
-	// TalosVersion[1.13.0] with the requested target on its upgradable list — needed so the target
-	// version check passes and the in-flight guard fires (preconditions are ordered earlier).
-	talosVersion := omnires.NewTalosVersion("1.13.0")
-	talosVersion.TypedSpec().Value.Version = "1.13.0"
-	talosVersion.TypedSpec().Value.UpgradableTalosVersions = []string{"1.13.0"}
-	require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), talosVersion))
+	st := newMaintenanceLifecycleRunState(t, identityID, machineID)
 
 	manager := fakeLifecycleManager{runErr: lifecycle.ErrAlreadyInFlight}
 
@@ -228,6 +214,36 @@ func TestMaintenanceLifecycleInFlightGuard(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.FailedPrecondition, status.Code(err), "unexpected status: %v", err)
 	require.Contains(t, status.Convert(err).Message(), "already in progress")
+}
+
+func TestMaintenanceLifecycleBootID(t *testing.T) {
+	const (
+		identityID = "user@example.com"
+		machineID  = "machine-1"
+	)
+
+	st := newMaintenanceLifecycleRunState(t, identityID, machineID)
+
+	snapshot := omnires.NewMachineStatusSnapshot(machineID)
+	snapshot.TypedSpec().Value.BootId = "boot-before-install"
+	require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), snapshot))
+
+	var operation lifecycle.Operation
+
+	server := grpcomni.NewManagementServer(st, nil, zaptest.NewLogger(t), false, nil, nil, grpcomni.WithLifecycleManager(fakeLifecycleManager{operation: &operation}))
+
+	err := server.MaintenanceLifecycle(
+		&management.MaintenanceLifecycleRequest{
+			MachineId: machineID,
+			Operation: management.MaintenanceLifecycleRequest_OPERATION_INSTALL,
+			Version:   "1.13.0",
+			Disk:      "/dev/sda",
+		},
+		&fakeLifecycleStream{ctx: managementPowerTestContext(t.Context(), identityID, role.Operator)},
+	)
+	require.NoError(t, err)
+
+	require.Equal(t, "boot-before-install", operation.BootID)
 }
 
 func TestMaintenanceUpgradeDeprecatedTargets(t *testing.T) {
@@ -325,13 +341,36 @@ func TestMaintenanceUpgradeDeprecatedTargets(t *testing.T) {
 }
 
 type fakeLifecycleManager struct {
-	runErr error
+	runErr    error
+	operation *lifecycle.Operation
 }
 
 func (fakeLifecycleManager) SupportsLifecycleManagement(string) error { return nil }
 
-func (f fakeLifecycleManager) Run(context.Context, lifecycle.Operation, ...lifecycle.Option) error {
+func (f fakeLifecycleManager) Run(_ context.Context, operation lifecycle.Operation, _ ...lifecycle.Option) error {
+	if f.operation != nil {
+		*f.operation = operation
+	}
+
 	return f.runErr
+}
+
+// newMaintenanceLifecycleRunState returns a state in which a request for the machine passes every precondition and reaches Run.
+func newMaintenanceLifecycleRunState(t *testing.T, identityID, machineID string) state.State {
+	st := newMaintenanceLifecycleTestState(t, identityID, machineID, true, "", func(s *specs.MachineStatusSpec) {
+		s.Maintenance = true
+		s.TalosVersion = "v1.13.0"
+		s.Schematic = &specs.MachineStatusSpec_Schematic{FullId: "schematic-full-id"}
+		s.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{Platform: "metal"}
+		s.SecurityState = &specs.SecurityState{}
+	})
+
+	talosVersion := omnires.NewTalosVersion("1.13.0")
+	talosVersion.TypedSpec().Value.Version = "1.13.0"
+	talosVersion.TypedSpec().Value.UpgradableTalosVersions = []string{"1.13.0"}
+	require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), talosVersion))
+
+	return st
 }
 
 func newMaintenanceLifecycleTestState(

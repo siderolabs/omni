@@ -4,13 +4,16 @@
 // included in the LICENSE file.
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
-import type { MachineStatusSnapshotSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import type { MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
 import { MachineStatusSnapshotSpecPowerStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb'
 import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import { machineOperationStageName } from '@/methods/machineOperation'
 
 interface StatusDescriptor extends StatusAppearance {
   name: string
+  operation?: MachineOperationStatusSpec
 }
 
 const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescriptor>> = {
@@ -70,16 +73,31 @@ const powerStageStatus: Partial<Record<MachineStatusSnapshotSpecPowerStage, Stat
 }
 
 export function useDerivedMachineStage(
-  snapshot: MaybeRefOrGetter<MachineStatusSnapshotSpec | undefined>,
+  spec: MaybeRefOrGetter<MachineStatusLinkSpec | undefined>,
+  operation: MaybeRefOrGetter<MachineOperationStatusSpec | undefined>,
 ) {
-  const stage = computed(() => toValue(snapshot)?.machine_status?.stage)
-  const powerStage = computed(() => toValue(snapshot)?.power_stage)
-  const installing = computed(() => stage.value === MachineStatusEventMachineStage.INSTALLING)
-  const upgrading = computed(() => stage.value === MachineStatusEventMachineStage.UPGRADING)
-  const status = computed(() => {
+  const stage = computed(() => toValue(spec)?.snapshot?.machine_status?.stage)
+  const powerStage = computed(() => toValue(spec)?.snapshot?.power_stage)
+  const operationName = computed(() => machineOperationStageName(toValue(operation)))
+  const operationInProgress = computed(
+    () =>
+      !!operationName.value ||
+      stage.value === MachineStatusEventMachineStage.INSTALLING ||
+      stage.value === MachineStatusEventMachineStage.UPGRADING,
+  )
+  const status = computed((): StatusDescriptor | null => {
     const ps = powerStage.value
     if (ps !== undefined && powerStageStatus[ps]) {
       return powerStageStatus[ps]
+    }
+
+    if (operationName.value) {
+      return {
+        name: operationName.value,
+        tone: 'warning',
+        glyph: 'progress',
+        operation: toValue(operation),
+      }
     }
 
     const s = stage.value
@@ -90,5 +108,5 @@ export function useDerivedMachineStage(
     return stageStatus[s] ?? null
   })
 
-  return { installing, upgrading, status }
+  return { operationInProgress, status }
 }

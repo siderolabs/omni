@@ -61,6 +61,7 @@ func NewStatusController(imageFactoryClients *imagefactory.Clients, lifecycleMan
 		},
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](qtransform.MapperSameID[*omni.MachineStatus]()),
 		qtransform.WithExtraMappedInput[*omni.SchematicConfiguration](qtransform.MapperSameID[*omni.MachineStatus]()),
+		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](qtransform.MapperNone()),
 	)
 
 	return ctrl
@@ -241,7 +242,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		ImageFactoryHost:     imageFactoryClient.Host(),
 	}
 
-	if err = ctrl.upgrade(ctx, logger, ms, installImage, acceptedIDs, schematicMismatch); err != nil {
+	if err = ctrl.upgrade(ctx, r, logger, ms, installImage, acceptedIDs, schematicMismatch); err != nil {
 		if talos.IsClientNotReadyError(err) {
 			status.TypedSpec().Value.Status = "Talos client is not yet ready: " + err.Error()
 			status.TypedSpec().Value.Error = ""
@@ -307,11 +308,11 @@ func (ctrl *StatusController) checkCooldown(status *omni.MachineUpgradeStatus, l
 // upgrade runs Talos's LifecycleService.Upgrade for machines that support it (Talos 1.13+),
 // falling back to the deprecated MachineService.Upgrade for older ones.
 func (ctrl *StatusController) upgrade(
-	ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string, schematicMismatch bool,
+	ctx context.Context, r controller.Reader, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, acceptedIDs []string, schematicMismatch bool,
 ) error {
 	switch op := lifecycle.DecideOp(ms, installImage, acceptedIDs, schematicMismatch, false); op {
 	case lifecycle.OpMaintenanceUpgrade:
-		return ctrl.lifecycleUpgrade(ctx, logger, ms, installImage)
+		return ctrl.lifecycleUpgrade(ctx, r, logger, ms, installImage)
 	case lifecycle.OpLegacyUpgrade:
 		return ctrl.legacyUpgrade(ctx, logger, ms, installImage)
 	case lifecycle.OpNone, lifecycle.OpMaintenanceInstall, lifecycle.OpClusterUpgrade:
@@ -322,8 +323,15 @@ func (ctrl *StatusController) upgrade(
 }
 
 // lifecycleUpgrade upgrades the machine via Talos's LifecycleService.Upgrade.
-func (ctrl *StatusController) lifecycleUpgrade(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) error {
+func (ctrl *StatusController) lifecycleUpgrade(
+	ctx context.Context, r controller.Reader, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage,
+) error {
 	machineID := ms.Metadata().ID()
+
+	snapshot, err := safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, machineID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
 
 	operation := lifecycle.Operation{
 		MachineID:     machineID,
@@ -333,7 +341,11 @@ func (ctrl *StatusController) lifecycleUpgrade(ctx context.Context, logger *zap.
 		Kind:          lifecycle.KindUpgrade,
 	}
 
-	err := ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
+	if snapshot != nil {
+		operation.BootID = snapshot.TypedSpec().Value.BootId
+	}
+
+	err = ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
 		logger.Debug("upgrade progress", zap.String("machine", machineID), zap.String("message", msg))
 	}))
 
