@@ -5,13 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useClipboard } from '@vueuse/core'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/Button/TButton.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { useIdentity } from '@/methods/identity'
@@ -26,17 +25,16 @@ definePage({
 
 const route = useRoute()
 
-const { copy, copied } = useClipboard({ copiedDuring: 1000 })
 const { avatar, fullname, identity } = useIdentity()
 
-const authRequestId = route.params.authRequestId
+const authRequestId = computed(() => route.params.authRequestId)
 
 const authCode = ref<string>()
 
 const confirmOIDCRequest = async () => {
   try {
     const response = await OIDCService.Authenticate({
-      auth_request_id: authRequestId,
+      auth_request_id: authRequestId.value,
     })
 
     if (response.redirect_url) {
@@ -47,14 +45,8 @@ const confirmOIDCRequest = async () => {
 
     authCode.value = response.auth_code
   } catch (e) {
-    showError('Failed to confirm authenticate request', e.message)
-
-    throw e
+    showError('Failed to confirm authenticate request', e instanceof Error ? e.message : String(e))
   }
-}
-
-const copyCode = () => {
-  if (authCode.value) copy(authCode.value)
 }
 
 useTitle('OIDC Login')
@@ -63,43 +55,37 @@ useTitle('OIDC Login')
 <template>
   <PageContainer class="flex h-full items-center justify-center">
     <AuthenticateCard title="Authenticate Kubernetes Access" icon="kubernetes">
-      <div v-if="!authRequestId" class="mx-section">Public key ID parameter is missing...</div>
-      <template v-else>
-        <div class="flex w-full flex-col gap-compact">
-          <div>The Kubernetes access is going to be granted for the user:</div>
-          <UserInfo
-            user="user"
-            class="rounded-md bg-surface-inert px-base py-tight"
-            :avatar="avatar"
-            :fullname="fullname"
-            :email="identity"
-          />
-          <div
-            v-if="authCode"
-            class="flex w-full items-center justify-center gap-micro rounded-lg border border-border-default p-micro pl-tight"
+      <div v-if="!authRequestId" class="mx-section">Auth request ID parameter is missing...</div>
+      <div v-else class="flex w-full flex-col gap-compact">
+        <p>The Kubernetes access is going to be granted for the user:</p>
+
+        <UserInfo
+          user="user"
+          class="rounded-md bg-surface-inert px-base py-tight"
+          :avatar="avatar"
+          :fullname="fullname"
+          :email="identity"
+        />
+
+        <div
+          v-if="authCode"
+          class="flex w-full items-center gap-tight rounded-lg border border-border-default px-snug py-micro"
+        >
+          <div class="grow text-sm text-content-emphasis">Access Code</div>
+
+          <code
+            class="rounded-md bg-surface-inert px-tight py-micro font-bold text-content-emphasis"
           >
-            <div class="mr-tight text-sm text-content-emphasis">Access Code</div>
-            <div class="flex-1" />
-            <div
-              class="cursor-pointer rounded-l-md bg-surface-inert px-tight py-micro font-mono font-bold text-content-emphasis"
-              @click="copyCode"
-            >
-              {{ copied ? 'Copied' : authCode }}
-            </div>
-            <div
-              class="cursor-pointer rounded-r-md bg-surface-inert px-tight py-micro text-content-emphasis transition-colors hover:bg-surface-hover"
-              @click="copyCode"
-            >
-              <TIcon icon="copy" class="size-5" />
-            </div>
-          </div>
-          <div v-else class="my-micro flex w-full flex-col gap-snug">
-            <TButton class="w-full" variant="highlighted" @click="confirmOIDCRequest">
-              Grant Access
-            </TButton>
-          </div>
+            {{ authCode }}
+          </code>
+
+          <CopyButton :text="authCode" aria-label="Copy access code" />
         </div>
-      </template>
+
+        <TButton v-else class="my-micro" variant="highlighted" @click="confirmOIDCRequest">
+          Grant Access
+        </TButton>
+      </div>
     </AuthenticateCard>
   </PageContainer>
 </template>

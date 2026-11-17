@@ -3,11 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import type { Decorator, Meta, StoryObj } from '@storybook/vue3-vite'
+import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
+import { vueRouter } from 'storybook-vue3-router'
 import { markRaw, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterView } from 'vue-router'
 
 import type { Empty } from '@/api/google/protobuf/empty.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -33,21 +34,10 @@ const provider: AuthProvider = markRaw({
   logout: fn(),
 })
 
-const query = { [authPublicKeyIDQueryParam]: faker.string.uuid() }
+const publicKeyId = faker.string.uuid()
 
-const withQuery: Decorator = (_story, { parameters }) => ({
-  setup() {
-    const ready = ref(false)
-
-    useRouter()
-      .replace({ path: '/authenticate', query: parameters.query })
-      .then(() => (ready.value = true))
-
-    // Prevent a flash by waiting for route change, a sstory only issue
-    return { ready }
-  },
-  template: '<story v-if="ready" />',
-})
+const withRoute = (initialRoute: string) =>
+  vueRouter([{ path: '/authenticate', component: RouterView }], { initialRoute })
 
 const meta: Meta<typeof AuthenticateCLI> = {
   component: AuthenticateCLI,
@@ -56,14 +46,13 @@ const meta: Meta<typeof AuthenticateCLI> = {
   parameters: {
     layout: 'centered',
   },
-  decorators: [withQuery],
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: { query },
+  decorators: [withRoute(`/authenticate?${authPublicKeyIDQueryParam}=${publicKeyId}`)],
   beforeEach({ msw }) {
     msw.use(
       http.post<never, ConfirmPublicKeyRequest, Empty>(
@@ -79,7 +68,7 @@ export const Default: Story = {
 }
 
 export const ConfirmError: Story = {
-  parameters: { query },
+  decorators: [withRoute(`/authenticate?${authPublicKeyIDQueryParam}=${publicKeyId}`)],
   beforeEach({ msw }) {
     msw.use(
       http.post<never, ConfirmPublicKeyRequest>('/auth.AuthService/ConfirmPublicKey', async () => {
@@ -97,4 +86,6 @@ export const ConfirmError: Story = {
   },
 }
 
-export const MissingPublicKeyID: Story = {}
+export const MissingPublicKeyID: Story = {
+  decorators: [withRoute('/authenticate')],
+}
