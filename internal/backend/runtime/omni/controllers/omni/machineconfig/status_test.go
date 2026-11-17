@@ -3490,6 +3490,220 @@ func TestClusterUpgradeWaitsForRebootWithHighPriorityConfig(t *testing.T) {
 
 			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 				a.Empty(res.TypedSpec().Value.PreRebootBootId, "the reboot must be finalized once the machine is back")
+				a.Empty(res.TypedSpec().Value.CordonedNode)
+			})
+		},
+	)
+}
+
+// TestCancelledClusterUpgradeUncordonsNode verifies that the node an upgrade cordoned is uncordoned once the upgrade is not needed
+// anymore, when no attempt of the upgrade rebooted the machine.
+func TestCancelledClusterUpgradeUncordonsNode(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-cancel-uncordon"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			genOptions, err := safe.StateGetByID[*omni.MachineConfigGenOptions](ctx, st, id)
+			require.NoError(t, err)
+
+			runningVersion := genOptions.TypedSpec().Value.InstallImage.TalosVersion
+
+			nodeName := "node-" + id
+			clientset := testutils.NewFakeKubernetesClientset(nodeName)
+			provider.SetClientset(clientset)
+
+			// every attempt fails after it cordoned and drained the node
+			machineServices.Get(id).SetRebootHandler(func() error { return errors.New("reboot refused") })
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Contains(res.TypedSpec().Value.LastConfigError, "reboot refused")
+				a.Equal(nodeName, res.TypedSpec().Value.CordonedNode)
+			})
+
+			node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.True(t, node.Spec.Unschedulable, "the node must stay cordoned while the upgrade is still needed")
+
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = runningVersion
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.False(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be released once the upgrade is not needed anymore")
+			})
+
+			node, err = clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.False(t, node.Spec.Unschedulable, "the node must be uncordoned once the upgrade is not needed anymore")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Empty(res.TypedSpec().Value.CordonedNode)
+			})
+		},
+	)
+}
+
+// TestDeferredClusterUpgradeUncordonsNode verifies that the node a failed upgrade attempt cordoned is uncordoned when the upgrade is deferred
+// for a high-priority config change, as the deferral releases the upgrade lock.
+func TestDeferredClusterUpgradeUncordonsNode(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, provider), machineconfig.WithTryTimings(fastTryTimings)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-defer-uncordon"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			clientset := testutils.NewFakeKubernetesClientset(nodeName)
+			provider.SetClientset(clientset)
+
+			// the applied high-priority hash is never recorded, so the upgrade stays deferred
+			machineServices.Get(id).OnApplyConfig = func(context.Context, *machine.ApplyConfigurationRequest, state.State, string) (*machine.ApplyConfigurationResponse, error) {
+				//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
+				mode := machine.ApplyConfigurationRequest_REBOOT
+
+				return &machine.ApplyConfigurationResponse{
+					Messages: []*machine.ApplyConfiguration{{Mode: mode}},
+				}, nil
+			}
+
+			machineServices.Get(id).SetRebootHandler(func() error { return errors.New("reboot refused") })
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Contains(res.TypedSpec().Value.LastConfigError, "reboot refused")
+				a.Equal(nodeName, res.TypedSpec().Value.CordonedNode)
+			})
+
+			node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.True(t, node.Spec.Unschedulable, "the node must stay cordoned while the upgrade is retried")
+
+			addHighPriorityConfig(ctx, t, st, id)
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.False(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be released while the upgrade is deferred")
+			})
+
+			node, err = clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.False(t, node.Spec.Unschedulable, "the node must be uncordoned when the upgrade is deferred")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Empty(res.TypedSpec().Value.CordonedNode)
+			})
+		},
+	)
+}
+
+// TestDeferredClusterUpgradeWithoutKubernetesAPI verifies that an upgrade attempt which fails before it cordons the node does not need the
+// Kubernetes API when the upgrade is deferred for a high-priority config change, e.g. the registry auth the failed image pull was missing.
+func TestDeferredClusterUpgradeWithoutKubernetesAPI(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(
+					testutils.NewLifecycleManager(t, tc.State, &testutils.FakeKubernetesProvider{}),
+					machineconfig.WithTryTimings(fastTryTimings),
+				),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-defer-no-k8s"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			// the applied high-priority hash is never recorded, so the upgrade stays deferred
+			machineServices.Get(id).OnApplyConfig = func(context.Context, *machine.ApplyConfigurationRequest, state.State, string) (*machine.ApplyConfigurationResponse, error) {
+				//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
+				mode := machine.ApplyConfigurationRequest_REBOOT
+
+				return &machine.ApplyConfigurationResponse{
+					Messages: []*machine.ApplyConfiguration{{Mode: mode}},
+				}, nil
+			}
+
+			machineServices.Get(id).SetLifecycleUpgradeHandler(func(*machine.LifecycleServiceUpgradeRequest, grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error {
+				return errors.New("upgrade refused")
+			})
+
+			nodeName := "node-" + id
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Contains(res.TypedSpec().Value.LastConfigError, "upgrade refused")
+			})
+
+			addHighPriorityConfig(ctx, t, st, id)
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.False(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be released while the upgrade is deferred")
 			})
 		},
 	)

@@ -3790,7 +3790,9 @@ type ClusterMachineConfigStatusSpec struct {
 	// last successful Talos install/upgrade.
 	ImageFactoryHost string `protobuf:"bytes,13,opt,name=image_factory_host,json=imageFactoryHost,proto3" json:"image_factory_host,omitempty"`
 	// ConfigTry tracks the in-flight try mode apply of the desired config, if any.
-	ConfigTry     *ConfigTryStatus `protobuf:"bytes,14,opt,name=config_try,json=configTry,proto3" json:"config_try,omitempty"`
+	ConfigTry *ConfigTryStatus `protobuf:"bytes,14,opt,name=config_try,json=configTry,proto3" json:"config_try,omitempty"`
+	// CordonedNode is the node an upgrade of the machine cordoned. It is kept until Omni uncordons the node.
+	CordonedNode  string `protobuf:"bytes,15,opt,name=cordoned_node,json=cordonedNode,proto3" json:"cordoned_node,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3900,6 +3902,13 @@ func (x *ClusterMachineConfigStatusSpec) GetConfigTry() *ConfigTryStatus {
 		return x.ConfigTry
 	}
 	return nil
+}
+
+func (x *ClusterMachineConfigStatusSpec) GetCordonedNode() string {
+	if x != nil {
+		return x.CordonedNode
+	}
+	return ""
 }
 
 // ConfigTryStatus tracks a config pushed to a machine in Talos "try" mode. Talos keeps such a config
@@ -12756,7 +12765,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vClusterUUID\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"4\n" +
 	"\x18ClusterConfigVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\x9e\x05\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\xc3\x05\n" +
 	"\x1eClusterMachineConfigStatusSpec\x12C\n" +
 	"\x1ecluster_machine_config_version\x18\x03 \x01(\tR\x1bclusterMachineConfigVersion\x12A\n" +
 	"\x1dcluster_machine_config_sha256\x18\x05 \x01(\tR\x1aclusterMachineConfigSha256\x12*\n" +
@@ -12770,7 +12779,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"!applied_high_priority_config_hash\x18\f \x01(\tR\x1dappliedHighPriorityConfigHash\x12,\n" +
 	"\x12image_factory_host\x18\r \x01(\tR\x10imageFactoryHost\x125\n" +
 	"\n" +
-	"config_try\x18\x0e \x01(\v2\x16.specs.ConfigTryStatusR\tconfigTryJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x99\x01\n" +
+	"config_try\x18\x0e \x01(\v2\x16.specs.ConfigTryStatusR\tconfigTry\x12#\n" +
+	"\rcordoned_node\x18\x0f \x01(\tR\fcordonedNodeJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x99\x01\n" +
 	"\x0fConfigTryStatus\x12\x16\n" +
 	"\x06sha256\x18\x01 \x01(\tR\x06sha256\x12\x1a\n" +
 	"\battempts\x18\x02 \x01(\rR\battempts\x129\n" +

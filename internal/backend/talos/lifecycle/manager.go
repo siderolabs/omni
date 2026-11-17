@@ -91,6 +91,7 @@ type nodeRef struct {
 type runConfig struct {
 	audit       AuditFunc
 	progress    func(string)
+	onCordon    func()
 	cordonDrain *nodeRef
 	uncordon    *nodeRef
 	preReboot   []PreRebootHook
@@ -113,6 +114,13 @@ func WithCordonDrain(clusterName, nodeName string, bestEffort bool) Option {
 		if clusterName != "" && nodeName != "" {
 			cfg.cordonDrain = &nodeRef{clusterName: clusterName, nodeName: nodeName, bestEffort: bestEffort}
 		}
+	}
+}
+
+// WithOnCordon makes Run call f once the node is cordoned.
+func WithOnCordon(f func()) Option {
+	return func(cfg *runConfig) {
+		cfg.onCordon = f
 	}
 }
 
@@ -309,6 +317,10 @@ func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
 		}
 
 		return err
+	}
+
+	if cfg.onCordon != nil {
+		cfg.onCordon()
 	}
 
 	if err = drain(ctx, clientset, cfg, target.nodeName); err != nil {

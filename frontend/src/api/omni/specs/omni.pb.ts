@@ -559,6 +559,7 @@ export type ClusterMachineConfigStatusSpec = {
   applied_high_priority_config_hash?: string
   image_factory_host?: string
   config_try?: ConfigTryStatus
+  cordoned_node?: string
 }
 
 export type ConfigTryStatus = {

@@ -707,6 +707,9 @@ message ClusterMachineConfigStatusSpec {
 
   // ConfigTry tracks the in-flight try mode apply of the desired config, if any.
   ConfigTryStatus config_try = 14;
+
+  // CordonedNode is the node an upgrade of the machine cordoned. It is kept until Omni uncordons the node.
+  string cordoned_node = 15;
 }
 
 // ConfigTryStatus tracks a config pushed to a machine in Talos "try" mode. Talos keeps such a config

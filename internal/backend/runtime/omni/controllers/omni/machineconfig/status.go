@@ -513,37 +513,59 @@ func (ctrl *StatusController) reconcileUpgrade(
 	return nil
 }
 
-// finalizeReboot uncordons the node, then clears the reboot marker. The marker is shared with the
-// maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
+// finalizeReboot uncordons the node once the machine rebooted after an upgrade, or when a failed upgrade attempt
+// cordoned it and the upgrade is canceled or deferred. Then it clears the reboot marker and the cordoned node.
+// The marker is shared with the maintenance paths, which never cordon, but Uncordon is a harmless no-op on an
+// uncordoned node.
 func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
 	preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId
-	if preRebootBootID == "" {
+
+	if preRebootBootID == "" && rc.machineConfigStatus.TypedSpec().Value.CordonedNode == "" {
 		return nil
 	}
 
-	if preRebootBootID == rc.bootID {
+	if preRebootBootID != "" && preRebootBootID == rc.bootID {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot: %s", rc.ID())
 	}
 
-	// A machine still in maintenance was never a Kubernetes node, so there is nothing to uncordon.
-	if !rc.machineStatus.TypedSpec().Value.Maintenance {
-		clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
-		if ok {
-			nodeName, err := ctrl.getNodeName(ctx, r, rc.ID())
-			if err != nil {
-				return err
-			}
-
-			if nodeName != "" {
-				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
-					// Keep PreRebootBootId so the next reconcile retries the uncordon.
-					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycle.RetryInterval)
-				}
-			}
-		}
+	if err := ctrl.uncordonNode(ctx, r, rc); err != nil {
+		return err
 	}
 
 	rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
+	rc.machineConfigStatus.TypedSpec().Value.CordonedNode = ""
+
+	return nil
+}
+
+func (ctrl *StatusController) uncordonNode(ctx context.Context, r controller.Reader, rc *ReconciliationContext) error {
+	var err error
+
+	nodeName := rc.machineConfigStatus.TypedSpec().Value.CordonedNode
+	if nodeName == "" {
+		// A machine still in maintenance was never a Kubernetes node, so there is nothing to uncordon.
+		if rc.machineStatus.TypedSpec().Value.Maintenance {
+			return nil
+		}
+
+		nodeName, err = ctrl.getNodeName(ctx, r, rc.ID())
+		if err != nil {
+			return err
+		}
+
+		if nodeName == "" {
+			return nil
+		}
+	}
+
+	clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return nil
+	}
+
+	if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
+		return controller.NewRequeueError(fmt.Errorf("failed to uncordon node %q of machine %q: %w", nodeName, rc.ID(), err), lifecycle.RetryInterval)
+	}
 
 	return nil
 }
@@ -852,6 +874,9 @@ func (ctrl *StatusController) runClusterLifecycle(
 			logger.Debug("upgrade progress", zap.String("machine", machineID), zap.String("message", msg))
 		}),
 		lifecycle.WithCordonDrain(clusterName, nodeName, rc.upgradeBlockedByOwnHealth()),
+		lifecycle.WithOnCordon(func() {
+			rc.machineConfigStatus.TypedSpec().Value.CordonedNode = nodeName
+		}),
 	}
 
 	clusterMachines, err := ctrl.listClusterMachines(ctx, r, clusterName)
