@@ -8,38 +8,25 @@ package omni_test
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
-	"flag"
 	"fmt"
-	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-api-signature/pkg/plain"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -50,13 +37,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
-	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/auth/authenticator"
+	"github.com/siderolabs/omni/internal/pkg/authz/authztest"
 )
-
-var updateGolden = flag.Bool("update", false, "rewrite the golden files in testdata")
 
 const goldenHeader = `What %s can do through the resource API.
 %s
@@ -69,83 +52,6 @@ Every call goes through the production state composition with only the authoriza
 so the file shows what the caller gets back, not only whether the check passed.
 
 The resource types which behave the same for this subject are listed together.`
-
-// subject is a caller, set up as data the way an administrator sets one up today.
-type subject struct {
-	labels map[string]string
-	name   string
-	// description says how the subject is set up, for the header of its golden file.
-	description string
-	role        role.Role
-	suspended   bool
-}
-
-func (s subject) signedIn() bool {
-	return s.role != ""
-}
-
-func (s subject) identity() string {
-	if s.role == role.InfraProvider {
-		return ownProvider + access.InfraProviderServiceAccountNameSuffix
-	}
-
-	return s.name + "@example.org"
-}
-
-const (
-	clusterA      = "cluster-a"
-	clusterB      = "cluster-b"
-	ownProvider   = "own"
-	otherProvider = "other"
-)
-
-var subjects = []subject{
-	{name: "anonymous", description: "It is a request without a signature."},
-	{name: "none", role: role.None, description: "It is a user with the role None."},
-	{name: "reader", role: role.Reader, description: "It is a user with the role Reader."},
-	{name: "auditor", role: role.Auditor, description: "It is a user with the role Auditor."},
-	{name: "operator", role: role.Operator, description: "It is a user with the role Operator."},
-	{name: "admin", role: role.Admin, description: "It is a user with the role Admin."},
-	{name: "infra-provider", role: role.InfraProvider, description: `It is the service account of the infra provider "own".`},
-	{
-		name: "acl-reader-a", role: role.None,
-		description: "It is a user with the role None, who gets Reader on cluster-a through the access policy. The user and the cluster are matched by name.",
-	},
-	{
-		name: "acl-operator-a", role: role.Reader, labels: map[string]string{"team": "a"},
-		description: "It is a user with the role Reader, who gets Operator on the clusters matching *-a through the access policy. The user is matched by the identity label team=a.",
-	},
-	{
-		name: "acl-operator-all", role: role.None,
-		description: "It is a user with the role None, who gets Operator on every cluster through the access policy. The user is matched by a pattern.",
-	},
-	{name: "suspended-admin", role: role.Admin, suspended: true, description: "It is a user with the role Admin on a suspended instance."},
-	{
-		name: "suspended-acl-operator-a", role: role.Reader, labels: map[string]string{"team": "a"}, suspended: true,
-		description: "It is acl-operator-a on a suspended instance.",
-	},
-}
-
-func testAccessPolicy() *authres.AccessPolicy {
-	policy := authres.NewAccessPolicy()
-	policy.TypedSpec().Value = &specs.AccessPolicySpec{
-		UserGroups: map[string]*specs.AccessPolicyUserGroup{
-			"team-a":    {Users: []*specs.AccessPolicyUserGroup_User{{LabelSelectors: []string{"team=a"}}}},
-			"operators": {Users: []*specs.AccessPolicyUserGroup_User{{Match: "acl-operator-all@*"}}},
-		},
-		ClusterGroups: map[string]*specs.AccessPolicyClusterGroup{
-			"a-clusters": {Clusters: []*specs.AccessPolicyClusterGroup_Cluster{{Match: "*-a"}}},
-			"all":        {Clusters: []*specs.AccessPolicyClusterGroup_Cluster{{Match: "*"}}},
-		},
-		Rules: []*specs.AccessPolicyRule{
-			{Users: []string{"acl-reader-a@example.org"}, Clusters: []string{clusterA}, Role: string(role.Reader)},
-			{Users: []string{"group/team-a"}, Clusters: []string{"group/a-clusters"}, Role: string(role.Operator)},
-			{Users: []string{"group/operators"}, Clusters: []string{"group/all"}, Role: string(role.Operator)},
-		},
-	}
-
-	return policy
-}
 
 // target is a resource the subjects act on. Every type gets the same targets, so the rows do not depend on how
 // the authorization code classifies a type.
@@ -161,21 +67,21 @@ type target struct {
 
 var (
 	clusterTargets = []target{
-		{situation: "a resource in cluster-a", id: clusterA, labels: map[string]string{omni.LabelCluster: clusterA}},
-		{situation: "a resource in cluster-b", id: clusterB, labels: map[string]string{omni.LabelCluster: clusterB}},
-		{situation: "a resource of a machine in cluster-a", id: "machine-a", labels: map[string]string{omni.LabelCluster: clusterA}},
-		{situation: "a resource of a machine in no cluster", id: "machine-free"},
-		{situation: "moving a resource from cluster-a to cluster-b", id: clusterA, labels: map[string]string{omni.LabelCluster: clusterA}, relabel: clusterB},
+		{situation: "a resource in cluster-a", id: authztest.ClusterA, labels: map[string]string{omni.LabelCluster: authztest.ClusterA}},
+		{situation: "a resource in cluster-b", id: authztest.ClusterB, labels: map[string]string{omni.LabelCluster: authztest.ClusterB}},
+		{situation: "a resource of a machine in cluster-a", id: authztest.MemberMachine, labels: map[string]string{omni.LabelCluster: authztest.ClusterA}},
+		{situation: "a resource of a machine in no cluster", id: authztest.FreeMachine},
+		{situation: "moving a resource from cluster-a to cluster-b", id: authztest.ClusterA, labels: map[string]string{omni.LabelCluster: authztest.ClusterA}, relabel: authztest.ClusterB},
 		{situation: "a resource which does not exist", id: "absent", absent: true},
 	}
 
 	providerTargets = []target{
-		{situation: `a resource of the infra provider "own"`, id: ownProvider, labels: map[string]string{omni.LabelInfraProviderID: ownProvider}},
-		{situation: `a resource of the infra provider "other"`, id: otherProvider, labels: map[string]string{omni.LabelInfraProviderID: otherProvider}},
+		{situation: `a resource of the infra provider "own"`, id: authztest.OwnProvider, labels: map[string]string{omni.LabelInfraProviderID: authztest.OwnProvider}},
+		{situation: `a resource of the infra provider "other"`, id: authztest.OtherProvider, labels: map[string]string{omni.LabelInfraProviderID: authztest.OtherProvider}},
 		{situation: "a resource of no infra provider", id: "unlabeled"},
 		{
 			situation: `a resource of the infra provider "own", in the default namespace`,
-			id:        ownProvider, labels: map[string]string{omni.LabelInfraProviderID: ownProvider}, namespace: resources.DefaultNamespace,
+			id:        authztest.OwnProvider, labels: map[string]string{omni.LabelInfraProviderID: authztest.OwnProvider}, namespace: resources.DefaultNamespace,
 		},
 		{situation: "a resource which does not exist", id: "absent", absent: true},
 	}
@@ -184,9 +90,9 @@ var (
 	virtualIDs = map[resource.Type][]resource.ID{
 		virtual.AdvertisedEndpointsType: {virtual.AdvertisedEndpointsID},
 		virtual.CloudPlatformConfigType: {"aws"},
-		virtual.ClusterPermissionsType:  {clusterA},
+		virtual.ClusterPermissionsType:  {authztest.ClusterA},
 		virtual.CurrentUserType:         {virtual.CurrentUserID},
-		virtual.KubernetesUsageType:     {clusterA},
+		virtual.KubernetesUsageType:     {authztest.ClusterA},
 		virtual.LabelsCompletionType:    {omni.ClusterType, authres.IdentityType}, // labels of a type everyone reads, and of an admin-only one
 		virtual.MetalPlatformConfigType: {"metal"},
 		virtual.PermissionsType:         {virtual.PermissionsID},
@@ -202,13 +108,13 @@ var (
 		queries   [][]resource.LabelQueryOption
 	}{
 		{situation: "all resources"},
-		{situation: "all resources in cluster-a", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, clusterA)}}},
-		{situation: "all resources in cluster-b", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, clusterB)}}},
+		{situation: "all resources in cluster-a", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, authztest.ClusterA)}}},
+		{situation: "all resources in cluster-b", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, authztest.ClusterB)}}},
 		{situation: "all resources in cluster-a or cluster-b", queries: [][]resource.LabelQueryOption{
-			{resource.LabelEqual(omni.LabelCluster, clusterA)},
-			{resource.LabelEqual(omni.LabelCluster, clusterB)},
+			{resource.LabelEqual(omni.LabelCluster, authztest.ClusterA)},
+			{resource.LabelEqual(omni.LabelCluster, authztest.ClusterB)},
 		}},
-		{situation: "all resources not in cluster-a", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, clusterA, resource.NotMatches)}}},
+		{situation: "all resources not in cluster-a", queries: [][]resource.LabelQueryOption{{resource.LabelEqual(omni.LabelCluster, authztest.ClusterA, resource.NotMatches)}}},
 	}
 )
 
@@ -218,7 +124,7 @@ var (
 // There is a golden file for each subject. The resource types which behave the same for the subject are listed together,
 // followed by the situations the calls are made in, e.g., "a resource in cluster-a", and the verbs under their outcome.
 func TestAuthorizationGolden(t *testing.T) {
-	keys := subjectKeys(t)
+	keys := authztest.GenerateKeys(t)
 
 	// the COSI meta types are registered separately from the Omni ones
 	definitions := append(slices.Clone(registry.Resources), &meta.Namespace{}, &meta.ResourceDefinition{})
@@ -228,7 +134,7 @@ func TestAuthorizationGolden(t *testing.T) {
 	})
 
 	// what each subject gets back for each type, in the order of subjects
-	behaviors := make([][]typeBehavior, len(subjects))
+	behaviors := make([][]typeBehavior, len(authztest.Subjects))
 
 	for _, def := range definitions {
 		rd := def.ResourceDefinition()
@@ -257,15 +163,15 @@ func TestAuthorizationGolden(t *testing.T) {
 	}
 
 	w := newWorld(t, keys)
-	files := make(map[string][]byte, len(subjects))
+	files := make(map[string][]byte, len(authztest.Subjects))
 
 	for i, ctx := range w.subjectContexts(t) {
-		s := subjects[i]
+		s := authztest.Subjects[i]
 
-		files[s.name+".yaml"] = goldenFile(t, fmt.Sprintf(goldenHeader, s.name, s.description), behaviors[i], w.flags(t, ctx))
+		files[s.Name+".yaml"] = goldenFile(t, fmt.Sprintf(goldenHeader, s.Name, s.Description), behaviors[i], w.flags(t, ctx))
 	}
 
-	compareGoldenFiles(t, filepath.Join("testdata", "authorization"), files)
+	authztest.CompareGoldenFiles(t, filepath.Join("testdata", "authorization"), files)
 }
 
 // result is a call to the resource API and what the subject got back from it.
@@ -382,7 +288,7 @@ func targetsFor(typ resource.Type, ns resource.Namespace) []target {
 		return append(targets, target{situation: "a resource which does not exist", id: "absent", absent: true})
 	case resources.ExternalNamespace:
 		// read from the etcd backup store of the cluster, the ID is the cluster ID and the backup time
-		return []target{{situation: "a resource which does not exist", id: clusterA + "-1700000000", absent: true}}
+		return []target{{situation: "a resource which does not exist", id: authztest.ClusterA + "-1700000000", absent: true}}
 	}
 
 	if infraprovider.IsInfraProviderNamespace(ns) {
@@ -407,115 +313,32 @@ func linkStatusTargets() []target {
 	// a machine which is not accepted yet can have the ID of a machine in a cluster
 	return append(targets, target{
 		situation: "a resource of a pending machine with the ID of a machine in cluster-a",
-		id:        siderolink.LinkStatusID("machine-a", siderolink.PendingMachineType),
+		id:        siderolink.LinkStatusID(authztest.MemberMachine, siderolink.PendingMachineType),
 	})
-}
-
-type subjectKey struct {
-	fingerprint string
-	pem         []byte
-}
-
-func subjectKeys(t *testing.T) map[string]subjectKey {
-	keys := map[string]subjectKey{}
-
-	for _, s := range subjects {
-		if !s.signedIn() {
-			continue
-		}
-
-		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		require.NoError(t, err)
-
-		der, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-		require.NoError(t, err)
-
-		keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
-
-		key, err := plain.ParseKey(keyPEM)
-		require.NoError(t, err)
-
-		keys[s.name] = subjectKey{pem: keyPEM, fingerprint: key.ID()}
-	}
-
-	return keys
 }
 
 // world is a fresh state with the subjects, the access policy and the infra providers in it.
 type world struct {
 	authorized   state.State
 	unauthorized state.State
-	keys         map[string]subjectKey
+	keys         authztest.Keys
 }
 
-func newWorld(t *testing.T, keys map[string]subjectKey) *world {
+func newWorld(t *testing.T, keys authztest.Keys) *world {
 	authorized, unauthorized, err := omniruntime.NewAuthorizedState("https://omni.example.org")
 	require.NoError(t, err)
 
-	w := &world{authorized: authorized, unauthorized: unauthorized, keys: keys}
-	ctx := actor.MarkContextAsInternalActor(t.Context())
+	authztest.Seed(t, unauthorized, keys)
 
-	policy := testAccessPolicy()
-	require.NoError(t, accesspolicy.Validate(policy))
-
-	fixtures := []resource.Resource{policy, infra.NewProvider(ownProvider), infra.NewProvider(otherProvider)}
-
-	for _, s := range subjects {
-		if !s.signedIn() {
-			continue
-		}
-
-		user := authres.NewUser(s.name)
-		user.TypedSpec().Value.Role = string(s.role)
-
-		identity := authres.NewIdentity(s.identity())
-		identity.TypedSpec().Value.UserId = s.name
-
-		for k, v := range s.labels {
-			identity.Metadata().Labels().Set(k, v)
-		}
-
-		key := authres.NewPublicKey(keys[s.name].fingerprint)
-		key.Metadata().Labels().Set(authres.LabelPublicKeyUserID, s.name)
-		key.TypedSpec().Value.PublicKey = keys[s.name].pem
-		key.TypedSpec().Value.Type = specs.PublicKeySpec_PLAIN
-		key.TypedSpec().Value.Confirmed = true //nolint:staticcheck
-		key.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(time.Hour))
-		key.TypedSpec().Value.Identity = &specs.Identity{Email: s.identity()}
-
-		fixtures = append(fixtures, user, identity, key)
-	}
-
-	// machine-a is a member of cluster-a
-	clusterMachine := omni.NewClusterMachine("machine-a")
-	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterA)
-
-	fixtures = append(fixtures, clusterMachine)
-
-	for _, res := range fixtures {
-		require.NoError(t, w.unauthorized.Create(ctx, res))
-	}
-
-	return w
+	return &world{authorized: authorized, unauthorized: unauthorized, keys: keys}
 }
 
-// subjectContexts signs every subject in through the production authenticator, in the order of subjects.
+// subjectContexts signs every subject in, in the order of subjects.
 func (w *world) subjectContexts(t *testing.T) []context.Context {
-	contexts := make([]context.Context, 0, len(subjects))
+	contexts := make([]context.Context, 0, len(authztest.Subjects))
 
-	for _, s := range subjects {
-		if !s.signedIn() {
-			contexts = append(contexts, t.Context())
-
-			continue
-		}
-
-		fingerprint := w.keys[s.name].fingerprint
-
-		authn, err := authenticator.New(w.unauthorized, s.suspended)(t.Context(), fingerprint)
-		require.NoError(t, err)
-
-		contexts = append(contexts, auth.ContextWithAuthenticator(t.Context(), authn, fingerprint))
+	for _, s := range authztest.Subjects {
+		contexts = append(contexts, authztest.SignIn(t, w.unauthorized, w.keys, s))
 	}
 
 	return contexts
@@ -704,7 +527,7 @@ func (w *world) flags(t *testing.T, ctx context.Context) *yaml.Node {
 		return res.TypedSpec().Value.ProtoReflect(), nil
 	})
 
-	for _, cluster := range []string{clusterA, clusterB} {
+	for _, cluster := range []string{authztest.ClusterA, authztest.ClusterB} {
 		add(virtual.ClusterPermissionsType+" of "+cluster, (&specs.ClusterPermissionsSpec{}).ProtoReflect().Descriptor(), func() (protoreflect.Message, error) {
 			res, err := safe.StateGetByID[*virtual.ClusterPermissions](ctx, w.authorized, cluster)
 			if err != nil {
@@ -737,41 +560,5 @@ func outcome(err error) string {
 		return "invalid-argument"
 	default:
 		return "error"
-	}
-}
-
-// compareGoldenFiles fails when the files differ from the golden files in the directory. With the -update flag it rewrites them.
-//
-// The content is compared and not the bytes, so the formatting of a golden file does not matter.
-func compareGoldenFiles(t *testing.T, dir string, files map[string][]byte) {
-	if *updateGolden {
-		require.NoError(t, os.RemoveAll(dir))
-		require.NoError(t, os.MkdirAll(dir, 0o755))
-
-		for name, content := range files {
-			require.NoError(t, os.WriteFile(filepath.Join(dir, name), content, 0o644))
-		}
-
-		return
-	}
-
-	entries, err := os.ReadDir(dir)
-	require.NoError(t, err, "golden files are missing, create them with -update")
-
-	// a file which no subject writes anymore fails the test too
-	for _, entry := range entries {
-		require.Contains(t, files, entry.Name(), "golden file %s has no subject, rewrite the golden files with -update", entry.Name())
-	}
-
-	for _, name := range slices.Sorted(maps.Keys(files)) {
-		golden, err := os.ReadFile(filepath.Join(dir, name))
-		require.NoError(t, err, "golden file %s is missing, create it with -update", name)
-
-		var expected, actual any
-
-		require.NoError(t, yaml.Unmarshal(golden, &expected), "golden file %s", name)
-		require.NoError(t, yaml.Unmarshal(files[name], &actual))
-
-		require.Equal(t, expected, actual, "authorization changed in %s, review the diff and rewrite the golden files with -update", name)
 	}
 }

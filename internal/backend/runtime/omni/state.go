@@ -37,6 +37,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
@@ -482,4 +483,20 @@ func NewTestState(logger *zap.Logger) (*State, error) {
 		storeFactory:           storeFactory,
 		logger:                 logger,
 	}, nil
+}
+
+// NewAuthorizedState is for tests. It returns the production composition of the namespaced state over in-memory storage, with only the
+// authorization checks on top. The second state is the same composition without the authorization checks.
+func NewAuthorizedState(apiURL string) (authorized, unauthorized state.State, err error) {
+	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defaultCoreState := inmem.NewState()
+	virtualState := virtual.NewState(state.WrapCore(defaultCoreState), nil, apiURL, "", config.Registries{}, config.Support{})
+
+	unauthorized = state.WrapCore(newNamespacedState(defaultCoreState, inmem.NewState(), virtualState, zap.NewNop(), storeFactory))
+
+	return state.WrapCore(validated.NewState(unauthorized, authorizationValidationOptions(unauthorized)...)), unauthorized, nil
 }

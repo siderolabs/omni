@@ -21,6 +21,7 @@ import (
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 type ManagementServer = managementServer
@@ -81,6 +82,13 @@ func WithAuditLogFollowLease(lease time.Duration) ManagementServerOption {
 func WithTalosClientFactory(talosClientFactory TalosClientFactory) ManagementServerOption {
 	return func(server *ManagementServer) {
 		server.talosClientFactory = talosClientFactory
+	}
+}
+
+// WithLogHandler configures the store of the machine logs on a test management server.
+func WithLogHandler(logHandler *siderolink.LogHandler) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.logHandler = logHandler
 	}
 }
 
