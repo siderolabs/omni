@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -203,7 +204,7 @@ func checkRead(ctx context.Context, st state.State, ptr resource.Pointer, verb s
 	}
 
 	err := checkAccess(ctx, st, access, clusterID, false)
-	if status.Code(err) != codes.PermissionDenied || authz.LookupResourceType(ptr.Type()).Cluster != authz.ClusterByMachine {
+	if !errors.Is(err, authz.ErrNoGrant) || authz.LookupResourceType(ptr.Type()).Cluster != authz.ClusterByMachine {
 		return err
 	}
 
@@ -249,7 +250,7 @@ func checkAccess(ctx context.Context, st state.State, access state.Access, clust
 		}
 	}
 
-	return grants.AllowResource(ctx, st, authz.Target{
+	return grants.CheckResource(ctx, st, authz.Target{
 		Type:        access.ResourceType,
 		Verb:        access.Verb,
 		Cluster:     clusterID,

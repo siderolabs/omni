@@ -8,6 +8,7 @@ package grants
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -21,37 +22,40 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
-// AllowResource returns nil when the caller in the context can do the request to the resource API.
+// CheckResource checks whether the caller in the context can do the request to the resource API, and returns an error when it cannot.
+func CheckResource(ctx context.Context, st state.State, target authz.Target) error {
+	return check(ctx, st, func(subject authz.Subject) error {
+		return authz.CheckResource(subject, target)
+	})
+}
+
+// check runs checkSubject for the caller in the context, and again with the grants of the access policy added
+// when the grants of the preset do not cover the request.
 //
 // The grants of a caller come from two places: the preset of the user, and the access policy. The preset is in the context,
-// the access policy has to be read from the state. So the request is checked with the grants of the preset first,
-// and the access policy is read only when those are not enough. Most requests never read it.
-func AllowResource(ctx context.Context, st state.State, target authz.Target) error {
+// the access policy has to be read from the state. So the check runs with the grants of the preset first,
+// and the access policy is read only when those do not cover the request. Most requests never read it.
+func check(ctx context.Context, st state.State, checkSubject func(authz.Subject) error) error {
 	subject := Subject(ctx)
 
-	authzErr := authz.AllowResource(subject, target)
-	if authzErr == nil {
-		return nil
-	}
-
-	// the access policy is only for the users: it cannot help a request without a signature, or an infra provider
-	if !subject.Authenticated || subject.Provider {
-		return authzErr
-	}
-
-	policyGrants, err := accessPolicyGrants(ctx, st)
-	if err != nil {
+	err := checkSubject(subject)
+	if !errors.Is(err, authz.ErrNoGrant) {
 		return err
+	}
+
+	policyGrants, policyErr := accessPolicyGrants(ctx, st)
+	if policyErr != nil {
+		return policyErr
 	}
 
 	// the access policy grants nothing to this user, the first answer stands
 	if len(policyGrants) == 0 {
-		return authzErr
+		return err
 	}
 
 	subject.Grants = append(subject.Grants, policyGrants...)
 
-	return authz.AllowResource(subject, target)
+	return checkSubject(subject)
 }
 
 // Subject returns the caller in the context, with the grants its preset stands for.

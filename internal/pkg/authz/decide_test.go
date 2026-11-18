@@ -31,7 +31,7 @@ func on(r *authz.Role, clusters ...string) authz.Grant {
 	return authz.Grant{Role: r, Scope: authz.Scope{Clusters: clusters}}
 }
 
-func TestAllowResource(t *testing.T) {
+func TestCheckResource(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -197,7 +197,7 @@ func TestAllowResource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := authz.AllowResource(tt.subject, tt.target)
+			err := authz.CheckResource(tt.subject, tt.target)
 
 			assert.Equal(t, tt.code, status.Code(err), "%v", err)
 		})
@@ -215,4 +215,26 @@ func TestPresetGrants(t *testing.T) {
 			assert.True(t, grant.Scope.Global, "%s as %s", grant.Role.Name, preset)
 		}
 	}
+}
+
+func TestErrNoGrant(t *testing.T) {
+	t.Parallel()
+
+	target := authz.Target{Type: omni.ClusterType, Verb: state.Update, Cluster: "a"}
+
+	// no grant covers the request: more grants can change the answer
+	err := authz.CheckResource(authenticated(on(authz.ClusterViewer, "a")), target)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.ErrorIs(t, err, authz.ErrNoGrant)
+
+	// a suspended instance is read-only, whatever the grants are
+	err = authz.CheckResource(authz.Subject{Authenticated: true, Suspended: true, Grants: []authz.Grant{on(authz.ClusterManager, "a")}}, target)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.NotErrorIs(t, err, authz.ErrNoGrant)
+
+	// a request without a signature
+	assert.NotErrorIs(t, authz.CheckResource(authz.Subject{}, target), authz.ErrNoGrant)
+
+	// an infra provider has no grants, and more grants are not what it lacks
+	assert.NotErrorIs(t, authz.CheckResource(authz.Subject{Authenticated: true, Provider: true}, target), authz.ErrNoGrant)
 }

@@ -6,6 +6,8 @@
 package authz
 
 import (
+	"errors"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"google.golang.org/grpc/codes"
@@ -35,8 +37,27 @@ type Target struct {
 	AllClusters bool
 }
 
-// AllowResource returns nil when the subject can do the request to the resource API.
-func AllowResource(subject Subject, target Target) error {
+// ErrNoGrant marks the error of a request which is refused only because no grant of the subject covers it.
+//
+// More grants can change that answer, so a caller which has another source of grants, e.g., the access policy,
+// tries it when it sees this error. Every other refusal is final: no grant makes an instance which is suspended writable.
+var ErrNoGrant = errors.New("no grant covers the request")
+
+// noGrantError is a PermissionDenied error for the client, which is also ErrNoGrant.
+type noGrantError struct {
+	error
+}
+
+func (e noGrantError) GRPCStatus() *status.Status {
+	return status.Convert(e.error)
+}
+
+func (e noGrantError) Is(target error) bool {
+	return target == ErrNoGrant
+}
+
+// CheckResource checks whether the subject can do the request to the resource API, and returns an error when it cannot.
+func CheckResource(subject Subject, target Target) error {
 	if subject.Internal {
 		return nil
 	}
@@ -66,7 +87,7 @@ func AllowResource(subject Subject, target Target) error {
 	}
 
 	if !subject.grants(resourceType, target) {
-		return status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verbOf(target.Verb), target.Type)
+		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verbOf(target.Verb), target.Type)}
 	}
 
 	return nil

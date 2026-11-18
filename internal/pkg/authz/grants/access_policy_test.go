@@ -79,8 +79,8 @@ func TestFromAccessPolicyMatchesCheck(t *testing.T) {
 			result, checkErr := accesspolicy.Check(policy, omni.NewCluster(cluster).Metadata(), identity.Metadata())
 			require.NoError(t, checkErr)
 
-			canRead := authz.AllowResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.Get, Cluster: cluster}) == nil
-			canWrite := authz.AllowResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.Update, Cluster: cluster}) == nil
+			canRead := authz.CheckResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.Get, Cluster: cluster}) == nil
+			canWrite := authz.CheckResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.Update, Cluster: cluster}) == nil
 
 			assert.Equal(t, result.Role.Check(role.Reader) == nil, canRead, "%s reads %s, the policy gives %s", id, cluster, result.Role)
 			assert.Equal(t, result.Role.Check(role.Operator) == nil, canWrite, "%s changes %s, the policy gives %s", id, cluster, result.Role)
@@ -90,7 +90,7 @@ func TestFromAccessPolicyMatchesCheck(t *testing.T) {
 		result, err := accesspolicy.Check(policy, omni.NewCluster("any").Metadata(), identity.Metadata())
 		require.NoError(t, err)
 
-		canListAll := authz.AllowResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.List, AllClusters: true}) == nil
+		canListAll := authz.CheckResource(subject, authz.Target{Type: omni.ClusterType, Verb: state.List, AllClusters: true}) == nil
 
 		assert.Equal(t, result.MatchesAllClusters && result.Role.Check(role.Reader) == nil, canListAll, "%s lists all clusters", id)
 	}
