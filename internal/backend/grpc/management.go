@@ -450,6 +450,10 @@ func (s *managementServer) markClusterAsTainted(ctx context.Context, name string
 		},
 		state.WithUpdateOwner(omniCtrl.ClusterStatusControllerName),
 	); err != nil {
+		if state.IsNotFoundError(err) {
+			return status.Errorf(codes.NotFound, "status of cluster %q not found", name)
+		}
+
 		return err
 	}
 
@@ -493,6 +497,10 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 	}
 
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "failed to get the Talos config of cluster %q: %s", clusterName, err)
+		}
+
 		return nil, err
 	}
 
@@ -529,6 +537,10 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 
 	data, err := s.kubernetesRuntime.BreakGlassKubeconfig(ctx, clusterName)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "failed to get the kubeconfig of cluster %q: %s", clusterName, err)
+		}
+
 		return nil, err
 	}
 
@@ -556,6 +568,10 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 
 	upgradeStatus, err := safe.StateGet[*omnires.KubernetesUpgradeStatus](ctx, s.omniState, omnires.NewKubernetesUpgradeStatus(requestContext.Name).Metadata())
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "Kubernetes upgrade status of cluster %q not found", requestContext.Name)
+		}
+
 		return nil, err
 	}
 

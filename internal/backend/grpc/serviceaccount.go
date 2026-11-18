@@ -45,6 +45,10 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 
 	id, err := serviceaccount.Create(ctx, s.omniState, req.Name, req.Role, req.UseUserRole, []byte(req.ArmoredPgpPublicKey))
 	if err != nil {
+		if errors.Is(err, serviceaccount.ErrInvalid) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+
 		return nil, wrapError(err)
 	}
 
@@ -65,6 +69,10 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(id).Metadata())
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "service account %q not found", req.Name)
+		}
+
 		return nil, err
 	}
 
@@ -73,7 +81,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		pgp.WithMaxAllowedLifetime(auth.ServiceAccountMaxAllowedLifetime),
 	)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	publicKeyResource := authres.NewPublicKey(key.ID)
@@ -224,6 +232,10 @@ func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *ma
 
 	clusterUUID, err := safe.StateGetByID[*omni.ClusterUUID](ctx, s.omniState, cluster)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "UUID of cluster %q not found", cluster)
+		}
+
 		return nil, fmt.Errorf("failed to get cluster UUID: %w", err)
 	}
 

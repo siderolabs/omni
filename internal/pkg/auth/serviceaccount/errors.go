@@ -5,7 +5,14 @@
 
 package serviceaccount
 
-import "github.com/cosi-project/runtime/pkg/resource"
+import (
+	"errors"
+
+	"github.com/cosi-project/runtime/pkg/resource"
+)
+
+// ErrInvalid is the error of a request which cannot be fulfilled as it is, e.g., a role which does not fit the name of the service account.
+var ErrInvalid = errors.New("invalid service account request")
 
 //nolint:errname
 type eNotFound struct {

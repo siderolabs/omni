@@ -33,21 +33,21 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	saRole := role.Admin
 
 	if useUserRole && sa.IsInfraProvider {
-		return "", fmt.Errorf("infra provider service accounts must have the role %q, but use-user-role was requested", role.InfraProvider)
+		return "", fmt.Errorf("%w: infra provider service accounts must have the role %q, but use-user-role was requested", ErrInvalid, role.InfraProvider)
 	}
 
 	if !useUserRole {
 		var err error
 		if saRole, err = role.Parse(userRole); err != nil {
-			return "", err
+			return "", fmt.Errorf("%w: %w", ErrInvalid, err)
 		}
 
 		if sa.IsInfraProvider && saRole != role.InfraProvider {
-			return "", fmt.Errorf("infra-provider service accounts must have the role %q", role.InfraProvider)
+			return "", fmt.Errorf("%w: infra-provider service accounts must have the role %q", ErrInvalid, role.InfraProvider)
 		}
 
 		if saRole == role.InfraProvider && !sa.IsInfraProvider {
-			return "", fmt.Errorf("service accounts with role %q must be prefixed with %q", role.InfraProvider, access.InfraProviderServiceAccountPrefix)
+			return "", fmt.Errorf("%w: service accounts with role %q must be prefixed with %q", ErrInvalid, role.InfraProvider, access.InfraProviderServiceAccountPrefix)
 		}
 	}
 
@@ -74,7 +74,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 		pgp.WithMaxAllowedLifetime(auth.ServiceAccountMaxAllowedLifetime),
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %w", ErrInvalid, err)
 	}
 
 	newUserID := uuid.NewString()

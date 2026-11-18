@@ -18,8 +18,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/siderolabs/go-kubeconfig"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/siderolabs/omni/client/internal/safeout"
@@ -150,10 +148,6 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 
 		data, err := client.Management().WithCluster(kubeconfigCmdFlags.cluster).Kubeconfig(ctx, opts...)
 		if err != nil {
-			if code, ok := status.FromError(err); ok && code.Code() == codes.NotFound {
-				return fmt.Errorf("cluster %s not found", kubeconfigCmdFlags.cluster)
-			}
-
 			return err
 		}
 

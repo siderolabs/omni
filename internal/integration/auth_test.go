@@ -393,9 +393,9 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 					_, err := cli.Management().CreateServiceAccount(ctx, "doesntmatter", "doesntmatter", string(role.None), true)
 
 					// the call passes an intentionally invalid armored PGP key, which fails parsing after the
-					// authz check with codes.Unknown. Authz failures surface as codes.PermissionDenied, so treat
+					// authz check with codes.InvalidArgument. Authz failures surface as codes.PermissionDenied, so treat
 					// the parse error as success here instead of matching the library error text.
-					if status.Code(err) == codes.Unknown {
+					if status.Code(err) == codes.InvalidArgument {
 						return nil
 					}
 
@@ -410,8 +410,8 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 				fn: func(ctx context.Context, cli *client.Client) error {
 					_, err := cli.Management().RenewServiceAccount(ctx, "doesntmatter", "doesntmatter")
 
-					// ignore "identity not found" error
-					if err != nil && strings.Contains(err.Error(), "doesn't exist") {
+					// the service account does not exist, which is found out after the authz check
+					if status.Code(err) == codes.NotFound {
 						return nil
 					}
 
