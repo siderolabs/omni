@@ -17,7 +17,9 @@ import {
 import type { ClassValue } from 'vue'
 
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import { cn } from '@/methods/utils'
+
+import TButtonGroupItem from './primitives/TButtonGroupItem.vue'
+import TButtonGroupRoot from './primitives/TButtonGroupRoot.vue'
 
 const props = defineProps<
   RadioGroupRootProps & {
@@ -38,20 +40,15 @@ const forwarded = useForwardPropsEmits(delegatedProps, emit)
 </script>
 
 <template>
-  <RadioGroupRoot
-    v-bind="forwarded"
-    :class="cn('flex gap-micro rounded bg-surface-raised p-micro', props.class)"
-  >
-    <RadioGroupItem
-      v-for="(o, index) in options"
-      :key="index"
-      :value="o.value"
-      :disabled="o.disabled"
-      class="rounded border-border-strong text-xs text-content-muted transition-colors duration-200 hover:bg-surface-inert hover:text-content-default data-disabled:cursor-not-allowed data-disabled:text-content-muted data-disabled:hover:bg-surface-raised data-[state=checked]:bg-surface-inert data-[state=checked]:text-content-emphasis data-[state=checked]:ring-1 data-[state=checked]:ring-border-strong"
-    >
-      <Tooltip :description="o.tooltip" placement="top">
-        <span class="inline-block px-tight py-micro">{{ o.label || o.value }}</span>
-      </Tooltip>
-    </RadioGroupItem>
-  </RadioGroupRoot>
+  <TButtonGroupRoot :class="props.class">
+    <RadioGroupRoot v-bind="forwarded">
+      <TButtonGroupItem v-for="(o, index) in options" :key="index">
+        <RadioGroupItem :value="o.value" :disabled="o.disabled">
+          <Tooltip :description="o.tooltip" placement="top">
+            <span class="inline-block px-tight py-micro">{{ o.label || o.value }}</span>
+          </Tooltip>
+        </RadioGroupItem>
+      </TButtonGroupItem>
+    </RadioGroupRoot>
+  </TButtonGroupRoot>
 </template>

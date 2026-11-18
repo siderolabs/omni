@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterMachineStatusSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -18,14 +18,12 @@ import {
 } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
-import TabButton from '@/components/Tabs/TabButton.vue'
-import TabContent from '@/components/Tabs/TabContent.vue'
-import Tabs from '@/components/Tabs/Tabs.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { getMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import MachinePageNav, { type MachinePageTab } from '@/views/Machines/components/MachinePageNav.vue'
 import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
 definePage({ name: 'NodeDetails' })
@@ -62,62 +60,34 @@ const isPartOfCluster = computed(
   () => machine.value?.metadata.labels?.[LabelCluster] === clusterId.value,
 )
 
-const routes = computed(() => {
-  return [
-    {
-      name: 'Overview',
-      to: { name: 'NodeOverview', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Monitor',
-      to: { name: 'NodeMonitor', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Logs',
-      to: { name: 'NodeLogs', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Config',
-      to: { name: 'NodeConfig', params: { machine: machineId.value } },
-      disabled: !canReadMachineConfig.value,
-    },
-    {
-      name: 'Pending Updates',
-      to: { name: 'NodePendingUpdates', params: { machine: machineId.value } },
-      disabled: !canReadMachinePendingUpdates.value,
-    },
-    {
-      name: 'Change History',
-      to: { name: 'NodeConfigDiffs', params: { machine: machineId.value } },
-      disabled: !canReadMachineConfig.value,
-    },
-    {
-      name: 'Patches',
-      to: { name: 'NodePatches', params: { machine: machineId.value } },
-      disabled: !canReadConfigPatches.value,
-    },
-    {
-      name: 'KubeSpan',
-      to: { name: 'NodeKubeSpanStatus', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Disks',
-      to: { name: 'NodeDisks', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Devices',
-      to: { name: 'NodeDevices', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Extensions',
-      to: { name: 'NodeExtensions', params: { machine: machineId.value } },
-    },
-    {
-      name: 'Kernel Args',
-      to: { name: 'NodeKernelArgs' },
-    },
-  ]
-})
+const tabs = computed<MachinePageTab[]>(() => [
+  { name: 'Overview', pages: [{ name: 'Overview', route: 'NodeOverview' }] },
+  { name: 'Monitor', pages: [{ name: 'Monitor', route: 'NodeMonitor' }] },
+  { name: 'Logs', pages: [{ name: 'Logs', route: 'NodeLogs' }] },
+  {
+    name: 'Configuration',
+    pages: [
+      { name: 'Current', route: 'NodeConfig', disabled: !canReadMachineConfig.value },
+      { name: 'Patches', route: 'NodePatches', disabled: !canReadConfigPatches.value },
+      {
+        name: 'Pending Updates',
+        route: 'NodePendingUpdates',
+        disabled: !canReadMachinePendingUpdates.value,
+      },
+      { name: 'Change History', route: 'NodeConfigDiffs', disabled: !canReadMachineConfig.value },
+    ],
+  },
+  {
+    name: 'System',
+    pages: [
+      { name: 'Disks', route: 'NodeDisks' },
+      { name: 'Devices', route: 'NodeDevices' },
+      { name: 'Extensions', route: 'NodeExtensions' },
+      { name: 'Kernel Args', route: 'NodeKernelArgs' },
+      { name: 'KubeSpan', route: 'NodeKubeSpanStatus' },
+    ],
+  },
+])
 
 useTitle(() => getMachineName(machine.value) || machineId.value)
 </script>
@@ -137,35 +107,11 @@ useTitle(() => getMachineName(machine.value) || machineId.value)
       </TAlert>
     </div>
 
-    <Tabs
-      :model-value="$route.name?.toString()"
-      class="grow overflow-y-hidden"
-      tabs-list-class="px-compact md:px-base"
-    >
-      <template #triggers>
-        <TabButton
-          v-for="{ name, to, disabled } in routes"
-          :key="name"
-          :as="RouterLink"
-          :value="to.name"
-          :to
-          :disabled
-        >
-          {{ name }}
-        </TabButton>
-      </template>
+    <MachinePageNav :tabs />
 
-      <template #contents>
-        <TabContent
-          v-for="{ name, to } in routes"
-          :key="name"
-          class="grow overflow-y-auto"
-          :value="to.name"
-        >
-          <RouterView v-if="machine && clusterMachine" :machine :cluster-machine />
-        </TabContent>
-      </template>
-    </Tabs>
+    <div class="min-h-0 grow overflow-y-auto">
+      <RouterView v-if="machine && clusterMachine" :machine :cluster-machine />
+    </div>
   </div>
 
   <PageContainer v-else class="font-sm flex-1">

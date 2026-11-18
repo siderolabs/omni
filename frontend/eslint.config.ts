@@ -118,6 +118,12 @@ export default withVueTs(
               group: ['@/components/icons/*', '**/icons/*'],
               message: 'Use <TIcon icon="..." /> instead; icons are registered in icons.ts.',
             },
+            {
+              // Only a component next to a primitives/ folder may import from it, as ./primitives/
+              group: ['**/primitives/*', '!./primitives/*'],
+              message:
+                'Primitives are building blocks for the components beside them; import one of those components instead.',
+            },
           ],
         },
       ],

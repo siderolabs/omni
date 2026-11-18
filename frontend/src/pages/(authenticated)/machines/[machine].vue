@@ -6,20 +6,18 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, type RouterView, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { MaintenanceConfigStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MaintenanceConfigStatusType } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
-import TabButton from '@/components/Tabs/TabButton.vue'
-import TabContent from '@/components/Tabs/TabContent.vue'
-import Tabs from '@/components/Tabs/Tabs.vue'
 import TAlert from '@/components/TAlert.vue'
 import { usePermissions } from '@/methods/auth'
 import { useMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import MachinePageNav, { type MachinePageTab } from '@/views/Machines/components/MachinePageNav.vue'
 
 definePage({
   name: 'Machine',
@@ -30,37 +28,32 @@ definePage({
 
 const { canReadMachineConfigPatches } = usePermissions()
 
-const routes = computed(() => {
-  return [
-    {
-      name: 'Logs',
-      to: { name: 'MachineLogs' },
-    },
-    {
-      name: 'Patches',
-      to: { name: 'MachineConfigPatches' },
-      disabled: !canReadMachineConfigPatches.value,
-    },
-    {
-      name: 'Disks',
-      to: { name: 'MachineDisks' },
-    },
-    {
-      name: 'Devices',
-      to: { name: 'MachineDevices' },
-    },
-    {
-      name: 'Extensions',
-      to: { name: 'MachineExtensions' },
-    },
-    {
-      name: 'Kernel Args',
-      to: { name: 'MachineKernelArgs' },
-    },
-  ]
-})
-
 const route = useRoute()
+
+// The same tabs as a machine in a cluster, less the pages that need one
+const tabs = computed<MachinePageTab[]>(() => [
+  { name: 'Logs', pages: [{ name: 'Logs', route: 'MachineLogs' }] },
+  {
+    name: 'Configuration',
+    pages: [
+      {
+        name: 'Patches',
+        route: 'MachineConfigPatches',
+        alsoOn: ['MachinePatchEdit'],
+        disabled: !canReadMachineConfigPatches.value,
+      },
+    ],
+  },
+  {
+    name: 'System',
+    pages: [
+      { name: 'Disks', route: 'MachineDisks' },
+      { name: 'Devices', route: 'MachineDevices' },
+      { name: 'Extensions', route: 'MachineExtensions' },
+      { name: 'Kernel Args', route: 'MachineKernelArgs' },
+    ],
+  },
+])
 
 const machineName = useMachineName(() => route.params.machine)
 
@@ -72,13 +65,6 @@ const { data: maintenanceConfigStatus } = useResourceWatch<MaintenanceConfigStat
     id: route.params.machine,
   },
 }))
-
-/**
- * Some child routes do not match any tab, e.g. MachinePatchEdit
- */
-const hasMatchingTab = computed(() =>
-  routes.value.some((r) => r.to.name === route.name?.toString()),
-)
 
 useTitle(() => ['Machines', machineName.value])
 </script>
@@ -96,31 +82,10 @@ useTitle(() => ['Machines', machineName.value])
       {{ maintenanceConfigStatus.spec.last_config_error.trim() }}
     </TAlert>
 
-    <Tabs
-      :model-value="$route.name?.toString()"
-      :class="{ grow: hasMatchingTab }"
-      tabs-list-class="px-compact md:px-base"
-    >
-      <template #triggers>
-        <TabButton
-          v-for="{ name, to, disabled } in routes"
-          :key="name"
-          :as="RouterLink"
-          :value="to.name"
-          :to
-          :disabled
-        >
-          {{ name }}
-        </TabButton>
-      </template>
+    <MachinePageNav :tabs />
 
-      <template #contents>
-        <TabContent v-for="{ name, to } in routes" :key="name" class="grow" :value="to.name">
-          <RouterView class="h-full" />
-        </TabContent>
-      </template>
-    </Tabs>
-
-    <RouterView v-if="!hasMatchingTab" class="grow" />
+    <div class="min-h-0 grow overflow-y-auto">
+      <RouterView class="h-full" />
+    </div>
   </div>
 </template>

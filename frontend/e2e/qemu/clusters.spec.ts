@@ -11,6 +11,8 @@ import { dump, load } from 'js-yaml'
 import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
 
+import { ClusterMachinePage } from '../models/ClusterMachinePage'
+import { MachinePage } from '../models/MachinePage'
 import { expect, test as base } from '../omnictl_fixtures.js'
 
 const clusterName = 'talos-test-cluster'
@@ -41,6 +43,8 @@ test.describe.configure({ mode: 'serial', retries: 0 })
 const cpMachineName = 'deadbeef'
 
 test('machine overview tabs', async ({ page }) => {
+  const machine = new MachinePage(page)
+
   await page.goto('/')
   await page.getByRole('link', { name: 'Machines' }).click()
 
@@ -51,7 +55,7 @@ test('machine overview tabs', async ({ page }) => {
     .click()
 
   await test.step('Validate logs tab', async () => {
-    await page.getByRole('tab', { name: 'Logs', exact: true }).click()
+    await machine.open('Logs')
 
     await page.getByPlaceholder('Search').fill('[talos]')
     await expect.soft(page.getByText(/\[talos\]/).first()).toBeVisible()
@@ -61,12 +65,12 @@ test('machine overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate patches tab', async () => {
-    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
+    await machine.open('Configuration')
     await expect.soft(page.getByRole('heading', { name: 'No Config Patches' })).toBeVisible()
   })
 
   await test.step('Validate disks tab', async () => {
-    await page.getByRole('tab', { name: 'Disks', exact: true }).click()
+    await machine.open('System', 'Disks')
 
     await expect
       .soft(page.getByRole('region', { name: 'vda' }).getByText('Unallocated6.44 GB'))
@@ -74,17 +78,17 @@ test('machine overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate devices tab', async () => {
-    await page.getByRole('tab', { name: 'Devices', exact: true }).click()
+    await machine.open('System', 'Devices')
     await expect.soft(page.getByText('Ethernet controller')).toBeVisible()
   })
 
   await test.step('Validate extensions tab', async () => {
-    await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
+    await machine.open('System', 'Extensions')
     await expect.soft(page.getByText('siderolabs/hello-world-service')).toBeVisible()
   })
 
   await test.step('Validate kernel args tab', async () => {
-    await page.getByRole('tab', { name: 'Kernel Args', exact: true }).click()
+    await machine.open('System', 'Kernel Args')
 
     const cmdLine = page.getByLabel('Current Kernel Cmdline')
     const extraArgs = page.getByLabel('Extra Kernel Args', { exact: true })
@@ -162,7 +166,7 @@ hostname: ${cpMachineName}`)
 
   // Check that extensions are added
   await page.getByRole('link', { name: cpMachineName }).click()
-  await page.getByRole('tab', { name: 'Extensions' }).click()
+  await new ClusterMachinePage(page).open('System', 'Extensions')
 
   await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
 })
@@ -282,7 +286,7 @@ test('add control plane patch', async ({ page }, testInfo) => {
 
   await test.step('Visit config patches for control plane', async () => {
     await page.getByRole('link', { name: cpMachineName }).click()
-    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
+    await new ClusterMachinePage(page).open('Configuration', 'Patches')
     await page.getByRole('link', { name: 'Create Patch' }).click()
   })
 
@@ -440,7 +444,7 @@ test('kubespan', async ({ page }) => {
 
     await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
     await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
-    await page.getByRole('tab', { name: 'KubeSpan', exact: true }).click()
+    await new ClusterMachinePage(page).open('System', 'KubeSpan')
   })
 
   await test.step('Add kubespan patch', async () => {
@@ -467,6 +471,8 @@ test('kubespan', async ({ page }) => {
 })
 
 test('node overview tabs', async ({ page }) => {
+  const machine = new ClusterMachinePage(page)
+
   await page.goto('/')
   await page.getByRole('link', { name: 'Clusters' }).click()
 
@@ -477,7 +483,7 @@ test('node overview tabs', async ({ page }) => {
   await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
 
   await test.step('Validate monitor tab', async () => {
-    await page.getByRole('tab', { name: 'Monitor', exact: true }).click()
+    await machine.open('Monitor')
     await expect.soft(page.getByText('CPU usage')).toBeVisible()
     await expect.soft(page.getByText('Memory', { exact: true })).toBeVisible()
     await expect.soft(page.getByText('Processes')).toBeVisible()
@@ -485,7 +491,7 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate console logs tab', async () => {
-    await page.getByRole('tab', { name: 'Logs', exact: true }).click()
+    await machine.open('Logs')
 
     await page.getByPlaceholder('Search').fill('[talos]')
     await expect.soft(page.getByText(/\[talos\]/).first()).toBeVisible()
@@ -495,17 +501,17 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate config tab', async () => {
-    await page.getByRole('tab', { name: 'Config', exact: true }).click()
+    await machine.open('Configuration', 'Current')
     await expect(page.getByText('version: v1alpha1').first()).toBeVisible()
   })
 
   await test.step('Validate pending updates tab', async () => {
-    await page.getByRole('tab', { name: 'Pending Updates', exact: true }).click()
+    await machine.open('Configuration', 'Pending Updates')
     await expect(page.getByText('No pending updates found for this machine')).toBeVisible()
   })
 
   await test.step('Validate change history tab', async () => {
-    await page.getByRole('tab', { name: 'Change History', exact: true }).click()
+    await machine.open('Configuration', 'Change History')
     await expect(
       page.locator('[data-line-type="change-addition"]').filter({ hasText: 'variables:' }),
     ).toBeVisible()
@@ -517,7 +523,7 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate patches tab', async () => {
-    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
+    await machine.open('Configuration', 'Patches')
     await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
     await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
     await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
@@ -525,11 +531,11 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate kubespan tab', async () => {
-    await page.getByRole('tab', { name: 'KubeSpan', exact: true }).click()
+    await machine.open('System', 'KubeSpan')
   })
 
   await test.step('Validate disks tab', async () => {
-    await page.getByRole('tab', { name: 'Disks', exact: true }).click()
+    await machine.open('System', 'Disks')
 
     const row = page.getByRole('region', { name: 'vda' }).getByRole('row', { name: 'EPHEMERAL' })
 
@@ -539,18 +545,18 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate devices tab', async () => {
-    await page.getByRole('tab', { name: 'Devices', exact: true }).click()
+    await machine.open('System', 'Devices')
     await expect(page.getByText('Ethernet controller')).toBeVisible()
   })
 
   await test.step('Validate extensions tab', async () => {
-    await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
+    await machine.open('System', 'Extensions')
     await expect(page.getByText('siderolabs/hello-world-service')).toBeVisible()
     await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
   })
 
   await test.step('Validate kernel args tab', async () => {
-    await page.getByRole('tab', { name: 'Kernel Args', exact: true }).click()
+    await machine.open('System', 'Kernel Args')
 
     const cmdLine = page.getByLabel('Current Kernel Cmdline')
     const extraArgs = page.getByLabel('Extra Kernel Args', { exact: true })
