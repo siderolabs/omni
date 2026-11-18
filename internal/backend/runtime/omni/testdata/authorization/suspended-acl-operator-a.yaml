@@ -609,22 +609,22 @@ flags:
     can_manage_installation_media: false
     can_access_internals: false
   ClusterPermissions.omni.sidero.dev of cluster-a:
-    can_add_machines: true
-    can_remove_machines: true
-    can_reboot_machines: true
-    can_update_kubernetes: true
+    can_add_machines: false
+    can_remove_machines: false
+    can_reboot_machines: false
+    can_update_kubernetes: false
     can_download_kubeconfig: true
-    can_sync_kubernetes_manifests: true
-    can_update_talos: true
+    can_sync_kubernetes_manifests: false
+    can_update_talos: false
     can_download_talosconfig: true
     can_read_config_patches: true
-    can_manage_config_patches: true
-    can_manage_cluster_features: true
+    can_manage_config_patches: false
+    can_manage_cluster_features: false
     can_download_support_bundle: true
     can_read_machine_config: true
-    can_manage_machine_config: true
+    can_manage_machine_config: false
     can_read_kernel_args: true
-    can_manage_kernel_args: true
+    can_manage_kernel_args: false
     can_read_machine_pending_updates: true
     can_read_kubernetes_manifests: true
   ClusterPermissions.omni.sidero.dev of cluster-b:

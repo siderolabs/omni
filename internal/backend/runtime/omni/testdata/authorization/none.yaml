@@ -570,10 +570,10 @@ flags:
     can_remove_machines: false
     can_reboot_machines: false
     can_update_kubernetes: false
-    can_download_kubeconfig: false
+    can_download_kubeconfig: true
     can_sync_kubernetes_manifests: false
     can_update_talos: false
-    can_download_talosconfig: false
+    can_download_talosconfig: true
     can_read_config_patches: false
     can_manage_config_patches: false
     can_manage_cluster_features: false
@@ -589,10 +589,10 @@ flags:
     can_remove_machines: false
     can_reboot_machines: false
     can_update_kubernetes: false
-    can_download_kubeconfig: false
+    can_download_kubeconfig: true
     can_sync_kubernetes_manifests: false
     can_update_talos: false
-    can_download_talosconfig: false
+    can_download_talosconfig: true
     can_read_config_patches: false
     can_manage_config_patches: false
     can_manage_cluster_features: false

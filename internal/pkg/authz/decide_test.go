@@ -237,4 +237,139 @@ func TestErrNoGrant(t *testing.T) {
 
 	// an infra provider has no grants, and more grants are not what it lacks
 	assert.NotErrorIs(t, authz.CheckResource(authz.Subject{Authenticated: true, Provider: true}, target), authz.ErrNoGrant)
+
+	// the checks of a resource group and of an operation mark a missing grant the same way
+	assert.ErrorIs(t, authz.CheckResourceGroup(authenticated(on(authz.ClusterViewer, "a")), authz.Clusters, authz.Update, target), authz.ErrNoGrant)
+	assert.ErrorIs(t, authz.CheckOperation(authenticated(on(authz.ClusterViewer, "a")), authz.ClusterDiagnostics, target), authz.ErrNoGrant)
+}
+
+func TestCheckOperation(t *testing.T) {
+	t.Parallel()
+
+	suspended := func(grants ...authz.Grant) authz.Subject {
+		return authz.Subject{Authenticated: true, Suspended: true, Grants: grants}
+	}
+
+	for _, tt := range []struct {
+		name      string
+		operation authz.Operation
+		subject   authz.Subject
+		target    authz.Target
+		code      codes.Code
+	}{
+		{name: "not signed in", operation: authz.AuditLog, code: codes.Unauthenticated},
+		{name: "omni itself", operation: authz.BreakGlass, subject: authz.Subject{Internal: true}},
+		{name: "infra provider", operation: authz.MachinePower, subject: authz.Subject{Authenticated: true, Provider: true}, code: codes.PermissionDenied},
+		{name: "no grants", operation: authz.AuditLog, subject: authenticated(), code: codes.PermissionDenied},
+		{name: "role without the operation", operation: authz.AuditLog, subject: authenticated(on(authz.ClusterManager)), code: codes.PermissionDenied},
+		{name: "role with the operation", operation: authz.AuditLog, subject: authenticated(on(authz.AuditLogViewer))},
+		{
+			name: "cluster manager gets the diagnostics of its cluster", operation: authz.ClusterDiagnostics,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "cluster manager gets the diagnostics of another cluster", operation: authz.ClusterDiagnostics,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "b"}, code: codes.PermissionDenied,
+		},
+		{
+			name: "cluster viewer gets no diagnostics", operation: authz.ClusterDiagnostics,
+			subject: authenticated(on(authz.ClusterViewer, "a")), target: authz.Target{Cluster: "a"}, code: codes.PermissionDenied,
+		},
+		{
+			name: "cluster manager powers a machine of its cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "cluster manager powers a machine of another cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "b"}, code: codes.PermissionDenied,
+		},
+		{
+			name: "cluster manager of all clusters powers a machine in no cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.ClusterManager)), code: codes.PermissionDenied,
+		},
+		{
+			name: "machine manager powers a machine in no cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.MachineManager)),
+		},
+		{
+			name: "machine manager powers a machine of a cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.MachineManager)), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "cluster manager has no maintenance", operation: authz.MachineMaintenance,
+			subject: authenticated(on(authz.ClusterManager)), code: codes.PermissionDenied,
+		},
+		{
+			name: "suspended, operation which only reads", operation: authz.ClusterDiagnostics,
+			subject: suspended(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "suspended, any other operation", operation: authz.MachinePower,
+			subject: suspended(on(authz.MachineManager)), code: codes.PermissionDenied,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.code, status.Code(authz.CheckOperation(tt.subject, tt.operation, tt.target)))
+		})
+	}
+}
+
+func TestCheckResourceGroup(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		group   authz.ResourceGroup
+		subject authz.Subject
+		target  authz.Target
+		verb    authz.Verbs
+		code    codes.Code
+	}{
+		{name: "not signed in", group: authz.Clusters, verb: authz.Read, code: codes.Unauthenticated},
+		{name: "omni itself", group: authz.AccessControl, verb: authz.Destroy, subject: authz.Subject{Internal: true}},
+		{
+			name: "infra provider", group: authz.Providers, verb: authz.Read,
+			subject: authz.Subject{Authenticated: true, Provider: true}, code: codes.PermissionDenied,
+		},
+		{
+			name: "verb of the role on a cluster of the grant", group: authz.Clusters, verb: authz.Update,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "verb of the role on another cluster", group: authz.Clusters, verb: authz.Update,
+			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "b"}, code: codes.PermissionDenied,
+		},
+		{
+			name: "verb the role does not have", group: authz.Clusters, verb: authz.Update,
+			subject: authenticated(on(authz.ClusterViewer)), target: authz.Target{Cluster: "a"}, code: codes.PermissionDenied,
+		},
+		{
+			name: "grant on clusters does not reach the instance", group: authz.MachineManagement, verb: authz.Create,
+			subject: authenticated(on(authz.ClusterManager, "a")), code: codes.PermissionDenied,
+		},
+		{
+			name: "cluster viewer reads the machines of a cluster", group: authz.Machines, verb: authz.Read,
+			subject: authenticated(on(authz.ClusterViewer)), target: authz.Target{Cluster: "a"},
+		},
+		{
+			name: "cluster viewer does not read the machines in no cluster", group: authz.Machines, verb: authz.Read,
+			subject: authenticated(on(authz.ClusterViewer)), code: codes.PermissionDenied,
+		},
+		{
+			name: "suspended, read", group: authz.Clusters, verb: authz.Read,
+			subject: authz.Subject{Authenticated: true, Suspended: true, Grants: authz.PresetGrants(role.Admin)},
+		},
+		{
+			name: "suspended, write", group: authz.Clusters, verb: authz.Update,
+			subject: authz.Subject{Authenticated: true, Suspended: true, Grants: authz.PresetGrants(role.Admin)}, code: codes.PermissionDenied,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.code, status.Code(authz.CheckResourceGroup(tt.subject, tt.group, tt.verb, tt.target)))
+		})
+	}
 }

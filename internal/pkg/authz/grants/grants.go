@@ -29,6 +29,20 @@ func CheckResource(ctx context.Context, st state.State, target authz.Target) err
 	})
 }
 
+// CheckResourceGroup checks whether the caller in the context has the verb on the resource group for the target, and returns an error when it has not.
+func CheckResourceGroup(ctx context.Context, st state.State, group authz.ResourceGroup, verb authz.Verbs, target authz.Target) error {
+	return check(ctx, st, func(subject authz.Subject) error {
+		return authz.CheckResourceGroup(subject, group, verb, target)
+	})
+}
+
+// CheckOperation checks whether the caller in the context can do the operation on the target, and returns an error when it cannot.
+func CheckOperation(ctx context.Context, st state.State, operation authz.Operation, target authz.Target) error {
+	return check(ctx, st, func(subject authz.Subject) error {
+		return authz.CheckOperation(subject, operation, target)
+	})
+}
+
 // check runs checkSubject for the caller in the context, and again with the grants of the access policy added
 // when the grants of the preset do not cover the request.
 //

@@ -30,6 +30,7 @@ Kubeconfig:
   no cluster: unauthenticated
   a service account of cluster-a: unauthenticated
   a service account of cluster-b: unauthenticated
+  a service account of no cluster: unauthenticated
   break-glass access to cluster-a: unauthenticated
 KubernetesSyncManifests:
   cluster-a: unauthenticated

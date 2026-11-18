@@ -11,10 +11,11 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 )
 
-// Rule grants verbs on resource groups.
+// Rule grants either verbs on resource groups, or operations.
 type Rule struct {
-	Groups []ResourceGroup
-	Verbs  Verbs
+	Groups     []ResourceGroup
+	Operations []Operation
+	Verbs      Verbs
 }
 
 // Role is a named list of rules.
@@ -48,6 +49,7 @@ var (
 		Rules: []Rule{
 			{Groups: []ResourceGroup{Clusters}, Verbs: AllVerbs},
 			{Groups: []ResourceGroup{Machines}, Verbs: Read},
+			{Operations: []Operation{ClusterDiagnostics, MachinePower}},
 		},
 	}
 
@@ -80,12 +82,16 @@ var (
 		Rules: []Rule{
 			{Groups: []ResourceGroup{Machines, MachineManagement}, Verbs: AllVerbs},
 			{Groups: []ResourceGroup{Providers}, Verbs: Read},
+			{Operations: []Operation{MachinePower, MachineMaintenance}},
 		},
 	}
 
 	AuditLogViewer = &Role{
 		Name:        "audit-log-viewer",
 		Description: "Read the audit log.",
+		Rules: []Rule{
+			{Operations: []Operation{AuditLog}},
+		},
 	}
 
 	AccessManager = &Role{
@@ -93,6 +99,7 @@ var (
 		Description: "Manage users, service accounts and their access, the infra providers and the credentials Omni stores.",
 		Rules: []Rule{
 			{Groups: []ResourceGroup{AccessControl, Providers}, Verbs: AllVerbs},
+			{Operations: []Operation{BreakGlass}},
 		},
 	}
 )
@@ -106,6 +113,13 @@ func Roles() []*Role {
 func (r *Role) allows(group ResourceGroup, verb Verbs) bool {
 	return slices.ContainsFunc(r.Rules, func(rule Rule) bool {
 		return rule.Verbs&verb != 0 && slices.Contains(rule.Groups, group)
+	})
+}
+
+// allowsOperation reports whether a rule of the role grants the operation.
+func (r *Role) allowsOperation(operation Operation) bool {
+	return slices.ContainsFunc(r.Rules, func(rule Rule) bool {
+		return slices.Contains(rule.Operations, operation)
 	})
 }
 

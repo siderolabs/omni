@@ -351,7 +351,9 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 		correctErrorType := status.Code(err) == codes.PermissionDenied || state.IsOwnerConflictError(err)
 
 		assert.Truef(t, correctErrorType, "unexpected error: %v", err)
-		assert.ErrorContainsf(t, err, "insufficient role", "unexpected error: %v", err)
+		// The surfaces which are checked with the RBAC v2 model answer with "no role grants", the others with "insufficient role".
+		// The role below Reader is the one of the infra providers, which the RBAC v2 model refuses with its own message.
+		assert.Regexpf(t, "insufficient role|no role grants|infra providers have no access", err.Error(), "unexpected error: %v", err)
 	}
 
 	// the audit log is gated by exact role rather than by rank, so a denied actor is not "insufficient":
@@ -375,7 +377,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 			// Management API tests - global
 			{
 				namePrefix:    "mgmt-talosconfig",
-				requiredRole:  role.Reader,
+				requiredRole:  role.None, // the config holds no credentials, the access is checked when it is used
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
@@ -555,7 +557,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 			// Management API tests - cluster-specific
 			{
 				namePrefix:    "mgmt-cluster-kubeconfig-user",
-				requiredRole:  role.Reader,
+				requiredRole:  role.None, // the config holds no credentials, the access is checked when it is used
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
@@ -580,7 +582,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 			},
 			{
 				namePrefix:    "mgmt-cluster-talosconfig",
-				requiredRole:  role.Reader,
+				requiredRole:  role.None, // the config holds no credentials, the access is checked when it is used
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {

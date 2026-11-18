@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -36,8 +37,10 @@ func TestManagementStatusCodes(t *testing.T) {
 	const cluster = "missing"
 
 	for _, tt := range []struct {
-		call     func(ctx context.Context, server *grpcomni.ManagementServer) error
-		name     string
+		call func(ctx context.Context, server *grpcomni.ManagementServer) error
+		name string
+		// message is a part of the expected error, for a code which the handler returns for more than one reason
+		message  string
 		backend  noBackend
 		expected codes.Code
 	}{
@@ -134,11 +137,48 @@ func TestManagementStatusCodes(t *testing.T) {
 				return err
 			},
 		},
+		{
+			name:     "Kubernetes upgrade pre-checks without a cluster",
+			expected: codes.InvalidArgument,
+			call: func(ctx context.Context, server *grpcomni.ManagementServer) error {
+				_, err := server.KubernetesUpgradePreChecks(metadata.NewIncomingContext(ctx, metadata.MD{}), &management.KubernetesUpgradePreChecksRequest{NewVersion: "1.37.2"})
+
+				return err
+			},
+		},
+		{
+			name:     "support bundle without a cluster",
+			expected: codes.InvalidArgument,
+			call: func(ctx context.Context, server *grpcomni.ManagementServer) error {
+				// the context of a streaming request is in its stream
+				stream := &grpc.GenericServerStream[management.GetSupportBundleRequest, management.GetSupportBundleResponse]{ServerStream: &requestStream{ctx: ctx}}
+
+				return server.GetSupportBundle(&management.GetSupportBundleRequest{}, stream) //nolint:contextcheck
+			},
+		},
+		{
+			name:     "maintenance upgrade of a machine which is in a cluster",
+			expected: codes.FailedPrecondition,
+			message:  "allocated to a cluster",
+			call: func(ctx context.Context, server *grpcomni.ManagementServer) error {
+				_, err := server.MaintenanceUpgrade(ctx, &management.MaintenanceUpgradeRequest{MachineId: "allocated", Version: "1.14.5"})
+
+				return err
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			st := state.WrapCore(inmem.NewState())
 
 			require.NoError(t, st.Create(t.Context(), authres.NewIdentity(access.ParseServiceAccountFromName("existing").FullID())))
+
+			// a machine which joined a cluster and did not get its config yet
+			allocated := omni.NewMachineStatus("allocated")
+			allocated.Metadata().Labels().Set(omni.LabelCluster, cluster)
+			allocated.TypedSpec().Value.Maintenance = true
+			allocated.TypedSpec().Value.TalosVersion = "1.14.4"
+
+			require.NoError(t, st.Create(t.Context(), allocated))
 
 			ctx := managementPowerTestContext(t.Context(), "admin@example.org", role.Admin)
 			ctx = metadata.NewIncomingContext(ctx, metadata.Pairs("cluster", cluster))
@@ -148,6 +188,7 @@ func TestManagementStatusCodes(t *testing.T) {
 			err := tt.call(ctx, server)
 
 			require.Equal(t, tt.expected, status.Code(err), "error: %v", err)
+			require.ErrorContains(t, err, tt.message)
 		})
 	}
 }

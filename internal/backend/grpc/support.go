@@ -29,7 +29,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -37,13 +36,19 @@ import (
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/client/pkg/supportbundle"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequest, serv grpc.ServerStreamingServer[management.GetSupportBundleResponse]) error {
 	ctx := serv.Context()
 
-	authCtx, _, err := s.checkClusterAuthorization(ctx, req.Cluster, role.Operator)
+	if req.Cluster == "" {
+		return status.Error(codes.InvalidArgument, "cluster name is required")
+	}
+
+	// a support bundle is read-only, but it is collected with Omni's own access, so read access to the cluster is not enough
+	err := s.checkOperation(ctx, authz.ClusterDiagnostics, req.Cluster)
 	if err != nil {
 		return err
 	}
@@ -55,18 +60,19 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		return err
 	}
 
-	resources, err := s.collectClusterResources(authCtx, req.Cluster)
+	// access to the cluster is already checked, the rest runs as Omni itself
+	resources, err := s.collectClusterResources(actor.MarkContextAsInternalActor(ctx), req.Cluster)
 	if err != nil {
 		return err
 	}
 
 	var machineIDs []string
 
-	if err = s.auditTalosAccessForNodes(authCtx, management.ManagementService_GetSupportBundle_FullMethodName, req.Cluster, machineIDs); err != nil {
+	if err = s.auditTalosAccessForNodes(ctx, management.ManagementService_GetSupportBundle_FullMethodName, req.Cluster, machineIDs); err != nil {
 		return err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(authCtx)
+	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	cols := make([]*collectors.Collector, 0, len(resources))
 

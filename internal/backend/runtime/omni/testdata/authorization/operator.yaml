@@ -747,7 +747,7 @@ flags:
     can_access_maintenance_nodes: true
     can_read_audit_log: false
     can_read_join_tokens: true
-    can_manage_join_tokens: false
+    can_manage_join_tokens: true
     can_read_installation_media: true
     can_manage_installation_media: true
     can_access_internals: false

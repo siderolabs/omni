@@ -43,7 +43,6 @@ import (
 	commonOmni "github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
@@ -63,8 +62,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -222,13 +222,19 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		clusterName = commonContext.Name
 	}
 
-	ctx, authResult, err := s.checkClusterAuthorization(ctx, clusterName, role.Reader)
+	// every user can get a kubeconfig: it contains no credentials, and access is checked when it is used
+	authResult, err := s.checkUser(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// handled before the cluster name is validated, so that a caller without access always gets the same error
 	if req.GetServiceAccount() {
 		return s.serviceAccountKubeconfig(ctx, req)
+	}
+
+	if clusterName == "" {
+		return nil, status.Error(codes.InvalidArgument, "cluster name is not in context")
 	}
 
 	// not a service account, generate OIDC (user) or admin kubeconfig
@@ -285,11 +291,6 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 }
 
 func (s *managementServer) Talosconfig(ctx context.Context, request *management.TalosconfigRequest) (*management.TalosconfigResponse, error) {
-	r := role.Reader
-	if request.BreakGlass {
-		r = role.Admin
-	}
-
 	routerContext := router.ExtractContext(ctx)
 
 	clusterName := ""
@@ -297,18 +298,15 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 		clusterName = routerContext.Name
 	}
 
-	if !request.BreakGlass {
-		var err error
-
-		ctx, _, err = s.checkClusterAuthorization(ctx, clusterName, r)
-		if err != nil {
+	// a break-glass talosconfig connects to the machines directly, bypassing Omni
+	if request.BreakGlass || request.Raw {
+		if err := s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
 			return nil, err
 		}
 	}
 
-	// getting talosconfig is low risk, as it doesn't contain any sensitive data
-	// real check for authentication happens in the Talos API gRPC proxy
-	authResult, err := auth.CheckGRPC(ctx, auth.WithRole(r))
+	// every user can get a talosconfig: it contains no credentials, and the Talos API proxy checks access when it is used
+	authResult, err := s.checkUser(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -390,9 +388,13 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, s
 		return status.Error(codes.InvalidArgument, "machine id is required")
 	}
 
-	// getting machine logs is equivalent to reading machine resource
-	authCtx, _, err := s.checkAuthorization(ctx, machineID, role.Reader)
+	cluster, err := grants.ClusterOfMachine(ctx, s.omniState, machineID)
 	if err != nil {
+		return err
+	}
+
+	// check that the caller can read the machine
+	if err = s.checkResourceGroup(ctx, authz.Machines, authz.Read, cluster); err != nil {
 		return err
 	}
 
@@ -401,7 +403,7 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, s
 		tailLines = optional.Some(request.TailLines)
 	}
 
-	logReader, err := s.logHandler.GetReader(authCtx, siderolinkinternal.MachineID(machineID), request.Follow, tailLines)
+	logReader, err := s.logHandler.GetReader(ctx, siderolinkinternal.MachineID(machineID), request.Follow, tailLines)
 	if err != nil {
 		return handleError(err)
 	}
@@ -409,7 +411,7 @@ func (s *managementServer) MachineLogs(request *management.MachineLogsRequest, s
 	defer logReader.Close() //nolint:errcheck
 
 	for {
-		line, err := logReader.ReadLine(authCtx)
+		line, err := logReader.ReadLine(ctx)
 		if err != nil {
 			return handleError(err)
 		}
@@ -518,8 +520,8 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 }
 
 func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*management.KubeconfigResponse, error) {
-	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
-	if err != nil {
+	// a break-glass kubeconfig connects to the Kubernetes API directly, bypassing Omni
+	if err := s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
 		return nil, err
 	}
 
@@ -555,16 +557,17 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 
 func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *management.KubernetesUpgradePreChecksRequest) (*management.KubernetesUpgradePreChecksResponse, error) {
 	requestContext := router.ExtractContext(ctx)
-	if requestContext == nil {
-		return nil, status.Error(codes.InvalidArgument, "unable to extract request context")
+	if requestContext == nil || requestContext.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "cluster name is required")
 	}
 
-	authCtx, _, err := s.checkClusterAuthorization(ctx, requestContext.Name, role.Operator)
-	if err != nil {
+	// the pre-checks are read-only, but they run with Omni's own access, so read access to the cluster is not enough
+	if err := s.checkOperation(ctx, authz.ClusterDiagnostics, requestContext.Name); err != nil {
 		return nil, err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(authCtx)
+	// the rest runs as Omni itself, authCtx keeps the caller for the audit log
+	authCtx, ctx := ctx, actor.MarkContextAsInternalActor(ctx)
 
 	upgradeStatus, err := safe.StateGet[*omnires.KubernetesUpgradeStatus](ctx, s.omniState, omnires.NewKubernetesUpgradeStatus(requestContext.Name).Metadata())
 	if err != nil {
@@ -661,8 +664,8 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
 	ctx := srv.Context()
 
-	// checked by exact role, as Operator must not be able to read the audit log despite outranking Auditor.
-	_, err := s.authCheckGRPC(ctx, auth.WithExactRoles(role.AuditLogRoles...))
+	// a separate operation, because an Auditor can read the audit log but an Operator cannot
+	err := s.checkOperation(ctx, authz.AuditLog, "")
 	if err != nil {
 		return err
 	}
@@ -931,12 +934,14 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.InvalidArgument, "talos version is required")
 	}
 
-	authCtx, clusterName, err := s.checkAuthorization(ctx, req.MachineId, role.Operator)
+	// check that the caller can manage machines, access to a cluster is not enough
+	err := s.checkOperation(ctx, authz.MachineMaintenance, "")
 	if err != nil {
 		return nil, err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(authCtx)
+	// the rest runs as Omni itself, authCtx keeps the caller for the audit log
+	authCtx, ctx := ctx, actor.MarkContextAsInternalActor(ctx)
 
 	machineStatus, err := safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, req.MachineId)
 	if err != nil {
@@ -949,6 +954,10 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	if !machineStatus.TypedSpec().Value.Maintenance {
 		return nil, status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
+	}
+
+	if _, allocated := machineStatus.Metadata().Labels().Get(omnires.LabelCluster); allocated {
+		return nil, status.Error(codes.FailedPrecondition, "machine is allocated to a cluster; its Talos lifecycle is managed by Omni")
 	}
 
 	if err = s.checkTalosUpgradeTarget(ctx, req.Version, machineStatus.TypedSpec().Value.TalosVersion, false); err != nil {
@@ -1006,7 +1015,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	defer talosClient.Close() //nolint:errcheck
 
-	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Upgrade_FullMethodName, clusterName, req.MachineId); err != nil {
+	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Upgrade_FullMethodName, "", req.MachineId); err != nil {
 		return nil, err
 	}
 
@@ -1027,12 +1036,14 @@ func (s *managementServer) MaintenanceLifecycle(
 ) error {
 	ctx := srv.Context()
 
-	authCtx, _, err := s.checkAuthorization(ctx, req.MachineId, role.Operator)
+	// check that the caller can manage machines, access to a cluster is not enough
+	err := s.checkOperation(ctx, authz.MachineMaintenance, "")
 	if err != nil {
 		return err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(authCtx)
+	// the rest runs as Omni itself, authCtx keeps the caller for the audit log
+	authCtx, ctx := ctx, actor.MarkContextAsInternalActor(ctx)
 
 	s.logger.Info(
 		"maintenance lifecycle request received",
@@ -1280,7 +1291,8 @@ func ensureTalosUpgrade(currentVersion, targetVersion string) error {
 }
 
 func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+	// the join config contains a join token, which everyone who can read the machines can already read
+	if err := s.checkResourceGroup(ctx, authz.MachineManagement, authz.Read, ""); err != nil {
 		return nil, err
 	}
 
@@ -1334,7 +1346,8 @@ func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *ma
 }
 
 func (s *managementServer) CreateJoinToken(ctx context.Context, request *management.CreateJoinTokenRequest) (*management.CreateJoinTokenResponse, error) {
-	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can manage machines
+	err := s.checkResourceGroup(ctx, authz.MachineManagement, authz.Create, "")
 	if err != nil {
 		return nil, err
 	}
@@ -1367,12 +1380,13 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 }
 
 func (s *managementServer) ResetNodeUniqueToken(ctx context.Context, request *management.ResetNodeUniqueTokenRequest) (*management.ResetNodeUniqueTokenResponse, error) {
-	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	// a machine proves its identity with this token, so resetting it requires managing access control
+	err := s.checkResourceGroup(ctx, authz.AccessControl, authz.Update, "")
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, request.Id)
+	_, err = safe.StateGetByID[*omnires.MachineStatus](actor.MarkContextAsInternalActor(ctx), s.omniState, request.Id)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Error(codes.NotFound, "machine not found")
@@ -1393,12 +1407,12 @@ func (s *managementServer) MachinePowerOff(ctx context.Context, request *managem
 		return nil, status.Error(codes.InvalidArgument, "machine id is required")
 	}
 
-	authCtx, clusterName, err := s.checkAuthorization(ctx, request.MachineId, role.Operator)
+	clusterName, err := s.checkMachinePower(ctx, request.MachineId)
 	if err != nil {
 		return nil, err
 	}
 
-	internalCtx := actor.MarkContextAsInternalActor(authCtx)
+	internalCtx := actor.MarkContextAsInternalActor(ctx)
 
 	isManagedByStaticInfraProvider, err := s.isManagedByStaticInfraProvider(internalCtx, request.MachineId)
 	if err != nil {
@@ -1420,11 +1434,11 @@ func (s *managementServer) MachinePowerOff(ctx context.Context, request *managem
 
 	defer talosClient.Close() //nolint:errcheck
 
-	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Shutdown_FullMethodName, clusterName, request.MachineId); err != nil {
+	if err = s.auditTalosAccess(ctx, machineapi.MachineService_Shutdown_FullMethodName, clusterName, request.MachineId); err != nil {
 		return nil, err
 	}
 
-	if err = talosClient.Shutdown(authCtx); err != nil {
+	if err = talosClient.Shutdown(ctx); err != nil {
 		return nil, fmt.Errorf("failed to shutdown machine: %w", err)
 	}
 
@@ -1436,12 +1450,12 @@ func (s *managementServer) MachinePowerOn(ctx context.Context, request *manageme
 		return nil, status.Error(codes.InvalidArgument, "machine id is required")
 	}
 
-	authCtx, _, err := s.checkAuthorization(ctx, request.MachineId, role.Operator)
+	_, err := s.checkMachinePower(ctx, request.MachineId)
 	if err != nil {
 		return nil, err
 	}
 
-	internalCtx := actor.MarkContextAsInternalActor(authCtx)
+	internalCtx := actor.MarkContextAsInternalActor(ctx)
 
 	isManagedByStaticInfraProvider, err := s.isManagedByStaticInfraProvider(internalCtx, request.MachineId)
 	if err != nil {
@@ -1459,51 +1473,47 @@ func (s *managementServer) MachinePowerOn(ctx context.Context, request *manageme
 	return &management.MachinePowerOnResponse{}, nil
 }
 
-// checkAuthorization checks if the user has the required role to perform an action on a machine.
-//
-// It also returns the authorized context and the cluster name the machine belongs to, if available.
-func (s *managementServer) checkAuthorization(ctx context.Context, machineID string, checkRole role.Role) (context.Context, string, error) {
-	cm, err := s.omniState.Get(actor.MarkContextAsInternalActor(ctx), omnires.NewClusterMachine(machineID).Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
-		return nil, "", err
-	}
-
-	cluster := ""
-
-	if cm != nil {
-		var ok bool
-
-		if cluster, ok = cm.Metadata().Labels().Get(omnires.LabelCluster); !ok {
-			return nil, "", status.Errorf(codes.FailedPrecondition, "cluster label not found on cluster machine %q", machineID)
-		}
-	}
-
-	authCtx, _, err := s.checkClusterAuthorization(ctx, cluster, checkRole)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return authCtx, cluster, nil
+// checkResourceGroup checks that the caller has the verb on the resource group, on the cluster when one is given.
+func (s *managementServer) checkResourceGroup(ctx context.Context, group authz.ResourceGroup, verb authz.Verbs, cluster string) error {
+	return grants.CheckResourceGroup(ctx, s.omniState, group, verb, authz.Target{Cluster: cluster})
 }
 
-func (s *managementServer) checkClusterAuthorization(ctx context.Context, cluster string, checkRole role.Role) (context.Context, auth.CheckResult, error) {
-	authCtx := ctx
-
-	var err error
-
-	if cluster != "" {
-		authCtx, err = accesspolicy.ApplyClusterAccessPolicy(ctx, cluster, s.omniState)
-		if err != nil {
-			return nil, auth.CheckResult{}, err
-		}
+// checkAccessControl checks that the caller has the verb on the access control resources, and returns the identity of the caller.
+func (s *managementServer) checkAccessControl(ctx context.Context, verb authz.Verbs) (auth.CheckResult, error) {
+	if err := s.checkResourceGroup(ctx, authz.AccessControl, verb, ""); err != nil {
+		return auth.CheckResult{}, err
 	}
 
-	authResult, err := auth.CheckGRPC(authCtx, auth.WithRole(checkRole))
+	return s.authCheckGRPC(ctx, auth.WithValidSignature(true))
+}
+
+// checkUser checks that the caller is signed in and is not an infra provider, and returns the identity of the caller.
+func (s *managementServer) checkUser(ctx context.Context) (auth.CheckResult, error) {
+	if grants.Subject(ctx).Provider {
+		return auth.CheckResult{}, status.Error(codes.PermissionDenied, "infra providers have no access")
+	}
+
+	return auth.CheckGRPC(ctx, auth.WithValidSignature(true))
+}
+
+// checkOperation checks that the caller can do the operation, on the cluster when one is given.
+func (s *managementServer) checkOperation(ctx context.Context, operation authz.Operation, cluster string) error {
+	return grants.CheckOperation(ctx, s.omniState, operation, authz.Target{Cluster: cluster})
+}
+
+// checkMachinePower checks that the caller can power the machine on and off, and returns the cluster the machine is in.
+func (s *managementServer) checkMachinePower(ctx context.Context, machineID string) (string, error) {
+	cluster, err := grants.ClusterOfMachine(ctx, s.omniState, machineID)
 	if err != nil {
-		return nil, auth.CheckResult{}, err
+		return "", err
 	}
 
-	return authCtx, authResult, nil
+	// allowed for a cluster manager on the machines of the cluster, and for a machine manager on every machine
+	if err = s.checkOperation(ctx, authz.MachinePower, cluster); err != nil {
+		return "", err
+	}
+
+	return cluster, nil
 }
 
 func (s *managementServer) auditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {

@@ -27,9 +27,10 @@ GetSupportBundle:
 Kubeconfig:
   cluster-a: allowed
   cluster-b: allowed
-  no cluster: denied
+  no cluster: allowed
   a service account of cluster-a: allowed
   a service account of cluster-b: allowed
+  a service account of no cluster: denied
   break-glass access to cluster-a: denied
 KubernetesSyncManifests:
   cluster-a: allowed
@@ -52,12 +53,12 @@ MachinePowerOn:
   a machine in cluster-b: allowed
   a machine in no cluster: denied
 MaintenanceLifecycle:
-  a machine in cluster-a: allowed
-  a machine in cluster-b: allowed
+  a machine in cluster-a: denied
+  a machine in cluster-b: denied
   a machine in no cluster: denied
 MaintenanceUpgrade:
-  a machine in cluster-a: allowed
-  a machine in cluster-b: allowed
+  a machine in cluster-a: denied
+  a machine in cluster-b: denied
   a machine in no cluster: denied
 Omniconfig: allowed
 ReadAuditLog: denied
@@ -70,7 +71,7 @@ RevokeServiceAccountKey: denied
 Talosconfig:
   cluster-a: allowed
   cluster-b: allowed
-  no cluster: denied
+  no cluster: allowed
   break-glass access to cluster-a: denied
 UpdateUser: denied
 ValidateConfig: allowed

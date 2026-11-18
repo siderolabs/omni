@@ -12,7 +12,7 @@
 # behind it, and most of the clusters and machines of the requests do not exist, so most of the calls fail there.
 
 # The break-glass configs are enabled on the server. Without that, every break-glass call is refused.
-CreateJoinToken: denied
+CreateJoinToken: allowed
 CreateSchematic: allowed
 CreateSchematicFromRaw: allowed
 CreateServiceAccount: denied
@@ -30,6 +30,7 @@ Kubeconfig:
   no cluster: allowed
   a service account of cluster-a: allowed
   a service account of cluster-b: allowed
+  a service account of no cluster: allowed
   break-glass access to cluster-a: denied
 KubernetesSyncManifests:
   cluster-a: allowed

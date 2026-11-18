@@ -86,6 +86,7 @@ var rpcCalls = map[string][]rpcCall{
 		rpcCall{name: "no cluster", request: &management.KubeconfigRequest{}},
 		rpcCall{name: "a service account of cluster-a", cluster: authztest.ClusterA, request: serviceAccountKubeconfigRequest},
 		rpcCall{name: "a service account of cluster-b", cluster: authztest.ClusterB, request: serviceAccountKubeconfigRequest},
+		rpcCall{name: "a service account of no cluster", request: serviceAccountKubeconfigRequest},
 		rpcCall{name: "break-glass access to cluster-a", cluster: authztest.ClusterA, request: &management.KubeconfigRequest{BreakGlass: true}},
 	),
 	"Talosconfig": append(onClusters(&management.TalosconfigRequest{}),

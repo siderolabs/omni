@@ -33,6 +33,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
@@ -667,7 +668,14 @@ func (suite *GrpcSuite) TestRawSchematicCA() {
 				TalosVersion: "1.13.0",
 			}
 
-			resp, err := server.CreateSchematicFromRaw(ctxstore.WithValue(ctx, auth.RoleContextKey{Role: tt.role}), request)
+			callCtx := ctxstore.WithValue(ctx, auth.RoleContextKey{Role: tt.role})
+
+			// an infra provider is recognized by its service account
+			if tt.role == role.InfraProvider {
+				callCtx = ctxstore.WithValue(callCtx, auth.IdentityContextKey{Identity: "test" + access.InfraProviderServiceAccountNameSuffix})
+			}
+
+			resp, err := server.CreateSchematicFromRaw(callCtx, request)
 			suite.Require().NoError(err)
 
 			suite.imageFactory.schematicMu.Lock()

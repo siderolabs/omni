@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -401,7 +403,7 @@ func requireResponses(ctx context.Context, t *testing.T, stream *auditLogStream,
 func newAuditLogTestServer(t *testing.T, auditor *auditLogAccessAuditor, opts ...grpcomni.ManagementServerOption) *grpcomni.ManagementServer {
 	t.Helper()
 
-	return grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil,
+	return grpcomni.NewManagementServer(state.WrapCore(inmem.NewState()), nil, zaptest.NewLogger(t), false, nil, nil,
 		append([]grpcomni.ManagementServerOption{grpcomni.WithAuditLogger(auditor)}, opts...)...)
 }
 

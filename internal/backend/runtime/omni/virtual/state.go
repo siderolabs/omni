@@ -33,6 +33,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
+	"github.com/siderolabs/omni/internal/pkg/authz"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -298,15 +300,16 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 	permissions.TypedSpec().Value.CanAccessMaintenanceNodes = isOperator
 	permissions.TypedSpec().Value.CanManageInstallationMedia = isOperator
 
+	// the same check as the CreateJoinToken RPC
+	permissions.TypedSpec().Value.CanManageJoinTokens = grants.CheckResourceGroup(ctx, v.PrimaryState, authz.MachineManagement, authz.Create, authz.Target{}) == nil
+
 	isAdmin := userRole.Check(role.Admin) == nil
 	permissions.TypedSpec().Value.CanManageUsers = isAdmin
 	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
-	permissions.TypedSpec().Value.CanManageJoinTokens = isAdmin
 	permissions.TypedSpec().Value.CanAccessInternals = isAdmin
 
-	// audit log access is restricted by exact role, so that Operator does not get it by outranking Auditor.
-	// This shares its definition with the check on the ReadAuditLog RPC so the two cannot drift.
-	permissions.TypedSpec().Value.CanReadAuditLog = role.CanReadAuditLog(userRole)
+	// the same check as the ReadAuditLog RPC
+	permissions.TypedSpec().Value.CanReadAuditLog = grants.CheckOperation(ctx, v.PrimaryState, authz.AuditLog, authz.Target{}) == nil
 
 	if !permissions.TypedSpec().Value.CanCreateClusters {
 		_, err := safe.StateGet[*authres.AccessPolicy](ctx, v.PrimaryState, authres.NewAccessPolicy().Metadata())
@@ -336,16 +339,30 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 
 	clusterPermissions := virtual.NewClusterPermissions(ptr.ID())
 
-	if userRole.Check(role.Reader) == nil {
+	// the same check as the Kubeconfig and Talosconfig RPCs: the configs contain no credentials, so every user can get them
+	if subject := grants.Subject(ctx); subject.Authenticated && !subject.Provider {
 		clusterPermissions.TypedSpec().Value.CanDownloadKubeconfig = true
 		clusterPermissions.TypedSpec().Value.CanDownloadTalosconfig = true
+	}
+
+	if userRole.Check(role.Reader) == nil {
 		clusterPermissions.TypedSpec().Value.CanReadConfigPatches = true
 		clusterPermissions.TypedSpec().Value.CanReadMachineConfig = true
 		clusterPermissions.TypedSpec().Value.CanReadKernelArgs = true
 		clusterPermissions.TypedSpec().Value.CanReadMachinePendingUpdates = true
 	}
 
-	if userRole.Check(role.Operator) == nil {
+	isOperator := userRole.Check(role.Operator) == nil
+
+	clusterPermissions.TypedSpec().Value.CanReadKubernetesManifests = isOperator
+
+	// the same check as the GetSupportBundle RPC
+	clusterPermissions.TypedSpec().Value.CanDownloadSupportBundle = grants.CheckOperation(ctx, v.PrimaryState, authz.ClusterDiagnostics, authz.Target{Cluster: ptr.ID()}) == nil
+
+	// a suspended instance is read-only, also when the access policy grants more on the cluster
+	_, suspended := ctxstore.Value[auth.SuspendedContextKey](ctx)
+
+	if isOperator && !suspended {
 		clusterPermissions.TypedSpec().Value.CanRebootMachines = true
 		clusterPermissions.TypedSpec().Value.CanAddMachines = true
 		clusterPermissions.TypedSpec().Value.CanRemoveMachines = true
@@ -353,9 +370,7 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 		clusterPermissions.TypedSpec().Value.CanUpdateTalos = true
 		clusterPermissions.TypedSpec().Value.CanManageConfigPatches = true
 		clusterPermissions.TypedSpec().Value.CanSyncKubernetesManifests = true
-		clusterPermissions.TypedSpec().Value.CanReadKubernetesManifests = true
 		clusterPermissions.TypedSpec().Value.CanManageClusterFeatures = true
-		clusterPermissions.TypedSpec().Value.CanDownloadSupportBundle = true
 		clusterPermissions.TypedSpec().Value.CanManageMachineConfig = true
 		clusterPermissions.TypedSpec().Value.CanManageKernelArgs = true
 	}

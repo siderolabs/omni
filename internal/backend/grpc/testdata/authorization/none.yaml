@@ -25,11 +25,12 @@ GetSupportBundle:
   cluster-a: denied
   cluster-b: denied
 Kubeconfig:
-  cluster-a: denied
-  cluster-b: denied
-  no cluster: denied
+  cluster-a: allowed
+  cluster-b: allowed
+  no cluster: allowed
   a service account of cluster-a: denied
   a service account of cluster-b: denied
+  a service account of no cluster: denied
   break-glass access to cluster-a: denied
 KubernetesSyncManifests:
   cluster-a: denied
@@ -68,9 +69,9 @@ ResetNodeUniqueToken:
   a machine in no cluster: denied
 RevokeServiceAccountKey: denied
 Talosconfig:
-  cluster-a: denied
-  cluster-b: denied
-  no cluster: denied
+  cluster-a: allowed
+  cluster-b: allowed
+  no cluster: allowed
   break-glass access to cluster-a: denied
 UpdateUser: denied
 ValidateConfig: allowed

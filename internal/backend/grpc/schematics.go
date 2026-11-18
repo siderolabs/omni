@@ -25,7 +25,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
@@ -33,14 +32,15 @@ import (
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
-	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 )
 
 // CreateSchematic implements managementServer.
 func (s *managementServer) CreateSchematic(ctx context.Context, request *management.CreateSchematicRequest) (*management.CreateSchematicResponse, error) {
 	// creating a schematic is equivalent to creating a machine
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+	if err := s.checkResourceGroup(ctx, authz.MachineManagement, authz.Create, ""); err != nil {
 		return nil, err
 	}
 
@@ -155,7 +155,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 
 // CreateSchematicFromRaw implements managementServer.
 func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *management.CreateSchematicFromRawRequest) (*management.CreateSchematicResponse, error) {
-	_, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin))
+	err := s.checkInstallationMedia(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ var installationMediaKinds = map[management.InstallationMediaURLRequest_Installa
 
 // GetInstallationMediaURL implements managementServer.
 func (s *managementServer) GetInstallationMediaURL(ctx context.Context, request *management.InstallationMediaURLRequest) (*management.InstallationMediaURLResponse, error) {
-	if _, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin)); err != nil {
+	if err := s.checkInstallationMedia(ctx); err != nil {
 		return nil, err
 	}
 
@@ -331,6 +331,9 @@ func (s *managementServer) getJoinOptions(
 	grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode,
 	joinToken string,
 ) (opts *siderolink.JoinOptions, tunnelEnabled bool, err error) {
+	// the callers have already checked access, the rest runs as Omni itself
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
 	siderolinkAPIConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get Omni connection params for the extra kernel arguments: %w", err)
@@ -363,4 +366,14 @@ func (s *managementServer) getJoinOptions(
 	}
 
 	return opts, grpcTunnelEnabled, nil
+}
+
+// checkInstallationMedia checks that the caller can get installation media, which is created with Omni's credentials for the image factory.
+// The infra providers need it to create machines.
+func (s *managementServer) checkInstallationMedia(ctx context.Context) error {
+	if grants.Subject(ctx).Provider {
+		return nil
+	}
+
+	return s.checkResourceGroup(ctx, authz.MachineManagement, authz.Create, "")
 }

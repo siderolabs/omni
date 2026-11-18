@@ -28,7 +28,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
@@ -36,10 +35,12 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 )
 
 func (s *managementServer) CreateServiceAccount(ctx context.Context, req *management.CreateServiceAccountRequest) (*management.CreateServiceAccountResponse, error) {
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
+	// check that the caller can create service accounts
+	if _, err := s.checkAccessControl(ctx, authz.Create); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +58,8 @@ func (s *managementServer) CreateServiceAccount(ctx context.Context, req *manage
 
 // RenewServiceAccount registers a new public key to the service account, effectively renewing it.
 func (s *managementServer) RenewServiceAccount(ctx context.Context, req *management.RenewServiceAccountRequest) (*management.RenewServiceAccountResponse, error) {
-	_, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// a new key allows signing in as the service account
+	_, err := s.checkAccessControl(ctx, authz.Update)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +106,8 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 }
 
 func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.Empty) (*management.ListServiceAccountsResponse, error) {
-	_, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can read service accounts
+	_, err := s.checkAccessControl(ctx, authz.Read)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +172,8 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 }
 
 func (s *managementServer) DestroyServiceAccount(ctx context.Context, req *management.DestroyServiceAccountRequest) (*emptypb.Empty, error) {
-	checkResult, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can delete service accounts
+	checkResult, err := s.checkAccessControl(ctx, authz.Destroy)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +195,8 @@ func (s *managementServer) DestroyServiceAccount(ctx context.Context, req *manag
 
 // RevokeServiceAccountKey destroys a single public key of the service account, leaving its other keys intact.
 func (s *managementServer) RevokeServiceAccountKey(ctx context.Context, req *management.RevokeServiceAccountKeyRequest) (*emptypb.Empty, error) {
-	checkResult, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can update service accounts
+	checkResult, err := s.checkAccessControl(ctx, authz.Update)
 	if err != nil {
 		return nil, err
 	}
@@ -220,17 +225,19 @@ func (s *managementServer) RevokeServiceAccountKey(ctx context.Context, req *man
 }
 
 func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+	cluster := router.ExtractContext(ctx).GetName()
+
+	// This kubeconfig contains a token for the Kubernetes API of the cluster. Issuing it changes nothing in Omni,
+	// but it requires update access to the cluster, so it is also refused on a suspended instance.
+	if err := s.checkResourceGroup(ctx, authz.Clusters, authz.Update, cluster); err != nil {
 		return nil, err
 	}
-
-	cluster := router.ExtractContext(ctx).Name
 
 	if err := s.validateServiceAccountRequest(cluster, req); err != nil {
 		return nil, err
 	}
 
-	clusterUUID, err := safe.StateGetByID[*omni.ClusterUUID](ctx, s.omniState, cluster)
+	clusterUUID, err := safe.StateGetByID[*omni.ClusterUUID](actor.MarkContextAsInternalActor(ctx), s.omniState, cluster)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Errorf(codes.NotFound, "UUID of cluster %q not found", cluster)

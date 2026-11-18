@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -46,7 +48,7 @@ func TestFollowAuditLogEndToEnd(t *testing.T) {
 	)
 
 	startServer := func() *grpc.Server {
-		server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil,
+		server := grpcomni.NewManagementServer(state.WrapCore(inmem.NewState()), nil, zaptest.NewLogger(t), false, nil, nil,
 			grpcomni.WithAuditLogger(&e2eAuditor{store}),
 			grpcomni.WithAuditLogFollowLease(e2eLease))
 
@@ -143,7 +145,7 @@ func TestFollowAuditLogWakesOnWrite(t *testing.T) {
 
 	store := newE2EStore(ctx, t)
 
-	server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil,
+	server := grpcomni.NewManagementServer(state.WrapCore(inmem.NewState()), nil, zaptest.NewLogger(t), false, nil, nil,
 		grpcomni.WithAuditLogger(&e2eAuditor{store}),
 		grpcomni.WithAuditLogFollowLease(10*time.Minute))
 

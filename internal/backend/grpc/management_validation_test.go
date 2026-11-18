@@ -10,12 +10,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
@@ -24,7 +27,7 @@ import (
 )
 
 func TestCreateJoinTokenValidation(t *testing.T) {
-	server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil)
+	server := grpcomni.NewManagementServer(state.WrapCore(inmem.NewState()), nil, zaptest.NewLogger(t), false, nil, nil)
 	ctx := ctxstore.WithValue(context.Background(), auth.RoleContextKey{Role: role.Admin})
 
 	for _, tt := range []struct {
@@ -51,7 +54,7 @@ func TestCreateJoinTokenValidation(t *testing.T) {
 }
 
 func TestCreateSchematicFromRawAuthorization(t *testing.T) {
-	server := grpcomni.NewManagementServer(nil, nil, zaptest.NewLogger(t), false, nil, nil)
+	server := grpcomni.NewManagementServer(state.WrapCore(inmem.NewState()), nil, zaptest.NewLogger(t), false, nil, nil)
 	request := &management.CreateSchematicFromRawRequest{
 		RawSchematic: []byte("[\n"),
 	}
@@ -83,6 +86,11 @@ func TestCreateSchematicFromRawAuthorization(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := ctxstore.WithValue(context.Background(), auth.RoleContextKey{Role: tt.role})
+
+			// an infra provider is recognized by its service account
+			if tt.role == role.InfraProvider {
+				ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: "test" + access.InfraProviderServiceAccountNameSuffix})
+			}
 
 			_, err := server.CreateSchematicFromRaw(ctx, request)
 			require.Error(t, err)

@@ -7,6 +7,7 @@ package authz
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -86,29 +87,78 @@ func CheckResource(subject Subject, target Target) error {
 		return status.Error(codes.PermissionDenied, "the instance is suspended, only read access is permitted")
 	}
 
-	if !subject.grants(resourceType, target) {
+	// The resource group the role needs a rule for. A type has one group, with one exception: a type which holds both
+	// resources of clusters and settings of machines has a second group for the ones which belong to no cluster.
+	// For example, a config patch of a cluster is in "clusters", a config patch of a machine is in "machine-management".
+	group := resourceType.Group
+	if target.Cluster == "" && !target.AllClusters && resourceType.GroupWithoutCluster != "" {
+		group = resourceType.GroupWithoutCluster
+	}
+
+	if !subject.grants(group, verbOf(target.Verb), target, resourceType.Cluster == ClusterByMachine) {
 		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verbOf(target.Verb), target.Type)}
 	}
 
 	return nil
 }
 
-// grants reports whether a grant of the subject covers the target and allows the verb on it.
-func (subject Subject) grants(resourceType ResourceType, target Target) bool {
-	verb := verbOf(target.Verb)
-	inCluster := target.Cluster != "" || target.AllClusters
+// CheckResourceGroup checks whether the subject has the verb on the resource group for the target, and returns an error when it has not.
+//
+// It is for the requests which are about a resource group as a whole and not about a resource of some type,
+// like the RPCs of the management API. The type and the verb of the target are ignored.
+func CheckResourceGroup(subject Subject, group ResourceGroup, verb Verbs, target Target) error {
+	switch {
+	case subject.Internal:
+		return nil
+	case !subject.Authenticated:
+		return status.Error(codes.Unauthenticated, "missing valid signature")
+	case subject.Provider:
+		return status.Error(codes.PermissionDenied, "infra providers have no access")
+	case subject.Suspended && verb != Read:
+		return status.Error(codes.PermissionDenied, "the instance is suspended, only read access is permitted")
+	case !subject.grants(group, verb, target, group == Machines):
+		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verb, group)}
+	}
 
-	// The resource group the role needs a rule for. A type has one group, with one exception: a type which holds both
-	// resources of clusters and settings of machines has a second group for the ones which belong to no cluster.
-	// For example, a config patch of a cluster is in "clusters", a config patch of a machine is in "machine-management".
-	group := resourceType.Group
-	if !inCluster && resourceType.GroupWithoutCluster != "" {
-		group = resourceType.GroupWithoutCluster
+	return nil
+}
+
+// CheckOperation checks whether the subject can do the operation on the target, and returns an error when it cannot.
+func CheckOperation(subject Subject, operation Operation, target Target) error {
+	switch {
+	case subject.Internal:
+		return nil
+	case !subject.Authenticated:
+		return status.Error(codes.Unauthenticated, "missing valid signature")
+	case subject.Provider:
+		return status.Error(codes.PermissionDenied, "infra providers have no access")
+	case subject.Suspended && !slices.Contains(readOnlyOperations, operation):
+		return status.Errorf(codes.PermissionDenied, "the instance is suspended, %s is not permitted", operation)
 	}
 
 	for _, grant := range subject.Grants {
+		// a cluster-scoped role allows an operation only on a cluster, e.g., it cannot power off a machine which is in no cluster
+		if grant.Role.ClusterScoped && target.Cluster == "" {
+			continue
+		}
+
+		if grant.Scope.covers(target) && grant.Role.allowsOperation(operation) {
+			return nil
+		}
+	}
+
+	return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s", operation)}
+}
+
+// grants reports whether a grant of the subject covers the target and allows the verb on the resource group.
+//
+// ofMachine is set when the target is a resource of a machine.
+func (subject Subject) grants(group ResourceGroup, verb Verbs, target Target, ofMachine bool) bool {
+	inCluster := target.Cluster != "" || target.AllClusters
+
+	for _, grant := range subject.Grants {
 		// a role about clusters reaches the resources of a machine only while the machine is in a cluster
-		if resourceType.Cluster == ClusterByMachine && grant.Role.ClusterScoped && !inCluster {
+		if ofMachine && grant.Role.ClusterScoped && !inCluster {
 			continue
 		}
 

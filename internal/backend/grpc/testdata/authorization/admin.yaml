@@ -30,6 +30,7 @@ Kubeconfig:
   no cluster: allowed
   a service account of cluster-a: allowed
   a service account of cluster-b: allowed
+  a service account of no cluster: allowed
   break-glass access to cluster-a: allowed
 KubernetesSyncManifests:
   cluster-a: allowed

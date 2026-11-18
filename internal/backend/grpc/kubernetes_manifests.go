@@ -32,12 +32,12 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 )
 
 func (s *managementServer) KubernetesSyncManifests(
@@ -51,12 +51,14 @@ func (s *managementServer) KubernetesSyncManifests(
 		return status.Error(codes.InvalidArgument, "unable to extract request context")
 	}
 
-	authCtx, _, err := s.checkClusterAuthorization(ctx, requestContext.Name, role.Operator)
+	// check that the caller can update the cluster
+	err := s.checkResourceGroup(ctx, authz.Clusters, authz.Update, requestContext.Name)
 	if err != nil {
 		return err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(authCtx)
+	// the rest runs as Omni itself, authCtx keeps the caller for the audit log
+	authCtx, ctx := ctx, actor.MarkContextAsInternalActor(ctx)
 
 	sync, err := s.prepareKubernetesSyncHelpers(ctx, authCtx, requestContext)
 	if err != nil {

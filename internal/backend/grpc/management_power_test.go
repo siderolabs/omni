@@ -59,12 +59,12 @@ func TestMachinePowerOffUsesInternalContextAfterACLAuthorization(t *testing.T) {
 	require.True(t, talosClientFactory.machineCtx.captured)
 	require.True(t, talosClientFactory.machineCtx.internal)
 	require.True(t, talosClientFactory.machineCtx.hasRole)
-	require.Equal(t, role.Operator, talosClientFactory.machineCtx.role)
+	require.Equal(t, role.Reader, talosClientFactory.machineCtx.role) // the access policy allows the call, it does not change the role of the user
 
 	require.True(t, auditor.ctx.captured)
 	require.False(t, auditor.ctx.internal)
 	require.True(t, auditor.ctx.hasRole)
-	require.Equal(t, role.Operator, auditor.ctx.role)
+	require.Equal(t, role.Reader, auditor.ctx.role)
 	require.Equal(t, "machine.MachineService/Shutdown", auditor.fullMethod)
 	require.Equal(t, clusterID, auditor.clusterID)
 	require.Equal(t, machineID, auditor.nodeID)

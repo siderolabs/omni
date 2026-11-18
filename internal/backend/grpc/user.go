@@ -18,14 +18,14 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
+	"github.com/siderolabs/omni/internal/pkg/authz"
 )
 
 func (s *managementServer) CreateUser(ctx context.Context, req *management.CreateUserRequest) (*management.CreateUserResponse, error) {
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
+	// check that the caller can create users
+	if _, err := s.checkAccessControl(ctx, authz.Create); err != nil {
 		return nil, err
 	}
 
@@ -38,7 +38,8 @@ func (s *managementServer) CreateUser(ctx context.Context, req *management.Creat
 }
 
 func (s *managementServer) UpdateUser(ctx context.Context, req *management.UpdateUserRequest) (*emptypb.Empty, error) {
-	checkResult, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can update users
+	checkResult, err := s.checkAccessControl(ctx, authz.Update)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,8 @@ func (s *managementServer) UpdateUser(ctx context.Context, req *management.Updat
 }
 
 func (s *managementServer) ListUsers(ctx context.Context, _ *emptypb.Empty) (*management.ListUsersResponse, error) {
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
+	// check that the caller can read users
+	if _, err := s.checkAccessControl(ctx, authz.Read); err != nil {
 		return nil, err
 	}
 
@@ -130,7 +132,8 @@ func (s *managementServer) ListUsers(ctx context.Context, _ *emptypb.Empty) (*ma
 }
 
 func (s *managementServer) DestroyUser(ctx context.Context, req *management.DestroyUserRequest) (*emptypb.Empty, error) {
-	checkResult, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// check that the caller can delete users
+	checkResult, err := s.checkAccessControl(ctx, authz.Destroy)
 	if err != nil {
 		return nil, err
 	}
