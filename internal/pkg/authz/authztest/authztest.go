@@ -59,13 +59,13 @@ type Subject struct {
 	suspended   bool
 }
 
-// signedIn reports whether the subject has a user. The anonymous subject has none.
-func (s Subject) signedIn() bool {
+// SignedIn reports whether the subject has a user. The anonymous subject has none.
+func (s Subject) SignedIn() bool {
 	return s.role != ""
 }
 
-// identity returns the ID of the identity of the subject.
-func (s Subject) identity() string {
+// Identity returns the ID of the identity of the subject.
+func (s Subject) Identity() string {
 	if s.role == role.InfraProvider {
 		return OwnProvider + access.InfraProviderServiceAccountNameSuffix
 	}
@@ -84,11 +84,13 @@ var Subjects = []Subject{
 	{Name: "infra-provider", role: role.InfraProvider, Description: `It is the service account of the infra provider "own".`},
 	{
 		Name: "acl-reader-a", role: role.None,
-		Description: "It is a user with the role None, who gets Reader on cluster-a through the access policy. The user and the cluster are matched by name.",
+		Description: "It is a user with the role None, who gets Reader and the Kubernetes group developers on cluster-a through the access policy. " +
+			"The user and the cluster are matched by name.",
 	},
 	{
 		Name: "acl-operator-a", role: role.Reader, labels: map[string]string{"team": "a"},
-		Description: "It is a user with the role Reader, who gets Operator on the clusters matching *-a through the access policy. The user is matched by the identity label team=a.",
+		Description: "It is a user with the role Reader, who gets Operator and the Kubernetes group deployers on the clusters matching *-a through the access policy. " +
+			"The user is matched by the identity label team=a.",
 	},
 	{
 		Name: "acl-operator-all", role: role.None,
@@ -114,8 +116,14 @@ func accessPolicy() *authres.AccessPolicy {
 			"all":        {Clusters: []*specs.AccessPolicyClusterGroup_Cluster{{Match: "*"}}},
 		},
 		Rules: []*specs.AccessPolicyRule{
-			{Users: []string{"acl-reader-a@example.org"}, Clusters: []string{ClusterA}, Role: string(role.Reader)},
-			{Users: []string{"group/team-a"}, Clusters: []string{"group/a-clusters"}, Role: string(role.Operator)},
+			{
+				Users: []string{"acl-reader-a@example.org"}, Clusters: []string{ClusterA}, Role: string(role.Reader),
+				Kubernetes: &specs.AccessPolicyRule_Kubernetes{Impersonate: &specs.AccessPolicyRule_Kubernetes_Impersonate{Groups: []string{"developers"}}},
+			},
+			{
+				Users: []string{"group/team-a"}, Clusters: []string{"group/a-clusters"}, Role: string(role.Operator),
+				Kubernetes: &specs.AccessPolicyRule_Kubernetes{Impersonate: &specs.AccessPolicyRule_Kubernetes_Impersonate{Groups: []string{"deployers"}}},
+			},
 			{Users: []string{"group/operators"}, Clusters: []string{"group/all"}, Role: string(role.Operator)},
 		},
 	}
@@ -136,7 +144,7 @@ func GenerateKeys(t *testing.T) Keys {
 	keys := Keys{}
 
 	for _, s := range Subjects {
-		if !s.signedIn() {
+		if !s.SignedIn() {
 			continue
 		}
 
@@ -175,14 +183,14 @@ func Seed(t *testing.T, st state.State, keys Keys) {
 	}
 
 	for _, s := range Subjects {
-		if !s.signedIn() {
+		if !s.SignedIn() {
 			continue
 		}
 
 		user := authres.NewUser(s.Name)
 		user.TypedSpec().Value.Role = string(s.role)
 
-		identity := authres.NewIdentity(s.identity())
+		identity := authres.NewIdentity(s.Identity())
 		identity.TypedSpec().Value.UserId = s.Name
 
 		for k, v := range s.labels {
@@ -195,7 +203,7 @@ func Seed(t *testing.T, st state.State, keys Keys) {
 		publicKey.TypedSpec().Value.Type = specs.PublicKeySpec_PLAIN
 		publicKey.TypedSpec().Value.Confirmed = true //nolint:staticcheck
 		publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(time.Hour))
-		publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: s.identity()}
+		publicKey.TypedSpec().Value.Identity = &specs.Identity{Email: s.Identity()}
 
 		fixtures = append(fixtures, user, identity, publicKey)
 	}
@@ -207,7 +215,7 @@ func Seed(t *testing.T, st state.State, keys Keys) {
 
 // SignIn returns the context of a request of the subject, signed in through the production authenticator.
 func SignIn(t *testing.T, st state.State, keys Keys, s Subject) context.Context {
-	if !s.signedIn() {
+	if !s.SignedIn() {
 		return t.Context()
 	}
 
