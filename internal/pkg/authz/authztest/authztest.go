@@ -11,6 +11,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
@@ -135,8 +136,29 @@ func accessPolicy() *authres.AccessPolicy {
 type Keys map[string]key
 
 type key struct {
+	private     *ecdsa.PrivateKey
 	fingerprint string
 	pem         []byte
+}
+
+// ID returns the ID of the public key of the subject. The anonymous subject has no key.
+func (keys Keys) ID(s Subject) string {
+	return keys[s.Name].fingerprint
+}
+
+// Sign signs the data with the key of the subject. The anonymous subject has no key and no signature.
+func (keys Keys) Sign(t *testing.T, s Subject, data []byte) []byte {
+	if !s.SignedIn() {
+		return nil
+	}
+
+	hash := sha256.Sum256(data)
+
+	r, sig, err := ecdsa.Sign(rand.Reader, keys[s.Name].private, hash[:])
+	require.NoError(t, err)
+
+	// the two numbers of the signature one after the other, as the verifier of the keys reads them
+	return append(r.FillBytes(make([]byte, 32)), sig.FillBytes(make([]byte, 32))...)
 }
 
 // GenerateKeys creates a key for each subject which is signed in.
@@ -159,7 +181,7 @@ func GenerateKeys(t *testing.T) Keys {
 		parsed, err := plain.ParseKey(keyPEM)
 		require.NoError(t, err)
 
-		keys[s.Name] = key{pem: keyPEM, fingerprint: parsed.ID()}
+		keys[s.Name] = key{private: privateKey, pem: keyPEM, fingerprint: parsed.ID()}
 	}
 
 	return keys
@@ -213,6 +235,11 @@ func Seed(t *testing.T, st state.State, keys Keys) {
 	}
 }
 
+// Authenticator returns the production authenticator of the instance the subject is on.
+func Authenticator(st state.State, s Subject) auth.AuthenticatorFunc {
+	return authenticator.New(st, s.suspended)
+}
+
 // SignIn returns the context of a request of the subject, signed in through the production authenticator.
 func SignIn(t *testing.T, st state.State, keys Keys, s Subject) context.Context {
 	if !s.SignedIn() {
@@ -221,7 +248,7 @@ func SignIn(t *testing.T, st state.State, keys Keys, s Subject) context.Context 
 
 	fingerprint := keys[s.Name].fingerprint
 
-	authn, err := authenticator.New(st, s.suspended)(t.Context(), fingerprint)
+	authn, err := Authenticator(st, s)(t.Context(), fingerprint)
 	require.NoError(t, err)
 
 	return auth.ContextWithAuthenticator(t.Context(), authn, fingerprint)
