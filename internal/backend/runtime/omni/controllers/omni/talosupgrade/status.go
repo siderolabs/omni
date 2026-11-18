@@ -181,7 +181,7 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 			mappers.MapByClusterLabel[*omni.Cluster](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
-			qtransform.MapperNone(),
+			qtransform.MapperSameID[*omni.Cluster](),
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineSet](
 			mappers.MapByClusterLabel[*omni.Cluster](),

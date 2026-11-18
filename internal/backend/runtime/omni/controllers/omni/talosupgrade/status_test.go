@@ -722,7 +722,19 @@ func TestStatusController(t *testing.T) {
 						return nil
 					}))
 
+				// wait for the controller to see the lock holder as not ready
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.NotContains(res.TypedSpec().Value.MachineSetsUpgradeQuota, omni.WorkersResourceID(clusterName))
+					})
+
 				require.NoError(t, st.AddFinalizer(ctx, lockHolder.Metadata(), machineconfig.UpgradeFinalizer))
+
+				// wait for the controller to see the upgrade lock, before the upgrade starts
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Contains(res.TypedSpec().Value.MachineSetsUpgradeQuota, omni.WorkersResourceID(clusterName))
+					})
 
 				// Upgrade the workers only, the control planes are already on the new version.
 				rmock.Mock[*omni.Cluster](ctx, t, st, testoptions.SameID(cluster),
