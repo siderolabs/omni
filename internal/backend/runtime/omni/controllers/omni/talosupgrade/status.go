@@ -40,6 +40,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
@@ -111,7 +112,9 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 				return ctrl.reconcileUpgradeVersions(ctx, r, logger, cluster, upgradeStatus)
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster) error {
-				clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
+				// uncached, as one written just before would be missed and left behind once the cluster is gone
+				clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, uncached.Reader(r),
+					state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 				if err != nil {
 					return err
 				}
@@ -239,7 +242,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 		return err
 	}
 
-	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, r, state.WithLabelQuery(
+	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, uncached.Reader(r), state.WithLabelQuery(
 		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
 	))
 	if err != nil {
@@ -464,7 +467,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Con
 	clusterMachines safe.List[*omni.ClusterMachine],
 ) error {
 	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](
-		ctx, r,
+		ctx, uncached.Reader(r),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
 	)
 	if err != nil {
