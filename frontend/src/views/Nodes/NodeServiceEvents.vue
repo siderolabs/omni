@@ -27,7 +27,7 @@ const eventStyle = (state: string) => {
     case 'Starting':
     case 'Stopping':
     case 'Waiting':
-      icon = 'loading'
+      icon = 'arrow-path'
 
       break
     case 'Preparing':

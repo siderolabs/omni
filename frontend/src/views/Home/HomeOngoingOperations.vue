@@ -26,8 +26,8 @@ const { data } = useOngoingTasks()
       class="flex items-center gap-snug border-t border-border-default px-compact py-snug"
     >
       <TIcon
-        icon="loading"
-        class="size-4 shrink-0 animate-spin text-accent-text"
+        icon="arrow-path"
+        class="size-4 shrink-0 text-status-info-default"
         aria-hidden="true"
       />
 
