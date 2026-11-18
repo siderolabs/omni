@@ -24,14 +24,11 @@ const eventStyle = (state: string) => {
       icon = 'check'
 
       break
+    case 'Preparing':
     case 'Starting':
     case 'Stopping':
     case 'Waiting':
-      icon = 'loading'
-
-      break
-    case 'Preparing':
-      icon = 'time'
+      icon = 'arrow-path'
 
       break
     case 'Finished':

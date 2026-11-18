@@ -29,15 +29,28 @@ import {
   MachineStatusType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
+import StatusPill from '@/components/Status/StatusPill.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import UpdateExtensionsModal from '@/views/Machines/components/UpdateExtensionsModal.vue'
+
+const Phase = MachineExtensionsStatusSpecItemPhase
+
+type PhaseStatus = StatusAppearance & { label: string }
+
+const extensionPhaseStatus: Record<MachineExtensionsStatusSpecItemPhase, PhaseStatus> = {
+  [Phase.Installed]: { label: 'Installed', tone: 'success', glyph: 'success' },
+  [Phase.Installing]: { label: 'Installing', tone: 'info', glyph: 'progress' },
+  [Phase.Removing]: { label: 'Removing', tone: 'info', glyph: 'progress' },
+}
+
+const unknownPhaseStatus: PhaseStatus = { label: 'Unknown', tone: 'info', glyph: 'unknown' }
 
 const { clusterId, machineId, readOnly } = defineProps<{
   clusterId?: string
@@ -111,7 +124,7 @@ const extensionsState = computed(() => {
   type Item = {
     name: string
     source: string | null
-    phase: MachineExtensionsStatusSpecItemPhase
+    status: PhaseStatus
   }
 
   const res: Item[] = []
@@ -124,7 +137,7 @@ const extensionsState = computed(() => {
     res.push({
       name: extension.name!,
       source: extension.immutable ? 'Automatically installed by Omni' : extensionsLevel.value,
-      phase: extension.phase ?? MachineExtensionsStatusSpecItemPhase.Installed,
+      status: extensionPhaseStatus[extension.phase ?? Phase.Installed] ?? unknownPhaseStatus,
     })
   }
 
@@ -177,27 +190,9 @@ const extensionsLevel = computed(() => {
                   class="text-content-emphasis"
                 />
                 <div class="flex">
-                  <div
-                    class="flex items-center gap-tight rounded bg-surface-raised px-tight py-micro text-xs text-content-default"
-                  >
-                    <template v-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installing">
-                      <TIcon icon="loading" class="h-4 w-4 animate-spin text-status-info-default" />
-                      <span>Installing</span>
-                    </template>
-                    <template
-                      v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Removing"
-                    >
-                      <TIcon icon="delete" class="h-4 w-4 animate-pulse text-status-info-default" />
-                      <span>Removing</span>
-                    </template>
-
-                    <template
-                      v-else-if="item.phase === MachineExtensionsStatusSpecItemPhase.Installed"
-                    >
-                      <TIcon icon="check-circle" class="h-4 w-4 text-status-success-default" />
-                      <span>Installed</span>
-                    </template>
-                  </div>
+                  <StatusPill :tone="item.status.tone" :glyph="item.status.glyph">
+                    {{ item.status.label }}
+                  </StatusPill>
                 </div>
                 <div v-if="item.source">
                   {{ item.source }}

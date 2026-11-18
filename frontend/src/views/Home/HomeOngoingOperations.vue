@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import Card from '@/components/Card/Card.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import { useOngoingTasks } from '@/methods/ongoingTasks'
 import { formatISO } from '@/methods/time'
 
@@ -25,9 +25,9 @@ const { data } = useOngoingTasks()
       :key="item.metadata.id"
       class="flex items-center gap-snug border-t border-border-default px-compact py-snug"
     >
-      <TIcon
-        icon="loading"
-        class="size-4 shrink-0 animate-spin text-accent-text"
+      <StatusGlyph
+        glyph="progress"
+        class="size-4 shrink-0 text-status-info-default"
         aria-hidden="true"
       />
 

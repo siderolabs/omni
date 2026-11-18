@@ -215,15 +215,3 @@ onNodeClick(({ node }) => {
     </template>
   </VueFlow>
 </template>
-
-<style scoped>
-:deep(.manifest-edge-pending path) {
-  animation: manifest-edge-dashdraw 0.5s linear infinite;
-}
-
-@keyframes manifest-edge-dashdraw {
-  from {
-    stroke-dashoffset: 8;
-  }
-}
-</style>
