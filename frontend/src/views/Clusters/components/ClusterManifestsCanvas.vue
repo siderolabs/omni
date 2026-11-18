@@ -158,7 +158,9 @@ function buildEdge(
   manifest: ClusterKubernetesManifestsStatusSpecManifestStatus,
 ): Edge {
   const applied = manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED
-  const pending = manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING
+  const inProgress =
+    manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING ||
+    manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING
 
   return {
     id: `edge-${layout.id}-${manifestId}`,
@@ -167,16 +169,12 @@ function buildEdge(
     target: manifestNodeId(layout.id, manifestId),
     targetHandle: 'left',
     type: 'default',
-    class: pending ? 'manifest-edge-pending' : undefined,
     style: {
-      stroke: applied
-        ? 'var(--color-status-success-default)'
-        : pending
-          ? 'var(--color-status-warning-default)'
-          : 'var(--color-status-danger-default)',
+      // In progress and unknown are both info, so the line's pattern tells them apart.
+      stroke: applied ? 'var(--color-status-success-default)' : 'var(--color-status-info-default)',
       strokeWidth: 1.5,
-      strokeDasharray: applied ? undefined : '4 4',
-      opacity: !applied ? 0.35 : 0.7,
+      strokeDasharray: applied ? undefined : inProgress ? '4 4' : '1 3',
+      opacity: applied ? 0.7 : 0.35,
     },
   }
 }

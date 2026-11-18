@@ -45,7 +45,6 @@ const phaseStatus = (machineset?: Resource<MachineSetStatusSpec>): StatusAppeara
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:
-      return { tone: 'warning', glyph: 'progress' }
     case MachineSetPhase.Destroying:
       return { tone: 'info', glyph: 'progress' }
     case MachineSetPhase.Running:

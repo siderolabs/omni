@@ -74,7 +74,6 @@ const stageStatus = (machine: Resource<ClusterMachineStatusSpec>): StatusAppeara
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return { tone: 'warning', glyph: 'progress' }
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
@@ -118,7 +117,7 @@ const phase = computed((): Phase => {
   if (operationName) {
     return {
       name: operationName,
-      appearance: { tone: 'warning', glyph: 'progress' },
+      appearance: { tone: 'info', glyph: 'progress' },
       operation,
     }
   }

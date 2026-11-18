@@ -271,6 +271,7 @@ describe('Talos 1.15 rebuilding an MD RAID1 array after a member was wiped', () 
     expect(buildDiskTopology(talos115MdRaid1Rebuilding).byID.get('md127')!.health).toMatchObject({
       label: 'Rebuilding',
       tone: 'warning',
+      glyph: 'warning',
     })
   })
 })

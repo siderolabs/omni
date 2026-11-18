@@ -51,6 +51,21 @@ describe('getMDArrayHealth', () => {
     expect(getMDArrayHealth(array)).toMatchObject({ label, tone })
   })
 
+  // Amber always comes with the triangle; a routine scrub is in progress.
+  test.each([
+    ['check', 'progress'],
+    ['repair', 'progress'],
+    ['recover', 'warning'],
+    ['resync', 'warning'],
+    ['reshape', 'warning'],
+    ['frozen', 'warning'],
+    ['something-new', 'warning'],
+  ])('draws a %s sync with the %s glyph', (syncAction, glyph) => {
+    expect(
+      getMDArrayHealth({ status: 'rebuilding', syncAction, raidDevices: 2, members }).glyph,
+    ).toBe(glyph)
+  })
+
   test('says how many members are present when degraded', () => {
     expect(
       getMDArrayHealth({ status: 'ready', raidDevices: 2, members: ['/dev/sda'] }).message,

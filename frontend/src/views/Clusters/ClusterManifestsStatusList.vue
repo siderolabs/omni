@@ -20,6 +20,7 @@ import {
 import TListItem from '@/components/List/TListItem.vue'
 import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
 import StatusPill from '@/components/Status/StatusPill.vue'
+import ClusterManifestPhase from '@/views/Clusters/components/ClusterManifestPhase.vue'
 
 const { manifestsStatus } = defineProps<{
   manifestsStatus: Resource<ClusterKubernetesManifestsStatusSpec>
@@ -53,19 +54,6 @@ const groupPhaseName = (phase?: ClusterKubernetesManifestsStatusSpecGroupStatusP
   }
 }
 
-const manifestPhaseName = (phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'Pending'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'Applied'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'Deleting'
-    default:
-      return 'Unknown'
-  }
-}
-
 const modeName = (mode?: KubernetesManifestGroupSpecMode) => {
   switch (mode) {
     case KubernetesManifestGroupSpecMode.FULL:
@@ -84,26 +72,11 @@ const groupPhaseStatus = (
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
       return { tone: 'success', glyph: 'success' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return { tone: 'warning', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return { tone: 'info', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
       return { tone: 'info', glyph: 'progress' }
     default:
       return { tone: 'info', glyph: 'unknown' }
-  }
-}
-
-const manifestPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'text-status-success-text'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-status-warning-text'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-status-info-text'
-    default:
-      return 'text-content-muted'
   }
 }
 
@@ -169,8 +142,8 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
             <div class="text-content-secondary" role="cell">{{ manifest.kind || '—' }}</div>
             <div class="text-content-secondary" role="cell">{{ manifest.name || '—' }}</div>
             <div class="text-content-secondary" role="cell">{{ manifest.namespace || '—' }}</div>
-            <div :class="manifestPhaseClass(manifest.phase)" role="cell">
-              {{ manifestPhaseName(manifest.phase) }}
+            <div role="cell">
+              <ClusterManifestPhase :phase="manifest.phase" />
             </div>
           </div>
         </div>

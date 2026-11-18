@@ -30,10 +30,6 @@ const status = computed<StatusAppearance>(() => {
     case TCommonStatuses.UP_TO_DATE:
     case TCommonStatuses.APPLIED:
       return { tone: 'success', glyph: 'success' }
-    case TCommonStatuses.PENDING:
-    case TCommonStatuses.PROVISIONED:
-    case TCommonStatuses.PROVISIONING:
-      return { tone: 'warning', glyph: 'progress' }
     case TCommonStatuses.FAILED:
     case TCommonStatuses.ERROR:
     case TCommonStatuses.PROVISION_FAILED:
@@ -43,8 +39,10 @@ const status = computed<StatusAppearance>(() => {
       return { tone: 'danger', glyph: 'danger' }
     case TCommonStatuses.DISCONNECTED:
       return { tone: 'danger', glyph: 'warning' }
+    case TCommonStatuses.PENDING:
+    case TCommonStatuses.PROVISIONED:
+    case TCommonStatuses.PROVISIONING:
     case TCommonStatuses.DEPROVISIONING:
-      return { tone: 'info', glyph: 'progress' }
     case TCommonStatuses.INITIALIZED:
     case TCommonStatuses.PREPARING:
     case TCommonStatuses.STARTING:

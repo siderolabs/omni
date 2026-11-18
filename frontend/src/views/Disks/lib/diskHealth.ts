@@ -25,14 +25,21 @@ export interface DiskHealth extends StatusAppearance {
 const healthy: DiskHealth = { label: 'Healthy', tone: 'success', glyph: 'success' }
 
 // What MD is doing while it syncs, from sysfs sync_action, and whether it means
-// the array lost redundancy. A check or repair is routine scrubbing.
-const syncAppearances: Record<string, Pick<DiskHealth, 'label' | 'tone'>> = {
-  check: { label: 'Checking', tone: 'info' },
-  repair: { label: 'Repairing', tone: 'info' },
-  resync: { label: 'Resyncing', tone: 'warning' },
-  recover: { label: 'Rebuilding', tone: 'warning' },
-  reshape: { label: 'Reshaping', tone: 'warning' },
-  frozen: { label: 'Sync frozen', tone: 'warning' },
+// the array lost redundancy. A check or repair is routine scrubbing, so it is in
+// progress. The rest put the data at risk while they run, so they need attention.
+const rebuilding: Pick<DiskHealth, 'label' | 'tone' | 'glyph'> = {
+  label: 'Rebuilding',
+  tone: 'warning',
+  glyph: 'warning',
+}
+
+const syncAppearances: Record<string, Pick<DiskHealth, 'label' | 'tone' | 'glyph'>> = {
+  check: { label: 'Checking', tone: 'info', glyph: 'progress' },
+  repair: { label: 'Repairing', tone: 'info', glyph: 'progress' },
+  resync: { label: 'Resyncing', tone: 'warning', glyph: 'warning' },
+  recover: rebuilding,
+  reshape: { label: 'Reshaping', tone: 'warning', glyph: 'warning' },
+  frozen: { label: 'Sync frozen', tone: 'warning', glyph: 'warning' },
 }
 
 /** Returns the health of an MD array that Talos manages. */
@@ -58,9 +65,7 @@ export function getMDArrayHealth(array: MDArrayStatusSpec): DiskHealth {
 
   // Talos reports any sync other than idle as rebuilding, a routine check too.
   if (status === 'rebuilding') {
-    const sync = syncAppearances[syncAction] ?? { label: 'Rebuilding', tone: 'warning' }
-
-    return { ...sync, glyph: 'progress', message: error }
+    return { ...(syncAppearances[syncAction] ?? rebuilding), message: error }
   }
 
   return status === 'ready'

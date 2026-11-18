@@ -27,7 +27,6 @@ const eventStyle = (state: string) => {
     case 'Starting':
     case 'Stopping':
     case 'Waiting':
-      color = 'bg-status-warning-fill text-status-warning-on-fill'
       icon = 'loading'
 
       break
