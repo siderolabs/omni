@@ -40,7 +40,6 @@ const phaseStatus = (cluster?: Resource<ClusterStatusSpec>): StatusAppearance =>
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return { tone: 'warning', glyph: 'progress' }
     case ClusterStatusSpecPhase.DESTROYING:
       return { tone: 'info', glyph: 'progress' }
     case ClusterStatusSpecPhase.RUNNING:

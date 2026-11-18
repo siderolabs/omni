@@ -36,7 +36,6 @@ function manifestPhaseStatus(
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
       return { tone: 'success', glyph: 'success' }
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return { tone: 'warning', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
       return { tone: 'info', glyph: 'progress' }
     default:

@@ -38,7 +38,7 @@ const ICON_STATES: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType
   {
     [State.PASSED]: { icon: 'check-circle', class: 'text-status-success-default' },
     [State.FAILED]: { icon: 'x-circle', class: 'text-status-danger-default' },
-    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-warning-default' },
+    [State.RUNNING]: { icon: 'loading', class: 'animate-spin text-status-info-default' },
     [State.UNKNOWN]: { icon: 'time', class: 'text-content-muted' },
   }
 

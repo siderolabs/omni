@@ -91,13 +91,8 @@ const manifestYAML = computed(() => {
           </div>
 
           <div class="flex items-center gap-micro">
-            <div class="h-0 w-5 border-t-2 border-dashed border-status-danger-default"></div>
-            <span>Deleting</span>
-          </div>
-
-          <div class="flex items-center gap-micro">
-            <div class="h-0 w-5 border-t-2 border-dashed border-status-warning-default"></div>
-            <span>Pending</span>
+            <div class="h-0 w-5 border-t-2 border-dashed border-status-info-default"></div>
+            <span>Pending or deleting</span>
           </div>
         </div>
 

@@ -84,9 +84,7 @@ const groupPhaseStatus = (
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
       return { tone: 'success', glyph: 'success' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return { tone: 'warning', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return { tone: 'info', glyph: 'progress' }
     case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
       return { tone: 'info', glyph: 'progress' }
     default:
@@ -99,7 +97,6 @@ const manifestPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecManifest
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
       return 'text-status-success-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-status-warning-text'
     case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
       return 'text-status-info-text'
     default:
