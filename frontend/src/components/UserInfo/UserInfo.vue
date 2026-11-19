@@ -5,17 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import { useInitials } from '@/components/UserInfo/lib/useInitials'
 import { useLogout } from '@/methods/auth'
 
 const logout = useLogout()
 
 const {
   size = 'normal',
-  email,
+  email = '',
   avatar,
   fullname,
 } = defineProps<{
@@ -26,23 +25,15 @@ const {
   email?: string
 }>()
 
-const initials = computed(() => {
-  const source = fullname?.trim() || email?.split('@')[0] || ''
-  const words = source.split(/[\s._-]+/).filter(Boolean)
-  const picked = words.length > 1 ? [words[0], words.at(-1)!] : words
-
-  return picked
-    .map((word) => {
-      const [first] = new Intl.Segmenter().segment(word)
-      return first.segment
-    })
-    .join('')
-})
+const initials = useInitials(() => fullname?.trim() || email)
 </script>
 
 <template>
   <div class="flex items-center gap-tight">
-    <div class="overflow-hidden rounded-full" :class="size === 'small' ? 'size-8' : 'size-12'">
+    <div
+      class="shrink-0 overflow-hidden rounded-full"
+      :class="size === 'small' ? 'size-8' : 'size-12'"
+    >
       <img v-if="avatar" class="size-full" :src="avatar" alt="" referrerpolicy="no-referrer" />
 
       <span
@@ -56,14 +47,12 @@ const initials = computed(() => {
     </div>
 
     <div class="flex grow flex-col overflow-hidden" :class="{ 'text-xs': size === 'small' }">
-      <span class="truncate text-content-default">{{ fullname }}</span>
+      <span v-if="fullname" class="truncate text-content-default">{{ fullname }}</span>
       <span class="truncate">{{ email }}</span>
     </div>
 
-    <div class="shrink-0">
-      <TActionsBox v-if="withLogoutControls" aria-label="user actions">
-        <TActionsBoxItem @select="logout">Log Out</TActionsBoxItem>
-      </TActionsBox>
-    </div>
+    <TActionsBox v-if="withLogoutControls" aria-label="user actions" class="shrink-0">
+      <TActionsBoxItem @select="logout">Log Out</TActionsBoxItem>
+    </TActionsBox>
   </div>
 </template>

@@ -153,7 +153,7 @@ function useSAMLProvider(): AuthProvider {
 
       const identity = route.query.identity?.toString()
 
-      return { email: identity, name: route.query.fullname?.toString() || identity }
+      return { email: identity, name: route.query.fullname?.toString() }
     }),
     canRetryLogin: false,
     credentials() {
