@@ -7,6 +7,8 @@ package omni_test
 
 import (
 	"context"
+	"errors"
+	"net"
 	"strconv"
 	"sync"
 	"testing"
@@ -89,6 +91,10 @@ func (lb *mockLoadBalancer) Shutdown() error {
 
 func (lb *mockLoadBalancer) Healthy() (bool, error) {
 	return true, nil
+}
+
+func (lb *mockLoadBalancer) DialContext(context.Context) (net.Conn, error) {
+	return nil, errors.New("in-process dial is not supported by the mock")
 }
 
 type LoadBalancerSuite struct {
