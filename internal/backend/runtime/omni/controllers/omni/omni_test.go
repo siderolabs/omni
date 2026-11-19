@@ -419,7 +419,7 @@ func (suite *OmniSuite) SetupTest() {
 
 	suite.cachedState = state.WrapCore(suite.runtime.CachedState())
 
-	suite.kubernetesRuntime = kubernetes.NewWithTTL(suite.state, 0, logger, "", "", "")
+	suite.kubernetesRuntime = kubernetes.NewWithTTL(suite.state, 0, logger, "", "", "", nil)
 
 	if suite.disableConnections {
 		return

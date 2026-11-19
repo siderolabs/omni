@@ -85,7 +85,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime := kubernetes.New(resourceState, logger, "", "", "")
+	kubernetesRuntime := kubernetes.New(resourceState, logger, "", "", "", nil)
 
 	mockState, err := omniruntime.NewMockState(resourceState)
 	suite.Require().NoError(err)

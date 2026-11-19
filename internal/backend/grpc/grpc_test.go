@@ -102,7 +102,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
+	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "", nil)
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,

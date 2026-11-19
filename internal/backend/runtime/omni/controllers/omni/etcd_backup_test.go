@@ -60,7 +60,7 @@ var secretsJSON []byte
 
 func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime) {
 	logger := zaptest.NewLogger(t)
-	kubernetesRuntime := kubernetes.NewWithTTL(st, 0, logger, "", "", "")
+	kubernetesRuntime := kubernetes.NewWithTTL(st, 0, logger, "", "", "", nil)
 
 	require.NoError(t, rt.RegisterController(clusterctrl.NewCleanupController(kubernetesRuntime)))
 	require.NoError(t, rt.RegisterQController(clusterctrl.NewUUIDController()))
