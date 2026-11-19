@@ -14,10 +14,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/lbdial"
@@ -27,7 +29,7 @@ import (
 type LoadBalancerController struct {
 	NewLoadBalancer loadbalancer.NewFunc
 	LBConfig        config.LoadBalancerService
-	Dialer          *lbdial.Dialer
+	Dialer *lbdial.Dialer
 
 	loadBalancers *loadbalancer.Manager
 }
@@ -48,6 +50,12 @@ func (ctrl *LoadBalancerController) Inputs() []controller.Input {
 		{
 			Namespace: resources.DefaultNamespace,
 			Type:      omni.ClusterStatusType,
+			Kind:      controller.InputWeak,
+		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      siderolink.ConfigType,
+			ID:        optional.Some(siderolink.ConfigID),
 			Kind:      controller.InputWeak,
 		},
 	}
@@ -108,6 +116,19 @@ func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtim
 }
 
 func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
+	siderolinkConfig, err := safe.ReaderGet[*siderolink.Config](ctx, r, siderolink.NewConfig().Metadata())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("error reading siderolink config: %w", err)
+	}
+
+	if siderolinkConfig.TypedSpec().Value.ServerAddress == "" {
+		return nil
+	}
+
 	// list loadBalancers
 	list, err := safe.ReaderListAll[*omni.LoadBalancerConfig](ctx, r)
 	if err != nil {
@@ -151,7 +172,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		}
 
 		shouldRun[item.Metadata().ID()] = loadbalancer.Spec{
-			BindAddress: "0.0.0.0",
+			BindAddress: siderolinkConfig.TypedSpec().Value.ServerAddress,
 			BindPort:    bindPort,
 		}
 
