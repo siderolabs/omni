@@ -1102,3 +1102,139 @@ func removeMachineInstall(t *testing.T, in []byte) []byte {
 
 	return out.Bytes()
 }
+
+func lockTestTemplate(locked bool, workers ...string) string {
+	var sb strings.Builder
+
+	sb.WriteString("kind: Cluster\nname: lock-test\nkubernetes:\n  version: v1.33.0\ntalos:\n  version: v1.10.0\n")
+
+	if locked {
+		sb.WriteString("locked: true\n")
+	}
+
+	sb.WriteString("---\nkind: ControlPlane\nmachines:\n  - 4b9797ae-55d7-4717-a19e-b322a2d83d39\n")
+
+	if len(workers) > 0 {
+		sb.WriteString("---\nkind: Workers\nmachines:\n")
+
+		for _, w := range workers {
+			sb.WriteString("  - " + w + "\n")
+		}
+	}
+
+	return sb.String()
+}
+
+func syncLockTestTemplate(t *testing.T, st state.State, tmpl string) (*template.SyncResult, error) {
+	templ, err := template.Load(strings.NewReader(tmpl))
+	require.NoError(t, err)
+
+	require.NoError(t, templ.Validate())
+
+	syncResult, err := templ.Sync(t.Context(), st)
+	require.NoError(t, err)
+
+	return syncResult, templ.CheckClusterLock(syncResult)
+}
+
+func applyLockTestTemplate(t *testing.T, st state.State, tmpl string) {
+	syncResult, err := syncLockTestTemplate(t, st, tmpl)
+	require.NoError(t, err)
+
+	for _, r := range syncResult.Create {
+		require.NoError(t, st.Create(t.Context(), r))
+	}
+
+	for _, u := range syncResult.Update {
+		require.NoError(t, st.Update(t.Context(), u.New))
+	}
+}
+
+func TestSync_ClusterLock(t *testing.T) {
+	const (
+		worker1 = "947f7a99-0f46-4a9e-ab02-205f4e1b7009"
+		worker2 = "b1ed45d8-4e79-4a07-a29a-b1b075843d41"
+	)
+
+	t.Run("create locked", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		_, err := syncLockTestTemplate(t, st, lockTestTemplate(true))
+		require.ErrorContains(t, err, `the cluster "lock-test" cannot be created locked`)
+	})
+
+	t.Run("lock", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		applyLockTestTemplate(t, st, lockTestTemplate(false, worker1))
+
+		syncResult, err := syncLockTestTemplate(t, st, lockTestTemplate(true, worker1))
+		require.NoError(t, err)
+
+		require.Len(t, syncResult.Update, 1)
+
+		_, locked := syncResult.Update[0].New.Metadata().Annotations().Get(omni.ClusterLocked)
+		assert.True(t, locked)
+	})
+
+	t.Run("lock and add a machine", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		applyLockTestTemplate(t, st, lockTestTemplate(false, worker1))
+
+		_, err := syncLockTestTemplate(t, st, lockTestTemplate(true, worker1, worker2))
+		require.ErrorContains(t, err, "MachineSetNodes.omni.sidero.dev(default/"+worker2+")")
+	})
+
+	t.Run("stay locked and remove a machine", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		applyLockTestTemplate(t, st, lockTestTemplate(false, worker1, worker2))
+		applyLockTestTemplate(t, st, lockTestTemplate(true, worker1, worker2))
+
+		_, err := syncLockTestTemplate(t, st, lockTestTemplate(true, worker1))
+		require.ErrorContains(t, err, "MachineSetNodes.omni.sidero.dev(default/"+worker2+")")
+	})
+
+	t.Run("stay locked and update the cluster", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		applyLockTestTemplate(t, st, lockTestTemplate(false, worker1))
+		applyLockTestTemplate(t, st, lockTestTemplate(true, worker1))
+
+		_, err := syncLockTestTemplate(t, st, strings.Replace(lockTestTemplate(true, worker1), "v1.33.0", "v1.33.1", 1))
+		require.ErrorContains(t, err, "Clusters.omni.sidero.dev(default/lock-test)")
+	})
+
+	t.Run("unlock and add a machine", func(t *testing.T) {
+		st := state.WrapCore(inmem.NewState())
+
+		applyLockTestTemplate(t, st, lockTestTemplate(false, worker1))
+		applyLockTestTemplate(t, st, lockTestTemplate(true, worker1))
+
+		syncResult, err := syncLockTestTemplate(t, st, lockTestTemplate(false, worker1, worker2))
+		require.NoError(t, err)
+
+		assert.Contains(t, xslices.Map(syncResult.Create, resource.String), "MachineSetNodes.omni.sidero.dev(default/"+worker2+")")
+	})
+}
+
+func TestDelete_LockedCluster(t *testing.T) {
+	st := state.WrapCore(inmem.NewState())
+
+	applyLockTestTemplate(t, st, lockTestTemplate(false))
+	applyLockTestTemplate(t, st, lockTestTemplate(true))
+
+	clusterStatus := omni.NewClusterStatus("lock-test")
+	clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
+
+	require.NoError(t, st.Create(t.Context(), clusterStatus))
+
+	_, err := template.WithCluster("lock-test").Delete(t.Context(), st)
+	require.ErrorContains(t, err, `the cluster "lock-test" is locked`)
+
+	applyLockTestTemplate(t, st, lockTestTemplate(false))
+
+	_, err = template.WithCluster("lock-test").Delete(t.Context(), st)
+	require.NoError(t, err)
+}

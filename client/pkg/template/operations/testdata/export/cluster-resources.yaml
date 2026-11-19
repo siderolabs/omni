@@ -13,6 +13,7 @@ metadata:
     cluster-label-2: val2
   annotations:
     omni.sidero.dev/managed-by-cluster-templates:
+    omni.sidero.dev/cluster-locked:
   finalizers:
     - KubernetesUpgradeStatusController
     - TalosUpgradeStatusController

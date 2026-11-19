@@ -404,6 +404,8 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch,
 		}
 	}
 
+	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+
 	return models.Cluster{
 		Kind:        models.KindCluster,
 		Name:        cluster.Metadata().ID(),
@@ -416,6 +418,7 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch,
 		},
 		Features: features,
 		Patches:  patchModels,
+		Locked:   locked,
 	}, nil
 }
 

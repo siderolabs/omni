@@ -207,3 +207,14 @@ func (l List) ClusterName() (string, error) {
 
 	return "", fmt.Errorf("cluster model not found")
 }
+
+// ClusterLocked returns whether the template locks the cluster.
+func (l List) ClusterLocked() bool {
+	for _, model := range l {
+		if cluster, ok := model.(*Cluster); ok {
+			return cluster.Locked
+		}
+	}
+
+	return false
+}

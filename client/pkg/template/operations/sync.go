@@ -15,6 +15,7 @@ import (
 	"github.com/fatih/color"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/template"
 	"github.com/siderolabs/omni/client/pkg/template/operations/internal/utils"
 )
@@ -47,6 +48,10 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 		return fmt.Errorf("error syncing template: %w", err)
 	}
 
+	if err = tmpl.CheckClusterLock(syncResult); err != nil {
+		return err
+	}
+
 	return sync(ctx, syncResult, out, st, syncOptions)
 }
 
@@ -63,6 +68,15 @@ func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, s
 	dryRun := ""
 	if syncOptions.DryRun {
 		dryRun = " (dry run)"
+	}
+
+	lockChanges, updates := splitClusterLockChanges(syncResult.Update)
+
+	// locking first holds back the config changes below, unlocking first allows the machine set changes below
+	for _, p := range lockChanges {
+		if err := syncUpdate(ctx, p, out, st, syncOptions); err != nil {
+			return err
+		}
 	}
 
 	for _, r := range syncResult.Create {
@@ -83,25 +97,57 @@ func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, s
 		}
 	}
 
-	for _, p := range syncResult.Update {
-		yellow.Fprintf(out, "* updating%s %s\n", dryRun, boldFunc(utils.Describe(p.New))) //nolint:errcheck
-
-		if syncOptions.Verbose {
-			if err := utils.RenderDiff(out, p.Old, p.New); err != nil {
-				return err
-			}
-		}
-
-		if syncOptions.DryRun {
-			continue
-		}
-
-		if err := st.Update(ctx, p.New); err != nil {
+	for _, p := range updates {
+		if err := syncUpdate(ctx, p, out, st, syncOptions); err != nil {
 			return err
 		}
 	}
 
 	return syncDelete(ctx, syncResult, out, st, syncOptions)
+}
+
+func syncUpdate(ctx context.Context, p template.UpdateChange, out io.Writer, st state.State, syncOptions SyncOptions) error {
+	dryRun := ""
+	if syncOptions.DryRun {
+		dryRun = " (dry run)"
+	}
+
+	color.New(color.FgYellow).Fprintf(out, "* updating%s %s\n", dryRun, color.New(color.Bold).Sprint(utils.Describe(p.New))) //nolint:errcheck
+
+	if syncOptions.Verbose {
+		if err := utils.RenderDiff(out, p.Old, p.New); err != nil {
+			return err
+		}
+	}
+
+	if syncOptions.DryRun {
+		return nil
+	}
+
+	return st.Update(ctx, p.New)
+}
+
+func splitClusterLockChanges(updates []template.UpdateChange) (lockChanges, rest []template.UpdateChange) {
+	for _, p := range updates {
+		if p.New.Metadata().Type() != omni.ClusterType {
+			rest = append(rest, p)
+
+			continue
+		}
+
+		_, wasLocked := p.Old.Metadata().Annotations().Get(omni.ClusterLocked)
+		_, locked := p.New.Metadata().Annotations().Get(omni.ClusterLocked)
+
+		if wasLocked == locked {
+			rest = append(rest, p)
+
+			continue
+		}
+
+		lockChanges = append(lockChanges, p)
+	}
+
+	return lockChanges, rest
 }
 
 func syncDelete(ctx context.Context, syncResult *template.SyncResult, out io.Writer, st state.State, syncOptions SyncOptions) error {

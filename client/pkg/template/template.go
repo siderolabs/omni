@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -326,12 +327,93 @@ func (t *Template) Delete(ctx context.Context, st state.State) (*SyncResult, err
 		}
 	}
 
+	if err = checkClusterDeletable(actualResources); err != nil {
+		return nil, err
+	}
+
 	syncResult := SyncResult{
 		Update:  toUpdate,
 		Destroy: splitResourcesToDelete(toDelete),
 	}
 
 	return &syncResult, nil
+}
+
+// checkClusterDeletable fails before any write, as Omni rejects removing the machine sets and machine set nodes of a locked cluster.
+func checkClusterDeletable(actualResources []resource.Resource) error {
+	cluster := findCluster(actualResources)
+	if cluster == nil {
+		return nil
+	}
+
+	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
+		return fmt.Errorf("the cluster %q is locked, unlock it before deleting it", cluster.Metadata().ID())
+	}
+
+	return nil
+}
+
+// CheckClusterLock returns an error when the sync result has changes that Omni rejects on a locked cluster, so that the sync fails before any write.
+func (t *Template) CheckClusterLock(syncResult *SyncResult) error {
+	if !t.models.ClusterLocked() {
+		return nil
+	}
+
+	clusterName, err := t.models.ClusterName()
+	if err != nil {
+		return err
+	}
+
+	if slices.ContainsFunc(syncResult.Create, func(r resource.Resource) bool { return r.Metadata().Type() == omni.ClusterType }) {
+		return fmt.Errorf("the cluster %q cannot be created locked, sync it without \"locked: true\" first", clusterName)
+	}
+
+	var changed []string
+
+	collect := func(r resource.Resource) {
+		switch r.Metadata().Type() {
+		case omni.MachineSetType, omni.MachineSetNodeType:
+			changed = append(changed, resource.String(r))
+		}
+	}
+
+	for _, r := range syncResult.Create {
+		collect(r)
+	}
+
+	for _, u := range syncResult.Update {
+		if u.New.Metadata().Type() == omni.ClusterType {
+			if _, wasLocked := u.Old.Metadata().Annotations().Get(omni.ClusterLocked); wasLocked {
+				changed = append(changed, resource.String(u.New))
+			}
+
+			continue
+		}
+
+		collect(u.New)
+	}
+
+	for _, phase := range syncResult.Destroy {
+		for _, r := range phase {
+			collect(r)
+		}
+	}
+
+	if len(changed) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("the cluster %q is locked, unlock it before changing the cluster, machine sets and machine set nodes: %s", clusterName, strings.Join(changed, ", "))
+}
+
+func findCluster(resources []resource.Resource) resource.Resource {
+	for _, r := range resources {
+		if r.Metadata().Type() == omni.ClusterType {
+			return r
+		}
+	}
+
+	return nil
 }
 
 func metadataKey(md resource.Metadata) string {

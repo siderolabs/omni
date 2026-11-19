@@ -49,6 +49,9 @@ type Cluster struct { //nolint:govet
 
 	// KernelArgs are the additional kernel arguments.
 	KernelArgs OptionalList `yaml:"kernelArgs,omitempty"`
+
+	// Locked locks the cluster, so no config updates, upgrades and downgrades will be performed on its machines.
+	Locked bool `yaml:"locked,omitempty"`
 }
 
 // Features defines cluster-wide features.
@@ -137,6 +140,10 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	clusterResource.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
 
 	cluster.Descriptors.Apply(clusterResource)
+
+	if cluster.Locked {
+		clusterResource.Metadata().Annotations().Set(omni.ClusterLocked, "")
+	}
 
 	clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy:           cluster.Features.EnableWorkloadProxy,
