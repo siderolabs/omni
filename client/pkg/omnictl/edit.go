@@ -163,7 +163,7 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 						message += "\n"
 					}
 
-					message += fmt.Sprintf("A copy of your changes has been stored to %q\nEdit canceled, no valid changes were saved.\n", path)
+					message += fmt.Sprintf("A copy of your changes has been stored to %q\nEdit canceled.\n", path)
 
 					// Keep the recovery file out of the deferred cleanup.
 					path = ""
@@ -188,6 +188,8 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 			}
 
 			var changed int
+
+			lastError = ""
 
 			for _, res := range editedResources {
 				editedData, marshalErr := marshalResourceCanonical(res)
@@ -214,6 +216,14 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 				}
 
 				fmt.Fprintf(safeout.Stderr(), "Updated %s '%s'\n", res.Metadata().Type(), res.Metadata().ID())
+
+				// Retry only documents that failed or were edited again, using their latest saved versions.
+				originalResources[resourceKey(res)] = res
+				originalYAML[resourceKey(res)] = editedData
+			}
+
+			if lastError != "" {
+				continue
 			}
 
 			if changed == 0 {
