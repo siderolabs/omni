@@ -61,3 +61,58 @@ longer be read or written, so manifests and scripts that use them need to switch
 
 The deprecated `assignroleonregistration` field is removed. The migration moves its value to `assignrole` on the rules that still use it.
 """
+
+[notes.trusted-roots]
+title = "Custom CA Delivery to Machines"
+description = """\
+Omni can now deliver custom CA certificates to machines from their first boot, for setups where Omni or the image factory \
+serves certificates signed by a private CA. The PEM bundle is configured with `--trusted-roots-file` (`trustedRootsFile` in \
+the config file).
+
+Omni adds these CAs as a `TrustedRootsConfig` document (`omni-trusted-roots`) to installation media and install images (Talos \
+1.12+), infrastructure provider join configs, `omnictl jointoken machine-config`, maintenance configs and cluster machine configs.
+"""
+
+[notes.machine-operations]
+title = "Machine Install and Upgrade Progress"
+description = """\
+Omni now tracks install and upgrade operations it runs on Talos 1.13+ machines in the `MachineOperationStatus` resource. \
+The active stage (e.g., draining or rebooting) and latest progress message are shown in `omnictl cluster status`, the cluster \
+machine list, the machine overview page and the machines page.
+"""
+
+[notes.disks-view]
+title = "Improved Machine Disks View"
+description = """\
+The disks page in the UI now shows more details for each machine:
+
+- Disk topology for MD arrays, LVMs and multipath devices, grouped into physical and virtual devices.
+- Hardware details such as serial number, firmware version and SSD/HDD labels.
+- Disk space usage.
+- Volume status and failures.
+- Health for MD arrays and LVM logical volumes, plus SMART health on Talos 1.15+.
+"""
+
+[notes.talos-version-floor]
+title = "Talos Version Floor"
+description = """\
+Omni can now disconnect machines running below the Talos version floor (`1.6.0`). This is enabled with \
+`--siderolink-disconnect-talos-below=1.6.0` (`services.siderolink.disconnectTalosBelow` in the config file) and replaces \
+`UnsupportedTalosVersionFailOnStart`.
+
+When enabled, Omni rejects provisioning requests from machines below the floor and removes their WireGuard peers.
+"""
+
+[notes.redacted-talos-resources]
+title = "Redacted Talos Resources"
+description = """\
+Omni now supports viewing Talos resources that contain secrets in their redacted form when the target node supports resource \
+redaction (upcoming in Talos 1.15). Users whose role allows reading those resources without secret access receive the redacted \
+version instead of a permission error.
+"""
+
+[notes.audit-log-ip-filter]
+title = "Audit Log Filtering and Ordering by IP"
+description = """\
+Audit logs can now be filtered and ordered by client IP address in both the UI and `omnictl`.
+"""
