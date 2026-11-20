@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 )
 
@@ -197,4 +198,187 @@ func TestInFlight(t *testing.T) {
 	assert.True(t, timings.InFlight(inFlight(sha, 1, base), base))
 	assert.True(t, timings.InFlight(inFlight(sha, 1, base), base.Add(rollbackDone-time.Nanosecond)))
 	assert.False(t, timings.InFlight(inFlight(sha, 1, base), base.Add(rollbackDone)))
+}
+
+func TestReporter(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+
+	first, ok := operations.Snapshot()[machineID]
+	require.True(t, ok)
+	assert.Equal(t, specs.MachineOperationStatusSpec_TRYING_CONFIG, first.Stage)
+	assert.Equal(t, "attempt 1 of 2", first.Message)
+
+	secondAttemptAt := base.Add(timings.Timeout + timings.RollbackGrace)
+
+	reporter.Report(machineID, inFlight(sha, 2, secondAttemptAt), secondAttemptAt)
+
+	second, ok := operations.Snapshot()[machineID]
+	require.True(t, ok)
+	assert.Equal(t, specs.MachineOperationStatusSpec_TRYING_CONFIG, second.Stage)
+	assert.Equal(t, "attempt 2 of 2", second.Message)
+	assert.Equal(t, first.StartedAt, second.StartedAt, "the attempts of a try should be reported as one operation")
+
+	reporter.Report(machineID, nil, secondAttemptAt.Add(timings.ConfirmAfter))
+
+	assert.NotContains(t, operations.Snapshot(), machineID)
+}
+
+func TestReporterEndsGivenUpTry(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 2, base), base)
+	require.Contains(t, operations.Snapshot(), machineID)
+
+	reporter.Report(machineID, inFlight(sha, 2, base), base.Add(timings.Timeout+timings.RollbackGrace))
+
+	assert.NotContains(t, operations.Snapshot(), machineID)
+}
+
+func TestReporterKeepsReplacingOperation(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+	operations.Start(machineID, specs.MachineOperationStatusSpec_PREPARING_IMAGE)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base.Add(timings.ConfirmAfter))
+	assert.Equal(t, specs.MachineOperationStatusSpec_PREPARING_IMAGE, operations.Snapshot()[machineID].Stage)
+
+	reporter.Report(machineID, nil, base.Add(timings.ConfirmAfter))
+	assert.Equal(t, specs.MachineOperationStatusSpec_PREPARING_IMAGE, operations.Snapshot()[machineID].Stage)
+}
+
+func TestReporterReportsTryAfterReplacingOperationEnds(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+	operations.Start(machineID, specs.MachineOperationStatusSpec_PREPARING_IMAGE).End("")
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base.Add(timings.ConfirmAfter))
+
+	operation := operations.Snapshot()[machineID]
+	assert.Equal(t, specs.MachineOperationStatusSpec_TRYING_CONFIG, operation.Stage)
+	assert.Equal(t, base, operation.StartedAt)
+}
+
+func TestReporterLeavesRunningOperation(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	operations.Start(machineID, specs.MachineOperationStatusSpec_PREPARING_IMAGE)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+	assert.Equal(t, specs.MachineOperationStatusSpec_PREPARING_IMAGE, operations.Snapshot()[machineID].Stage)
+}
+
+func TestReporterStartsTryOfNewBoot(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+	operations.Start(machineID, specs.MachineOperationStatusSpec_PREPARING_IMAGE).End("boot-1")
+	operations.Booted(machineID, "boot-2")
+
+	afterReboot := inFlight(sha, 1, base.Add(time.Minute))
+	afterReboot.BootId = "boot-2"
+
+	reporter.Report(machineID, afterReboot, base.Add(time.Minute))
+
+	assert.Equal(t, specs.MachineOperationStatusSpec_TRYING_CONFIG, operations.Snapshot()[machineID].Stage)
+}
+
+func TestReporterRestartsTryAfterRebootWithoutInstall(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+
+	newTryStart := base.Add(time.Minute)
+	afterReboot := inFlight(sha, 2, newTryStart)
+	afterReboot.BootId = "boot-2"
+
+	reporter.Report(machineID, afterReboot, newTryStart)
+
+	operation := operations.Snapshot()[machineID]
+	assert.Equal(t, specs.MachineOperationStatusSpec_TRYING_CONFIG, operation.Stage)
+	assert.Equal(t, newTryStart, operation.StartedAt, "the try on the new boot should be reported")
+	assert.Equal(t, "attempt 2 of 2", operation.Message)
+}
+
+func TestReporterEndsTryWithoutReconcile(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	timings.Timeout = 50 * time.Millisecond
+	timings.RollbackGrace = 10 * time.Millisecond
+
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	now := time.Now()
+
+	reporter.Report(machineID, inFlight(sha, 1, now), now)
+	require.Contains(t, operations.Snapshot(), machineID)
+
+	assert.Eventually(t, func() bool {
+		_, ok := operations.Snapshot()[machineID]
+
+		return !ok
+	}, 5*time.Second, 10*time.Millisecond, "the operation should end once the try can no longer be in flight")
+}
+
+func TestReporterStartsAtTry(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	timings := configtry.Default
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, timings)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base.Add(30*time.Second))
+
+	assert.True(t, base.Equal(operations.Snapshot()[machineID].StartedAt))
 }

@@ -637,7 +637,7 @@ func (ClusterStatusSpec_Phase) EnumDescriptor() ([]byte, []int) {
 	return file_omni_specs_omni_proto_rawDescGZIP(), []int{26, 0}
 }
 
-// Stage is the step of an install or upgrade.
+// Stage is the step of an operation.
 type MachineOperationStatusSpec_Stage int32
 
 const (
@@ -651,21 +651,23 @@ const (
 	MachineOperationStatusSpec_DRAINING         MachineOperationStatusSpec_Stage = 7
 	MachineOperationStatusSpec_REBOOTING        MachineOperationStatusSpec_Stage = 8
 	MachineOperationStatusSpec_UNCORDONING      MachineOperationStatusSpec_Stage = 9
+	MachineOperationStatusSpec_TRYING_CONFIG    MachineOperationStatusSpec_Stage = 10
 )
 
 // Enum value maps for MachineOperationStatusSpec_Stage.
 var (
 	MachineOperationStatusSpec_Stage_name = map[int32]string{
-		0: "UNKNOWN",
-		1: "PREPARING_IMAGE",
-		2: "PULLING_IMAGE",
-		3: "INSTALLING",
-		4: "UPGRADING",
-		5: "PREPARING_REBOOT",
-		6: "CORDONING",
-		7: "DRAINING",
-		8: "REBOOTING",
-		9: "UNCORDONING",
+		0:  "UNKNOWN",
+		1:  "PREPARING_IMAGE",
+		2:  "PULLING_IMAGE",
+		3:  "INSTALLING",
+		4:  "UPGRADING",
+		5:  "PREPARING_REBOOT",
+		6:  "CORDONING",
+		7:  "DRAINING",
+		8:  "REBOOTING",
+		9:  "UNCORDONING",
+		10: "TRYING_CONFIG",
 	}
 	MachineOperationStatusSpec_Stage_value = map[string]int32{
 		"UNKNOWN":          0,
@@ -678,6 +680,7 @@ var (
 		"DRAINING":         7,
 		"REBOOTING":        8,
 		"UNCORDONING":      9,
+		"TRYING_CONFIG":    10,
 	}
 )
 
@@ -4058,7 +4061,7 @@ func (x *ConfigTryStatus) GetBootId() string {
 	return ""
 }
 
-// MachineOperationStatusSpec represents the install or upgrade Omni is running on a machine right now.
+// MachineOperationStatusSpec represents the operation Omni is running on a machine right now, e.g., an install, an upgrade or a config try.
 type MachineOperationStatusSpec struct {
 	state protoimpl.MessageState           `protogen:"open.v1"`
 	Stage MachineOperationStatusSpec_Stage `protobuf:"varint,1,opt,name=stage,proto3,enum=specs.MachineOperationStatusSpec_Stage" json:"stage,omitempty"`
@@ -12919,11 +12922,11 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\battempts\x18\x02 \x01(\rR\battempts\x129\n" +
 	"\n" +
 	"started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12\x17\n" +
-	"\aboot_id\x18\x04 \x01(\tR\x06bootId\"\xec\x02\n" +
+	"\aboot_id\x18\x04 \x01(\tR\x06bootId\"\xff\x02\n" +
 	"\x1aMachineOperationStatusSpec\x12=\n" +
 	"\x05stage\x18\x01 \x01(\x0e2'.specs.MachineOperationStatusSpec.StageR\x05stage\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12D\n" +
-	"\x10stage_started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0estageStartedAt\"\xae\x01\n" +
+	"\x10stage_started_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0estageStartedAt\"\xc1\x01\n" +
 	"\x05Stage\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x13\n" +
 	"\x0fPREPARING_IMAGE\x10\x01\x12\x11\n" +
@@ -12935,7 +12938,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\tCORDONING\x10\x06\x12\f\n" +
 	"\bDRAINING\x10\a\x12\r\n" +
 	"\tREBOOTING\x10\b\x12\x0f\n" +
-	"\vUNCORDONING\x10\t\"\xb8\x03\n" +
+	"\vUNCORDONING\x10\t\x12\x11\n" +
+	"\rTRYING_CONFIG\x10\n" +
+	"\"\xb8\x03\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +
