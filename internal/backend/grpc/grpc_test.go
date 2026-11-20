@@ -102,12 +102,12 @@ func (suite *GrpcSuite) SetupTest() {
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
+	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "", nil)
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
 		imagefactory.NewClients(suite.state, imageFactoryClient), nil, nil, nil, nil, st,
-		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel),
+		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel),
 	)
 	suite.Require().NoError(err)
 

@@ -219,8 +219,12 @@ const clientTimeout = 5 * time.Minute
 
 // NewClient creates new Kubernetes client.
 func NewClient(config *rest.Config) (*Client, error) {
-	dialerRef := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
-	dialer := connrotation.NewDialer(dialerRef.DialContext)
+	dial := (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext
+	if config.Dial != nil {
+		dial = config.Dial
+	}
+
+	dialer := connrotation.NewDialer(dial)
 	config.Dial = dialer.DialContext
 
 	// set before building the HTTP client, which the mapper uses for discovery without any context
