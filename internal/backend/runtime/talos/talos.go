@@ -20,15 +20,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/common"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
-	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 )
 
 // Name talos runtime string id.
@@ -78,7 +75,7 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 		st, release, err = r.callerState(ctx, "", opts.Machines[0], opts.Resource)
 	default:
 		// the nodes all belong to one cluster by now, so the first one decides the access
-		if _, _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
+		if _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
 			return err
 		}
 
@@ -133,7 +130,7 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		st, release, err = r.callerState(ctx, "", opts.Machines[0], opts.Resource)
 	default:
 		// the nodes all belong to one cluster by now, so the first one decides the access
-		if _, _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
+		if _, err = r.authorize(ctx, "", opts.Machines[0]); err != nil {
 			return nil, err
 		}
 
@@ -235,41 +232,27 @@ func (r *Runtime) Delete(context.Context, ...runtime.QueryOption) error {
 	return status.Error(codes.Unimplemented, "not implemented")
 }
 
-// callerState returns the resource state of the target for a request made on behalf of the caller in the context:
-// either the cluster, or the machine when machineID is set.
-// authorize decides whether the caller may reach the cluster, or the cluster of the machine, and returns the context
-// carrying the role the access policy gives it there.
-func (r *Runtime) authorize(ctx context.Context, clusterID, machineID string) (context.Context, string, error) {
+// authorize checks that the caller can read the Talos resources of the cluster, or of the machine when machineID is set.
+// It returns the cluster the machine is in.
+func (r *Runtime) authorize(ctx context.Context, clusterID, machineID string) (string, error) {
 	if machineID != "" {
 		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, r.clientFactory.omniState, omni.NewMachineStatus(machineID).Metadata())
 		if err != nil {
-			return nil, "", err
+			return "", err
 		}
 
 		clusterID = machineStatus.TypedSpec().Value.Cluster
 	} else if clusterID == "" {
-		return nil, "", status.Error(codes.InvalidArgument, "either a cluster or a machine is required")
+		return "", status.Error(codes.InvalidArgument, "either a cluster or a machine is required")
 	}
 
-	ctx, err := accesspolicy.ApplyClusterAccessPolicy(ctx, clusterID, r.clientFactory.omniState)
-	if err != nil {
-		return nil, "", err
-	}
-
-	requiredRole := role.Reader
-	if clusterID == "" {
-		requiredRole = role.Operator
-	}
-
-	if _, err = auth.CheckGRPC(ctx, auth.WithRole(requiredRole)); err != nil {
-		return nil, "", err
-	}
-
-	return ctx, clusterID, nil
+	return clusterID, CheckRead(ctx, r.clientFactory.omniState, clusterID)
 }
 
+// callerState returns the resource state of the target for a request made on behalf of the caller in the context:
+// either the cluster, or the machine when machineID is set.
 func (r *Runtime) callerState(ctx context.Context, clusterID, machineID, resourceType string) (state.State, func(), error) {
-	ctx, clusterID, err := r.authorize(ctx, clusterID, machineID)
+	clusterID, err := r.authorize(ctx, clusterID, machineID)
 	if err != nil {
 		return nil, nil, err
 	}

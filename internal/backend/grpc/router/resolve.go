@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -100,24 +100,14 @@ func reportResolveError(ctx context.Context, verifier grpc.UnaryServerIntercepto
 		return err
 	}
 
-	return resolveErrorFor(ctx, resolveErr)
-}
-
-// resolveErrorFor returns the resolution error to callers that can read every machine, and the regular access error to
-// everyone else.
-func resolveErrorFor(ctx context.Context, resolveErr error) error {
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
-		return err
-	}
-
-	return resolveErr
+	return talos.ResolveError(ctx, resolveErr)
 }
 
 // ResolveMachines returns the IDs of the machines the node headers point to.
 func ResolveMachines(ctx context.Context, nodeResolver NodeResolver, md metadata.MD) ([]string, error) {
 	nodes, err := resolveNodes(nodeResolver, md)
 	if err != nil {
-		return nil, resolveErrorFor(ctx, err)
+		return nil, talos.ResolveError(ctx, err)
 	}
 
 	return xslices.Map(nodes, func(info dns.Info) string { return info.ID }), nil

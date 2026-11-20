@@ -89,7 +89,7 @@ func (factory *ClientFactory) ReaderCertificate(ctx context.Context, clusterID s
 
 // Authorize exposes the access check of the runtime to external tests, on a runtime which has only the Omni state.
 func Authorize(ctx context.Context, omniState state.State, clusterID, machineID string) error {
-	_, _, err := (&Runtime{clientFactory: &ClientFactory{omniState: omniState}}).authorize(ctx, clusterID, machineID)
+	_, err := (&Runtime{clientFactory: &ClientFactory{omniState: omniState}}).authorize(ctx, clusterID, machineID)
 
 	return err
 }
