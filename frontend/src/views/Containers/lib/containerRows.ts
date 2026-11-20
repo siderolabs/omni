@@ -8,6 +8,7 @@ import type {
   ContainerInstanceStatusSpec,
   ContainerStatusSpec,
 } from '@/api/talos/containers.pb'
+import { type ContainerMetrics, statsKey } from '@/views/Containers/lib/containerStats'
 
 /** A container, with what Talos reports about its image and its newest instance. */
 export interface ContainerRow {
@@ -17,6 +18,8 @@ export interface ContainerRow {
   instance?: ContainerInstanceStatusSpec
   /** When the container entered its state, if Talos says. */
   since?: Date
+  /** What its current instance is using, while it runs. */
+  metrics?: ContainerMetrics
 }
 
 /** Joins the statuses by container: an image status shares the container's ID, an instance names it. */
@@ -24,6 +27,7 @@ export function containerRows(
   statuses: Resource<ContainerStatusSpec>[],
   images: Resource<ContainerImageStatusSpec>[],
   instances: Resource<ContainerInstanceStatusSpec>[],
+  metrics = new Map<string, ContainerMetrics>(),
 ): ContainerRow[] {
   const imageById = new Map(images.map((i) => [i.metadata.id, i.spec]))
   const newestInstance = new Map<string, ContainerInstanceStatusSpec>()
@@ -48,6 +52,7 @@ export function containerRows(
       image: imageById.get(id),
       instance,
       since: sinceTime({ status, instance }),
+      metrics: metrics.get(statsKey(id, status.generation)),
     }
   })
 }

@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useIntervalFn, useNow } from '@vueuse/core'
+import prettyBytes from 'pretty-bytes'
 import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
@@ -29,9 +30,10 @@ import TableRow from '@/components/Table/TableRow.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ContainerDetail from '@/views/Containers/components/ContainerDetail.vue'
+import ContainerDetailCell from '@/views/Containers/components/ContainerDetailCell.vue'
 import ContainerImage from '@/views/Containers/components/ContainerImage.vue'
 import { containerRows, imageRef } from '@/views/Containers/lib/containerRows'
+import { formatCPU } from '@/views/Containers/lib/containerStats'
 import { formatSince, stateAppearance, stateName } from '@/views/Containers/lib/containerStatus'
 import {
   containerHealthFilterOptions,
@@ -40,6 +42,7 @@ import {
   filterContainers,
 } from '@/views/Containers/lib/filterContainers'
 import { injectMachineContainers } from '@/views/Containers/lib/machineContainers'
+import { useContainerStats } from '@/views/Containers/lib/useContainerStats'
 
 const { machineId } = defineProps<{
   machineId: string
@@ -68,6 +71,11 @@ const { data: instances } = useResourceWatch<ContainerInstanceStatusSpec>(() => 
   skip: !supported.value,
 }))
 
+const { metrics } = useContainerStats(
+  () => machineId,
+  () => supported.value && statuses.value.length > 0,
+)
+
 // Since counts in seconds, so a tick a second is enough
 const now = useNow({ scheduler: (cb) => useIntervalFn(cb, 1000) })
 
@@ -75,7 +83,9 @@ const search = ref('')
 const healthFilter = ref<string>()
 const sort = ref<ContainerSort>('name')
 
-const rows = computed(() => containerRows(statuses.value, images.value, instances.value))
+const rows = computed(() =>
+  containerRows(statuses.value, images.value, instances.value, metrics.value),
+)
 
 const visibleRows = computed(() =>
   filterContainers(rows.value, {
@@ -127,52 +137,68 @@ const visibleRows = computed(() =>
         No containers match the filter and status.
       </TAlert>
 
-      <TableRoot v-else class="w-full table-fixed">
-        <template #head>
-          <TableRow>
-            <TableCell th class="w-48">Name</TableCell>
-            <TableCell th class="w-72">Image</TableCell>
-            <TableCell th class="w-32">State</TableCell>
-            <TableCell th class="w-24">Restarts</TableCell>
-            <TableCell th class="w-24">Since</TableCell>
-            <TableCell th>Detail</TableCell>
-          </TableRow>
-        </template>
+      <!-- The columns need more room than a narrow page has: the table scrolls, not the page -->
+      <div v-else class="overflow-x-auto">
+        <TableRoot class="w-full min-w-4xl table-fixed">
+          <template #head>
+            <TableRow>
+              <TableCell th class="w-72">Name</TableCell>
+              <TableCell th class="w-32">State</TableCell>
+              <TableCell th class="w-20">Restarts</TableCell>
+              <TableCell th class="w-20">CPU</TableCell>
+              <TableCell th class="w-24">Memory</TableCell>
+              <TableCell th class="w-20">Since</TableCell>
+              <TableCell th>Detail</TableCell>
+            </TableRow>
+          </template>
 
-        <template #body>
-          <TableRow v-for="row in visibleRows" :key="row.id">
-            <TableCell class="truncate text-content-emphasis" :title="row.id">
-              <WordHighlighter
-                :query="search.trim()"
-                :text-to-highlight="row.id"
-                highlight-class="search-match"
-              />
-            </TableCell>
+          <template #body>
+            <TableRow v-for="row in visibleRows" :key="row.id">
+              <!-- The name, with its image under it -->
+              <TableCell>
+                <div class="truncate text-content-emphasis" :title="row.id">
+                  <WordHighlighter
+                    :query="search.trim()"
+                    :text-to-highlight="row.id"
+                    highlight-class="search-match"
+                  />
+                </div>
+                <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" />
+              </TableCell>
 
-            <TableCell>
-              <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" />
-            </TableCell>
+              <TableCell>
+                <StatusPill v-bind="stateAppearance(row.status.state, row.status.health)">
+                  {{ stateName(row.status.state) }}
+                </StatusPill>
+              </TableCell>
 
-            <TableCell>
-              <StatusPill v-bind="stateAppearance(row.status.state, row.status.health)">
-                {{ stateName(row.status.state) }}
-              </StatusPill>
-            </TableCell>
+              <TableCell class="font-mono">
+                {{ row.status.restartCount ?? 0 }}
+              </TableCell>
 
-            <TableCell class="font-mono">
-              {{ row.status.restartCount ?? 0 }}
-            </TableCell>
+              <TableCell class="font-mono">
+                {{ row.metrics?.cpuPercent !== undefined ? formatCPU(row.metrics.cpuPercent) : '' }}
+              </TableCell>
 
-            <TableCell class="font-mono" :title="row.since?.toLocaleString()">
-              {{ row.since && formatSince(row.since, now) }}
-            </TableCell>
+              <TableCell class="font-mono">
+                {{
+                  row.metrics?.memory !== undefined
+                    ? prettyBytes(row.metrics.memory, { binary: true })
+                    : ''
+                }}
+              </TableCell>
 
-            <TableCell>
-              <ContainerDetail :row />
-            </TableCell>
-          </TableRow>
-        </template>
-      </TableRoot>
+              <TableCell class="font-mono" :title="row.since?.toLocaleString()">
+                {{ row.since && formatSince(row.since, now) }}
+              </TableCell>
+
+              <TableCell>
+                <ContainerDetailCell :row />
+              </TableCell>
+            </TableRow>
+          </template>
+        </TableRoot>
+      </div>
     </template>
   </PageContainer>
 </template>

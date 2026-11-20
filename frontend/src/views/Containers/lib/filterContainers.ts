@@ -9,6 +9,8 @@ export const containerSortOptions = [
   { label: 'Name ⬇', value: '-name' },
   { label: 'Restarts ⬇', value: '-restarts' },
   { label: 'Restarts ⬆', value: 'restarts' },
+  { label: 'CPU ⬇', value: '-cpu' },
+  { label: 'Memory ⬇', value: '-memory' },
 ] as const
 
 export type ContainerSort = (typeof containerSortOptions)[number]['value']
@@ -23,9 +25,14 @@ export const containerHealthFilterOptions = [
 
 const byName = (a: ContainerRow, b: ContainerRow) => a.id.localeCompare(b.id)
 
+const byMetric = (a = -1, b = -1) => a - b
+
 const compare: Record<string, (a: ContainerRow, b: ContainerRow) => number> = {
   name: byName,
   restarts: (a, b) => (a.status.restartCount ?? 0) - (b.status.restartCount ?? 0) || byName(a, b),
+  // A container with no reading sorts as the lowest, so last when sorting by most used
+  cpu: (a, b) => byMetric(a.metrics?.cpuPercent, b.metrics?.cpuPercent) || byName(b, a),
+  memory: (a, b) => byMetric(a.metrics?.memory, b.metrics?.memory) || byName(b, a),
 }
 
 /**

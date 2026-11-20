@@ -11,7 +11,10 @@ import { type ContainerRow, containerRows, imageRef, sinceTime } from './contain
 describe('containerRows', () => {
   const rows = containerRows(
     [
-      { metadata: { id: 'web' }, spec: { state: 'running', image: 'sha256:aaa' } },
+      {
+        metadata: { id: 'web' },
+        spec: { state: 'running', image: 'sha256:aaa', generation: 3 },
+      },
       { metadata: { id: 'waiting' }, spec: { state: 'pending' } },
     ],
     [{ metadata: { id: 'web' }, spec: { image: 'docker.io/library/nginx:1.27' } }],
@@ -20,6 +23,11 @@ describe('containerRows', () => {
       { metadata: { id: 'web-3' }, spec: { containerID: 'web', generation: 3, startedAt: 'c' } },
       { metadata: { id: 'web-2' }, spec: { containerID: 'web', generation: 2, startedAt: 'b' } },
     ],
+    // stats of an earlier instance don't count
+    new Map([
+      ['web-3', { cpuPercent: 4, memory: 1024 }],
+      ['web-2', { cpuPercent: 99 }],
+    ]),
   )
 
   test('joins the image status by ID and keeps the newest instance', () => {
@@ -27,8 +35,13 @@ describe('containerRows', () => {
     expect(rows[0].instance?.generation).toBe(3)
   })
 
+  test('takes the metrics of the current instance', () => {
+    expect(rows[0].metrics).toEqual({ cpuPercent: 4, memory: 1024 })
+  })
+
   test('leaves a container without an image status or instance bare', () => {
     expect(rows[1]).toEqual({ id: 'waiting', status: { state: 'pending' } })
+    expect(rows[1].metrics).toBeUndefined()
   })
 
   test('imageRef falls back to the digest', () => {

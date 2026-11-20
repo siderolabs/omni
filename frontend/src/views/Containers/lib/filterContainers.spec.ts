@@ -9,10 +9,16 @@ import type { ContainerStatusSpec } from '@/api/talos/containers.pb'
 import type { ContainerRow } from './containerRows'
 import { type ContainerSort, filterContainers } from './filterContainers'
 
-const row = (id: string, status: ContainerStatusSpec, image?: string): ContainerRow => ({
+const row = (
+  id: string,
+  status: ContainerStatusSpec,
+  image?: string,
+  metrics?: ContainerRow['metrics'],
+): ContainerRow => ({
   id,
   status,
   image: image ? { image } : undefined,
+  metrics,
 })
 
 const rows = [
@@ -20,6 +26,7 @@ const rows = [
     'web',
     { health: 'healthy', state: 'running', restartCount: 3 },
     'docker.io/library/nginx:1.27',
+    { cpuPercent: 5, memory: 100 },
   ),
   row('crashloop', {
     health: 'degraded',
@@ -27,7 +34,10 @@ const rows = [
     restartCount: 12,
     error: 'exit status 1',
   }),
-  row('tailscale', { health: 'healthy', state: 'running', restartCount: 0 }),
+  row('tailscale', { health: 'healthy', state: 'running', restartCount: 0 }, undefined, {
+    cpuPercent: 20,
+    memory: 50,
+  }),
   row('waiting', { health: 'pending', state: 'pending' }),
 ]
 
@@ -38,6 +48,9 @@ test.each<[ContainerSort, string[]]>([
   ['-name', ['web', 'waiting', 'tailscale', 'crashloop']],
   ['-restarts', ['crashloop', 'web', 'waiting', 'tailscale']],
   ['restarts', ['tailscale', 'waiting', 'web', 'crashloop']],
+  // no reading sorts last, by name
+  ['-cpu', ['tailscale', 'web', 'crashloop', 'waiting']],
+  ['-memory', ['web', 'tailscale', 'crashloop', 'waiting']],
 ])('sorts by %s', (sort, expected) => {
   expect(ids(filterContainers(rows, { sort }))).toEqual(expected)
 })

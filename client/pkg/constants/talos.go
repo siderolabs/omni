@@ -113,4 +113,6 @@ const (
 	_ = storage.NamespaceName
 	// tsgen:TalosContainersNamespace
 	_ = containers.NamespaceName
+	// tsgen:TalosContainersContainerdNamespace
+	_ = constants.TalosContainersContainerdNamespace
 )
