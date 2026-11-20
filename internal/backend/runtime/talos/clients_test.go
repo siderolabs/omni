@@ -184,6 +184,58 @@ func TestGetMaintenance(t *testing.T) {
 	})
 }
 
+func TestGetSecure(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		clientFactory := talos.NewClientFactory(testContext.State, testContext.Logger)
+
+		createClusterMachine(ctx, t, testContext.State, "m-configured", "alpha", "unix:///nonexistent.sock")
+		createMaintenanceMachine(ctx, t, testContext.State, "m-maint")
+
+		allocatedMaintMachine := omni.NewMachineStatus("m-alloc-maint")
+		allocatedMaintMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		allocatedMaintMachine.TypedSpec().Value.Cluster = "alpha"
+		allocatedMaintMachine.TypedSpec().Value.Maintenance = true
+		require.NoError(t, testContext.State.Create(ctx, allocatedMaintMachine))
+
+		// a configured machine gets its cluster client, shared with GetForMachine
+		secure, err := clientFactory.GetSecure(ctx, "m-configured")
+		require.NoError(t, err)
+
+		defer secure.Close() //nolint:errcheck
+
+		assert.Equal(t, "alpha", secure.ClusterID())
+
+		viaForMachine, err := clientFactory.GetForMachine(ctx, "m-configured")
+		require.NoError(t, err)
+
+		defer viaForMachine.Close() //nolint:errcheck
+
+		assert.Same(t, secure.Client, viaForMachine.Client)
+
+		// a maintenance machine is refused, even when its maintenance client is already cached
+		maint, err := clientFactory.GetForMachine(ctx, "m-maint")
+		require.NoError(t, err)
+
+		defer maint.Close() //nolint:errcheck
+
+		for _, id := range []string{"m-maint", "m-alloc-maint"} {
+			_, err = clientFactory.GetSecure(ctx, id)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "is in maintenance mode")
+			assert.False(t, talos.IsClientNotReadyError(err))
+		}
+
+		_, err = clientFactory.GetSecure(ctx, "m-unknown")
+		require.True(t, talos.IsClientNotReadyError(err))
+	})
+}
+
 // getAndClose obtains a client for the machine and closes it. Only its connection is meant to be compared afterwards.
 func getAndClose(ctx context.Context, t *testing.T, clientFactory *talos.ClientFactory, machineID string) *talos.Client {
 	c, err := clientFactory.GetForMachine(ctx, machineID)
