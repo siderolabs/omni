@@ -150,6 +150,33 @@ func CheckOperation(subject Subject, operation Operation, target Target) error {
 	return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s", operation)}
 }
 
+// CheckInstallDiskConfig checks whether the subject's access to clusters covers the request to the install disk config
+// of a machine, and returns an error when it does not. The cluster is the one the machine is in, empty when it is in no cluster.
+//
+// It runs only after CheckResource refused the request with ErrNoGrant. The comment at its call in the resource API
+// explains why the install disk config is an exception.
+//
+//   - The machine is in no cluster: allowed when the subject can add machines to at least one cluster.
+//   - The machine is in a cluster: allowed when the subject has the verb on that cluster.
+func CheckInstallDiskConfig(subject Subject, verb state.Verb, cluster string) error {
+	for _, grant := range subject.Grants {
+		if cluster == "" {
+			// a grant on any cluster is enough, because the subject can add the machine to that cluster
+			if (grant.Scope.Global || len(grant.Scope.Clusters) > 0) && grant.Role.allows(Clusters, Create) {
+				return nil
+			}
+
+			continue
+		}
+
+		if grant.Scope.covers(Target{Cluster: cluster}) && grant.Role.allows(Clusters, verbOf(verb)) {
+			return nil
+		}
+	}
+
+	return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to the install disk config of the machine", verbOf(verb))}
+}
+
 // grants reports whether a grant of the subject covers the target and allows the verb on the resource group.
 //
 // ofMachine is set when the target is a resource of a machine.

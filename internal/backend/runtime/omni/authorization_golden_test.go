@@ -53,8 +53,8 @@ so the file shows what the caller gets back, not only whether the check passed.
 
 The resource types which behave the same for this subject are listed together.`
 
-// target is a resource the subjects act on. Every type gets the same targets, so the rows do not depend on how
-// the authorization code classifies a type.
+// target is a resource the subjects act on. The types get the same targets, with a few exceptions in targetsFor,
+// so the rows do not depend on how the authorization code classifies a type.
 type target struct {
 	labels map[string]string
 	// situation says in the golden file which resource the calls are for, e.g., "a resource in cluster-a".
@@ -297,6 +297,12 @@ func targetsFor(typ resource.Type, ns resource.Namespace) []target {
 
 	if typ == siderolink.LinkStatusType {
 		return linkStatusTargets()
+	}
+
+	// The access to the install disk config of a machine follows the cluster the machine is in, and not a label of the config.
+	// The config of a machine in cluster-b shows that the access to cluster-a does not cover it.
+	if typ == omni.MachineInstallDiskConfigType {
+		return append(slices.Clone(clusterTargets), target{situation: "a resource of a machine in cluster-b", id: authztest.OtherMachine})
 	}
 
 	return clusterTargets

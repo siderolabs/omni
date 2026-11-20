@@ -250,12 +250,43 @@ func checkAccess(ctx context.Context, st state.State, access state.Access, clust
 		}
 	}
 
-	return grants.CheckResource(ctx, st, authz.Target{
+	err := grants.CheckResource(ctx, st, authz.Target{
 		Type:        access.ResourceType,
 		Verb:        access.Verb,
 		Cluster:     clusterID,
 		AllClusters: requireAll,
 	})
+
+	// We treat MachineInstallDiskConfig as an exception here.
+	//
+	// This resource contains the install disk of a machine. It is a setting of a machine,
+	// so normally only a user who manages machines can write it.
+	//
+	// A user who manages only some clusters does not manage machines. For example,
+	// a user gets Operator on cluster-a from the access policy. This user adds machines
+	// to cluster-a, and chooses the install disk of each machine while doing it.
+	//
+	// The config must be written before the machine is added to the cluster. This is because
+	// Omni starts to install Talos as soon as the machine is in the cluster. At that moment
+	// the machine is still in no cluster, so the user's access to cluster-a does not cover it.
+	//
+	// Without this exception, such a user could add a machine to a cluster,
+	// but could not choose its install disk.
+	//
+	// Therefore, when the regular check finds no grant, we check the caller's access to clusters:
+	//   - The machine is in no cluster: allowed when the caller can add machines to at least one cluster.
+	//   - The machine is in a cluster: allowed when the caller has access to that cluster.
+	//
+	// This is the only resource type where access to clusters gives access to a setting
+	// of a machine which is in no cluster.
+	//
+	// Only a request for a single config is covered: a get, a watch of a single config, and the writes.
+	// A list or a watch of all configs still requires read access to the settings of machines.
+	if errors.Is(err, authz.ErrNoGrant) && access.ResourceType == omni.MachineInstallDiskConfigType && access.ResourceID != "" {
+		return grants.CheckInstallDiskConfig(ctx, st, access.Verb, access.ResourceID)
+	}
+
+	return err
 }
 
 // checkForKindAccess checks a request for many resources of a type: a list, or a watch of the type.

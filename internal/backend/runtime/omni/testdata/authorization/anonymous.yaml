@@ -96,7 +96,6 @@ resources:
       - MachineConfigGenOptions.omni.sidero.dev
       - MachineExtensions.omni.sidero.dev
       - MachineExtensionsStatuses.omni.sidero.dev
-      - MachineInstallDiskConfigs.omni.sidero.dev
       - MachineInstallDiskStatuses.omni.sidero.dev
       - MachineJoinConfigs.omni.sidero.dev
       - MachineLabels.omni.sidero.dev
@@ -379,6 +378,34 @@ resources:
       - case: a resource which does not exist
         unauthenticated: [get, watch, create, update, destroy]
       - case: a resource of a pending machine with the ID of a machine in cluster-a
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: all resources
+        unauthenticated: [list, watch]
+      - case: all resources in cluster-a
+        unauthenticated: [list, watch]
+      - case: all resources in cluster-b
+        unauthenticated: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        unauthenticated: [list, watch]
+      - case: all resources not in cluster-a
+        unauthenticated: [list, watch]
+
+  - types:
+      - MachineInstallDiskConfigs.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: a resource in cluster-b
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: a resource of a machine in no cluster
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        unauthenticated: [move]
+      - case: a resource which does not exist
+        unauthenticated: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-b
         unauthenticated: [get, watch, create, update, destroy]
       - case: all resources
         unauthenticated: [list, watch]

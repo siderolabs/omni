@@ -373,3 +373,41 @@ func TestCheckResourceGroup(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckInstallDiskConfig(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		cluster string
+		subject authz.Subject
+		verb    state.Verb
+		code    codes.Code
+	}{
+		{name: "no grants", verb: state.Get, subject: authenticated(), code: codes.PermissionDenied},
+		{name: "machine in no cluster, manager of some cluster", verb: state.Create, subject: authenticated(on(authz.ClusterManager, "a"))},
+		{name: "machine in no cluster, manager of every cluster", verb: state.Create, subject: authenticated(authz.Grant{Role: authz.ClusterManager, Scope: authz.Scope{Global: true}})},
+		{name: "machine in no cluster, viewer of some cluster", verb: state.Get, subject: authenticated(on(authz.ClusterViewer, "a")), code: codes.PermissionDenied},
+		{
+			name: "machine in no cluster, manager of no cluster", verb: state.Create,
+			subject: authenticated(authz.Grant{Role: authz.ClusterManager}), code: codes.PermissionDenied,
+		},
+		{name: "machine in a cluster, manager of that cluster", cluster: "a", verb: state.Destroy, subject: authenticated(on(authz.ClusterManager, "a"))},
+		{name: "machine in a cluster, manager of another cluster", cluster: "b", verb: state.Update, subject: authenticated(on(authz.ClusterManager, "a")), code: codes.PermissionDenied},
+		{name: "machine in a cluster, viewer of that cluster reads", cluster: "a", verb: state.Get, subject: authenticated(on(authz.ClusterViewer, "a"))},
+		{name: "machine in a cluster, viewer of that cluster writes", cluster: "a", verb: state.Update, subject: authenticated(on(authz.ClusterViewer, "a")), code: codes.PermissionDenied},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := authz.CheckInstallDiskConfig(tt.subject, tt.verb, tt.cluster)
+
+			assert.Equal(t, tt.code, status.Code(err))
+
+			// a refusal is always for a missing grant, so the access policy is tried after it
+			if err != nil {
+				assert.ErrorIs(t, err, authz.ErrNoGrant)
+			}
+		})
+	}
+}

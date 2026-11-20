@@ -43,6 +43,21 @@ func CheckOperation(ctx context.Context, st state.State, operation authz.Operati
 	})
 }
 
+// CheckInstallDiskConfig checks whether the caller's access to clusters covers the request to the install disk config
+// of the machine, and returns an error when it does not.
+//
+// It runs only after CheckResource refused the request with authz.ErrNoGrant.
+func CheckInstallDiskConfig(ctx context.Context, st state.State, verb state.Verb, machineID string) error {
+	cluster, err := ClusterOfMachine(ctx, st, machineID)
+	if err != nil {
+		return err
+	}
+
+	return check(ctx, st, func(subject authz.Subject) error {
+		return authz.CheckInstallDiskConfig(subject, verb, cluster)
+	})
+}
+
 // check runs checkSubject for the caller in the context, and again with the grants of the access policy added
 // when the grants of the preset do not cover the request.
 //

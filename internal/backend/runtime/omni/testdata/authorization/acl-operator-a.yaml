@@ -150,7 +150,6 @@ resources:
       - MachineConfigGenOptions.omni.sidero.dev
       - MachineExtensions.omni.sidero.dev
       - MachineExtensionsStatuses.omni.sidero.dev
-      - MachineInstallDiskConfigs.omni.sidero.dev
       - MachineInstallDiskStatuses.omni.sidero.dev
       - MachineLabels.omni.sidero.dev
       - MachineOperationStatuses.omni.sidero.dev
@@ -526,6 +525,36 @@ resources:
         denied: [create, update, destroy]
         not-found: [get]
       - case: a resource of a pending machine with the ID of a machine in cluster-a
+        allowed: [get, watch]
+        denied: [create, update, destroy]
+      - case: all resources
+        allowed: [list, watch]
+      - case: all resources in cluster-a
+        allowed: [list, watch]
+      - case: all resources in cluster-b
+        allowed: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        allowed: [list, watch]
+      - case: all resources not in cluster-a
+        allowed: [list, watch]
+
+  - types:
+      - MachineInstallDiskConfigs.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource in cluster-b
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in no cluster
+        allowed: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        allowed: [move]
+      - case: a resource which does not exist
+        allowed: [watch, create]
+        not-found: [get, update, destroy]
+      - case: a resource of a machine in cluster-b
         allowed: [get, watch]
         denied: [create, update, destroy]
       - case: all resources

@@ -44,7 +44,6 @@ resources:
       - KernelArgs.omni.sidero.dev
       - Kubeconfigs.omni.sidero.dev
       - MachineClasses.omni.sidero.dev
-      - MachineInstallDiskConfigs.omni.sidero.dev
       - MachineJoinConfigs.omni.sidero.dev
       - MachineLabels.omni.sidero.dev
       - MachineRequestSetStatuses.omni.sidero.dev
@@ -543,6 +542,35 @@ resources:
         denied: [move]
       - case: a resource which does not exist
         denied: [get, watch, create, update, destroy]
+      - case: all resources
+        denied: [list, watch]
+      - case: all resources in cluster-a
+        denied: [list, watch]
+      - case: all resources in cluster-b
+        denied: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        denied: [list, watch]
+      - case: all resources not in cluster-a
+        denied: [list, watch]
+
+  - types:
+      - MachineInstallDiskConfigs.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource in cluster-b
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in no cluster
+        allowed: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        allowed: [move]
+      - case: a resource which does not exist
+        allowed: [watch, create]
+        not-found: [get, update, destroy]
+      - case: a resource of a machine in cluster-b
+        allowed: [get, watch, create, update, destroy]
       - case: all resources
         denied: [list, watch]
       - case: all resources in cluster-a
