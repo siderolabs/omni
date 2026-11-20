@@ -117,6 +117,7 @@ export enum MachineOperationStatusSpecStage {
   DRAINING = 7,
   REBOOTING = 8,
   UNCORDONING = 9,
+  TRYING_CONFIG = 10,
 }
 
 export enum MachineSetSpecUpdateStrategy {

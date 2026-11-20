@@ -15,12 +15,15 @@
 package configtry
 
 import (
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/blang/semver/v4"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 )
 
 // MinTalosVersion is the first Talos version that applies every config change without a reboot.
@@ -130,4 +133,93 @@ func Begin(status *specs.ConfigTryStatus, sha256, bootID string, now time.Time) 
 		StartedAt: timestamppb.New(now),
 		BootId:    bootID,
 	}
+}
+
+// Reporter reports the config try of each machine as a machine operation.
+type Reporter struct {
+	operations *machineoperation.Reporter
+	tries      map[string]reportedTry
+	timings    Timings
+	mu         sync.Mutex
+}
+
+type reportedTry struct {
+	operation *machineoperation.Operation
+	expiry    *time.Timer
+	bootID    string
+	attempts  uint32
+}
+
+// NewReporter creates a Reporter.
+func NewReporter(operations *machineoperation.Reporter, timings Timings) *Reporter {
+	return &Reporter{
+		operations: operations,
+		tries:      map[string]reportedTry{},
+		timings:    timings,
+	}
+}
+
+// Report starts, updates or ends the operation of the machine to match the recorded try state.
+//
+// An operation that replaced the reported one, e.g., an install, is left alone.
+func (r *Reporter) Report(machineID string, status *specs.ConfigTryStatus, now time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	reported, ok := r.tries[machineID]
+
+	if !r.timings.InFlight(status, now) {
+		if ok {
+			r.end(machineID, reported)
+		}
+
+		return
+	}
+
+	// a try on a new boot is a new try, and a replaced operation is gone for good
+	if !ok || reported.bootID != status.GetBootId() || !reported.operation.Running() {
+		if ok {
+			r.end(machineID, reported)
+		}
+
+		operation := r.operations.StartAtIfIdle(machineID, specs.MachineOperationStatusSpec_TRYING_CONFIG, status.GetStartedAt().AsTime())
+		if operation == nil { // reported on a later call if the try outlives the running operation
+			return
+		}
+
+		reported = reportedTry{
+			operation: operation,
+			bootID:    status.GetBootId(),
+		}
+	}
+
+	if reported.attempts != status.GetAttempts() {
+		reported.operation.SetMessage(fmt.Sprintf("attempt %d of %d", status.GetAttempts(), r.timings.MaxAttempts))
+		reported.attempts = status.GetAttempts()
+	}
+
+	if reported.expiry != nil {
+		reported.expiry.Stop()
+	}
+
+	// a skipped reconcile, e.g., of a disconnected machine, would otherwise leave the operation running
+	var expiry *time.Timer
+
+	expiry = time.AfterFunc(status.GetStartedAt().AsTime().Add(r.timings.Timeout+r.timings.RollbackGrace).Sub(now), func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+
+		if current, ok := r.tries[machineID]; ok && current.expiry == expiry {
+			r.end(machineID, current)
+		}
+	})
+
+	reported.expiry = expiry
+	r.tries[machineID] = reported
+}
+
+func (r *Reporter) end(machineID string, reported reportedTry) {
+	reported.expiry.Stop()
+	reported.operation.End("")
+	delete(r.tries, machineID)
 }

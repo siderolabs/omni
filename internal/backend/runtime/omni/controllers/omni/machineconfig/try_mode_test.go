@@ -27,7 +27,9 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -228,6 +230,61 @@ func TestTryMode(t *testing.T) {
 				a.Nil(res.TypedSpec().Value.ConfigTry, "the try state should be cleared once confirmed")
 				a.Empty(res.TypedSpec().Value.LastConfigError)
 			})
+		})
+	})
+
+	t.Run("reportsTryAsMachineOperation", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		operations := machineoperation.NewReporter()
+
+		registerController := func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(
+					testutils.NewLifecycleManager(t, tc.State, nil),
+					machineconfig.WithTryTimings(fastTryTimings),
+					machineconfig.WithMachineOperations(operations),
+				),
+			))
+		}
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerController, func(ctx context.Context, tc testutils.TestContext) {
+			ms, id := setupTryModeCluster(ctx, t, tc, "try-mode-operation")
+
+			require.NoError(t, ms.SetBootID(ctx, "boot-stable"))
+
+			var confirmAllowed atomic.Bool
+
+			ms.OnApplyConfig = func(_ context.Context, req *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
+				if req.GetMode() == machine.ApplyConfigurationRequest_NO_REBOOT && isTryModeConfig(req) && !confirmAllowed.Load() {
+					return nil, errors.New("machine is unreachable")
+				}
+
+				return okApply(), nil
+			}
+
+			pushConfig(ctx, t, tc.State, id, tryModeConfig())
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				operation, ok := operations.Snapshot()[id]
+				if !assert.True(c, ok, "the try should be reported") {
+					return
+				}
+
+				assert.Equal(c, specs.MachineOperationStatusSpec_TRYING_CONFIG, operation.Stage)
+				assert.Equal(c, "attempt 1 of 2", operation.Message)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			confirmAllowed.Store(true)
+
+			rtestutils.AssertResource(ctx, t, tc.State, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Nil(res.TypedSpec().Value.ConfigTry, "the try state should be cleared once confirmed")
+			})
+
+			assert.NotContains(t, operations.Snapshot(), id, "the operation should end with the confirmed try")
 		})
 	})
 

@@ -33,6 +33,13 @@ test.each<[string, MachineStatusLinkSpec, MachineOperationStatusSpec | undefined
       true,
     ],
     [
+      'a config try without blocking the maintenance actions',
+      { snapshot: { machine_status: { stage: MachineStatusEventMachineStage.MAINTENANCE } } },
+      { stage: MachineOperationStatusSpecStage.TRYING_CONFIG },
+      'Trying Config',
+      false,
+    ],
+    [
       'an install which Talos reports',
       { snapshot: { machine_status: { stage: MachineStatusEventMachineStage.INSTALLING } } },
       undefined,

@@ -42,6 +42,7 @@ import (
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -73,10 +74,12 @@ type LifecycleManager interface {
 // StatusController applies the generated machine config on each corresponding machine.
 type StatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
-	ongoingResets    *ongoingResets
-	lifecycleManager LifecycleManager
-	tryTimings       configtry.Timings
-	acquireLockMu    sync.Mutex
+	ongoingResets     *ongoingResets
+	lifecycleManager  LifecycleManager
+	machineOperations *machineoperation.Reporter
+	tryReporter       *configtry.Reporter
+	tryTimings        configtry.Timings
+	acquireLockMu     sync.Mutex
 }
 
 // Option configures StatusController.
@@ -86,6 +89,13 @@ type Option func(*StatusController)
 func WithTryTimings(timings configtry.Timings) Option {
 	return func(ctrl *StatusController) {
 		ctrl.tryTimings = timings
+	}
+}
+
+// WithMachineOperations sets the reporter the config tries are reported to.
+func WithMachineOperations(operations *machineoperation.Reporter) Option {
+	return func(ctrl *StatusController) {
+		ctrl.machineOperations = operations
 	}
 }
 
@@ -104,6 +114,8 @@ func NewStatusController(lifecycleManager LifecycleManager, opts ...Option) *Sta
 	for _, opt := range opts {
 		opt(ctrl)
 	}
+
+	ctrl.tryReporter = configtry.NewReporter(ctrl.machineOperations, ctrl.tryTimings)
 
 	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]{
@@ -199,13 +211,25 @@ func NewStatusController(lifecycleManager LifecycleManager, opts ...Option) *Sta
 	return ctrl
 }
 
-//nolint:gocognit,gocyclo,cyclop
 func (ctrl *StatusController) reconcileRunning(
 	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) error {
 	now := time.Now()
 
+	err := ctrl.reconcileRunningConfig(ctx, r, logger, machineConfig, machineConfigStatus, now)
+	if helpers.OutputWritten(err) {
+		ctrl.tryReporter.Report(machineConfig.Metadata().ID(), machineConfigStatus.TypedSpec().Value.ConfigTry, now)
+	}
+
+	return err
+}
+
+//nolint:gocognit,gocyclo,cyclop
+func (ctrl *StatusController) reconcileRunningConfig(
+	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
+	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus, now time.Time,
+) error {
 	rc, err := BuildReconciliationContext(ctx, r, machineConfig, machineConfigStatus, ctrl.tryTimings, now)
 	if err != nil {
 		if xerrors.TagIs[qtransform.SkipReconcileTag](err) {
@@ -355,6 +379,8 @@ func (ctrl *StatusController) reconcileRunning(
 }
 
 func (ctrl *StatusController) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
+	ctrl.tryReporter.Report(machineConfig.Metadata().ID(), nil, time.Now())
+
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineConfig.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err

@@ -53,18 +53,31 @@ type Operation struct {
 
 // Start starts reporting an operation on the machine. It replaces the operation of the same machine, if there is one.
 func (r *Reporter) Start(machineID string, stage Stage) *Operation {
+	return r.start(machineID, stage, time.Now(), true)
+}
+
+// StartAtIfIdle starts reporting an operation which began at startedAt. It returns nil and leaves the machine alone when another operation runs on it.
+func (r *Reporter) StartAtIfIdle(machineID string, stage Stage, startedAt time.Time) *Operation {
+	return r.start(machineID, stage, startedAt, false)
+}
+
+func (r *Reporter) start(machineID string, stage Stage, startedAt time.Time, replace bool) *Operation {
 	if r == nil {
+		return nil
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, running := r.operations[machineID]; running && !replace {
 		return nil
 	}
 
 	operation := &Operation{
 		reporter:  r,
 		machineID: machineID,
-		state:     State{Stage: stage, StartedAt: time.Now()},
+		state:     State{Stage: stage, StartedAt: startedAt},
 	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	r.operations[machineID] = operation
 	r.signal()
@@ -84,6 +97,20 @@ func (o *Operation) SetMessage(message string) {
 	o.update(func() {
 		o.state.Message = message
 	})
+}
+
+// Running reports whether the operation has neither ended nor been replaced.
+func (o *Operation) Running() bool {
+	if o == nil {
+		return false
+	}
+
+	r := o.reporter
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.operations[o.machineID] == o
 }
 
 // End ends the operation.

@@ -730,9 +730,9 @@ message ConfigTryStatus {
   string boot_id = 4;
 }
 
-// MachineOperationStatusSpec represents the install or upgrade Omni is running on a machine right now.
+// MachineOperationStatusSpec represents the operation Omni is running on a machine right now, e.g., an install, an upgrade or a config try.
 message MachineOperationStatusSpec {
-  // Stage is the step of an install or upgrade.
+  // Stage is the step of an operation.
   enum Stage {
     UNKNOWN = 0;
     PREPARING_IMAGE = 1;
@@ -744,6 +744,7 @@ message MachineOperationStatusSpec {
     DRAINING = 7;
     REBOOTING = 8;
     UNCORDONING = 9;
+    TRYING_CONFIG = 10;
   }
 
   Stage stage = 1;
