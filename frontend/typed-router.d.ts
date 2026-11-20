@@ -92,6 +92,7 @@ declare module 'vue-router/auto-routes' {
       | 'MachinesPending'
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainers'
       | 'NodeDetails'
       | 'NodeDevices'
       | 'NodeDisks'
@@ -139,6 +140,7 @@ declare module 'vue-router/auto-routes' {
       | 'KubernetesManifestSync'
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainers'
       | 'NodeDetails'
       | 'NodeDevices'
       | 'NodeDisks'
@@ -174,6 +176,7 @@ declare module 'vue-router/auto-routes' {
       { cluster: ParamValue<false>, machine: ParamValue<false> },
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainers'
       | 'NodeDevices'
       | 'NodeDisks'
       | 'NodeExtensions'
@@ -202,6 +205,13 @@ declare module 'vue-router/auto-routes' {
     'NodeConfigDiffs': RouteRecordInfo<
       'NodeConfigDiffs',
       '/clusters/:cluster/machine/:machine/config-diffs',
+      { cluster: ParamValue<true>, machine: ParamValue<true> },
+      { cluster: ParamValue<false>, machine: ParamValue<false> },
+      | never
+    >,
+    'NodeContainers': RouteRecordInfo<
+      'NodeContainers',
+      '/clusters/:cluster/machine/:machine/containers',
       { cluster: ParamValue<true>, machine: ParamValue<true> },
       { cluster: ParamValue<false>, machine: ParamValue<false> },
       | never
@@ -791,6 +801,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesPending'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
         | 'NodeDisks'
@@ -871,6 +882,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesPending'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
         | 'NodeDisks'
@@ -922,6 +934,7 @@ declare module 'vue-router/auto-routes' {
         | 'KubernetesManifestSync'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
         | 'NodeDisks'
@@ -960,6 +973,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
         | 'NodeDisks'
@@ -995,6 +1009,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/config-diffs.vue': {
       routes:
         | 'NodeConfigDiffs'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/containers.vue': {
+      routes:
+        | 'NodeContainers'
       views:
         | never
       pathParamNames:

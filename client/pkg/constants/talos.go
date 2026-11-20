@@ -9,6 +9,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/config"
+	"github.com/siderolabs/talos/pkg/machinery/resources/containers"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/kubespan"
@@ -68,6 +69,12 @@ const (
 	_ = kubespan.PeerStatusType
 	// tsgen:TalosLinkStatusType
 	_ = network.LinkStatusType
+	// tsgen:TalosContainerStatusType
+	_ = containers.ContainerStatusType
+	// tsgen:TalosContainerImageStatusType
+	_ = containers.ContainerImageStatusType
+	// tsgen:TalosContainerInstanceStatusType
+	_ = containers.ContainerInstanceStatusType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
@@ -104,4 +111,6 @@ const (
 	_ = kubespan.NamespaceName
 	// tsgen:TalosStorageNamespace
 	_ = storage.NamespaceName
+	// tsgen:TalosContainersNamespace
+	_ = containers.NamespaceName
 )

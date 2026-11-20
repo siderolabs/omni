@@ -23,6 +23,7 @@ import { useClusterPermissions } from '@/methods/auth'
 import { getMachineName } from '@/methods/node'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { provideMachineContainers } from '@/views/Containers/lib/machineContainers'
 import MachinePageNav, { type MachinePageTab } from '@/views/Machines/components/MachinePageNav.vue'
 import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
@@ -60,8 +61,27 @@ const isPartOfCluster = computed(
   () => machine.value?.metadata.labels?.[LabelCluster] === clusterId.value,
 )
 
+const { data: containers } = provideMachineContainers(
+  machineId,
+  () => machine.value?.spec.talos_version,
+)
+
+// Containers shows only when the machine has some, or when its page is open by URL
+const containersTab = computed<MachinePageTab[]>(() =>
+  containers.value.length || route.name === 'NodeContainers'
+    ? [
+        {
+          name: 'Containers',
+          count: containers.value.length || undefined,
+          pages: [{ name: 'Containers', route: 'NodeContainers' }],
+        },
+      ]
+    : [],
+)
+
 const tabs = computed<MachinePageTab[]>(() => [
   { name: 'Overview', pages: [{ name: 'Overview', route: 'NodeOverview' }] },
+  ...containersTab.value,
   { name: 'Monitor', pages: [{ name: 'Monitor', route: 'NodeMonitor' }] },
   { name: 'Logs', pages: [{ name: 'Logs', route: 'NodeLogs' }] },
   {

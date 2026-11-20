@@ -25,6 +25,8 @@ const props = defineProps<{
   class?: ClassValue
   items: {
     label: string
+    /** A count shown beside the label, in a neutral badge. */
+    count?: number
     to: RouteLocationRaw
     disabled?: boolean
     // Marks a tab as current when the page is one of several it stands for, not just
@@ -37,7 +39,11 @@ const props = defineProps<{
 // over the divider at the bottom of the list. The list's padding leaves room for the
 // links' focus ring, which the scrolling list would otherwise clip.
 const linkClass =
-  'relative flex data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-snug data-[state=active]:after:h-0.5 data-[state=active]:after:bg-accent-default'
+  'relative flex items-center gap-tight data-[state=active]:after:absolute data-[state=active]:after:inset-x-0 data-[state=active]:after:-bottom-snug data-[state=active]:after:h-0.5 data-[state=active]:after:bg-accent-default'
+
+// A count badge: a small neutral chip, which isn't clickable on its own
+const countClass =
+  'rounded bg-surface-hover px-micro text-xs font-semibold text-content-default tabular-nums'
 </script>
 
 <template>
@@ -67,6 +73,7 @@ const linkClass =
               :data-state="(item.current ?? isExactActive) ? 'active' : 'inactive'"
             >
               {{ item.label }}
+              <span v-if="item.count !== undefined" :class="countClass">{{ item.count }}</span>
             </span>
 
             <NavigationMenuLink v-else as-child :active="isExactActive">
@@ -77,6 +84,7 @@ const linkClass =
                 @click="navigate"
               >
                 {{ item.label }}
+                <span v-if="item.count !== undefined" :class="countClass">{{ item.count }}</span>
               </a>
             </NavigationMenuLink>
           </TabItem>

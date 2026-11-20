@@ -20,6 +20,7 @@ import LogViewer from '@/components/LogViewer/LogViewer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { stripAnsiColours } from '@/methods/ansi'
 import type { LogLine } from '@/methods/logs'
 import { DefaultLogParser, LineDelimitedLogParser, setupLogStream } from '@/methods/logs'
 import { formatISO } from '@/methods/time'
@@ -121,7 +122,7 @@ const parsers: Record<string, (line: string) => LogLine> = {
   },
   [CONTROLLER_RUNTIME](line) {
     // Format: <ISO timestamp> <ANSI>LEVEL<ANSI_RESET> <message> <JSON context>
-    const stripped = line.replace(/\x1b\[[\d;]*m/g, '')
+    const stripped = stripAnsiColours(line)
     const match = stripped.match(/^(\S+)\s+(\w+)\s+(.*?)\s+(\{.*\})$/)
     if (!match) throw new Error('Unexpected line format')
 

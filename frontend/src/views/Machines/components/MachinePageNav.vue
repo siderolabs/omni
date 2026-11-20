@@ -12,6 +12,8 @@ export type MachinePageRoute = Extract<keyof RouteNamedMap, `Node${string}` | `M
 
 export interface MachinePageTab {
   name: string
+  /** Shown beside the name, e.g. how many containers the tab lists. */
+  count?: number
   /** A tab with one page opens it; a tab with several lists them in a second row. */
   pages: {
     name: string
@@ -59,6 +61,7 @@ const tabItems = computed(() =>
 
     return {
       label: tab.name,
+      count: tab.count,
       to: to(page?.route ?? tab.pages[0].route),
       disabled: !page,
       current: tab === activeTab.value,
