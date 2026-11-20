@@ -13,9 +13,9 @@
 # gets the refusal of a request it has no access for, "unauthenticated" or "denied". Only the role of the user counts
 # here, also when the request is for a cluster.
 a machine in cluster-a:
-  read: os:operator
-  read a file: os:admin
-  destroy data: os:admin
+  read: os:reader
+  read a file: os:reader
+  destroy data: os:reader
 a machine in cluster-b:
   read: os:reader
   read a file: os:reader

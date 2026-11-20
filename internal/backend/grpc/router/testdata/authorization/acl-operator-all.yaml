@@ -21,8 +21,8 @@ a machine in cluster-b:
   read a file: os:admin
   destroy data: os:admin
 a machine in no cluster:
-  read: os:operator
-  read a file: os:admin
-  destroy data: os:admin
+  read: denied
+  read a file: denied
+  destroy data: denied
 a node which cannot be resolved: denied
 a node of cluster-a which cannot be resolved: denied

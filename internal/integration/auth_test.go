@@ -352,8 +352,9 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 
 		assert.Truef(t, correctErrorType, "unexpected error: %v", err)
 		// The surfaces which are checked with the RBAC v2 model answer with "no role grants", the others with "insufficient role".
+		// The Talos API answers every refused caller with "access to Talos is not permitted".
 		// The role below Reader is the one of the infra providers, which the RBAC v2 model refuses with its own message.
-		assert.Regexpf(t, "insufficient role|no role grants|infra providers have no access", err.Error(), "unexpected error: %v", err)
+		assert.Regexpf(t, "insufficient role|no role grants|access to Talos is not permitted|infra providers have no access", err.Error(), "unexpected error: %v", err)
 	}
 
 	// the audit log is gated by exact role rather than by rank, so a denied actor is not "insufficient":

@@ -11,4 +11,4 @@ cluster-a: allowed
 cluster-b: allowed
 a machine in cluster-a: allowed
 a machine in cluster-b: allowed
-a machine in no cluster: allowed
+a machine in no cluster: denied
