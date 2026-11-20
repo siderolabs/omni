@@ -430,7 +430,7 @@ resources:
   - types:
       - Quirks.omni.sidero.dev
     cases:
-      - case: the resource "1.14.5"
+      - case: the resource "1.0.0"
         unauthenticated: [get, watch, create, update, destroy]
       - case: a resource which does not exist
         unauthenticated: [get, watch, create, update, destroy]
@@ -484,7 +484,7 @@ resources:
   - types:
       - VersionContracts.omni.sidero.dev
     cases:
-      - case: the resource "1.14.5"
+      - case: the resource "1.0.0"
         unauthenticated: [get, watch, create, update, destroy]
       - case: a resource which does not exist
         unauthenticated: [watch, create]

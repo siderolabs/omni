@@ -19,7 +19,7 @@ import (
 // that already took the new version, a control plane cannot cross a Talos minor downward, and the upgrade
 // cancellation test skips itself on a cross-minor pair, so letting these versions drift apart would
 // silently drop that coverage from every suite.
-const AnotherTalosVersion = "1.14.4"
+const AnotherTalosVersion = "1.14.5"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
 const StableTalosVersion = "1.13.12"
@@ -30,13 +30,13 @@ const MinDiscoveredTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.37.1"
+const DefaultKubernetesVersion = "1.37.2"
 
 // DefaultTalosVersion to be used in the tests.
 const DefaultTalosVersion = constants.DefaultTalosVersion
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.36.5"
+const AnotherKubernetesVersion = "1.36.6"
 
 // MinDiscoveredKubernetesVersion makes Omni pull the versions from this point.
 const MinDiscoveredKubernetesVersion = "1.23.0"

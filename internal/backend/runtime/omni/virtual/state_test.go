@@ -22,7 +22,7 @@ import (
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/require"
-	"github.com/stripe/stripe-go/v86"
+	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"

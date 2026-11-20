@@ -96,10 +96,10 @@ var (
 		virtual.LabelsCompletionType:    {omni.ClusterType, authres.IdentityType}, // labels of a type everyone reads, and of an admin-only one
 		virtual.MetalPlatformConfigType: {"metal"},
 		virtual.PermissionsType:         {virtual.PermissionsID},
-		virtual.QuirksType:              {constants.DefaultTalosVersion},
+		virtual.QuirksType:              {"1.0.0"},
 		virtual.SBCConfigType:           {"rpi_generic"},
 		virtual.SupportType:             {virtual.SupportID},
-		virtual.VersionContractType:     {constants.DefaultTalosVersion},
+		virtual.VersionContractType:     {"1.0.0"},
 	}
 
 	// kindQueries are the label queries of the lists and of the watches of a whole type.

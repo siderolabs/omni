@@ -588,7 +588,7 @@ resources:
   - types:
       - Quirks.omni.sidero.dev
     cases:
-      - case: the resource "1.14.5"
+      - case: the resource "1.0.0"
         allowed: [get]
         denied: [create, update, destroy]
         unsupported: [watch]
@@ -656,7 +656,7 @@ resources:
   - types:
       - VersionContracts.omni.sidero.dev
     cases:
-      - case: the resource "1.14.5"
+      - case: the resource "1.0.0"
         allowed: [get]
         denied: [create, update, destroy]
         unsupported: [watch]
