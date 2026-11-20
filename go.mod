@@ -6,7 +6,7 @@ replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing (crewjam/saml#626)
 	// signs the HTTP-Redirect binding for AuthnRequest and LogoutRequest correctly,
 	// and rejects an empty LogoutResponse instead of panicking
-	github.com/crewjam/saml => github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c
+	github.com/crewjam/saml => github.com/oguzkilcan/saml v0.0.0-20250509153807-346540312f72
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
@@ -130,7 +130,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/atombender/go-jsonschema v0.23.1 // indirect
+	github.com/atombender/go-jsonschema v0.24.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.27 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.9 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.32 // indirect
@@ -208,7 +208,7 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.2.1-0.20260802200809-43bafec815b3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.20.4 // indirect
+	github.com/klauspost/compress v1.20.5 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/dsig v1.2.1 // indirect
