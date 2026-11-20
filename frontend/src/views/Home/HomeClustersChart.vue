@@ -41,16 +41,12 @@ const items = computed(() => {
     },
     { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-status-danger-chart)' },
     {
-      // Up and down share a colour in the status pill, so they share a segment here.
-      label: 'Scaling',
+      // Scaling and destroying share a colour in the status pill, so they share a segment here.
+      label: 'Scaling or destroying',
       value:
         (spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0) +
-        (spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0),
-      color: 'var(--color-status-warning-chart)',
-    },
-    {
-      label: 'Destroying',
-      value: spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0,
+        (spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0) +
+        (spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0),
       color: 'var(--color-status-info-chart)',
     },
   ]

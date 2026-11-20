@@ -19,12 +19,12 @@ interface StatusDescriptor extends StatusAppearance {
 const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescriptor>> = {
   [MachineStatusEventMachineStage.BOOTING]: {
     name: 'Booting',
-    tone: 'warning',
+    tone: 'info',
     glyph: 'progress',
   },
   [MachineStatusEventMachineStage.INSTALLING]: {
     name: 'Installing',
-    tone: 'warning',
+    tone: 'info',
     glyph: 'progress',
   },
   [MachineStatusEventMachineStage.MAINTENANCE]: {
@@ -39,7 +39,7 @@ const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescript
   },
   [MachineStatusEventMachineStage.REBOOTING]: {
     name: 'Rebooting',
-    tone: 'warning',
+    tone: 'info',
     glyph: 'progress',
   },
   [MachineStatusEventMachineStage.SHUTTING_DOWN]: {
@@ -54,7 +54,7 @@ const stageStatus: Partial<Record<MachineStatusEventMachineStage, StatusDescript
   },
   [MachineStatusEventMachineStage.UPGRADING]: {
     name: 'Upgrading',
-    tone: 'warning',
+    tone: 'info',
     glyph: 'progress',
   },
 }
@@ -67,7 +67,7 @@ const powerStageStatus: Partial<Record<MachineStatusSnapshotSpecPowerStage, Stat
   },
   [MachineStatusSnapshotSpecPowerStage.POWER_STAGE_POWERING_ON]: {
     name: 'Powering On',
-    tone: 'warning',
+    tone: 'info',
     glyph: 'progress',
   },
 }

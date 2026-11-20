@@ -31,10 +31,6 @@ defineEmits<{
 const isApplied = computed(
   () => data.manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED,
 )
-
-const isPending = computed(
-  () => data.manifest.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING,
-)
 </script>
 
 <template>
@@ -47,8 +43,7 @@ const isPending = computed(
       class="size-2 rounded-xs border border-current"
       :class="{
         'bg-current text-status-success-text': isApplied,
-        'text-status-warning-text': isPending,
-        'text-status-danger-text': !isApplied && !isPending,
+        'text-status-info-text': !isApplied,
       }"
     ></div>
 

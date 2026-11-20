@@ -127,7 +127,7 @@ const download = async () => {
               currentNum: 0,
               progress: 0,
               icon: 'loading',
-              color: 'var(--color-status-warning-default)',
+              color: 'var(--color-status-info-default)',
               info,
             }
           }

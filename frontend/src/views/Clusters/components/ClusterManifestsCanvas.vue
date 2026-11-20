@@ -169,11 +169,7 @@ function buildEdge(
     type: 'default',
     class: pending ? 'manifest-edge-pending' : undefined,
     style: {
-      stroke: applied
-        ? 'var(--color-status-success-default)'
-        : pending
-          ? 'var(--color-status-warning-default)'
-          : 'var(--color-status-danger-default)',
+      stroke: applied ? 'var(--color-status-success-default)' : 'var(--color-status-info-default)',
       strokeWidth: 1.5,
       strokeDasharray: applied ? undefined : '4 4',
       opacity: !applied ? 0.35 : 0.7,
