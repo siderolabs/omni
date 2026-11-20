@@ -8,12 +8,16 @@ package helpers_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
@@ -25,6 +29,28 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
+
+func TestOutputWritten(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		err     error
+		name    string
+		written bool
+	}{
+		{name: "no error", written: true},
+		{name: "requeue", err: controller.NewRequeueInterval(time.Second), written: true},
+		{name: "requeue with error", err: controller.NewRequeueError(errors.New("boom"), time.Second)},
+		{name: "error", err: errors.New("boom")},
+		{name: "skipped reconcile", err: xerrors.NewTaggedf[qtransform.SkipReconcileTag]("skip")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.written, helpers.OutputWritten(tt.err))
+		})
+	}
+}
 
 func TestUpdateInputsVersions(t *testing.T) {
 	out := omni.NewCluster("test")

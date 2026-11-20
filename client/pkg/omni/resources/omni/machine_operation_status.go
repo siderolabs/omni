@@ -27,7 +27,7 @@ func NewMachineOperationStatus(id string) *MachineOperationStatus {
 // tsgen:MachineOperationStatusType
 const MachineOperationStatusType = resource.Type("MachineOperationStatuses.omni.sidero.dev")
 
-// MachineOperationStatus resource describes the install or upgrade Omni is running on a machine right now.
+// MachineOperationStatus resource describes the operation Omni is running on a machine right now.
 // It exists only while there is one.
 //
 // MachineOperationStatus resource ID is a Machine UUID.

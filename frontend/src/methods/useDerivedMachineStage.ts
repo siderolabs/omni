@@ -6,7 +6,10 @@ import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
-import { MachineStatusSnapshotSpecPowerStage } from '@/api/omni/specs/omni.pb'
+import {
+  MachineOperationStatusSpecStage,
+  MachineStatusSnapshotSpecPowerStage,
+} from '@/api/omni/specs/omni.pb'
 import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb'
 import type { StatusAppearance } from '@/components/Status/StatusPill.vue'
 import { machineOperationStageName } from '@/methods/machineOperation'
@@ -81,7 +84,9 @@ export function useDerivedMachineStage(
   const operationName = computed(() => machineOperationStageName(toValue(operation)))
   const operationInProgress = computed(
     () =>
-      !!operationName.value ||
+      // a config try does not block installs and upgrades
+      (!!operationName.value &&
+        toValue(operation)?.stage !== MachineOperationStatusSpecStage.TRYING_CONFIG) ||
       stage.value === MachineStatusEventMachineStage.INSTALLING ||
       stage.value === MachineStatusEventMachineStage.UPGRADING,
   )

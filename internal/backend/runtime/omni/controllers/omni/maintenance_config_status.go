@@ -45,6 +45,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
@@ -119,6 +121,13 @@ func WithMaintenanceTryTimings(timings configtry.Timings) MaintenanceConfigStatu
 	}
 }
 
+// WithMaintenanceMachineOperations sets the reporter the config tries are reported to.
+func WithMaintenanceMachineOperations(operations *machineoperation.Reporter) MaintenanceConfigStatusOption {
+	return func(helper *maintenanceConfigStatusControllerHelper) {
+		helper.machineOperations = operations
+	}
+}
+
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
 func NewMaintenanceConfigStatusController(
 	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, trustedRoots string,
@@ -130,6 +139,8 @@ func NewMaintenanceConfigStatusController(
 	for _, opt := range opts {
 		opt(helper)
 	}
+
+	helper.tryReporter = configtry.NewReporter(helper.machineOperations, helper.tryTimings)
 
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
@@ -184,6 +195,8 @@ type maintenanceBasePatch struct {
 type maintenanceConfigStatusControllerHelper struct {
 	getMaintenanceConfigPatch func(ctx context.Context, talosVersion string) (maintenanceBasePatch, error)
 	maintenanceClientFactory  MaintenanceClientFactory
+	machineOperations         *machineoperation.Reporter
+	tryReporter               *configtry.Reporter
 	tryTimings                configtry.Timings
 }
 
@@ -323,8 +336,19 @@ func registryMirrorDocs(registryMirrors []string) ([]talosconfig.Document, error
 	return docs, nil
 }
 
-//nolint:gocyclo,cyclop,gocognit
 func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, link *siderolinkres.Link, status *omni.MaintenanceConfigStatus) error {
+	err := helper.transformConfig(ctx, r, logger, link, status)
+	if helpers.OutputWritten(err) {
+		helper.tryReporter.Report(link.Metadata().ID(), status.TypedSpec().Value.ConfigTry, time.Now())
+	}
+
+	return err
+}
+
+//nolint:gocyclo,cyclop,gocognit
+func (helper *maintenanceConfigStatusControllerHelper) transformConfig(
+	ctx context.Context, r controller.Reader, logger *zap.Logger, link *siderolinkres.Link, status *omni.MaintenanceConfigStatus,
+) error {
 	if !link.TypedSpec().Value.Connected {
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is not connected")
 	}

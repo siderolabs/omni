@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"iter"
 	"strings"
@@ -245,6 +246,17 @@ func GetTalosClient[T interface {
 	}
 
 	return result, nil
+}
+
+// OutputWritten reports whether a QTransform controller writes its output after the transform returned err.
+func OutputWritten(err error) bool {
+	if err == nil {
+		return true
+	}
+
+	requeue, ok := errors.AsType[*controller.RequeueError](err)
+
+	return ok && requeue.Err() == nil
 }
 
 // TeardownAndDestroy calls Teardown for a resource, then calls Destroy if the resource doesn't have finalizers.

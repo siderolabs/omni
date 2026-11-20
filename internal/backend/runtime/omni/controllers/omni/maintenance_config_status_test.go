@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/machineoperation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configtry"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -608,6 +609,7 @@ func TestMaintenanceConfigStatusTryMode(t *testing.T) {
 	// runWithTryModeMachine brings up a machine in maintenance on Talos 1.14 with its first config applied, and passes the hash recorded for it.
 	runWithTryModeMachine := func(
 		t *testing.T, id string, maintenanceClient *recordingMaintenanceClient, test func(ctx context.Context, st state.State, firstHash string),
+		opts ...omni.MaintenanceConfigStatusOption,
 	) {
 		ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 		t.Cleanup(cancel)
@@ -618,7 +620,7 @@ func TestMaintenanceConfigStatusTryMode(t *testing.T) {
 
 				require.NoError(t, tc.Runtime.RegisterQController(
 					omni.NewMaintenanceConfigStatusController(factory, 123, 456, "", tc.State, nil,
-						omni.WithMaintenanceTryTimings(maintenanceTryTimings)),
+						append([]omni.MaintenanceConfigStatusOption{omni.WithMaintenanceTryTimings(maintenanceTryTimings)}, opts...)...),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -733,6 +735,45 @@ func TestMaintenanceConfigStatusTryMode(t *testing.T) {
 			assert.Equal(t, machine.ApplyConfigurationRequest_NO_REBOOT, last.GetMode())
 			assert.Nil(t, last.GetTryModeTimeout())
 		})
+	})
+
+	t.Run("reportsTryAsMachineOperation", func(t *testing.T) {
+		t.Parallel()
+
+		maintenanceClient := &recordingMaintenanceClient{bootID: "boot-stable", failConfirmsOf: "127.0.0.1:5170"}
+		operations := machineoperation.NewReporter()
+
+		const id = "try-mode-operation-machine"
+
+		runWithTryModeMachine(t, id, maintenanceClient, func(ctx context.Context, st state.State, firstHash string) {
+			createTryModePatch(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				operation, ok := operations.Snapshot()[id]
+				if !assert.True(c, ok, "the try should be reported") {
+					return
+				}
+
+				assert.Equal(c, specs.MachineOperationStatusSpec_TRYING_CONFIG, operation.Stage)
+				assert.Equal(c, "attempt 1 of 2", operation.Message)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			maintenanceClient.mu.Lock()
+			maintenanceClient.failConfirmsOf = ""
+			maintenanceClient.mu.Unlock()
+
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				status, err := safe.StateGetByID[*omnires.MaintenanceConfigStatus](ctx, st, id)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				assert.NotEqual(c, firstHash, status.TypedSpec().Value.LastAppliedConfigHash)
+				assert.Nil(c, status.TypedSpec().Value.ConfigTry)
+			}, 10*time.Second, 20*time.Millisecond)
+
+			assert.NotContains(t, operations.Snapshot(), id, "the operation should end with the confirmed try")
+		}, omni.WithMaintenanceMachineOperations(operations))
 	})
 
 	// A config that cuts the machine off before the try apply can answer: the try is recorded anyway and confirmed once the machine answers again.
