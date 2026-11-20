@@ -33,6 +33,7 @@ github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmO
 github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a/go.mod h1:QmP9hvJ91BbJmGVGSbutW19IC0Q9phDCLGaomwTJbgU=
 github.com/atombender/go-jsonschema v0.23.1 h1:hpj94ehS+gpVvd1NJSTE0BMtWIpab06ObCz57rwo37c=
 github.com/atombender/go-jsonschema v0.23.1/go.mod h1:4SrgNrwGKijxhewvpPQ8HKEbin5Q2N4Tk+pFKW77HEk=
+github.com/atombender/go-jsonschema v0.24.1/go.mod h1:yYMQVvK3WlxXJIpciA84rKg/xf2VCxIsxNt9I7Ugvmw=
 github.com/auth0/go-jwt-middleware/v3 v3.4.0 h1:hdF7tN8X6hXMlRkUVUC9Gf4FI2eM9SGO5hfeAWDeQA0=
 github.com/auth0/go-jwt-middleware/v3 v3.4.0/go.mod h1:pZRxro4VRQywl7EDrbOYu2eonP6EtJ2ez4vYmW4F0hg=
 github.com/aws/aws-sdk-go-v2 v1.48.0 h1:tFU7EJVm7MfyaXLsXdYTZ0Vd6vwt9OljCyqq0gqk0Mc=
@@ -307,6 +308,8 @@ github.com/jxskiss/base62 v1.1.0 h1:A5zbF8v8WXx2xixnAKD2w+abC+sIzYJX+nxmhA6HWFw=
 github.com/jxskiss/base62 v1.1.0/go.mod h1:HhWAlUXvxKThfOlZbcuFzsqwtF5TcqS9ru3y5GfjWAc=
 github.com/klauspost/compress v1.20.4 h1:dD0v/bvxtjCBqQu6sx1TNWkalEY5lNTIe+HY9w8TeNI=
 github.com/klauspost/compress v1.20.4/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
+github.com/klauspost/compress v1.20.5 h1:rJj5VjH4xQxbnLphg6eqUcDxRFCw1jpMdDY9qXlrwSs=
+github.com/klauspost/compress v1.20.5/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
@@ -378,6 +381,8 @@ github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOF
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/neticdk/go-stdlib v1.0.1 h1:3P6tJIICo8kvMMEFWSZCk+iRh+HoN8P/51WwMO+Ka2k=
 github.com/neticdk/go-stdlib v1.0.1/go.mod h1:KP9nLuDoanLbM8Wturn+hage2FtcrJaF1+1Znu+MKEw=
+github.com/oguzkilcan/saml v0.0.0-20250509153807-346540312f72 h1:V2kOPchlec4Mr0U4MbQE+9viyukBdqs1S06Ebftkppk=
+github.com/oguzkilcan/saml v0.0.0-20250509153807-346540312f72/go.mod h1:o4V+qph7JlNAZuwyA8VZ8LjpYCmb5awsYh42SJ/qfi8=
 github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c h1:Z3Lw3zMBoa2BUcXdKX/SxEi5eu875GJSutPBrMiP1vk=
 github.com/oguzkilcan/saml v0.0.0-20260930104004-b436c893de5c/go.mod h1:6WchMcmyjQveGycr2BnOKa05UlR9v5z7jU2l//YKhJk=
 github.com/onsi/ginkgo/v2 v2.32.0 h1:Hw7s2pVrQo/8Yz5N77qdnpHaoc+c6cC9WIV1Jce+J6E=
