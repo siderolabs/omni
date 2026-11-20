@@ -61,7 +61,7 @@ func TestGenerateConfigs(t *testing.T) {
 	st, err := omniruntime.NewTestState(logger)
 	require.NoError(t, err)
 
-	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
+	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "", nil)
 
 	rt, err := omniruntime.NewRuntime(config.Default(), nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),

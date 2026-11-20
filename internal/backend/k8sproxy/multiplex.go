@@ -130,7 +130,12 @@ func (m *multiplexer) getClusterConnector(ctx context.Context, clusterName strin
 		clientTransport := cleanhttp.DefaultPooledTransport()
 		clientTransport.TLSClientConfig = tlsConfig
 
-		dialer := connrotation.NewDialer(clientTransport.DialContext)
+		dial := clientTransport.DialContext
+		if restConfig.Dial != nil {
+			dial = restConfig.Dial
+		}
+
+		dialer := connrotation.NewDialer(dial)
 		clientTransport.DialContext = dialer.DialContext
 
 		// disable HTTP/2:

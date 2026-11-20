@@ -41,6 +41,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/eula"
 	"github.com/siderolabs/omni/internal/pkg/features"
 	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokenfile"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -61,7 +62,9 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to get OIDC issuer endpoint: %w", err)
 	}
 
-	kubernetesRuntime := kubernetes.New(state.Default(), logger, oidcIssuerEndpoint, cfg.Account.GetName(), cfg.Services.KubernetesProxy.URL())
+	lbDialer := lbdial.New()
+
+	kubernetesRuntime := kubernetes.New(state.Default(), logger, oidcIssuerEndpoint, cfg.Account.GetName(), cfg.Services.KubernetesProxy.URL(), lbDialer)
 
 	prometheus.MustRegister(talosClientFactory)
 	prometheus.MustRegister(kubernetesRuntime)
