@@ -22,11 +22,9 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
-	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 
@@ -127,11 +125,6 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		return ctx, nil, err
 	}
 
-	ctx, err = accesspolicy.ApplyClusterAccessPolicy(ctx, backend.clusterID, backend.omniState)
-	if err != nil {
-		return ctx, nil, err
-	}
-
 	nodes, err := resolveNodes(backend.nodeResolver, md)
 	if err != nil {
 		return ctx, nil, err
@@ -211,24 +204,21 @@ func (backend *TalosBackend) setRedactionHeader(ctx context.Context, md metadata
 	return withRedactionRequested(ctx), nil
 }
 
-// checkAccess decides whether the caller may reach this backend, and whether it may modify.
+// checkAccess checks that the caller can reach this backend, and reports whether the caller can also change the machines.
 func (backend *TalosBackend) checkAccess(ctx context.Context) (bool, error) {
-	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator))
+	err := talos.CheckModify(ctx, backend.omniState, backend.clusterID)
 	if err == nil {
 		return true, nil
 	}
 
-	// insecure access mode should only be possible for the operator role users
-	if backend.clusterID == "" {
+	// A machine in no cluster has no read access apart from this. An error which is not a refusal is also final,
+	// e.g., when the access policy could not be read.
+	if backend.clusterID == "" || status.Code(err) != codes.PermissionDenied {
 		return false, err
 	}
 
 	// at least read access is required
-	if _, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
-		return false, err
-	}
-
-	return false, nil
+	return false, talos.CheckRead(ctx, backend.omniState, backend.clusterID)
 }
 
 func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, nodes []dns.Info, hasModifyAccess bool) {
