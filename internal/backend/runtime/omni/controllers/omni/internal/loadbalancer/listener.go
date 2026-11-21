@@ -19,20 +19,22 @@ const (
 )
 
 type listener struct {
-	inner     net.Listener
-	accepted  chan net.Conn
-	done      chan struct{}
-	inProcess map[*trackedConn]struct{}
-	mu        sync.Mutex
-	closed    bool
+	inner         net.Listener
+	onAcceptRetry func()
+	accepted      chan net.Conn
+	done          chan struct{}
+	inProcess     map[*trackedConn]struct{}
+	mu            sync.Mutex
+	closed        bool
 }
 
-func newListener(inner net.Listener) *listener {
+func newListener(inner net.Listener, onAcceptRetry func()) *listener {
 	l := &listener{
-		inner:     inner,
-		accepted:  make(chan net.Conn),
-		done:      make(chan struct{}),
-		inProcess: map[*trackedConn]struct{}{},
+		inner:         inner,
+		onAcceptRetry: onAcceptRetry,
+		accepted:      make(chan net.Conn),
+		done:          make(chan struct{}),
+		inProcess:     map[*trackedConn]struct{}{},
 	}
 
 	go l.forward()
@@ -140,6 +142,10 @@ func (l *listener) forward() {
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				return
+			}
+
+			if l.onAcceptRetry != nil {
+				l.onAcceptRetry()
 			}
 
 			delay = min(max(2*delay, minAcceptRetryDelay), maxAcceptRetryDelay)

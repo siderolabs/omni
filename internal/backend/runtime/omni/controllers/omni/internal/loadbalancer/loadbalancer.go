@@ -8,10 +8,10 @@ package loadbalancer
 
 import (
 	"context"
-	"errors"
 	"net"
 	"slices"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 )
 
 // LoadBalancer is the interface needed by the Manager.
@@ -34,10 +35,16 @@ type LoadBalancer interface {
 // NewFunc is a function type whose implementation should create a new load balancer.
 type NewFunc func(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService) (LoadBalancer, error)
 
-var ErrNotRunning = errors.New("load balancer is not running")
+var ErrNotRunning = lbdial.ErrNotRunning
 
-// DefaultNew returns a new load balancer with default settings.
-func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService) (LoadBalancer, error) { //nolint:ireturn
+// DefaultNewFunc returns a function creating new load balancers with default settings.
+func DefaultNewFunc(onAcceptRetry func()) NewFunc {
+	return func(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService) (LoadBalancer, error) {
+		return newControlPlaneLB(bindAddress, bindPort, logger, lbConfig, onAcceptRetry)
+	}
+}
+
+func newControlPlaneLB(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService, onAcceptRetry func()) (LoadBalancer, error) { //nolint:ireturn
 	endpoint := net.JoinHostPort(bindAddress, strconv.Itoa(bindPort))
 
 	lb := &controlPlaneLB{
@@ -57,7 +64,7 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig c
 			return nil, err
 		}
 
-		l := newListener(inner)
+		l := newListener(inner, onAcceptRetry)
 		lb.listener.Store(l)
 
 		return l, nil
@@ -83,10 +90,13 @@ type controlPlaneLB struct {
 	done        chan struct{}
 	endpoint    string
 	dialTimeout time.Duration
+	stopOnce    sync.Once
 }
 
 func (lb *controlPlaneLB) Start(upstreamCh <-chan []string) error {
 	if err := lb.tcp.Start(); err != nil {
+		lb.tcp.Close() //nolint:errcheck
+
 		return err
 	}
 
@@ -130,13 +140,17 @@ func (lb *controlPlaneLB) DialContext(ctx context.Context) (net.Conn, error) {
 }
 
 func (lb *controlPlaneLB) Shutdown() error {
-	if err := lb.tcp.Close(); err != nil {
-		return err
-	}
+	var err error
 
-	close(lb.done)
+	lb.stopOnce.Do(func() {
+		if err = lb.tcp.Close(); err != nil {
+			return
+		}
 
-	lb.tcp.Wait() //nolint:errcheck
+		close(lb.done)
 
-	return nil
+		lb.tcp.Wait() //nolint:errcheck
+	})
+
+	return err
 }

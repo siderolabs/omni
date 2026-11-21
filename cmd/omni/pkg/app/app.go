@@ -68,6 +68,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	prometheus.MustRegister(talosClientFactory)
 	prometheus.MustRegister(kubernetesRuntime)
+	prometheus.MustRegister(lbDialer)
 
 	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
