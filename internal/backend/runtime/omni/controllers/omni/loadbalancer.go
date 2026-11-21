@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"strconv"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 type LoadBalancerController struct {
 	NewLoadBalancer loadbalancer.NewFunc
 	LBConfig        config.LoadBalancerService
-	Dialer *lbdial.Dialer
+	Dialer          *lbdial.Dialer
 
 	loadBalancers *loadbalancer.Manager
 }
@@ -125,7 +126,12 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		return fmt.Errorf("error reading siderolink config: %w", err)
 	}
 
-	if siderolinkConfig.TypedSpec().Value.ServerAddress == "" {
+	bindAddress, err := netip.ParseAddr(siderolinkConfig.TypedSpec().Value.ServerAddress)
+	if err != nil || bindAddress.IsUnspecified() {
+		logger.Warn("not running load balancers, the SideroLink address is not a specific IP address",
+			zap.String("address", siderolinkConfig.TypedSpec().Value.ServerAddress),
+		)
+
 		return nil
 	}
 
@@ -172,7 +178,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		}
 
 		shouldRun[item.Metadata().ID()] = loadbalancer.Spec{
-			BindAddress: siderolinkConfig.TypedSpec().Value.ServerAddress,
+			BindAddress: bindAddress.String(),
 			BindPort:    bindPort,
 		}
 

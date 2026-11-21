@@ -12,22 +12,24 @@ package lbdial
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"sync"
 )
 
+var ErrNoRoute = errors.New("no in-process load balancer for the address")
+
 type DialFunc func(ctx context.Context) (net.Conn, error)
 
 type Dialer struct {
-	network net.Dialer
-	routes  map[string]DialFunc
-	mu      sync.RWMutex
+	routes map[string]DialFunc
+	mu     sync.RWMutex
 }
 
 func New() *Dialer {
 	return &Dialer{
-		network: net.Dialer{},
-		routes:  map[string]DialFunc{},
+		routes: map[string]DialFunc{},
 	}
 }
 
@@ -45,14 +47,14 @@ func (d *Dialer) Unregister(address string) {
 	delete(d.routes, address)
 }
 
-func (d *Dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+func (d *Dialer) DialContext(ctx context.Context, _, address string) (net.Conn, error) {
 	d.mu.RLock()
 	dial, ok := d.routes[address]
 	d.mu.RUnlock()
 
-	if ok {
-		return dial(ctx)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNoRoute, address)
 	}
 
-	return d.network.DialContext(ctx, network, address)
+	return dial(ctx)
 }

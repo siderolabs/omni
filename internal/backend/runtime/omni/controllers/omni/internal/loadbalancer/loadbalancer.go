@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Sidero Labs, Inc.
+//
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
@@ -11,6 +12,7 @@ import (
 	"net"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/siderolabs/go-loadbalancer/loadbalancer"
@@ -39,8 +41,9 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig c
 	endpoint := net.JoinHostPort(bindAddress, strconv.Itoa(bindPort))
 
 	lb := &controlPlaneLB{
-		endpoint: endpoint,
-		done:     make(chan struct{}),
+		endpoint:    endpoint,
+		done:        make(chan struct{}),
+		dialTimeout: lbConfig.GetDialTimeout(),
 	}
 
 	lb.tcp.DialTimeout = lbConfig.GetDialTimeout()
@@ -54,9 +57,10 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig c
 			return nil, err
 		}
 
-		lb.listener = newListener(inner)
+		l := newListener(inner)
+		lb.listener.Store(l)
 
-		return lb.listener, nil
+		return l, nil
 	}
 
 	healthCheckOptions := []upstream.ListOption{
@@ -74,10 +78,11 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig c
 }
 
 type controlPlaneLB struct {
-	tcp      loadbalancer.TCP
-	listener *listener
-	done     chan struct{}
-	endpoint string
+	tcp         loadbalancer.TCP
+	listener    atomic.Pointer[listener]
+	done        chan struct{}
+	endpoint    string
+	dialTimeout time.Duration
 }
 
 func (lb *controlPlaneLB) Start(upstreamCh <-chan []string) error {
@@ -109,11 +114,19 @@ func (lb *controlPlaneLB) Healthy() (bool, error) {
 }
 
 func (lb *controlPlaneLB) DialContext(ctx context.Context) (net.Conn, error) {
-	if lb.listener == nil {
+	l := lb.listener.Load()
+	if l == nil {
 		return nil, ErrNotRunning
 	}
 
-	return lb.listener.dial(ctx)
+	if _, ok := ctx.Deadline(); !ok && lb.dialTimeout > 0 {
+		var cancel context.CancelFunc
+
+		ctx, cancel = context.WithTimeout(ctx, lb.dialTimeout)
+		defer cancel()
+	}
+
+	return l.dial(ctx)
 }
 
 func (lb *controlPlaneLB) Shutdown() error {

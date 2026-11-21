@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Sidero Labs, Inc.
+//
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
@@ -61,6 +62,7 @@ const (
 	// KubernetesStatus controller anyways holds a reference to kubernetes clients
 	// for all healthy (connected) clusters, so the cache size should be bigger to accommodate all of them
 	// anyways to make hit rate higher.
+	//
 	// So we keep the number high enough here, as lowering it won't save memory if KubernetesStatus controller
 	// anyways holds a reference to all of them.
 	kubernetesClientLRUSize = 10240
