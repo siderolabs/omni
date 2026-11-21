@@ -6,7 +6,11 @@
 package kubernetes //nolint:testpackage // exercises unexported manifestGroupForObject.
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	fluxobject "github.com/fluxcd/cli-utils/pkg/object"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +20,38 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 )
+
+func TestManifestApplyWaitTimeout(t *testing.T) {
+	assert.Equal(t, 60*time.Second, manifestApplyWaitTimeout)
+	assert.Greater(t, manifestApplyWaitTimeout, 5*time.Second)
+}
+
+func TestRetryableManifestLastError(t *testing.T) {
+	assert.Equal(t, "retryable error occurred while applying manifests: context deadline exceeded", retryableManifestLastError(context.DeadlineExceeded))
+
+	message := retryableManifestLastError(errors.Join(context.DeadlineExceeded, errors.New(strings.Repeat("x", 512))))
+	assert.NotContains(t, message, "\n")
+	assert.LessOrEqual(t, len(message), 512)
+	assert.True(t, strings.HasSuffix(message, "..."))
+
+	// Continuation bytes and a wide join stay inside the cap and stay one line.
+	huge := retryableManifestLastError(errors.New(strings.Repeat("\x80", 4096)))
+	assert.LessOrEqual(t, len(huge), 512)
+	assert.NotContains(t, huge, "\n")
+	assert.True(t, strings.HasPrefix(huge, "retryable error occurred while applying manifests"))
+	assert.True(t, strings.HasSuffix(huge, "..."))
+
+	parts := make([]error, 1000)
+	for i := range parts {
+		parts[i] = errors.New("boom")
+	}
+
+	wide := retryableManifestLastError(errors.Join(parts...))
+	assert.LessOrEqual(t, len(wide), 512)
+	assert.NotContains(t, wide, "\n")
+	assert.True(t, strings.HasPrefix(wide, "retryable error occurred while applying manifests"))
+	assert.Contains(t, wide, "boom")
+}
 
 func TestManifestGroupForClusterScopedObjectWithNamespace(t *testing.T) {
 	manifest := &unstructured.Unstructured{}

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -50,6 +51,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omniconsts "github.com/siderolabs/omni/internal/pkg/constants"
 )
+
+const manifestApplyWaitTimeout = 60 * time.Second
 
 // KubernetesRuntime provides kubernetes cluster access capabilities.
 type KubernetesRuntime interface {
@@ -323,8 +326,8 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 
 			errs = nil
 		} else {
-			// we do not put the concrete error message in the status to avoid blowing up resource writes if the error changes on every failure
-			lastError = "retryable error occurred while applying manifests"
+			// Bounded single-line detail: the raw apply error must not grow the status write.
+			lastError = retryableManifestLastError(errs)
 		}
 	}
 
@@ -569,7 +572,7 @@ func (ctrl *ClusterManifestsStatusController) sync(
 
 	applyOpts := ssa.ApplyOptions{
 		InventoryPolicy: ssa.InventoryPolicyAdoptIfNoInventory,
-		WaitTimeout:     10 * time.Second,
+		WaitTimeout:     manifestApplyWaitTimeout,
 		WaitInterval:    5 * time.Second,
 		NoPrune:         inv == omniconsts.SSAOmniOneTimeSyncInventory,
 	}
@@ -731,6 +734,149 @@ func validationError(err error) bool {
 
 func namespaceError(err error) bool {
 	return strings.Contains(err.Error(), "namespace not specified")
+}
+
+func retryableManifestLastError(err error) string {
+	const (
+		maxBytes = 512
+		prefix   = "retryable error occurred while applying manifests: "
+		ellipsis = "..."
+	)
+
+	if err == nil {
+		return strings.TrimSuffix(prefix, ": ")
+	}
+
+	// Collapse only a capped prefix. strings.Fields on the full Error() string
+	// allocates one slice entry per word, and errors.Join builds the entire
+	// concatenation inside Error(); both grow without limit on a hostile error.
+	raw, clipped := boundedManifestErrorText(err, maxBytes)
+	message := prefix + strings.Join(strings.Fields(raw), " ")
+
+	if !clipped && len(message) <= maxBytes {
+		return message
+	}
+
+	end := min(maxBytes-len(ellipsis), len(message))
+
+	// A rune is at most 4 bytes. Stop at 0 so a run of continuation bytes cannot
+	// index message[-1].
+	for n := 0; n < utf8.UTFMax-1 && end > 0 && end < len(message) && !utf8.RuneStart(message[end]); n++ {
+		end--
+	}
+
+	return message[:end] + ellipsis
+}
+
+// boundedManifestErrorText copies at most maxBytes of err's text.
+// Joined errors are walked iteratively, and only up to that many nodes, so a wide
+// or nested join cannot allocate a full concatenation or grow the stack with the chain.
+func boundedManifestErrorText(err error, maxBytes int) (string, bool) {
+	var b strings.Builder
+
+	if maxBytes > 0 {
+		b.Grow(maxBytes)
+	}
+
+	if err == nil || maxBytes <= 0 {
+		return "", err != nil
+	}
+
+	// One slot per visited error. Same order of magnitude as the byte cap, so a
+	// join of tiny messages can still fill the status, and a huge Unwrap slice
+	// is not scanned past the budget.
+	nodes := maxBytes
+	stack := make([]error, 0, 8)
+	stack = append(stack, err)
+	clipped := false
+
+	for len(stack) > 0 && nodes > 0 && b.Len() < maxBytes {
+		nodes--
+
+		cur := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if cur == nil {
+			continue
+		}
+
+		if joined, ok := cur.(interface{ Unwrap() []error }); ok {
+			parts := joined.Unwrap()
+			if len(parts) > 0 {
+				if enqueueJoinedErrors(&stack, parts, nodes, maxBytes) {
+					clipped = true
+				}
+
+				continue
+			}
+		}
+
+		if writeCappedError(&b, cur.Error(), maxBytes) {
+			clipped = true
+
+			break
+		}
+	}
+
+	if len(stack) > 0 {
+		clipped = true
+	}
+
+	return b.String(), clipped
+}
+
+// enqueueJoinedErrors pushes at most nodes children, and never past maxStack.
+// First child is pushed last so pop order matches errors.Join. Nils in that
+// window are skipped. Children past the window are left unread.
+func enqueueJoinedErrors(stack *[]error, parts []error, nodes, maxStack int) bool {
+	room := nodes
+	if spare := maxStack - len(*stack); spare < room {
+		room = spare
+	}
+
+	if room < 0 {
+		room = 0
+	}
+
+	n := min(room, len(parts))
+
+	for i := n - 1; i >= 0; i-- {
+		if parts[i] == nil {
+			continue
+		}
+
+		*stack = append(*stack, parts[i])
+	}
+
+	return n < len(parts)
+}
+
+// writeCappedError appends msg, with a newline before every message after the
+// first, and never lets b grow past maxBytes. A partial trailing rune is dropped.
+func writeCappedError(b *strings.Builder, msg string, maxBytes int) bool {
+	if b.Len() > 0 && b.Len() < maxBytes {
+		b.WriteByte('\n')
+	}
+
+	if b.Len() >= maxBytes {
+		return true
+	}
+
+	remain := maxBytes - b.Len()
+	if len(msg) <= remain {
+		b.WriteString(msg)
+
+		return false
+	}
+
+	end := remain
+	for n := 0; n < utf8.UTFMax-1 && end > 0 && end < len(msg) && !utf8.RuneStart(msg[end]); n++ {
+		end--
+	}
+
+	b.WriteString(msg[:end])
+
+	return true
 }
 
 func isFatalError(err error) bool {
