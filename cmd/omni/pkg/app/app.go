@@ -41,6 +41,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/eula"
 	"github.com/siderolabs/omni/internal/pkg/features"
 	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokenfile"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -61,10 +62,13 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to get OIDC issuer endpoint: %w", err)
 	}
 
-	kubernetesRuntime := kubernetes.New(state.Default(), logger, oidcIssuerEndpoint, cfg.Account.GetName(), cfg.Services.KubernetesProxy.URL())
+	lbDialer := lbdial.New()
+
+	kubernetesRuntime := kubernetes.New(state.Default(), logger, oidcIssuerEndpoint, cfg.Account.GetName(), cfg.Services.KubernetesProxy.URL(), lbDialer)
 
 	prometheus.MustRegister(talosClientFactory)
 	prometheus.MustRegister(kubernetesRuntime)
+	prometheus.MustRegister(lbDialer)
 
 	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
@@ -116,7 +120,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClients, factoryTokenFiles, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
-		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime,
+		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, lbDialer,
 		lifecycleManager, machineOperations, logger.With(logging.Component("omni_runtime")),
 	)
 	if err != nil {

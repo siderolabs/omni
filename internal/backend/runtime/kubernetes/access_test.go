@@ -30,7 +30,7 @@ func TestCallerAccess(t *testing.T) {
 	t.Parallel()
 
 	st := state.WrapCore(inmem.NewState())
-	r := kubernetes.New(st, zaptest.NewLogger(t), "", "omni", "")
+	r := kubernetes.New(st, zaptest.NewLogger(t), "", "omni", "", nil)
 
 	callerContext := func(ctx context.Context, r role.Role) context.Context {
 		ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: "user@example.org"})

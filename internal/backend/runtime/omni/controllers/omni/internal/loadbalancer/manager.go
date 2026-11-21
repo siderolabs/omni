@@ -8,6 +8,8 @@ package loadbalancer
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/optional"
@@ -15,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 )
 
 // ID is a loadbalancer ID.
@@ -26,6 +29,7 @@ type Manager struct {
 	logger   *zap.Logger
 	newFunc  NewFunc
 	lbConfig config.LoadBalancerService
+	dialer   *lbdial.Dialer
 }
 
 // Spec configures a loadbalancer.
@@ -43,18 +47,21 @@ type wrapper struct {
 }
 
 // NewManager returns a new loadbalancer manager.
-func NewManager(logger *zap.Logger, newFunc NewFunc, lbConfig config.LoadBalancerService) *Manager {
+func NewManager(logger *zap.Logger, newFunc NewFunc, lbConfig config.LoadBalancerService, dialer *lbdial.Dialer) *Manager {
 	return &Manager{
 		running:  make(map[ID]wrapper),
 		logger:   logger,
 		newFunc:  newFunc,
 		lbConfig: lbConfig,
+		dialer:   dialer,
 	}
 }
 
 // Stop stops all running loadbalancers.
 func (m *Manager) Stop() error {
 	return errors.Join(xslices.Map(maps.Values(m.running), func(w wrapper) error {
+		m.dialer.Unregister(inProcessAddress(w.spec.BindPort))
+
 		return w.lb.Shutdown()
 	})...)
 }
@@ -71,6 +78,8 @@ func (m *Manager) Reconcile(specs map[ID]Spec) error {
 			} else {
 				m.logger.Debug("replacing loadbalancer", zap.String("id", id), zap.Int("port", w.spec.BindPort))
 			}
+
+			m.dialer.Unregister(inProcessAddress(w.spec.BindPort))
 
 			if err := w.lb.Shutdown(); err != nil {
 				allErrors = append(allErrors, fmt.Errorf("error stopping %s: %w", id, err))
@@ -102,6 +111,8 @@ func (m *Manager) Reconcile(specs map[ID]Spec) error {
 
 				continue
 			}
+
+			m.dialer.Register(inProcessAddress(spec.BindPort), lb.DialContext)
 
 			w.lb = lb
 			m.running[id] = w
@@ -142,4 +153,8 @@ func (m *Manager) UpdateUpstreams(upstreams map[ID][]string) {
 	for id, w := range m.running {
 		w.upstreamCh <- upstreams[id]
 	}
+}
+
+func inProcessAddress(port int) string {
+	return net.JoinHostPort("localhost", strconv.Itoa(port))
 }

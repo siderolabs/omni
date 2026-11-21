@@ -80,6 +80,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	newgroup "github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/imagefactory/tokenfile"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -112,7 +113,7 @@ type Runtime struct {
 func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, imageFactoryTokens *tokenfile.Set, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
-	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime,
+	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, lbDialer *lbdial.Dialer,
 	lifecycleManager *lifecycle.Manager, machineOperations *machineoperation.Reporter, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
@@ -187,6 +188,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			cfg.Services.WorkloadProxy.GetEnabled(), cfg.Services.WorkloadProxy.GetUseOmniSubdomain()),
 		&omnictrl.LoadBalancerController{
 			LBConfig: cfg.Services.LoadBalancer,
+			Dialer:   lbDialer,
 		},
 		omnictrl.NewMachineCleanupController(),
 		metricsctrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines(), cfg.DisconnectBelowTalosVersionFloor()),
@@ -291,7 +293,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
 		clustermachine.NewConfigPatchesController(),
-		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{}),
+		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{Dialer: lbDialer}),
 		machineupgrade.NewStatusController(imageFactoryClients, lifecycleManager),
 		kernelargsctrl.NewStatusController(),
 		installdiskctrl.NewStatusController(),

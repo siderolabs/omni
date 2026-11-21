@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/secretrotation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/sequence"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 )
 
 // RotationStatusControllerName is the name of the SecretRotationStatusController.
@@ -45,9 +46,15 @@ const RotationPaused = "rotation paused"
 // BackedUpRotatedSecretsLimit is the maximum number of backed-up rotated secrets to keep.
 const BackedUpRotatedSecretsLimit = 5
 
-type KubernetesClientFactory struct{}
+type KubernetesClientFactory struct {
+	Dialer *lbdial.Dialer
+}
 
 func (f *KubernetesClientFactory) NewClient(config *rest.Config) (secretrotation.KubernetesClient, error) {
+	if f.Dialer != nil {
+		config.Dial = f.Dialer.DialContext
+	}
+
 	result, err := kubernetes.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)

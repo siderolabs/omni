@@ -8,24 +8,29 @@ package omni
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"strconv"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 )
 
 // LoadBalancerController starts, stops and updates the statuses of load balancers.
 type LoadBalancerController struct {
 	NewLoadBalancer loadbalancer.NewFunc
 	LBConfig        config.LoadBalancerService
+	Dialer          *lbdial.Dialer
 
 	loadBalancers *loadbalancer.Manager
 }
@@ -48,6 +53,12 @@ func (ctrl *LoadBalancerController) Inputs() []controller.Input {
 			Type:      omni.ClusterStatusType,
 			Kind:      controller.InputWeak,
 		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      siderolink.ConfigType,
+			ID:        optional.Some(siderolink.ConfigID),
+			Kind:      controller.InputWeak,
+		},
 	}
 }
 
@@ -63,11 +74,15 @@ func (ctrl *LoadBalancerController) Outputs() []controller.Output {
 
 // Run implements controller.Controller interface.
 func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
-	if ctrl.NewLoadBalancer == nil {
-		ctrl.NewLoadBalancer = loadbalancer.DefaultNew
+	if ctrl.Dialer == nil {
+		ctrl.Dialer = lbdial.New()
 	}
 
-	ctrl.loadBalancers = loadbalancer.NewManager(logger, ctrl.NewLoadBalancer, ctrl.LBConfig)
+	if ctrl.NewLoadBalancer == nil {
+		ctrl.NewLoadBalancer = loadbalancer.DefaultNewFunc(ctrl.Dialer.RecordAcceptRetry)
+	}
+
+	ctrl.loadBalancers = loadbalancer.NewManager(logger, ctrl.NewLoadBalancer, ctrl.LBConfig, ctrl.Dialer)
 
 	defer func() {
 		if err := ctrl.loadBalancers.Stop(); err != nil {
@@ -78,21 +93,32 @@ func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtim
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 
+	var (
+		retry bool
+		err   error
+	)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-r.EventCh():
-			if err := ctrl.reconcileLoadBalancers(ctx, r, logger); err != nil {
+			if retry, err = ctrl.reconcileLoadBalancers(ctx, r, logger); err != nil {
 				return err
 			}
 
 			// reconcile health statuses immediately on lb config changes
-			if err := ctrl.updateHealthStatus(ctx, r); err != nil {
+			if err = ctrl.updateHealthStatus(ctx, r); err != nil {
 				return err
 			}
 		case <-ticker.C:
-			if err := ctrl.updateHealthStatus(ctx, r); err != nil {
+			if retry {
+				if retry, err = ctrl.reconcileLoadBalancers(ctx, r, logger); err != nil {
+					return err
+				}
+			}
+
+			if err = ctrl.updateHealthStatus(ctx, r); err != nil {
 				return err
 			}
 		}
@@ -101,11 +127,16 @@ func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtim
 	}
 }
 
-func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, r controller.Runtime, logger *zap.Logger) error {
+func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, r controller.Runtime, logger *zap.Logger) (bool, error) {
+	bindAddress, err := siderolinkBindAddress(ctx, r, logger)
+	if err != nil {
+		return false, err
+	}
+
 	// list loadBalancers
 	list, err := safe.ReaderListAll[*omni.LoadBalancerConfig](ctx, r)
 	if err != nil {
-		return fmt.Errorf("error listing load balancer resources: %w", err)
+		return false, fmt.Errorf("error listing load balancer resources: %w", err)
 	}
 
 	// figure out which loadBalancers should run
@@ -124,11 +155,11 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 				continue
 			}
 
-			return err
+			return false, err
 		}
 
-		if !clusterStatus.TypedSpec().Value.HasConnectedControlPlanes {
-			logger.Debug("skip running load balancer for the cluster with no connected control plane machines", zap.String("cluster", item.Metadata().ID()))
+		if !bindAddress.IsValid() || !clusterStatus.TypedSpec().Value.HasConnectedControlPlanes {
+			logger.Debug("skip running load balancer for the cluster with no connected control plane machines or no SideroLink address", zap.String("cluster", item.Metadata().ID()))
 
 			stopped[item.Metadata().ID()] = struct{}{}
 
@@ -141,20 +172,24 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 
 		bindPort, err = strconv.Atoi(lbSpec.BindPort)
 		if err != nil {
-			return fmt.Errorf("failed to parse port %q as int: %w", lbSpec.BindPort, err)
+			return false, fmt.Errorf("failed to parse port %q as int: %w", lbSpec.BindPort, err)
 		}
 
 		shouldRun[item.Metadata().ID()] = loadbalancer.Spec{
-			BindAddress: "0.0.0.0",
+			BindAddress: bindAddress.String(),
 			BindPort:    bindPort,
 		}
 
 		endpoints[item.Metadata().ID()] = lbSpec.Endpoints
 	}
 
+	retry := false
+
 	if err = ctrl.loadBalancers.Reconcile(shouldRun); err != nil {
 		// don't fail hard to keep other loadbalancers running
 		logger.Error("error reconciling load balancers", zap.Error(err))
+
+		retry = true
 	}
 
 	ctrl.loadBalancers.UpdateUpstreams(endpoints)
@@ -169,14 +204,14 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 
 			return nil
 		}); writeErr != nil {
-			return fmt.Errorf("error modifying load balancer resource: %w", writeErr)
+			return false, fmt.Errorf("error modifying load balancer resource: %w", writeErr)
 		}
 	}
 
 	// Clean up statuses of load balancers that have been deleted.
 	statuses, err := safe.ReaderListAll[*omni.LoadBalancerStatus](ctx, r)
 	if err != nil {
-		return fmt.Errorf("error listing resources: %w", err)
+		return false, fmt.Errorf("error listing resources: %w", err)
 	}
 
 	for cfg := range statuses.All() {
@@ -191,11 +226,11 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		}
 
 		if err := r.Destroy(ctx, cfg.Metadata()); err != nil {
-			return fmt.Errorf("error deleting load balancer config '%s' error: %w", id, err)
+			return false, fmt.Errorf("error deleting load balancer config '%s' error: %w", id, err)
 		}
 	}
 
-	return nil
+	return retry, nil
 }
 
 func (ctrl *LoadBalancerController) updateHealthStatus(ctx context.Context, r controller.Runtime) error {
@@ -213,4 +248,26 @@ func (ctrl *LoadBalancerController) updateHealthStatus(ctx context.Context, r co
 	}
 
 	return nil
+}
+
+func siderolinkBindAddress(ctx context.Context, r controller.Reader, logger *zap.Logger) (netip.Addr, error) {
+	siderolinkConfig, err := safe.ReaderGet[*siderolink.Config](ctx, r, siderolink.NewConfig().Metadata())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return netip.Addr{}, nil
+		}
+
+		return netip.Addr{}, fmt.Errorf("error reading siderolink config: %w", err)
+	}
+
+	bindAddress, err := netip.ParseAddr(siderolinkConfig.TypedSpec().Value.ServerAddress)
+	if err != nil || bindAddress.IsUnspecified() {
+		logger.Warn("not running load balancers, the SideroLink address is not a specific IP address",
+			zap.String("address", siderolinkConfig.TypedSpec().Value.ServerAddress),
+		)
+
+		return netip.Addr{}, nil
+	}
+
+	return bindAddress, nil
 }

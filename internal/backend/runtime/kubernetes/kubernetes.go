@@ -52,6 +52,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/lbdial"
 )
 
 // Name kubernetes runtime string id.
@@ -69,12 +70,16 @@ const (
 )
 
 // New creates new Runtime.
-func New(omniState state.State, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) *Runtime {
-	return NewWithTTL(omniState, kubernetesClientTTL, logger, oidcIssuerEndpoint, accountName, k8sProxyURL)
+func New(omniState state.State, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string, lbDialer *lbdial.Dialer) *Runtime {
+	return NewWithTTL(omniState, kubernetesClientTTL, logger, oidcIssuerEndpoint, accountName, k8sProxyURL, lbDialer)
 }
 
 // NewWithTTL creates new Runtime with custom TTL.
-func NewWithTTL(omniState state.State, ttl time.Duration, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) *Runtime {
+func NewWithTTL(omniState state.State, ttl time.Duration, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string, lbDialer *lbdial.Dialer) *Runtime {
+	if lbDialer == nil {
+		lbDialer = lbdial.New()
+	}
+
 	return &Runtime{
 		clientsCache: expirable.NewLRU[string, *Client](kubernetesClientLRUSize, nil, ttl),
 
@@ -84,6 +89,7 @@ func NewWithTTL(omniState state.State, ttl time.Duration, logger *zap.Logger, oi
 		oidcIssuerEndpoint: oidcIssuerEndpoint,
 		accountName:        accountName,
 		k8sProxyURL:        k8sProxyURL,
+		lbDialer:           lbDialer,
 
 		metricCacheSize: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_k8s_clientfactory_cache_size",
@@ -117,6 +123,8 @@ type Runtime struct { //nolint:govet // there is just a single instance
 	oidcIssuerEndpoint string
 	accountName        string
 	k8sProxyURL        string
+
+	lbDialer *lbdial.Dialer
 
 	metricCacheSize, metricActiveClients prometheus.Gauge
 	metricCacheHits, metricCacheMisses   prometheus.Counter
@@ -421,6 +429,8 @@ func (r *Runtime) GetKubeconfig(ctx context.Context, context *common.Context) (*
 
 	// the kubeconfig carries no timeout, so every client built from it would wait forever on a hung request
 	config.Timeout = clientTimeout
+
+	config.Dial = r.lbDialer.DialContext
 
 	return config, nil
 }

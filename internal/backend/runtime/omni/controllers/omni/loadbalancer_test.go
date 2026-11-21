@@ -7,6 +7,8 @@ package omni_test
 
 import (
 	"context"
+	"errors"
+	"net"
 	"strconv"
 	"sync"
 	"testing"
@@ -18,6 +20,7 @@ import (
 	"go.uber.org/zap"
 
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -90,6 +93,12 @@ func (lb *mockLoadBalancer) Shutdown() error {
 func (lb *mockLoadBalancer) Healthy() (bool, error) {
 	return true, nil
 }
+
+func (lb *mockLoadBalancer) DialContext(context.Context) (net.Conn, error) {
+	return nil, errors.New("in-process dial is not supported by the mock")
+}
+
+const siderolinkAddress = "fa87::1"
 
 type LoadBalancerSuite struct {
 	OmniSuite
@@ -169,7 +178,7 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb1 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    bindPort1,
 	})
 	expectSignal(suite, lb1.startMethodCalled, struct{}{})
@@ -179,7 +188,7 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb2 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    bindPort2,
 	})
 	expectSignal(suite, lb2.startMethodCalled, struct{}{})
@@ -189,7 +198,7 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb3 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    bindPort3,
 	})
 	expectSignal(suite, lb3.startMethodCalled, struct{}{})
@@ -223,7 +232,7 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb1 = <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    bindPort1,
 	})
 	expectSignal(suite, lb1.startMethodCalled, struct{}{})
@@ -239,6 +248,10 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 }
 
 func (suite *LoadBalancerSuite) newLoadBalancerSetup(newLoadBalancerFunc loadbalancer.NewFunc) {
+	siderolinkConfig := siderolink.NewConfig()
+	siderolinkConfig.TypedSpec().Value.ServerAddress = siderolinkAddress
+	suite.Require().NoError(suite.state.Create(suite.ctx, siderolinkConfig))
+
 	suite.Require().NoError(
 		suite.runtime.RegisterController(
 			&omni.LoadBalancerController{
@@ -280,7 +293,7 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 	mock := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    expectedBindPort,
 	})
 	expectSignal(suite, mock.startMethodCalled, struct{}{})
@@ -301,7 +314,7 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 	mock = <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolinkAddress,
 		bindPort:    newExpectedBindPort,
 	})
 	expectSignal(suite, mock.startMethodCalled, struct{}{})

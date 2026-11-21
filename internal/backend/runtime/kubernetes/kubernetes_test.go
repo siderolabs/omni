@@ -44,7 +44,7 @@ var adminKubeconfig []byte
 
 func TestOIDCKubeconfig(t *testing.T) {
 	logger := zaptest.NewLogger(t)
-	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095", nil)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -65,7 +65,7 @@ func TestOIDCKubeconfig(t *testing.T) {
 
 func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 	logger := zaptest.NewLogger(t)
-	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095", nil)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -93,7 +93,7 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 
 func TestOIDCKubeconfigWithCacheDir(t *testing.T) {
 	logger := zaptest.NewLogger(t)
-	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095", nil)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -106,7 +106,7 @@ func TestOIDCKubeconfigWithCacheDir(t *testing.T) {
 
 func TestOIDCKubeconfigWithCacheIsolation(t *testing.T) {
 	logger := zaptest.NewLogger(t)
-	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095", nil)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -121,7 +121,7 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 	st := state.WrapCore(inmem.NewState())
 
 	logger := zaptest.NewLogger(t)
-	r := kubernetes.New(st, logger, "", "", "")
+	r := kubernetes.New(st, logger, "", "", "", nil)
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
