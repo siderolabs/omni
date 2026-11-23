@@ -6,6 +6,7 @@
 package loadbalancer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -34,10 +35,9 @@ type Spec struct {
 	BindPort    int
 }
 
-// wrapper wraps a loadbalancer and its upstream channel.
+// wrapper wraps a loadbalancer and its spec.
 type wrapper struct {
 	lb          LoadBalancer
-	upstreamCh  chan []string
 	spec        Spec
 	lastHealthy optional.Optional[bool]
 }
@@ -60,7 +60,7 @@ func (m *Manager) Stop() error {
 }
 
 // Reconcile by starting/stopping/replacing loadbalancer as needed.
-func (m *Manager) Reconcile(specs map[ID]Spec) error {
+func (m *Manager) Reconcile(ctx context.Context, specs map[ID]Spec) error {
 	var allErrors []error
 
 	// stop all loadbalancers that should not be running
@@ -85,26 +85,14 @@ func (m *Manager) Reconcile(specs map[ID]Spec) error {
 		if _, running := m.running[id]; !running {
 			m.logger.Debug("starting loadbalancer", zap.String("id", id), zap.Int("port", spec.BindPort))
 
-			w := wrapper{
-				spec:       spec,
-				upstreamCh: make(chan []string),
-			}
-
-			lb, err := m.newFunc(spec.BindAddress, spec.BindPort, m.logger, m.lbConfig)
+			lb, err := m.newFunc(ctx, spec.BindAddress, spec.BindPort, m.logger, m.lbConfig)
 			if err != nil {
-				allErrors = append(allErrors, fmt.Errorf("error creating loadbalancer %s: %w", id, err))
-
-				continue
-			}
-
-			if err = lb.Start(w.upstreamCh); err != nil {
 				allErrors = append(allErrors, fmt.Errorf("error starting loadbalancer %s: %w", id, err))
 
 				continue
 			}
 
-			w.lb = lb
-			m.running[id] = w
+			m.running[id] = wrapper{lb: lb, spec: spec}
 		}
 	}
 
@@ -137,9 +125,9 @@ func (m *Manager) GetHealthStatus() map[ID]bool {
 
 // UpdateUpstreams updates the upstreams of all loadbalancers.
 func (m *Manager) UpdateUpstreams(upstreams map[ID][]string) {
-	// running loadbalancers always consume from the channel
-	// also loadbalancers ignore if nothing changed, so we can always send
 	for id, w := range m.running {
-		w.upstreamCh <- upstreams[id]
+		if err := w.lb.UpdateUpstreams(upstreams[id]); err != nil {
+			m.logger.Error("error updating loadbalancer upstreams", zap.String("id", id), zap.Error(err))
+		}
 	}
 }

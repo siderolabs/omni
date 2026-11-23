@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 // LoadBalancerController starts, stops and updates the statuses of load balancers.
@@ -83,18 +84,15 @@ func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtim
 		case <-ctx.Done():
 			return nil
 		case <-r.EventCh():
-			if err := ctrl.reconcileLoadBalancers(ctx, r, logger); err != nil {
-				return err
-			}
+		case <-ticker.C: // also retries the load balancers which failed to start
+		}
 
-			// reconcile health statuses immediately on lb config changes
-			if err := ctrl.updateHealthStatus(ctx, r); err != nil {
-				return err
-			}
-		case <-ticker.C:
-			if err := ctrl.updateHealthStatus(ctx, r); err != nil {
-				return err
-			}
+		if err := ctrl.reconcileLoadBalancers(ctx, r, logger); err != nil {
+			return err
+		}
+
+		if err := ctrl.updateHealthStatus(ctx, r); err != nil {
+			return err
 		}
 
 		r.ResetRestartBackoff()
@@ -145,14 +143,14 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		}
 
 		shouldRun[item.Metadata().ID()] = loadbalancer.Spec{
-			BindAddress: "0.0.0.0",
+			BindAddress: siderolink.ListenHost,
 			BindPort:    bindPort,
 		}
 
 		endpoints[item.Metadata().ID()] = lbSpec.Endpoints
 	}
 
-	if err = ctrl.loadBalancers.Reconcile(shouldRun); err != nil {
+	if err = ctrl.loadBalancers.Reconcile(ctx, shouldRun); err != nil {
 		// don't fail hard to keep other loadbalancers running
 		logger.Error("error reconciling load balancers", zap.Error(err))
 	}

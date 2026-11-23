@@ -8,7 +8,6 @@ package omni_test
 import (
 	"context"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -21,65 +20,27 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 type mockLoadBalancer struct {
-	startMethodCalled    chan struct{}
 	shutdownMethodCalled chan struct{}
 	upstreamsCh          chan []string
-	ctxCancel            context.CancelFunc
-	wg                   sync.WaitGroup
 }
 
-func (lb *mockLoadBalancer) Start(upstreamCh <-chan []string) error {
-	var ctx context.Context
+func (lb *mockLoadBalancer) UpdateUpstreams(upstreams []string) error {
+	// keep only the latest upstreams, so that the controller is never blocked
+	select {
+	case <-lb.upstreamsCh:
+	default:
+	}
 
-	ctx, lb.ctxCancel = context.WithCancel(context.Background())
-
-	lb.wg.Add(2)
-
-	go func() {
-		defer lb.wg.Done()
-
-		select {
-		case lb.startMethodCalled <- struct{}{}:
-		case <-ctx.Done():
-			return
-		}
-	}()
-
-	go func() {
-		defer lb.wg.Done()
-
-		var upstreams []string
-
-		for {
-			// copy upstreams from the channel so that the writing goroutine isn't blocked
-			select {
-			case upstreams = <-upstreamCh:
-			case <-ctx.Done():
-				return
-			}
-
-			// write copied upstreams to mock load balancer
-		restart:
-			select {
-			case upstreams = <-upstreamCh:
-				goto restart
-			case lb.upstreamsCh <- upstreams:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	lb.upstreamsCh <- upstreams
 
 	return nil
 }
 
 func (lb *mockLoadBalancer) Shutdown() error {
-	lb.ctxCancel()
-	lb.wg.Wait()
-
 	go func() {
 		lb.shutdownMethodCalled <- struct{}{}
 	}()
@@ -119,11 +80,10 @@ func (suite *LoadBalancerSuite) setupMock() (<-chan *mockLoadBalancer, <-chan ne
 	mockCh := make(chan *mockLoadBalancer)
 	newLoadBalancerMethodCalled := make(chan newLoadBalancerSignature)
 
-	newMockFunc := func(bindAddress string, bindPort int, _ *zap.Logger, _ config.LoadBalancerService) (loadbalancer.LoadBalancer, error) {
+	newMockFunc := func(_ context.Context, bindAddress string, bindPort int, _ *zap.Logger, _ config.LoadBalancerService) (loadbalancer.LoadBalancer, error) {
 		mock := &mockLoadBalancer{
-			startMethodCalled:    make(chan struct{}),
 			shutdownMethodCalled: make(chan struct{}),
-			upstreamsCh:          make(chan []string),
+			upstreamsCh:          make(chan []string, 1),
 		}
 
 		go func() {
@@ -169,30 +129,27 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb1 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    bindPort1,
 	})
-	expectSignal(suite, lb1.startMethodCalled, struct{}{})
 
 	createLoadBalancer(bindPort2)
 
 	lb2 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    bindPort2,
 	})
-	expectSignal(suite, lb2.startMethodCalled, struct{}{})
 
 	createLoadBalancer(bindPort3)
 
 	lb3 := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    bindPort3,
 	})
-	expectSignal(suite, lb3.startMethodCalled, struct{}{})
 
 	suite.assertStatus(strconv.Itoa(bindPort1), true, false)
 	suite.assertStatus(strconv.Itoa(bindPort2), true, false)
@@ -223,10 +180,9 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	lb1 = <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    bindPort1,
 	})
-	expectSignal(suite, lb1.startMethodCalled, struct{}{})
 
 	suite.assertStatus(strconv.Itoa(bindPort1), true, false)
 
@@ -280,10 +236,9 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 	mock := <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    expectedBindPort,
 	})
-	expectSignal(suite, mock.startMethodCalled, struct{}{})
 	suite.assertStatus(testID, true, false)
 
 	newExpectedBindPort := 123123
@@ -301,10 +256,9 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 	mock = <-mockCh
 
 	expectSignal(suite, newLoadBalancerMethodCalled, newLoadBalancerSignature{
-		bindAddress: "0.0.0.0",
+		bindAddress: siderolink.ListenHost,
 		bindPort:    newExpectedBindPort,
 	})
-	expectSignal(suite, mock.startMethodCalled, struct{}{})
 
 	assertResource(
 		&suite.OmniSuite,
