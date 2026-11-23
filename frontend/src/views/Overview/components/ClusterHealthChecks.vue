@@ -13,10 +13,10 @@ import { KubernetesHealthCheckStatusSpecState } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, KubernetesHealthCheckStatusType, LabelCluster } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
-import type { IconType } from '@/components/Icon/TIcon.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
 import LogViewer from '@/components/LogViewer/LogViewer.vue'
 import Modal from '@/components/Modals/Modal.vue'
+import type { StatusGlyphType } from '@/components/Status/StatusGlyph.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import type { LogLine } from '@/methods/logs'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -34,15 +34,18 @@ const { data: healthChecks } = useResourceWatch<KubernetesHealthCheckStatusSpec>
 
 const State = KubernetesHealthCheckStatusSpecState
 
-const ICON_STATES: Record<KubernetesHealthCheckStatusSpecState, { icon: IconType; class: string }> =
-  {
-    [State.PASSED]: { icon: 'check-circle', class: 'text-status-success-default' },
-    [State.FAILED]: { icon: 'x-circle', class: 'text-status-danger-default' },
-    [State.RUNNING]: { icon: 'arrow-path', class: 'text-status-info-default' },
-    [State.UNKNOWN]: { icon: 'time', class: 'text-content-muted' },
-  }
+// The row has no word for the state, so the glyph carries it as its accessible name.
+const GLYPH_STATES: Record<
+  KubernetesHealthCheckStatusSpecState,
+  { glyph: StatusGlyphType; class: string; label: string }
+> = {
+  [State.PASSED]: { glyph: 'success', class: 'text-status-success-default', label: 'Passed' },
+  [State.FAILED]: { glyph: 'danger', class: 'text-status-danger-default', label: 'Failed' },
+  [State.RUNNING]: { glyph: 'progress', class: 'text-status-info-default', label: 'Running' },
+  [State.UNKNOWN]: { glyph: 'unknown', class: 'text-status-info-default', label: 'Not run' },
+}
 
-const iconForStatus = ({ state = State.UNKNOWN }) => ICON_STATES[state]
+const glyphForStatus = ({ state = State.UNKNOWN }) => GLYPH_STATES[state]
 
 // the healthcheck whose output is shown in the modal. The ID is kept while the modal animates closed,
 // so its content does not flash as it disappears
@@ -78,10 +81,12 @@ const kubectlLogs = (spec: KubernetesHealthCheckStatusSpec) =>
         :key="check.metadata.id"
         class="flex min-w-0 items-center gap-tight"
       >
-        <TIcon
-          :icon="iconForStatus(check.spec).icon"
-          :class="iconForStatus(check.spec).class"
-          class="h-6 w-6 shrink-0"
+        <StatusGlyph
+          :glyph="glyphForStatus(check.spec).glyph"
+          :class="glyphForStatus(check.spec).class"
+          :aria-label="glyphForStatus(check.spec).label"
+          role="img"
+          class="size-6 shrink-0"
         />
         <span class="min-w-0 flex-1 truncate text-content-default">{{ check.metadata.id }}</span>
         <TButton

@@ -14,6 +14,8 @@ defineProps<{
   events?: ServiceEvent[]
 }>()
 
+// Each marker is a filled disc, which draws the glyph's circle, so the icon is only the mark inside it.
+// Unknown keeps its circle, since there is no bare question mark icon.
 const eventStyle = (state: string) => {
   let color = 'bg-status-info-fill text-status-info-on-fill'
   let icon: IconType = 'question-mark-circle'
@@ -32,12 +34,12 @@ const eventStyle = (state: string) => {
 
       break
     case 'Finished':
-      icon = 'stop'
+      icon = 'minus'
 
       break
     case 'Failed':
     case 'Corrupted':
-      icon = 'x-circle'
+      icon = 'close'
       color = 'bg-status-danger-fill text-status-danger-on-fill'
 
       break

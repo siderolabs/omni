@@ -17,10 +17,10 @@ import { withAbortController } from '@/api/options'
 import { ClusterMachineIdentityType, DefaultNamespace, LabelCluster } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
-import type { IconType } from '@/components/Icon/TIcon.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import ProgressBar from '@/components/ProgressBar/ProgressBar.vue'
+import type { StatusGlyphType } from '@/components/Status/StatusGlyph.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { downloadFile } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
@@ -44,8 +44,10 @@ interface Progress {
   states: State[]
   currentNum: number
   progress: number
-  icon: IconType
+  glyph: StatusGlyphType
   color: string
+  // The glyph has no word beside it, so this is its accessible name.
+  label: string
   info?: Resource<ClusterMachineIdentitySpec>
 }
 
@@ -126,8 +128,9 @@ const download = async () => {
               states: [],
               currentNum: 0,
               progress: 0,
-              icon: 'arrow-path',
+              glyph: 'progress',
               color: 'var(--color-status-info-default)',
+              label: 'Collecting',
               info,
             }
           }
@@ -146,13 +149,15 @@ const download = async () => {
 
           if (progress.error) {
             current.color = 'var(--color-status-danger-default)'
-            current.icon = 'exclamation-triangle'
+            current.glyph = 'danger'
+            current.label = 'Failed'
           } else if (
             current.progress === 100 &&
             current.color !== 'var(--color-status-danger-default)'
           ) {
             current.color = 'var(--color-status-success-default)'
-            current.icon = 'check-circle'
+            current.glyph = 'success'
+            current.label = 'Collected'
           }
         }
 
@@ -240,10 +245,12 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
 
           <div class="grow" />
 
-          <TIcon
+          <StatusGlyph
             class="size-4 shrink-0"
-            :icon="sourceToProgress[source].icon"
+            :glyph="sourceToProgress[source].glyph"
             :style="{ color: sourceToProgress[source].color }"
+            :aria-label="sourceToProgress[source].label"
+            role="img"
           />
 
           <ProgressBar
@@ -276,13 +283,11 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
             <div
               class="flex cursor-pointer items-center gap-tight px-compact py-micro hover:bg-surface-hover"
             >
-              <TIcon
-                class="h-4 w-4"
-                :class="{
-                  'text-status-success-text': state.error === undefined,
-                  'text-status-danger-text': state.error,
-                }"
-                :icon="state.error ? 'exclamation-triangle' : 'check'"
+              <StatusGlyph
+                class="size-4"
+                :class="state.error ? 'text-status-danger-default' : 'text-status-success-default'"
+                :glyph="state.error ? 'danger' : 'success'"
+                aria-hidden="true"
               />
               <div>{{ state.text }}</div>
             </div>
