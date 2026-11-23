@@ -41,7 +41,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
@@ -49,9 +48,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
-	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 )
 
 // Name kubernetes runtime string id.
@@ -222,14 +221,7 @@ func (r *Runtime) checkAccess(ctx context.Context, clusterID string) error {
 		return status.Error(codes.InvalidArgument, "the cluster is required")
 	}
 
-	ctx, err := accesspolicy.ApplyClusterAccessPolicy(ctx, clusterID, r.state)
-	if err != nil {
-		return err
-	}
-
-	_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader))
-
-	return err
+	return grants.CheckResourceGroup(ctx, r.state, authz.Clusters, authz.Read, authz.Target{Cluster: clusterID})
 }
 
 // Create implements runtime.Runtime.
@@ -427,12 +419,9 @@ func (r *Runtime) GetKubeconfig(ctx context.Context, context *common.Context) (*
 
 // GetClient returns K8s client.
 func (r *Runtime) GetClient(ctx context.Context, cluster string) (*Client, error) {
-	// require proper auth to access kubeconfig, but allow internal access
-	// this method gets called from the Kubernetes backend
+	// only Omni itself can get this client, as it has full access to the Kubernetes API of the cluster
 	if !actor.ContextIsInternalActor(ctx) {
-		if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
-			return nil, err
-		}
+		return nil, status.Error(codes.PermissionDenied, "only Omni itself can get the Kubernetes client")
 	}
 
 	return r.getOrCreateClient(ctx, &runtime.QueryOptions{

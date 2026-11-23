@@ -652,13 +652,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 }
 
 func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
-	roleProvider, err := workloadproxy.NewAccessPolicyRoleProvider(s.state.Default())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create access policy role provider: %w", err)
-	}
-
-	pgpSignatureValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), roleProvider,
-		s.logger.With(logging.Component("pgp_access_validator")))
+	pgpSignatureValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(s.state.Default(), s.cfg.Auth.GetSuspended()), s.state.Default())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)
 	}

@@ -12,65 +12,31 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
-	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/authz"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 )
-
-// RoleProvider provides the current actor's role for a cluster.
-type RoleProvider interface {
-	RoleForCluster(ctx context.Context, id resource.ID) (role.Role, error)
-}
-
-// AccessPolicyRoleProvider provides the role for a cluster by looking into the context and evaluating access policies.
-type AccessPolicyRoleProvider struct {
-	state state.State
-}
-
-// NewAccessPolicyRoleProvider creates a new RoleProvider that uses the access policy in the state.
-func NewAccessPolicyRoleProvider(state state.State) (*AccessPolicyRoleProvider, error) {
-	if state == nil {
-		return nil, errors.New("state is nil")
-	}
-
-	return &AccessPolicyRoleProvider{state: state}, nil
-}
-
-// RoleForCluster returns the role of the current user for the given cluster.
-func (a *AccessPolicyRoleProvider) RoleForCluster(ctx context.Context, clusterID resource.ID) (role.Role, error) {
-	accessRole, _, err := accesspolicy.RoleForCluster(ctx, clusterID, a.state)
-
-	return accessRole, err
-}
 
 // SignatureAccessValidator validates a signature using PGP keys and roles/ACLs.
 type SignatureAccessValidator struct {
-	logger       *zap.Logger
 	authenticate auth.AuthenticatorFunc
-	roleProvider RoleProvider
+	state        state.State
 }
 
 // NewSignatureAccessValidator creates a new PGP signature validator.
-func NewSignatureAccessValidator(authenticate auth.AuthenticatorFunc, roleProvider RoleProvider, logger *zap.Logger) (*SignatureAccessValidator, error) {
+func NewSignatureAccessValidator(authenticate auth.AuthenticatorFunc, st state.State) (*SignatureAccessValidator, error) {
 	if authenticate == nil {
 		return nil, errors.New("authenticator is nil")
 	}
 
-	if roleProvider == nil {
-		return nil, errors.New("role provider is nil")
-	}
-
-	if logger == nil {
-		logger = zap.NewNop()
+	if st == nil {
+		return nil, errors.New("state is nil")
 	}
 
 	return &SignatureAccessValidator{
-		logger:       logger,
 		authenticate: authenticate,
-		roleProvider: roleProvider,
+		state:        st,
 	}, nil
 }
 
@@ -91,13 +57,8 @@ func (p *SignatureAccessValidator) ValidateAccess(ctx context.Context, publicKey
 		return err
 	}
 
-	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: authenticator.Role})
-	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: authenticator.Identity})
+	ctx = auth.ContextWithAuthenticator(ctx, authenticator, publicKeyID)
 
-	accessRole, err := p.roleProvider.RoleForCluster(ctx, clusterID)
-	if err != nil {
-		return err
-	}
-
-	return accessRole.Check(role.Reader)
+	// check that the caller can read the exposed services of the cluster
+	return grants.CheckResourceGroup(ctx, p.state, authz.ExposedServices, authz.Read, authz.Target{Cluster: clusterID})
 }

@@ -7,7 +7,7 @@
 
 # A request to an exposed service of a cluster carries the ID of a public key of the user and the signature of this ID,
 # in cookies. A call is "allowed" when the access validator of the workload proxy accepts them for the cluster, and
-# "denied" on any error of it, as its errors have no status code.
+# "denied" on any error of it, as the proxy sends every refused request to the forbidden page.
 
 # The anonymous subject has no key. It is "denied" by the validator here, while the proxy sends a request without the
 # cookies to the login page before it asks the validator.

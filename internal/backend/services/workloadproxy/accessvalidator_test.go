@@ -11,12 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -26,29 +24,13 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/authenticator"
 )
 
-type mockRoleProvider struct {
-	role role.Role
-
-	clusterIDs []resource.ID
-}
-
-func (m *mockRoleProvider) RoleForCluster(_ context.Context, id resource.ID) (role.Role, error) {
-	m.clusterIDs = append(m.clusterIDs, id)
-
-	return m.role, nil
-}
-
 func TestAccessValidator(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
 	st := state.WrapCore(inmem.NewState())
 
-	roleProvider := &mockRoleProvider{
-		role: role.Reader,
-	}
-
-	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), roleProvider, zaptest.NewLogger(t))
+	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), st)
 	require.NoError(t, err)
 
 	key, err := pgp.GenerateKey("test", "", "test@example.com", 8*time.Hour)
@@ -58,7 +40,7 @@ func TestAccessValidator(t *testing.T) {
 	require.NoError(t, err)
 
 	user := auth.NewUser("test-user-id")
-	user.TypedSpec().Value.Role = string(role.Admin)
+	user.TypedSpec().Value.Role = string(role.Reader)
 
 	require.NoError(t, st.Create(ctx, user))
 
@@ -80,16 +62,6 @@ func TestAccessValidator(t *testing.T) {
 
 	err = accessValidator.ValidateAccess(ctx, publicKey.Metadata().ID(), base64.StdEncoding.EncodeToString(signature), "test-cluster")
 	require.NoError(t, err)
-
-	require.Len(t, roleProvider.clusterIDs, 1)
-	require.Equal(t, "test-cluster", roleProvider.clusterIDs[0])
-
-	// access should be denied if the role is less than Reader
-
-	roleProvider.role = role.None
-
-	err = accessValidator.ValidateAccess(ctx, publicKey.Metadata().ID(), base64.StdEncoding.EncodeToString(signature), "test-cluster")
-	require.Error(t, err)
 }
 
 // TestAccessValidatorUnconfirmedKey checks that a key nobody confirmed does not grant access.
@@ -99,7 +71,7 @@ func TestAccessValidatorUnconfirmedKey(t *testing.T) {
 
 	st := state.WrapCore(inmem.NewState())
 
-	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), &mockRoleProvider{role: role.Admin}, zaptest.NewLogger(t))
+	accessValidator, err := workloadproxy.NewSignatureAccessValidator(authenticator.New(st, false), st)
 	require.NoError(t, err)
 
 	key, err := pgp.GenerateKey("test", "", "owner@example.com", 8*time.Hour)
