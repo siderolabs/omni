@@ -52,6 +52,40 @@ func TestReadAuditLogAuditsAccess(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(`{"event_type":"create"}`)}, stream.sent)
 }
 
+// TestReadAuditLogIssuanceEventTypes checks that the config issuance event types are passed down as filters, as an
+// unmapped event type reads the whole log instead.
+func TestReadAuditLogIssuanceEventTypes(t *testing.T) {
+	for _, testCase := range []struct {
+		name      string
+		eventType management.AuditLogEventType
+		want      auditlog.EventType
+	}{
+		{
+			name:      "kubeconfig issuance",
+			eventType: management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_KUBECONFIG_ISSUANCE,
+			want:      auditlog.EventTypeKubeconfigIssuance,
+		},
+		{
+			name:      "talosconfig issuance",
+			eventType: management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOSCONFIG_ISSUANCE,
+			want:      auditlog.EventTypeTalosconfigIssuance,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			auditor := &auditLogAccessAuditor{}
+			server := newAuditLogTestServer(t, auditor)
+
+			stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "admin@example.com", role.Admin)}
+
+			require.NoError(t, server.ReadAuditLog(&management.ReadAuditLogRequest{EventType: testCase.eventType}, stream))
+
+			require.NotNil(t, auditor.accessFilters)
+			require.Equal(t, testCase.want, auditor.accessFilters.EventType)
+			require.NotEmpty(t, auditor.accessFilters.EventType.SQLString())
+		})
+	}
+}
+
 func TestReadAuditLogClientIP(t *testing.T) {
 	for _, testCase := range []struct {
 		name     string
@@ -458,6 +492,14 @@ func (a *auditLogAccessAuditor) Reader(context.Context, auditlog.ReadFilters) (a
 }
 
 func (a *auditLogAccessAuditor) AuditTalosAccess(context.Context, auditlog.TalosAccess) error {
+	return nil
+}
+
+func (a *auditLogAccessAuditor) AuditKubeconfigIssuance(context.Context, auditlog.KubeconfigIssuance) error {
+	return nil
+}
+
+func (a *auditLogAccessAuditor) AuditTalosconfigIssuance(context.Context, auditlog.TalosconfigIssuance) error {
 	return nil
 }
 

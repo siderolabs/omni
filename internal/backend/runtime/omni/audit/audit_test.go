@@ -514,6 +514,103 @@ func TestTalosAccessRecordsTheOutcome(t *testing.T) {
 	}
 }
 
+// TestKubeconfigIssuanceIsAudited checks that an issued kubeconfig is recorded with its own event type and cluster.
+func TestKubeconfigIssuanceIsAudited(t *testing.T) {
+	l := must.Value(audit.NewLog(t.Context(), config.LogsAudit{Enabled: new(true)}, testDB(t), zaptest.NewLogger(t)))(t)
+
+	ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{
+		Session: auditlog.Session{UserAgent: "Mozilla/5.0", Email: "user@example.com"},
+	})
+
+	require.NoError(t, l.AuditKubeconfigIssuance(ctx, auditlog.KubeconfigIssuance{
+		ClusterName:          "cluster1",
+		Type:                 auditlog.KubeconfigTypeServiceAccount,
+		ServiceAccountUser:   "sa",
+		ServiceAccountGroups: []string{"system:masters"},
+	}))
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 1)
+
+	eventData, ok := events[0]["event_data"].(map[string]any)
+	require.True(t, ok)
+
+	kubeconfigIssuance, ok := eventData["kubeconfig_issuance"].(map[string]any)
+	require.True(t, ok)
+
+	assert.Equal(t, "kubeconfig_issuance", events[0]["event_type"])
+	assert.Equal(t, "cluster1", kubeconfigIssuance["cluster_name"])
+	assert.Equal(t, "service_account", kubeconfigIssuance["type"])
+	assert.Equal(t, "sa", kubeconfigIssuance["service_account_user"])
+	assert.Equal(t, []any{"system:masters"}, kubeconfigIssuance["service_account_groups"])
+	assert.NotContains(t, kubeconfigIssuance, "denied")
+}
+
+// TestDeniedConfigIssuanceIsAudited checks that refused kubeconfig and talosconfig requests are recorded with the outcome.
+func TestDeniedConfigIssuanceIsAudited(t *testing.T) {
+	l := must.Value(audit.NewLog(t.Context(), config.LogsAudit{Enabled: new(true)}, testDB(t), zaptest.NewLogger(t)))(t)
+
+	newCtx := func() context.Context {
+		return ctxstore.WithValue(t.Context(), &auditlog.Data{
+			Session: auditlog.Session{UserAgent: "Mozilla/5.0", Email: "user@example.com"},
+		})
+	}
+
+	require.NoError(t, l.AuditKubeconfigIssuance(newCtx(), auditlog.KubeconfigIssuance{
+		ClusterName: "cluster1",
+		Type:        auditlog.KubeconfigTypeBreakGlass,
+		Denied:      true,
+	}))
+
+	require.NoError(t, l.AuditTalosconfigIssuance(newCtx(), auditlog.TalosconfigIssuance{
+		ClusterName: "cluster1",
+		Type:        auditlog.TalosconfigTypeBreakGlass,
+		Denied:      true,
+	}))
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 2)
+
+	for i, key := range []string{"kubeconfig_issuance", "talosconfig_issuance"} {
+		eventData, ok := events[i]["event_data"].(map[string]any)
+		require.True(t, ok)
+
+		issuance, ok := eventData[key].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, key, events[i]["event_type"])
+		assert.Equal(t, "cluster1", issuance["cluster_name"])
+		assert.Equal(t, true, issuance["denied"])
+	}
+}
+
+// TestTalosconfigIssuanceIsAudited checks that an issued talosconfig is recorded with its own event type and cluster.
+func TestTalosconfigIssuanceIsAudited(t *testing.T) {
+	l := must.Value(audit.NewLog(t.Context(), config.LogsAudit{Enabled: new(true)}, testDB(t), zaptest.NewLogger(t)))(t)
+
+	ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{
+		Session: auditlog.Session{UserAgent: "Mozilla/5.0", Email: "user@example.com"},
+	})
+
+	require.NoError(t, l.AuditTalosconfigIssuance(ctx, auditlog.TalosconfigIssuance{
+		ClusterName: "cluster1",
+		Type:        auditlog.TalosconfigTypeBreakGlass,
+	}))
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 1)
+
+	eventData, ok := events[0]["event_data"].(map[string]any)
+	require.True(t, ok)
+
+	talosconfigIssuance, ok := eventData["talosconfig_issuance"].(map[string]any)
+	require.True(t, ok)
+
+	assert.Equal(t, "talosconfig_issuance", events[0]["event_type"])
+	assert.Equal(t, "cluster1", talosconfigIssuance["cluster_name"])
+	assert.Equal(t, "break_glass", talosconfigIssuance["type"])
+}
+
 func TestAuditLogAccessIsAudited(t *testing.T) {
 	config := config.LogsAudit{
 		Enabled: new(true),

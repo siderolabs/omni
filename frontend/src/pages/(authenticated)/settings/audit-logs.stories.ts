@@ -23,6 +23,8 @@ const EVENT_TYPES: AuditLogEvent[] = [
   'k8s_access',
   'talos_access',
   'audit_log_access',
+  'kubeconfig_issuance',
+  'talosconfig_issuance',
   'create',
   'destroy',
   'update_with_conflicts',

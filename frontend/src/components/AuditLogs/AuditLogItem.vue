@@ -40,6 +40,10 @@ function getMarkerClassForEvent(event: AuditLogEvent) {
       return 'bg-series-5'
     case 'audit_log_access':
       return 'bg-series-6'
+    case 'kubeconfig_issuance':
+      return 'bg-series-7'
+    case 'talosconfig_issuance':
+      return 'bg-series-8'
     default:
       const unhandled: never = event
 

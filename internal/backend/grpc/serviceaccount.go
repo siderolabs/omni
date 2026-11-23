@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
@@ -224,7 +225,8 @@ func (s *managementServer) RevokeServiceAccountKey(ctx context.Context, req *man
 	return &emptypb.Empty{}, nil
 }
 
-func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {
+// serviceAccountKubeconfig issues a kubeconfig with a service account token in it, and sets the properties of the token in the issuance.
+func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *management.KubeconfigRequest, issuance *auditlog.KubeconfigIssuance) (*management.KubeconfigResponse, error) {
 	cluster := router.ExtractContext(ctx).GetName()
 
 	// This kubeconfig contains a token for the Kubernetes API of the cluster. Issuing it changes nothing in Omni,
@@ -246,15 +248,19 @@ func (s *managementServer) serviceAccountKubeconfig(ctx context.Context, req *ma
 		return nil, fmt.Errorf("failed to get cluster UUID: %w", err)
 	}
 
-	signedToken, err := s.generateServiceAccountJWT(ctx, req, cluster, clusterUUID.TypedSpec().Value.GetUuid())
+	token, err := s.generateServiceAccountJWT(ctx, req, cluster, clusterUUID.TypedSpec().Value.GetUuid())
 	if err != nil {
 		return nil, err
 	}
 
-	kubeconfig, err := s.buildServiceAccountKubeconfig(cluster, req.GetServiceAccountUser(), signedToken)
+	kubeconfig, err := s.buildServiceAccountKubeconfig(cluster, req.GetServiceAccountUser(), token.token)
 	if err != nil {
 		return nil, err
 	}
+
+	// the key ID identifies the key to delete to revoke the token before it expires
+	issuance.Expiration = token.expiration.UTC().Format(time.RFC3339)
+	issuance.SigningKeyID = token.keyID
 
 	return &management.KubeconfigResponse{
 		Kubeconfig: kubeconfig,
@@ -287,19 +293,30 @@ func (s *managementServer) validateServiceAccountRequest(cluster string, req *ma
 	return nil
 }
 
-func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *management.KubeconfigRequest, clusterName, clusterUUID string) (string, error) {
+// serviceAccountJWT is a wrapper around a signed service account token.
+// Extra fields are stored for audit logging.
+type serviceAccountJWT struct {
+	expiration time.Time
+	token      string
+	keyID      string
+}
+
+func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *management.KubeconfigRequest, clusterName, clusterUUID string) (serviceAccountJWT, error) {
 	signingKey, err := s.jwtSigningKeyProvider.SigningKey(ctx)
 	if err != nil {
-		return "", err
+		return serviceAccountJWT{}, err
 	}
 
 	signingMethod := jwt.GetSigningMethod(string(signingKey.SignatureAlgorithm()))
 
 	now := time.Now()
+	// the token carries the expiration in seconds
+	expiration := now.Add(req.GetServiceAccountTtl().AsDuration()).Truncate(time.Second)
+
 	token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
 		"iat":          now.Unix(),
 		"iss":          fmt.Sprintf("omni-%s-service-account-issuer", s.cfg.Account.GetName()),
-		"exp":          now.Add(req.GetServiceAccountTtl().AsDuration()).Unix(),
+		"exp":          expiration.Unix(),
 		"sub":          req.GetServiceAccountUser(),
 		"groups":       req.GetServiceAccountGroups(),
 		"cluster":      clusterName,
@@ -308,7 +325,16 @@ func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *m
 
 	token.Header["kid"] = signingKey.ID()
 
-	return token.SignedString(signingKey.Key())
+	signedToken, err := token.SignedString(signingKey.Key())
+	if err != nil {
+		return serviceAccountJWT{}, err
+	}
+
+	return serviceAccountJWT{
+		token:      signedToken,
+		expiration: expiration,
+		keyID:      signingKey.ID(),
+	}, nil
 }
 
 func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token string) ([]byte, error) {

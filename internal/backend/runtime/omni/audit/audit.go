@@ -190,6 +190,44 @@ func (l *Log) AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess)
 	})
 }
 
+// AuditKubeconfigIssuance logs the kubeconfig issuance event, written when a kubeconfig is issued for a cluster.
+func (l *Log) AuditKubeconfigIssuance(ctx context.Context, access auditlog.KubeconfigIssuance) error {
+	data := extractData(ctx, options{
+		userAgent:     internalAgent,
+		newDataIfNone: true,
+	})
+	if data == nil {
+		return nil
+	}
+
+	data.KubeconfigIssuance = &access
+
+	return l.auditLogger.Write(ctx, auditlog.Event{
+		Type:       auditlog.EventTypeKubeconfigIssuance.SQLString(),
+		TimeMillis: time.Now().UnixMilli(),
+		Data:       data,
+	})
+}
+
+// AuditTalosconfigIssuance logs the talosconfig issuance event, written when a talosconfig is issued.
+func (l *Log) AuditTalosconfigIssuance(ctx context.Context, issuance auditlog.TalosconfigIssuance) error {
+	data := extractData(ctx, options{
+		userAgent:     internalAgent,
+		newDataIfNone: true,
+	})
+	if data == nil {
+		return nil
+	}
+
+	data.TalosconfigIssuance = &issuance
+
+	return l.auditLogger.Write(ctx, auditlog.Event{
+		Type:       auditlog.EventTypeTalosconfigIssuance.SQLString(),
+		TimeMillis: time.Now().UnixMilli(),
+		Data:       data,
+	})
+}
+
 // AuditAuditLogAccess logs the audit log access event.
 func (l *Log) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error {
 	// the query bounds have millisecond precision, format the logged range accordingly

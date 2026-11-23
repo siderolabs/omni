@@ -160,6 +160,8 @@ func init() {
 			"talos_access":          management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS,
 			"k8s_access":            management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_K8S_ACCESS,
 			"audit_log_access":      management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS,
+			"kubeconfig_issuance":   management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_KUBECONFIG_ISSUANCE,
+			"talosconfig_issuance":  management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOSCONFIG_ISSUANCE,
 		},
 	}
 

@@ -99,6 +99,13 @@ func WithAuditLogger(auditor AuditLogger) ManagementServerOption {
 	}
 }
 
+// WithJWTSigningKeyProvider configures the provider of the key which signs the service account tokens on a test management server.
+func WithJWTSigningKeyProvider(provider JWTSigningKeyProvider) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.jwtSigningKeyProvider = provider
+	}
+}
+
 // WithLifecycleManager overrides the lifecycle manager on a test management server.
 func WithLifecycleManager(m LifecycleManager) ManagementServerOption {
 	return func(server *ManagementServer) {

@@ -124,11 +124,13 @@ func (c *capturingTalosClientFactory) GetForMachine(ctx context.Context, _ strin
 }
 
 type capturingAuditLogger struct {
-	err        error
-	fullMethod string
-	clusterID  string
-	nodeID     string
-	ctx        capturedContext
+	err                  error
+	fullMethod           string
+	clusterID            string
+	nodeID               string
+	kubeconfigIssuances  []auditlog.KubeconfigIssuance
+	talosconfigIssuances []auditlog.TalosconfigIssuance
+	ctx                  capturedContext
 }
 
 func (c *capturingAuditLogger) Reader(context.Context, auditlog.ReadFilters) (auditlog.Reader, error) {
@@ -137,6 +139,18 @@ func (c *capturingAuditLogger) Reader(context.Context, auditlog.ReadFilters) (au
 
 func (c *capturingAuditLogger) AuditAuditLogAccess(context.Context, auditlog.ReadFilters) error {
 	return nil
+}
+
+func (c *capturingAuditLogger) AuditKubeconfigIssuance(_ context.Context, issuance auditlog.KubeconfigIssuance) error {
+	c.kubeconfigIssuances = append(c.kubeconfigIssuances, issuance)
+
+	return c.err
+}
+
+func (c *capturingAuditLogger) AuditTalosconfigIssuance(_ context.Context, issuance auditlog.TalosconfigIssuance) error {
+	c.talosconfigIssuances = append(c.talosconfigIssuances, issuance)
+
+	return c.err
 }
 
 func (c *capturingAuditLogger) AuditAuditLogFollow(context.Context, int64, int64) error {
