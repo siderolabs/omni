@@ -79,6 +79,7 @@ export const TalosKubeSpanNamespace = "kubespan";
 export const TalosStorageNamespace = "storage";
 export const TalosContainersNamespace = "containers";
 export const TalosContainersContainerdNamespace = "taloscontainers";
+export const TalosContainersLogPrefix = "taloscontainers-";
 export const ServiceAccountDomain = "serviceaccount.omni.sidero.dev";
 export const InfraProviderServiceAccountDomain = "infra-provider.serviceaccount.omni.sidero.dev";
 export const RoleNone = "None";

@@ -14,5 +14,5 @@ useTitle('Containers')
 </script>
 
 <template>
-  <MachineContainers :machine-id="$route.params.machine" />
+  <MachineContainers :cluster-id="$route.params.cluster" :machine-id="$route.params.machine" />
 </template>

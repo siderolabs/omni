@@ -115,4 +115,6 @@ const (
 	_ = containers.NamespaceName
 	// tsgen:TalosContainersContainerdNamespace
 	_ = constants.TalosContainersContainerdNamespace
+	// tsgen:TalosContainersLogPrefix
+	_ = constants.TalosContainersLogPrefix
 )

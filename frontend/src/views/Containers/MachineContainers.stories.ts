@@ -162,7 +162,7 @@ const containers: MockContainer[] = [
 
 const meta: Meta<typeof MachineContainers> = {
   component: MachineContainers,
-  args: { machineId },
+  args: { clusterId: 'cluster', machineId },
   // The machine page provides the container watch; stand in for it, with the Talos version
   // from the story's parameters.
   decorators: [

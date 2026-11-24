@@ -14,12 +14,14 @@ import { Runtime } from '@/api/common/omni.pb'
 import {
   TalosContainerImageStatusType,
   TalosContainerInstanceStatusType,
+  TalosContainersLogPrefix,
   TalosContainersNamespace,
 } from '@/api/resources'
 import type {
   ContainerImageStatusSpec,
   ContainerInstanceStatusSpec,
 } from '@/api/talos/containers.pb'
+import TButton from '@/components/Button/TButton.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
@@ -44,7 +46,8 @@ import {
 import { injectMachineContainers } from '@/views/Containers/lib/machineContainers'
 import { useContainerStats } from '@/views/Containers/lib/useContainerStats'
 
-const { machineId } = defineProps<{
+const { clusterId, machineId } = defineProps<{
+  clusterId: string
   machineId: string
 }>()
 
@@ -149,6 +152,7 @@ const visibleRows = computed(() =>
               <TableCell th class="w-24">Memory</TableCell>
               <TableCell th class="w-20">Since</TableCell>
               <TableCell th>Detail</TableCell>
+              <TableCell th class="w-20"><span class="sr-only">Actions</span></TableCell>
             </TableRow>
           </template>
 
@@ -194,6 +198,25 @@ const visibleRows = computed(() =>
 
               <TableCell>
                 <ContainerDetailCell :row />
+              </TableCell>
+
+              <TableCell>
+                <TButton
+                  is="router-link"
+                  variant="secondary"
+                  size="sm"
+                  :to="{
+                    name: 'NodeLogs',
+                    params: {
+                      cluster: clusterId,
+                      machine: machineId,
+                      service: `${TalosContainersLogPrefix}${row.id}`,
+                    },
+                  }"
+                  :aria-label="`Logs of ${row.id}`"
+                >
+                  Logs
+                </TButton>
               </TableCell>
             </TableRow>
           </template>

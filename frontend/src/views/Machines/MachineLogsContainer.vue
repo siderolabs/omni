@@ -10,11 +10,17 @@ import { computed, ref, watchEffect } from 'vue'
 
 import type { Data } from '@/api/common/common.pb'
 import { Runtime } from '@/api/common/omni.pb'
-import type { Stream } from '@/api/grpc'
+import type { Resource, Stream } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext, withRuntime } from '@/api/options'
-import { DefaultNamespace, MachineStatusType } from '@/api/resources'
+import {
+  DefaultNamespace,
+  MachineStatusType,
+  TalosContainersContainerdNamespace,
+  TalosContainersLogPrefix,
+} from '@/api/resources'
+import type { ContainerStatusSpec } from '@/api/talos/containers.pb'
 import { type LogsRequest, MachineService } from '@/api/talos/machine/machine.pb'
 import LogViewer from '@/components/LogViewer/LogViewer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -27,10 +33,17 @@ import { formatISO } from '@/methods/time'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { clusterId, machineId, service } = defineProps<{
+const {
+  clusterId,
+  machineId,
+  service,
+  containers = [],
+} = defineProps<{
   clusterId?: string
   machineId: string
   service?: string
+  /** The Talos containers the machine declares, offered beside its services. */
+  containers?: Resource<ContainerStatusSpec>[]
 }>()
 
 const searchInput = useRouteQuery('q', '')
@@ -45,6 +58,14 @@ const CONTROLLER_RUNTIME = 'controller-runtime' // service with logs that isn't 
 
 // 'machine' check to continue support for /logs/machine but it is equivalent to /logs
 const isMachineLogs = computed(() => !service || service === MACHINE_LOGS)
+
+// A Talos container's log goes by the ID Talos registers it under, its name with a prefix, so it
+// can't be mistaken for a service of the same name
+const container = computed(() =>
+  service?.startsWith(TalosContainersLogPrefix)
+    ? service.slice(TalosContainersLogPrefix.length)
+    : undefined,
+)
 
 const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
   runtime: Runtime.Omni,
@@ -70,6 +91,10 @@ const servicesSelectValues = computed(() => [
   MACHINE_LOGS,
   CONTROLLER_RUNTIME,
   ...services.value.map((s) => s.name ?? ''),
+  ...containers.map(({ metadata: { id } }) => ({
+    label: `${id} (container)`,
+    value: `${TalosContainersLogPrefix}${id}`,
+  })),
 ])
 
 const formatLoggingContext = (logRecord: Record<string, string>, ...exceptFields: string[]) => {
@@ -156,7 +181,27 @@ const getLineParser = (svc: string) => {
 
 const stream = ref<Stream<Data, LogsRequest>>()
 
+// Talos registers a container's log when it first starts the task, and keeps it across restarts.
+// Until then there is nothing to stream, so the page waits on the state instead.
+const notStarted = computed(() => {
+  const status = containers.find((c) => c.metadata.id === container.value)?.spec
+
+  return (
+    !!status &&
+    !status.restartCount &&
+    ['pending', 'pulling', 'starting'].includes(status.state ?? '')
+  )
+})
+
 watchEffect((onCleanup) => {
+  // Opens the stream the moment the container first starts, rather than waiting out a retry
+  if (notStarted.value) {
+    stream.value = undefined
+    logs.value = []
+
+    return
+  }
+
   const { stream: newStream, shutdown } = isMachineLogs.value
     ? setupLogStream(
         logs,
@@ -178,12 +223,19 @@ watchEffect((onCleanup) => {
     : setupLogStream(
         logs,
         MachineService.Logs,
-        {
-          namespace: 'system',
-          id: service,
-          follow: true,
-          tail_lines: -1,
-        },
+        container.value
+          ? {
+              namespace: TalosContainersContainerdNamespace,
+              id: container.value,
+              follow: true,
+              tail_lines: -1,
+            }
+          : {
+              namespace: 'system',
+              id: service,
+              follow: true,
+              tail_lines: -1,
+            },
         new LineDelimitedLogParser(getLineParser(service!)),
         withRuntime(Runtime.Talos),
         withContext(context.value),
@@ -210,7 +262,15 @@ watchEffect((onCleanup) => {
       <TInput v-model="searchInput" placeholder="Search..." icon="search" class="grow" />
     </div>
     <TAlert
-      v-if="stream?.err"
+      v-if="notStarted"
+      :title="`Waiting for ${container} to start`"
+      type="info"
+      class="mb-tight"
+    >
+      Its log appears here as soon as it starts.
+    </TAlert>
+    <TAlert
+      v-else-if="stream?.err"
       :title="logs.length ? 'Disconnected' : 'Failed to Fetch Logs'"
       type="error"
       class="mb-tight"

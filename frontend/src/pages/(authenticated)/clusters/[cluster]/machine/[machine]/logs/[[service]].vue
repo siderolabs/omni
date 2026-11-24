@@ -7,15 +7,30 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 
+import { TalosContainersLogPrefix } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useTitle } from '@/methods/title'
+import { injectMachineContainers } from '@/views/Containers/lib/machineContainers'
 import MachineLogsContainer from '@/views/Machines/MachineLogsContainer.vue'
 
 definePage({ name: 'NodeLogs' })
 
 const route = useRoute()
 
-useTitle(() => ['Logs', route.params.service])
+// A Talos container's log goes by its name, without the prefix Talos registers it under
+useTitle(() => {
+  const service = route.params.service
+
+  return [
+    'Logs',
+    service?.startsWith(TalosContainersLogPrefix)
+      ? service.slice(TalosContainersLogPrefix.length)
+      : service,
+  ]
+})
+
+// The machine page watches its containers for the Containers tab; offer their logs too
+const { data: containers } = injectMachineContainers()
 </script>
 
 <template>
@@ -25,6 +40,7 @@ useTitle(() => ['Logs', route.params.service])
       :machine-id="$route.params.machine"
       class="flex grow flex-col"
       :service="$route.params.service"
+      :containers
     />
   </PageContainer>
 </template>
