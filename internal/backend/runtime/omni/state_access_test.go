@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -27,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -198,4 +200,115 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 	)
 
 	require.NoError(t, st.Create(ctx, res))
+}
+
+// TestOwner checks that only Omni itself and the infra providers can set the owner of a resource.
+func TestOwner(t *testing.T) {
+	t.Parallel()
+
+	const owner = "SomeController"
+
+	innerSt := state.WrapCore(inmem.NewState())
+	st := state.WrapCore(validated.NewState(innerSt, omni.AuthorizationValidationOptions(innerSt)...))
+
+	assertDenied := func(t *testing.T, err error) {
+		t.Helper()
+
+		assert.Equal(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
+	}
+
+	// withOwner returns a copy of the resource as it is stored, with the owner replaced
+	withOwner := func(t *testing.T, ptr resource.Pointer, owner string) resource.Resource {
+		t.Helper()
+
+		stored, err := innerSt.Get(t.Context(), ptr)
+		require.NoError(t, err)
+
+		md := resource.NewMetadata(ptr.Namespace(), ptr.Type(), ptr.ID(), stored.Metadata().Version())
+		require.NoError(t, md.SetOwner(owner))
+
+		*stored.Metadata() = md
+
+		return stored
+	}
+
+	t.Run("user", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.Operator})
+
+		assertDenied(t, st.Create(ctx, omnires.NewConfigPatch("user-with-owner"), state.WithCreateOwner(owner)))
+
+		withOwnerInMetadata := omnires.NewConfigPatch("user-with-owner-in-metadata")
+		require.NoError(t, withOwnerInMetadata.Metadata().SetOwner(owner))
+
+		assertDenied(t, st.Create(ctx, withOwnerInMetadata))
+
+		userOwned := omnires.NewConfigPatch("user-owned")
+		require.NoError(t, st.Create(ctx, userOwned))
+
+		// an update cannot set the owner
+		assertDenied(t, st.Update(ctx, withOwner(t, userOwned.Metadata(), owner)))
+
+		controllerOwned := omnires.NewConfigPatch("controller-owned")
+		require.NoError(t, innerSt.Create(t.Context(), controllerOwned, state.WithCreateOwner(owner)))
+
+		// a user cannot pass the owner of a resource, and cannot clear it
+		assertDenied(t, st.Update(ctx, withOwner(t, controllerOwned.Metadata(), owner), state.WithUpdateOwner(owner)))
+		assertDenied(t, st.Update(ctx, withOwner(t, controllerOwned.Metadata(), ""), state.WithUpdateOwner(owner)))
+		assertDenied(t, st.Update(ctx, withOwner(t, controllerOwned.Metadata(), owner)))
+
+		_, err := st.Teardown(ctx, controllerOwned.Metadata(), state.WithTeardownOwner(owner))
+		assertDenied(t, err)
+		assertDenied(t, st.TeardownAndDestroy(ctx, controllerOwned.Metadata(), state.WithTeardownAndDestroyOwner(owner)))
+		assertDenied(t, st.Destroy(ctx, controllerOwned.Metadata(), state.WithDestroyOwner(owner)))
+
+		// the infra provider state checks the access to the machine requests, but not the owner
+		machineRequest := infra.NewMachineRequest("request")
+
+		assertDenied(t, st.Create(ctx, machineRequest, state.WithCreateOwner(owner)))
+		assert.NoError(t, st.Create(ctx, machineRequest))
+
+		for ptr, expectedOwner := range map[resource.Pointer]string{userOwned.Metadata(): "", machineRequest.Metadata(): "", controllerOwned.Metadata(): owner} {
+			stored, err := innerSt.Get(t.Context(), ptr)
+			require.NoError(t, err)
+
+			assert.Equal(t, expectedOwner, stored.Metadata().Owner())
+			assert.Equal(t, resource.PhaseRunning, stored.Metadata().Phase())
+		}
+
+		// writes without an owner still work
+		assert.NoError(t, st.Update(ctx, withOwner(t, userOwned.Metadata(), "")))
+		assert.NoError(t, st.Destroy(ctx, userOwned.Metadata()))
+	})
+
+	t.Run("infra provider", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := ctxstore.WithValue(t.Context(), auth.RoleContextKey{Role: role.InfraProvider})
+		ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{
+			Identity: access.InfraProviderServiceAccountPrefix + "qemu-1" + access.InfraProviderServiceAccountNameSuffix,
+		})
+
+		// the controllers of an infra provider write through the API
+		requestStatus := infra.NewMachineRequestStatus("request-1")
+
+		require.NoError(t, st.Create(ctx, requestStatus, state.WithCreateOwner(owner)))
+		assert.NoError(t, st.Update(ctx, withOwner(t, requestStatus.Metadata(), owner), state.WithUpdateOwner(owner)))
+
+		assertDenied(t, st.Update(ctx, withOwner(t, requestStatus.Metadata(), "AnotherController"), state.WithUpdateOwner(owner)))
+
+		assert.NoError(t, st.Destroy(ctx, requestStatus.Metadata(), state.WithDestroyOwner(owner)))
+	})
+
+	t.Run("internal", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := actor.MarkContextAsInternalActor(t.Context())
+
+		configPatch := omnires.NewConfigPatch("internal")
+
+		require.NoError(t, st.Create(ctx, configPatch, state.WithCreateOwner(owner)))
+		assert.NoError(t, st.Update(ctx, withOwner(t, configPatch.Metadata(), owner), state.WithUpdateOwner(owner)))
+	})
 }

@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -30,7 +31,7 @@ import (
 //
 // Each one finds out what the request is about (the type, the verb and the cluster the resource belongs to) and asks the authz package.
 func authorizationValidationOptions(st state.State) []validated.StateOption {
-	return []validated.StateOption{
+	return slices.Concat([]validated.StateOption{
 		validated.WithListValidations(
 			func(ctx context.Context, kind resource.Kind, opt ...state.ListOption) error {
 				var opts state.ListOptions
@@ -154,7 +155,82 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}, clusterID, false)
 			},
 		),
+	}, ownerValidationOptions())
+}
+
+// ownerValidationOptions returns the validation options which prevent the API callers from setting the owner of a resource.
+//
+// The owner is the controller managing the resource. A caller able to set it could modify the resources
+// of every controller, and create resources which a controller then treats as its own.
+func ownerValidationOptions() []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithCreateValidations(
+			func(ctx context.Context, res resource.Resource, opt ...state.CreateOption) error {
+				var opts state.CreateOptions
+
+				for _, o := range opt {
+					o(&opts)
+				}
+
+				// the state sets the owner from the options, the resource usually has none yet
+				if owner := res.Metadata().Owner(); owner != "" && owner != opts.Owner {
+					return ownerMismatchError(owner, opts.Owner)
+				}
+
+				return checkOwner(ctx, opts.Owner)
+			},
+		),
+		validated.WithUpdateValidations(
+			func(ctx context.Context, _ resource.Resource, newRes resource.Resource, opt ...state.UpdateOption) error {
+				var opts state.UpdateOptions
+
+				for _, o := range opt {
+					o(&opts)
+				}
+
+				if err := checkOwner(ctx, opts.Owner); err != nil {
+					return err
+				}
+
+				// the state stores the owner of the updated resource as it is, so it must match the owner in the options
+				if newRes.Metadata().Owner() != opts.Owner {
+					return ownerMismatchError(newRes.Metadata().Owner(), opts.Owner)
+				}
+
+				return nil
+			},
+		),
+		validated.WithDestroyValidations(
+			func(ctx context.Context, _ resource.Pointer, _ resource.Resource, opt ...state.DestroyOption) error {
+				var opts state.DestroyOptions
+
+				for _, o := range opt {
+					o(&opts)
+				}
+
+				return checkOwner(ctx, opts.Owner)
+			},
+		),
 	}
+}
+
+func ownerMismatchError(resourceOwner, requestOwner string) error {
+	return status.Errorf(codes.PermissionDenied, "the owner %q of the resource does not match the owner %q of the request", resourceOwner, requestOwner)
+}
+
+// checkOwner allows only Omni itself and the infra providers to set an owner.
+//
+// The infra providers run their controllers against this API.
+func checkOwner(ctx context.Context, owner string) error {
+	if owner == "" {
+		return nil
+	}
+
+	if subject := grants.Subject(ctx); subject.Internal || subject.Provider {
+		return nil
+	}
+
+	return status.Error(codes.PermissionDenied, "setting the owner of a resource is not allowed")
 }
 
 // getValidation checks a get of a resource, which is nil when it does not exist.
