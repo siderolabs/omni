@@ -98,8 +98,8 @@ func (t Timings) Decide(status *specs.ConfigTryStatus, desiredSha256 string, now
 			return Wait, t.ConfirmAfter - elapsed
 		case elapsed < t.ConfirmDeadline:
 			return Confirm, 0
-		case elapsed < t.Timeout+t.RollbackGrace:
-			return Wait, t.Timeout + t.RollbackGrace - elapsed
+		case now.Before(t.RollbackEnd(status)):
+			return Wait, t.RollbackEnd(status).Sub(now)
 		}
 	}
 
@@ -112,9 +112,12 @@ func (t Timings) Decide(status *specs.ConfigTryStatus, desiredSha256 string, now
 
 // InFlight reports whether a try is still active on the machine or still rolling back.
 func (t Timings) InFlight(status *specs.ConfigTryStatus, now time.Time) bool {
-	startedAt := status.GetStartedAt()
+	return status.GetStartedAt() != nil && now.Before(t.RollbackEnd(status))
+}
 
-	return startedAt != nil && now.Sub(startedAt.AsTime()) < t.Timeout+t.RollbackGrace
+// RollbackEnd returns when the machine is considered to be back on its previous config.
+func (t Timings) RollbackEnd(status *specs.ConfigTryStatus) time.Time {
+	return status.GetStartedAt().AsTime().Add(t.Timeout + t.RollbackGrace)
 }
 
 // Begin records a try apply that has just been pushed.
@@ -169,7 +172,8 @@ func (r *Reporter) Report(machineID string, status *specs.ConfigTryStatus, now t
 
 	reported, ok := r.tries[machineID]
 
-	if !r.timings.InFlight(status, now) {
+	// a try left without its sha is not counted, it is kept only to hold back the dry run until the rollback
+	if !r.timings.InFlight(status, now) || status.GetSha256() == "" {
 		if ok {
 			r.end(machineID, reported)
 		}
@@ -207,7 +211,7 @@ func (r *Reporter) Report(machineID string, status *specs.ConfigTryStatus, now t
 	// a skipped reconcile, e.g., of a disconnected machine, would otherwise leave the operation running
 	var expiry *time.Timer
 
-	expiry = time.AfterFunc(status.GetStartedAt().AsTime().Add(r.timings.Timeout+r.timings.RollbackGrace).Sub(now), func() {
+	expiry = time.AfterFunc(r.timings.RollbackEnd(status).Sub(now), func() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 

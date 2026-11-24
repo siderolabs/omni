@@ -121,6 +121,7 @@ resources:
       - ControlPlaneStatuses.omni.sidero.dev
       - DefaultJoinTokens.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - DryRunStatuses.omni.sidero.dev
       - EtcdBackupOverallStatuses.omni.sidero.dev
       - EtcdBackupStatuses.omni.sidero.dev
       - EtcdBackupStoreStatuses.omni.sidero.dev

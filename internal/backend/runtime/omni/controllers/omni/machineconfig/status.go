@@ -244,26 +244,20 @@ func (ctrl *StatusController) reconcileRunningConfig(
 		return fmt.Errorf("failed to compute pending updates: %w", err)
 	}
 
-	if rc.locked {
-		// the machine rolls the try back on its own, so it does not count as an attempt
+	if rc.locked || rc.lastConfigError != "" {
+		// the machine rolls the try back on its own, so it does not count as an attempt. The start time keeps it in flight for the dry run.
 		if rc.tryInFlight {
-			machineConfigStatus.TypedSpec().Value.ConfigTry = nil
+			machineConfigStatus.TypedSpec().Value.ConfigTry.Sha256 = ""
 		}
 
-		logger.Info("operations locked for machine")
-
-		return nil
-	}
-
-	if rc.lastConfigError != "" {
-		// the machine rolls the try back on its own, so it does not count as an attempt
-		if rc.tryInFlight {
-			machineConfigStatus.TypedSpec().Value.ConfigTry = nil
-		}
-
+		// a lock holds back every apply, so an apply error is not current until the unlock applies the config again
 		machineConfigStatus.TypedSpec().Value.LastConfigError = rc.lastConfigError
 
-		logger.Info("config generation error", zap.String("error", rc.lastConfigError))
+		if rc.locked {
+			logger.Info("operations locked for machine")
+		} else {
+			logger.Info("config generation error", zap.String("error", rc.lastConfigError))
+		}
 
 		return nil
 	}

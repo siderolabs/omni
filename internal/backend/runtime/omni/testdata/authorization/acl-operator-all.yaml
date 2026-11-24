@@ -242,6 +242,7 @@ resources:
       - ClusterMachines.omni.sidero.dev
       - ControlPlaneStatuses.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - DryRunStatuses.omni.sidero.dev
       - ExposedServices.omni.sidero.dev
       - ImagePullRequests.omni.sidero.dev
       - ImagePullStatuses.omni.sidero.dev

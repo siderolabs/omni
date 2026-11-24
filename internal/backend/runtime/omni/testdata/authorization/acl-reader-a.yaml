@@ -274,6 +274,7 @@ resources:
       - ConfigPatches.omni.sidero.dev
       - ControlPlaneStatuses.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - DryRunStatuses.omni.sidero.dev
       - ExposedServices.omni.sidero.dev
       - ExtensionsConfigurations.omni.sidero.dev
       - ImagePullRequests.omni.sidero.dev

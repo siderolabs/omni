@@ -107,6 +107,7 @@ resources:
       - ConnectionParams.omni.sidero.dev
       - ControlPlaneStatuses.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - DryRunStatuses.omni.sidero.dev
       - EtcdBackupOverallStatuses.omni.sidero.dev
       - EtcdBackupStatuses.omni.sidero.dev
       - EtcdBackupStoreStatuses.omni.sidero.dev

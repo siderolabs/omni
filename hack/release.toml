@@ -6,113 +6,14 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.13.0"
+previous = "v1.14.0"
 
-[notes.aaa-removed-deprecated-options]
-title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+[notes.locked-dry-run]
+title = "Dry Run of Locked Clusters and Machines"
 description = """\
-The BoltDB storage backend (`storage.default.kind: boltdb`, `--storage-kind boltdb`) is still deprecated and will be removed \
-in a future release. There is no automated migration between the two backends, so if your Omni runs on BoltDB, plan the move \
-to etcd, which is the default.
+While a cluster or a machine is locked, Omni now checks the pending config of each machine with a Talos dry run, without \
+applying it. The result is stored in the `DryRunStatus` resource: whether Talos would accept the config, \
+the errors Talos would reject the config with, and whether the machine would reboot on unlock (Talos below 1.14 only).
 
-The following deprecated flags and config keys are removed. Omni does not start when it gets one of them, so switch to the \
-replacement before the upgrade:
-
-- `--siderolink-api-bind-addr`, `--siderolink-api-cert`, `--siderolink-api-key` and `--siderolink-api-advertised-url`: use \
-`--machine-api-bind-addr`, `--machine-api-cert`, `--machine-api-key` and `--machine-api-advertised-url`.
-- `--embedded-discovery-service-endpoint`: use `--embedded-discovery-service-port`.
-- `--debug`: use `--log-level debug`.
-- `registries.imageFactoryBaseURL`, `registries.imageFactoryPXEBaseURL`, `registries.imageFactoryUsername` and \
-`registries.imageFactoryPassword`, with the flags `--image-factory-address`, `--image-factory-pxe-address`, \
-`--image-factory-username` and `--image-factory-password`: use `registries.factories.primary` (`--primary-factory-url`, \
-`--primary-factory-pxe-url`, `--primary-factory-username` and `OMNI_PRIMARY_FACTORY_PASSWORD`).
-- `auth.auth0.initialUsers`: use `auth.initialUsers` (`--initial-users`).
-
-The `OMNI_IMAGE_FACTORY_USERNAME` and `OMNI_IMAGE_FACTORY_PASSWORD` environment variables are removed too. Omni ignores \
-them now, so set `OMNI_PRIMARY_FACTORY_USERNAME` and `OMNI_PRIMARY_FACTORY_PASSWORD` instead, or the image factory credentials \
-are missing.
-
-Cluster templates now have a `locked` field on the `Cluster` document, and `omnictl cluster template export` writes it for \
-locked clusters. The cluster template is the source of truth for the cluster lock.
-
-Syncing a template without `locked: true` unlocks the cluster, even when it was locked in the UI or with \
-`omnictl cluster lock`. Previously, a sync that also added or removed machines was rejected by Omni, because the machines \
-were changed before the cluster was unlocked. Now the unlock is applied first, so these changes go through. Add \
-`locked: true` to the templates of the locked clusters before you sync them.
-
-`omnictl cluster template sync` now fails before it changes anything when a template with `locked: true` changes the \
-cluster, its machine sets or its machine set nodes. Previously, such a sync failed halfway and left part of the changes \
-applied. A cluster cannot be created from a template with `locked: true`, sync it without the lock first.
-"""
-
-[notes.omnictl-download-removal]
-title = "`omnictl download` Removal"
-description = """\
-The deprecated `omnictl download` command is removed. Use `omnictl media download` with an installation media preset \
-instead, for example `omnictl media preset create iso-amd64 --arch amd64` and then `omnictl media download iso-amd64`.
-"""
-
-[notes.identity-label-rules]
-title = "Identity Label Rules"
-description = """\
-`SAMLLabelRule` resources are replaced by `IdentityLabelRule` resources (`IdentityLabelRules.omni.sidero.dev`), as the rules assign roles \
-from the labels of both SAML and OIDC logins. Omni migrates the existing rules on startup and keeps their IDs. `SAMLLabelRules` can no \
-longer be read or written, so manifests and scripts that use them need to switch to the new type.
-
-The deprecated `assignroleonregistration` field is removed. The migration moves its value to `assignrole` on the rules that still use it.
-"""
-
-[notes.trusted-roots]
-title = "Custom CA Delivery to Machines"
-description = """\
-Omni can now deliver custom CA certificates to machines from their first boot, for setups where Omni or the image factory \
-serves certificates signed by a private CA. The PEM bundle is configured with `--trusted-roots-file` (`trustedRootsFile` in \
-the config file).
-
-Omni adds these CAs as a `TrustedRootsConfig` document (`omni-trusted-roots`) to installation media and install images (Talos \
-1.12+), infrastructure provider join configs, `omnictl jointoken machine-config`, maintenance configs and cluster machine configs.
-"""
-
-[notes.machine-operations]
-title = "Machine Install and Upgrade Progress"
-description = """\
-Omni now tracks install and upgrade operations it runs on Talos 1.13+ machines in the `MachineOperationStatus` resource. \
-The active stage (e.g., draining or rebooting) and latest progress message are shown in `omnictl cluster status`, the cluster \
-machine list, the machine overview page and the machines page.
-"""
-
-[notes.disks-view]
-title = "Improved Machine Disks View"
-description = """\
-The disks page in the UI now shows more details for each machine:
-
-- Disk topology for MD arrays, LVMs and multipath devices, grouped into physical and virtual devices.
-- Hardware details such as serial number, firmware version and SSD/HDD labels.
-- Disk space usage.
-- Volume status and failures.
-- Health for MD arrays and LVM logical volumes, plus SMART health on Talos 1.15+.
-"""
-
-[notes.talos-version-floor]
-title = "Talos Version Floor"
-description = """\
-Omni can now disconnect machines running below the Talos version floor (`1.6.0`). This is enabled with \
-`--siderolink-disconnect-talos-below=1.6.0` (`services.siderolink.disconnectTalosBelow` in the config file) and replaces \
-`UnsupportedTalosVersionFailOnStart`.
-
-When enabled, Omni rejects provisioning requests from machines below the floor and removes their WireGuard peers.
-"""
-
-[notes.redacted-talos-resources]
-title = "Redacted Talos Resources"
-description = """\
-Omni now supports viewing Talos resources that contain secrets in their redacted form when the target node supports resource \
-redaction (upcoming in Talos 1.15). Users whose role allows reading those resources without secret access receive the redacted \
-version instead of a permission error.
-"""
-
-[notes.audit-log-ip-filter]
-title = "Audit Log Filtering and Ordering by IP"
-description = """\
-Audit logs can now be filtered and ordered by client IP address in both the UI and `omnictl`.
+Locked clusters and machines start getting these dry runs after the upgrade. A dry run never applies the config.
 """

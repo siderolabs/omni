@@ -119,7 +119,7 @@ func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *
 		return false, err
 	}
 
-	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked && cluster.Metadata().Phase() == resource.PhaseRunning {
+	if clusterLocked(cluster) {
 		return true, nil
 	}
 
@@ -134,6 +134,19 @@ func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *
 
 	// the machines leave Omni without a reset, so they must keep the config they run
 	return importAbortOrExport(cluster, clusterStatus), nil
+}
+
+func clusterLocked(cluster *omni.Cluster) bool {
+	_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+
+	return locked && cluster.Metadata().Phase() == resource.PhaseRunning
+}
+
+func machineLocked(machineSetNode *omni.MachineSetNode, machineConfigStatus *omni.ClusterMachineConfigStatus) bool {
+	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
+
+	// we also check config SHA not being empty here as we don't want to block the initial config creation
+	return locked && machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != ""
 }
 
 // importAbortOrExport reports whether the cluster is being torn down by an import abort or export.
@@ -215,9 +228,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		machineConfigStatus: machineConfigStatus,
 	}
 
-	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
-	// we also check config SHA not being empty here as we don't want to block the initial config creation
-	rc.locked = locked && machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != ""
+	rc.locked = machineLocked(machineSetNode, machineConfigStatus)
 
 	rc.lastConfigError = machineConfig.TypedSpec().Value.GenerationError
 

@@ -20,6 +20,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/dustin/go-humanize"
 	"github.com/siderolabs/gen/pair"
@@ -292,6 +293,92 @@ provisioning:
 			assertion.Equal(specs.ClusterMachineStatusSpec_RUNNING, cms.TypedSpec().Value.GetStage())
 			assertion.True(cms.TypedSpec().Value.GetReady())
 		})
+	}
+}
+
+// AssertDryRunOfLockedCluster tests that an invalid config patch on a locked cluster is reported by the dry run.
+func AssertDryRunOfLockedCluster(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
+		t.Cleanup(cancel)
+
+		st := cli.Omni().State()
+
+		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, st,
+			state.WithLabelQuery(
+				resource.LabelEqual(omni.LabelCluster, clusterName),
+				resource.LabelExists(omni.LabelControlPlaneRole),
+			),
+		)
+		require.NotEmpty(t, cmIDs)
+
+		cmID := cmIDs[0]
+
+		setLocked := func(ctx context.Context, locked bool) error {
+			_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
+				if locked {
+					res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+				} else {
+					res.Metadata().Annotations().Delete(omni.ClusterLocked)
+				}
+
+				return nil
+			})
+
+			return err
+		}
+
+		require.NoError(t, setLocked(ctx, true))
+
+		t.Cleanup(func() {
+			if err := setLocked(testCtx, false); err != nil && !state.IsNotFoundError(err) {
+				t.Logf("failed to unlock the cluster: %v", err)
+			}
+		})
+
+		configPatch := omni.NewConfigPatch(fmt.Sprintf("000-dry-run-test-broken-%d", time.Now().Unix()),
+			pair.MakePair(omni.LabelCluster, clusterName),
+			pair.MakePair(omni.LabelClusterMachine, cmID))
+
+		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
+			return p.TypedSpec().Value.SetUncompressedData([]byte(`apiVersion: v1alpha1
+kind: SwapVolumeConfig
+name: swap-a
+provisioning:
+  maxSize: 5GB
+  minSize: 5GB
+---
+apiVersion: v1alpha1
+kind: SwapVolumeConfig
+name: swap-b
+provisioning:
+  maxSize: 5GB
+  minSize: 5GB`))
+		})
+
+		// registered after the unlock, so it runs before it: the broken patch must not be applied
+		t.Cleanup(func() {
+			if err := st.TeardownAndDestroy(testCtx, configPatch.Metadata()); err != nil && !state.IsNotFoundError(err) {
+				t.Logf("failed to destroy the config patch: %v", err)
+			}
+		})
+
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(res *omni.DryRunStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.DryRunStatusSpec_FAILED, res.TypedSpec().Value.Outcome, resourceDetails(res))
+
+			assertion.Equal(2, strings.Count(res.TypedSpec().Value.Error, "disk selector is required"), resourceDetails(res))
+		})
+
+		rtestutils.Destroy[*omni.ConfigPatch](ctx, t, st, []string{configPatch.Metadata().ID()})
+
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(res *omni.DryRunStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.DryRunStatusSpec_NO_PENDING_CHANGES, res.TypedSpec().Value.Outcome, resourceDetails(res))
+		})
+
+		require.NoError(t, setLocked(ctx, false))
+
+		rtestutils.AssertNoResource[*omni.DryRunStatus](ctx, t, st, cmID)
 	}
 }
 

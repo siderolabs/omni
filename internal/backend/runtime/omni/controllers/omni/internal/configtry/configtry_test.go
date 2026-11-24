@@ -248,6 +248,22 @@ func TestReporterEndsGivenUpTry(t *testing.T) {
 	assert.NotContains(t, operations.Snapshot(), machineID)
 }
 
+func TestReporterEndsTryWithoutSha(t *testing.T) {
+	t.Parallel()
+
+	const machineID = "machine-1"
+
+	operations := machineoperation.NewReporter()
+	reporter := configtry.NewReporter(operations, configtry.Default)
+
+	reporter.Report(machineID, inFlight(sha, 1, base), base)
+	require.Contains(t, operations.Snapshot(), machineID)
+
+	reporter.Report(machineID, inFlight("", 1, base), base.Add(time.Second))
+
+	assert.NotContains(t, operations.Snapshot(), machineID, "a try held back by a lock or a generation error should end its operation")
+}
+
 func TestReporterKeepsReplacingOperation(t *testing.T) {
 	t.Parallel()
 

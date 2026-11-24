@@ -916,6 +916,13 @@ and a config patch that cuts a machine off from Omni, which the machine should r
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
+			"InvalidConfigPatchShouldFailTheDryRunOfALockedCluster",
+			AssertDryRunOfLockedCluster(t.Context(), options.omniClient, clusterName),
+		)
+
+		assertClusterAndAPIReady(t, clusterName, options)
+
+		t.Run(
 			"BlackholeConfigPatchShouldBeRolledBack",
 			AssertBlackholeConfigPatchIsRolledBack(t.Context(), options, clusterName),
 		)

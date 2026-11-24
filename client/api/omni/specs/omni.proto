@@ -779,6 +779,40 @@ message MachinePendingUpdatesSpec {
   bytes compressed_config_diff = 3;
 }
 
+// DryRunStatusSpec is the result of the Talos dry run of the pending config of a machine in dry-run mode.
+message DryRunStatusSpec {
+  enum Outcome {
+    UNKNOWN = 0;
+    PASSED = 1;
+    FAILED = 2;
+    NO_PENDING_CHANGES = 3;
+    NOT_CHECKED = 4;
+  }
+
+  enum NotCheckedReason {
+    NONE = 0;
+    DISCONNECTED = 1;
+    TRY_IN_FLIGHT = 2;
+    MAINTENANCE = 3;
+    CHECK_ERROR = 4;
+    NOT_RUNNING = 5;
+  }
+
+  Outcome outcome = 1;
+
+  // Error is the error Talos rejected the config with, or the config generation error, for FAILED.
+  // For NOT_CHECKED with CHECK_ERROR, it is the error the dry run itself failed with.
+  string error = 2;
+
+  NotCheckedReason not_checked_reason = 3;
+
+  // RebootRequired is set when applying the config will reboot the machine. Only Talos below 1.14 reports it.
+  bool reboot_required = 4;
+
+  // ClusterMachineConfigSha256 is the hash of the checked config.
+  string cluster_machine_config_sha256 = 5;
+}
+
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
 message ClusterBootstrapStatusSpec {
   // Bootstrapped is set once etcd is confirmed to be running on the bootstrapped node.

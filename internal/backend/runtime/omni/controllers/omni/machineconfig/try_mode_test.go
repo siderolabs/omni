@@ -639,10 +639,11 @@ func TestTryMode(t *testing.T) {
 			pushed, err := safe.StateGetByID[*omni.ClusterMachineConfig](ctx, tc.State, id)
 			require.NoError(t, err)
 
-			// the try write sets the version, so a cleared try with this version can only come from the locked reconcile
+			// the try write sets the version, so a try without its config hash at this version can only come from the locked reconcile
 			rtestutils.AssertResource(ctx, t, tc.State, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 				a.Equal(pushed.Metadata().Version().String(), res.TypedSpec().Value.ClusterMachineConfigVersion)
-				a.Nil(res.TypedSpec().Value.ConfigTry)
+				a.NotNil(res.TypedSpec().Value.GetConfigTry().GetStartedAt(), "the try stays in flight until the machine rolls it back")
+				a.Empty(res.TypedSpec().Value.GetConfigTry().GetSha256(), "the try must not count as an attempt")
 				a.Equal(shaBefore, res.TypedSpec().Value.ClusterMachineConfigSha256)
 			})
 
@@ -709,7 +710,8 @@ func TestTryMode(t *testing.T) {
 
 			rtestutils.AssertResource(ctx, t, tc.State, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 				a.Equal(generationError, res.TypedSpec().Value.LastConfigError)
-				a.Nil(res.TypedSpec().Value.ConfigTry)
+				a.NotNil(res.TypedSpec().Value.GetConfigTry().GetStartedAt(), "the try stays in flight until the machine rolls it back")
+				a.Empty(res.TypedSpec().Value.GetConfigTry().GetSha256(), "the try must not count as an attempt")
 				a.Equal(shaBefore, res.TypedSpec().Value.ClusterMachineConfigSha256)
 			})
 

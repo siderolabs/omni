@@ -120,6 +120,23 @@ export enum MachineOperationStatusSpecStage {
   TRYING_CONFIG = 10,
 }
 
+export enum DryRunStatusSpecOutcome {
+  UNKNOWN = 0,
+  PASSED = 1,
+  FAILED = 2,
+  NO_PENDING_CHANGES = 3,
+  NOT_CHECKED = 4,
+}
+
+export enum DryRunStatusSpecNotCheckedReason {
+  NONE = 0,
+  DISCONNECTED = 1,
+  TRY_IN_FLIGHT = 2,
+  MAINTENANCE = 3,
+  CHECK_ERROR = 4,
+  NOT_RUNNING = 5,
+}
+
 export enum MachineSetSpecUpdateStrategy {
   Unset = 0,
   Rolling = 1,
@@ -602,6 +619,14 @@ export type MachinePendingUpdatesSpec = {
   upgrade?: MachinePendingUpdatesSpecUpgrade
   config_diff?: string
   compressed_config_diff?: Uint8Array
+}
+
+export type DryRunStatusSpec = {
+  outcome?: DryRunStatusSpecOutcome
+  error?: string
+  not_checked_reason?: DryRunStatusSpecNotCheckedReason
+  reboot_required?: boolean
+  cluster_machine_config_sha256?: string
 }
 
 export type ClusterBootstrapStatusSpec = {

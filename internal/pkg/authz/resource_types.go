@@ -175,6 +175,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.ClusterMachineConfigPatchesType:             {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ClusterMachineConfigStatusType:              {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ClusterMachineConfigType:                    {Cluster: ClusterByLabel},
+	omni.DryRunStatusType:                            {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ClusterMachineIdentityType:                  {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ClusterMachineRequestStatusType:             {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ClusterMachineSecretsType:                   {Cluster: ClusterByLabel},

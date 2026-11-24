@@ -47,6 +47,7 @@ resources:
       - DBVersions.system.sidero.dev
       - DefaultJoinTokens.omni.sidero.dev
       - DiscoveryAffiliateDeleteTasks.omni.sidero.dev
+      - DryRunStatuses.omni.sidero.dev
       - EtcdAuditResults.omni.sidero.dev
       - EtcdBackupEncryptions.omni.sidero.dev
       - EtcdBackupOverallStatuses.omni.sidero.dev

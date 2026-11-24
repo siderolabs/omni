@@ -397,6 +397,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			rt:          omni.MachinePendingUpdatesType,
 			listOptions: clusterQuery,
 		},
+		{
+			rt:          omni.DryRunStatusType,
+			listOptions: clusterQuery,
+		},
 	}
 
 	machineIDs := map[string]struct{}{}

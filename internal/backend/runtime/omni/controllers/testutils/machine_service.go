@@ -306,8 +306,10 @@ func (ms *MachineServiceMock) ApplyConfiguration(ctx context.Context, req *machi
 
 	ms.applyRequests = append(ms.applyRequests, req)
 
-	if err := ms.storeConfig(ctx, req); err != nil {
-		return nil, err
+	if !req.GetDryRun() {
+		if err := ms.storeConfig(ctx, req); err != nil {
+			return nil, err
+		}
 	}
 
 	if ms.OnApplyConfig != nil {
