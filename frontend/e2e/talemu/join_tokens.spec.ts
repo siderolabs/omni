@@ -8,6 +8,7 @@ import { faker } from '@faker-js/faker'
 import { loadAll } from 'js-yaml'
 
 import { expect, test } from '../auth_fixtures'
+import { readClipboard, readKernelArgs } from '../clipboard'
 
 const DEFAULT_TOKEN = 'testonly'
 const HIDDEN_TOKEN = /•+/
@@ -55,25 +56,13 @@ test('Join tokens list read functionality', async ({ page }, testInfo) => {
     await row.getByLabel('token actions').click()
     await page.getByRole('menuitem', { name: 'Copy Token' }).click()
 
-    await expect
-      .poll(async () => await page.evaluate(() => navigator.clipboard.readText()))
-      .toBe(DEFAULT_TOKEN)
+    await expect.poll(() => readClipboard(page)).toBe(DEFAULT_TOKEN)
 
     await row.getByLabel('token actions').click()
     await page.getByRole('menuitem', { name: 'Copy Kernel Params' }).click()
 
     await expect
-      .poll(async () => {
-        const handle = await page.evaluateHandle(() => navigator.clipboard.readText())
-        const value = await handle.jsonValue()
-
-        return Object.fromEntries(
-          value.split(' ').map((s) => {
-            const [key, ...value] = s.split('=')
-            return [key, value.join('=')]
-          }),
-        )
-      }, 'Expect kernel parameters to be correct')
+      .poll(() => readKernelArgs(page), 'Expect kernel parameters to be correct')
       .toEqual({
         'siderolink.api': expect.stringMatching(
           new RegExp(`grpc://[\\w.-]+(:\\d+)?\\?jointoken=${DEFAULT_TOKEN}`),

@@ -7,6 +7,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { load, loadAll } from 'js-yaml'
 
 import { expect, test } from '../auth_fixtures'
+import { readKernelArgs } from '../clipboard'
 
 test.describe.configure({ mode: 'parallel' })
 
@@ -56,17 +57,7 @@ test('Copying kernel parameters', async ({ page }) => {
   await page.getByRole('button', { name: 'Copy Kernel Parameters' }).click()
 
   await expect
-    .poll(async () => {
-      const handle = await page.evaluateHandle(() => navigator.clipboard.readText())
-      const value = await handle.jsonValue()
-
-      return Object.fromEntries(
-        value.split(' ').map((s) => {
-          const [key, ...value] = s.split('=')
-          return [key, value.join('=')]
-        }),
-      )
-    }, 'Expect kernel parameters to be correct')
+    .poll(() => readKernelArgs(page), 'Expect kernel parameters to be correct')
     .toEqual({
       'siderolink.api': expect.stringMatching(/grpc:\/\/[\w\.-]+(:\d+)?\?jointoken=\w+/),
       'talos.events.sink': expect.stringMatching(/\[fdae:41e4:649b:9303::1\]:\d+/),

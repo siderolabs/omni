@@ -7,6 +7,7 @@ import { milliseconds } from 'date-fns'
 import { load } from 'js-yaml'
 
 import { expect, test } from '../auth_fixtures'
+import { readClipboard } from '../clipboard'
 
 test.describe.configure({ mode: 'parallel' })
 
@@ -120,7 +121,7 @@ test(
 
       await expect
         .poll(async () => {
-          schematicId = await page.evaluate(() => navigator.clipboard.readText())
+          schematicId = (await readClipboard(page)) ?? ''
           return schematicId
         }, 'Expect schematic ID to be valid')
         .toMatch(/[a-zA-Z0-9]{64}/)
@@ -131,7 +132,7 @@ test(
 
       await expect
         .poll(async () => {
-          const schematicYml = await page.evaluate(() => navigator.clipboard.readText())
+          const schematicYml = await readClipboard(page)
           if (!schematicYml) return
           const parsedSchematicYml = load(schematicYml)
 
@@ -198,7 +199,7 @@ test(
       await isoRow.getByLabel('copy link').click()
 
       await expect
-        .poll(async () => await page.evaluate(() => navigator.clipboard.readText()))
+        .poll(() => readClipboard(page))
         .toBe(
           `https://factory.talos.dev/image/${schematicId}/${talosVersion}/metal-arm64-secureboot.iso?filename=omni-default-${talosVersion}-metal-arm64-secureboot.iso`,
         )
