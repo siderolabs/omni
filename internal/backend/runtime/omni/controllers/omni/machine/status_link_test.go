@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/state"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -307,6 +308,39 @@ func TestNonExistingMachineDelta(t *testing.T) {
 			}
 
 			rtestutils.AssertNoResource[*omni.MachineStatusLink](ctx, t, testContext.State, omni.NewMachineStatusLink(resource.ID(testID)).Metadata().ID())
+		},
+	)
+}
+
+func TestDestroyMachineStatusLinksWithoutLink(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	t.Cleanup(cancel)
+
+	deltaCh := make(chan siderolinkmanager.LinkCounterDeltas)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.State.Create(ctx, siderolink.NewLink(testID2, nil)))
+
+			for _, id := range []string{testID, testID2} {
+				require.NoError(t, testContext.State.Create(ctx, omni.NewMachineStatusLink(id), state.WithCreateOwner(machine.NewStatusLinkController(nil).Name())))
+			}
+
+			setupTest(t, deltaCh)(ctx, testContext)
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			// the run hook receives deltas only after the cleanup is done
+			select {
+			case deltaCh <- siderolinkmanager.LinkCounterDeltas{}:
+			case <-ctx.Done():
+				t.Fatal("timed out sending delta")
+			}
+
+			rtestutils.AssertNoResource[*omni.MachineStatusLink](ctx, t, testContext.State, testID)
+			rtestutils.AssertResources(ctx, t, testContext.State, []string{testID2}, func(*omni.MachineStatusLink, *assert.Assertions) {})
 		},
 	)
 }

@@ -82,6 +82,10 @@ func (ctrl *StatusLinkController) Settings() controller.QSettings {
 			},
 		},
 		RunHook: func(ctx context.Context, logger *zap.Logger, r controller.QRuntime) error {
+			if err := ctrl.destroyMachineStatusLinksWithoutLink(ctx, logger, r); err != nil {
+				return err
+			}
+
 			for {
 				select {
 				case <-ctx.Done():
@@ -161,6 +165,32 @@ func (ctrl *StatusLinkController) Reconcile(ctx context.Context, logger *zap.Log
 	}
 
 	return ctrl.reconcileTearingDown(ctx, r, link)
+}
+
+func (ctrl *StatusLinkController) destroyMachineStatusLinksWithoutLink(ctx context.Context, logger *zap.Logger, r controller.QRuntime) error {
+	machineStatusLinks, err := safe.ReaderListAll[*omni.MachineStatusLink](ctx, r)
+	if err != nil {
+		return fmt.Errorf("failed to list machine status links: %w", err)
+	}
+
+	for machineStatusLink := range machineStatusLinks.All() {
+		_, err = safe.ReaderGetByID[*siderolink.Link](ctx, r, machineStatusLink.Metadata().ID())
+		if err == nil {
+			continue
+		}
+
+		if !state.IsNotFoundError(err) {
+			return fmt.Errorf("failed to get link %q: %w", machineStatusLink.Metadata().ID(), err)
+		}
+
+		if _, err = helpers.TeardownAndDestroy(ctx, r, machineStatusLink.Metadata()); err != nil {
+			return fmt.Errorf("failed to destroy machine status link %q: %w", machineStatusLink.Metadata().ID(), err)
+		}
+
+		logger.Info("destroyed machine status link without a link", zap.String("machine", machineStatusLink.Metadata().ID()))
+	}
+
+	return nil
 }
 
 func (ctrl *StatusLinkController) reconcileDelta(ctx context.Context, r controller.QRuntime, id string, delta siderolinkmanager.LinkCounterDelta) error {
