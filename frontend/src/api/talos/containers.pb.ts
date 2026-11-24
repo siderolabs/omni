@@ -30,6 +30,7 @@ export type ContainerSecuritySpec = {
   selinuxLevel?: string
   seccompLocalhostProfile?: string
   seccompLocalhostProfileContent?: string
+  readOnlyRootFS?: boolean
 }
 
 export type ContainerNetworkSpec = {
@@ -67,6 +68,17 @@ export type ContainerRestartSpec = {
   maxDelay?: string
 }
 
+export type ContainerHealthCheckSpec = {
+  kind?: string
+  port?: number
+  path?: string
+  grpcService?: string
+  initialDelay?: string
+  interval?: string
+  timeout?: string
+  failureThreshold?: number
+}
+
 export type ContainerSpecSpec = {
   image?: ContainerImageSpec
   entrypoint?: string[]
@@ -82,6 +94,7 @@ export type ContainerSpecSpec = {
   devices?: ContainerDeviceSpec[]
   stopTimeout?: string
   restart?: ContainerRestartSpec
+  healthCheck?: ContainerHealthCheckSpec
 }
 
 export type ContainerDependencyStatusSpec = {
@@ -147,6 +160,7 @@ export type ContainerInstanceStatusSpec = {
   startedAt?: string
   finishedAt?: string
   refused?: boolean
+  errorLastLog?: string
 }
 
 export type ContainerLifecycleSpec = {
@@ -182,4 +196,5 @@ export type ContainerStatusSpec = {
   error?: string
   waitingFor?: string[]
   generation?: number
+  errorLastLog?: string
 }

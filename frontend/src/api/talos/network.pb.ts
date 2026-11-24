@@ -184,6 +184,7 @@ export type HostDNSConfigSpec = {
   serviceHostDNSAddress?: string
   resolveMemberNames?: boolean
   serviceHostDNSAddressV6?: string
+  logLevel?: string
 }
 
 export type HostnameSpecSpec = {
@@ -427,6 +428,10 @@ export type NfTablesLayer4Match = {
   matchICMPType?: NfTablesICMPTypeMatch
 }
 
+export type NfTablesHopLimitMatch = {
+  hopLimit?: number
+}
+
 export type NfTablesLimitMatch = {
   packetRatePerSecond?: number
 }
@@ -443,6 +448,7 @@ export type NfTablesRule = {
   matchSourceAddress?: NfTablesAddressMatch
   matchDestinationAddress?: NfTablesAddressMatch
   matchLayer4?: NfTablesLayer4Match
+  matchHopLimit?: NfTablesHopLimitMatch
   matchLimit?: NfTablesLimitMatch
   clampMSS?: NfTablesClampMSS
   setMark?: NfTablesMark

@@ -31,6 +31,7 @@ export type EtcdCertsSpec = {
 
 export type EtcdRootSpec = {
   etcdCA?: PEMEncodedCertificateAndKey
+  acceptedCAs?: PEMEncodedCertificate[]
 }
 
 export type KubeletSpec = {

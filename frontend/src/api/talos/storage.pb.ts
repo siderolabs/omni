@@ -147,6 +147,7 @@ export type MDArrayStatusSpec = {
   metadata?: string
   arrayState?: string
   syncAction?: string
+  unmanaged?: boolean
 }
 
 export type MDRefreshRequestSpec = {
@@ -170,6 +171,7 @@ export type StoragePoolVolumeCopySpec = {
   sourceLibrary?: string
   source?: string
   digest?: string
+  image?: boolean
 }
 
 export type StoragePoolVolumeSpecSpec = {

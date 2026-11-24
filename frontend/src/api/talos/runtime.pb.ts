@@ -231,4 +231,6 @@ export type WatchdogTimerStatusSpec = {
 export type WorkloadMemorySpecSpec = {
   talosContainersLimit?: number
   virtualMachinesLimit?: number
+  memoryCapacity?: number
+  memoryReserved?: number
 }

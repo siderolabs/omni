@@ -43,7 +43,6 @@ export type VirtualMachineDiskFromImageSpec = {
   library?: string
   file?: string
   digest?: string
-  mode?: string
 }
 
 export type VirtualMachineDiskStatusSpec = {
@@ -105,10 +104,17 @@ export type VirtualMachineProfileCPUSpec = {
   features?: VirtualMachineProfileCPUFeatureSpec[]
 }
 
+export type VirtualMachineProfileTimersSpec = {
+  hpet?: boolean
+  rtcTickPolicy?: string
+  pitTickPolicy?: string
+}
+
 export type VirtualMachineProfileSpecSpec = {
   builtin?: boolean
   machine?: string
   cpu?: VirtualMachineProfileCPUSpec
+  timers?: VirtualMachineProfileTimersSpec
 }
 
 export type VirtualMachineVCPUPinSpec = {
@@ -176,6 +182,8 @@ export type VirtualMachineInterfaceSpec = {
   name?: string
   link?: string
   hardwareAddr?: string
+  trustGuestRxFilters?: boolean
+  attachment?: string
 }
 
 export type VirtualMachineCloudInitSpec = {

@@ -12,3 +12,10 @@ export type EtcFileSpecSpec = {
 export type EtcFileStatusSpec = {
   specVersion?: string
 }
+
+export type InlineDataVolumeStatusSpec = {
+  volumeID?: string
+  contentsHash?: string
+  files?: number
+  device?: number
+}

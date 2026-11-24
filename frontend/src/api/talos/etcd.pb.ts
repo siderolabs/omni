@@ -2,6 +2,20 @@
 //
 // Source of truth: yaml struct tags on the Go types in
 // github.com/siderolabs/talos/pkg/machinery/resources/
+import type { PEMEncodedCertificate, PEMEncodedCertificateAndKey } from '../common/common.pb'
+
+
+export type BootstrapRequestSpec = {
+  recoverFromSnapshot?: boolean
+  recoverSkipHashCheck?: boolean
+}
+
+export type ClientSpecSpec = {
+  acceptedCAs?: PEMEncodedCertificate[]
+  certificate?: PEMEncodedCertificateAndKey
+  localEndpoints?: string[]
+  clusterEndpoints?: string[]
+}
 
 export type ArgValues = {
   values?: string[]
@@ -16,13 +30,39 @@ export type ConfigSpec = {
   extraArgs?: {[key: string]: ArgValues}
 }
 
+export type LaunchSpecSpec = {
+  initialClusterState?: string
+  initialCluster?: string
+  initialAdvertisePeerURLs?: string[]
+}
+
 export type MemberSpec = {
   memberID?: string
+}
+
+export type MembershipSpecSpec = {
+  name?: string
+  advertisedAddresses?: string[]
+  manualInitialCluster?: boolean
+  initNode?: boolean
+  autoBootstrap?: boolean
+}
+
+export type MembershipStatusSpec = {
+  phase?: string
+  memberID?: string
+  error?: string
 }
 
 export type PKIStatusSpec = {
   ready?: boolean
   version?: string
+}
+
+export type ServiceSpecSpec = {
+  image?: string
+  args?: string[]
+  advertiseOverrides?: string[]
 }
 
 export type SpecSpec = {

@@ -146,8 +146,10 @@ export type KubeletConfigSpec = {
   enableFSQuotaMonitoring?: boolean
   credentialProviderConfig?: {[key: string]: unknown}
   registerWithTaints?: {[key: string]: string}
-  kubepodsMemoryLimit?: number
   credentialProviderFiles?: {[key: string]: string}
+  memoryReserved?: number
+  kubepodsMemoryPercent?: number
+  kubepodsMemoryLimit?: number
 }
 
 export type KubeletKubeconfigSpec = {
