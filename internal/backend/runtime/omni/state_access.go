@@ -350,7 +350,8 @@ func checkAccess(ctx context.Context, st state.State, access state.Access, clust
 	// but could not choose its install disk.
 	//
 	// Therefore, when the regular check finds no grant, we check the caller's access to clusters:
-	//   - The machine is in no cluster: allowed when the caller can add machines to at least one cluster.
+	//   - The machine is in no cluster: allowed when the caller can add machines to at least one cluster,
+	//     and has the verb of the request on clusters with the same role.
 	//   - The machine is in a cluster: allowed when the caller has access to that cluster.
 	//
 	// This is the only resource type where access to clusters gives access to a setting

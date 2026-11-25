@@ -151,13 +151,14 @@ func CheckOperation(subject Subject, operation Operation, target Target) error {
 // It runs only after CheckResource refused the request with ErrNoGrant. The comment at its call in the resource API
 // explains why the install disk config is an exception.
 //
-//   - The machine is in no cluster: allowed when the subject can add machines to at least one cluster.
+//   - The machine is in no cluster: allowed when one grant on at least one cluster allows create
+//     and the verb of the request on clusters.
 //   - The machine is in a cluster: allowed when the subject has the verb on that cluster.
 func CheckInstallDiskConfig(subject Subject, verb state.Verb, cluster string) error {
 	for _, grant := range subject.Grants {
 		if cluster == "" {
 			// a grant on any cluster is enough, because the subject can add the machine to that cluster
-			if (grant.Scope.Global || len(grant.Scope.Clusters) > 0) && grant.Role.allows(Clusters, Create) {
+			if (grant.Scope.Global || len(grant.Scope.Clusters) > 0) && grant.Role.allows(Clusters, Create) && grant.Role.allows(Clusters, verbOf(verb)) {
 				return nil
 			}
 

@@ -382,6 +382,9 @@ func TestCheckResourceGroup(t *testing.T) {
 func TestCheckInstallDiskConfig(t *testing.T) {
 	t.Parallel()
 
+	// a role written by a user, which can only create in clusters
+	creator := &authz.Role{Name: "creator", Rules: []authz.Rule{{Groups: []authz.ResourceGroup{authz.Clusters}, Verbs: authz.Create}}}
+
 	for _, tt := range []struct {
 		name    string
 		cluster string
@@ -397,6 +400,8 @@ func TestCheckInstallDiskConfig(t *testing.T) {
 			name: "machine in no cluster, manager of no cluster", verb: state.Create,
 			subject: authenticated(authz.Grant{Role: authz.ClusterManager}), code: codes.PermissionDenied,
 		},
+		{name: "machine in no cluster, a role with only create creates", verb: state.Create, subject: authenticated(on(creator, "a"))},
+		{name: "machine in no cluster, a role with only create does not destroy", verb: state.Destroy, subject: authenticated(on(creator, "a")), code: codes.PermissionDenied},
 		{name: "machine in a cluster, manager of that cluster", cluster: "a", verb: state.Destroy, subject: authenticated(on(authz.ClusterManager, "a"))},
 		{name: "machine in a cluster, manager of another cluster", cluster: "b", verb: state.Update, subject: authenticated(on(authz.ClusterManager, "a")), code: codes.PermissionDenied},
 		{name: "machine in a cluster, viewer of that cluster reads", cluster: "a", verb: state.Get, subject: authenticated(on(authz.ClusterViewer, "a"))},
