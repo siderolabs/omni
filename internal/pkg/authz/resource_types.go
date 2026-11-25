@@ -95,6 +95,7 @@ const (
 	// Clusters are the clusters and everything which exists because of a cluster.
 	Clusters ResourceGroup = "clusters"
 	// ExposedServices are the services of the clusters which are exposed through the workload proxy.
+	// Read on it gives full access to a service through the proxy, as far as the service allows.
 	ExposedServices ResourceGroup = "exposed-services"
 	// Machines are the resources describing a single machine.
 	Machines ResourceGroup = "machines"
