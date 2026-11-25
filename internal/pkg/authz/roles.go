@@ -23,9 +23,6 @@ type Role struct {
 	Name        string
 	Description string
 	Rules       []Rule
-	// ClusterScoped is set for the roles which are about clusters, and can be granted on some clusters only.
-	// Such a role reaches the resources of a machine only while the machine is in a cluster.
-	ClusterScoped bool
 }
 
 // The built-in roles.
@@ -34,18 +31,16 @@ type Role struct {
 // A preset, which is the role stored for a user (Reader, Auditor, Operator, Admin), stands for a fixed set of them, see PresetRoles.
 var (
 	ClusterViewer = &Role{
-		Name:          "cluster-viewer",
-		Description:   "Read clusters and the machines in them.",
-		ClusterScoped: true,
+		Name:        "cluster-viewer",
+		Description: "Read clusters and the machines in them.",
 		Rules: []Rule{
 			{Groups: []ResourceGroup{Clusters, Machines}, Verbs: Read},
 		},
 	}
 
 	ClusterManager = &Role{
-		Name:          "cluster-manager",
-		Description:   "Create, change and delete clusters, and operate the machines in them.",
-		ClusterScoped: true,
+		Name:        "cluster-manager",
+		Description: "Create, change and delete clusters, and operate the machines in them.",
 		Rules: []Rule{
 			{Groups: []ResourceGroup{Clusters}, Verbs: AllVerbs},
 			{Groups: []ResourceGroup{Machines}, Verbs: Read},
@@ -54,15 +49,13 @@ var (
 	}
 
 	KubernetesUser = &Role{
-		Name:          "kubernetes-user",
-		Description:   "Access the Kubernetes API of clusters.",
-		ClusterScoped: true,
+		Name:        "kubernetes-user",
+		Description: "Access the Kubernetes API of clusters.",
 	}
 
 	WorkloadProxyUser = &Role{
-		Name:          "workload-proxy-user",
-		Description:   "Access the services of clusters which are exposed through the workload proxy.",
-		ClusterScoped: true,
+		Name:        "workload-proxy-user",
+		Description: "Access the services of clusters which are exposed through the workload proxy.",
 		Rules: []Rule{
 			{Groups: []ResourceGroup{ExposedServices}, Verbs: Read},
 		},

@@ -95,7 +95,7 @@ func CheckResource(subject Subject, target Target) error {
 		group = resourceType.GroupWithoutCluster
 	}
 
-	if !subject.grants(group, verbOf(target.Verb), target, resourceType.Cluster == ClusterByMachine) {
+	if !subject.grants(group, verbOf(target.Verb), target) {
 		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verbOf(target.Verb), target.Type)}
 	}
 
@@ -116,7 +116,7 @@ func CheckResourceGroup(subject Subject, group ResourceGroup, verb Verbs, target
 		return status.Error(codes.PermissionDenied, "infra providers have no access")
 	case subject.Suspended && verb != Read:
 		return status.Error(codes.PermissionDenied, "the instance is suspended, only read access is permitted")
-	case !subject.grants(group, verb, target, group == Machines):
+	case !subject.grants(group, verb, target):
 		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verb, group)}
 	}
 
@@ -137,11 +137,6 @@ func CheckOperation(subject Subject, operation Operation, target Target) error {
 	}
 
 	for _, grant := range subject.Grants {
-		// a cluster-scoped role allows an operation only on a cluster, e.g., it cannot power off a machine which is in no cluster
-		if grant.Role.ClusterScoped && target.Cluster == "" {
-			continue
-		}
-
 		if grant.Scope.covers(target) && grant.Role.allowsOperation(operation) {
 			return nil
 		}
@@ -178,17 +173,8 @@ func CheckInstallDiskConfig(subject Subject, verb state.Verb, cluster string) er
 }
 
 // grants reports whether a grant of the subject covers the target and allows the verb on the resource group.
-//
-// ofMachine is set when the target is a resource of a machine.
-func (subject Subject) grants(group ResourceGroup, verb Verbs, target Target, ofMachine bool) bool {
-	inCluster := target.Cluster != "" || target.AllClusters
-
+func (subject Subject) grants(group ResourceGroup, verb Verbs, target Target) bool {
 	for _, grant := range subject.Grants {
-		// a role about clusters reaches the resources of a machine only while the machine is in a cluster
-		if ofMachine && grant.Role.ClusterScoped && !inCluster {
-			continue
-		}
-
 		if grant.Scope.covers(target) && grant.Role.allows(group, verb) {
 			return true
 		}

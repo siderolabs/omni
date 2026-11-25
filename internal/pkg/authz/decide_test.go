@@ -134,15 +134,20 @@ func TestCheckResource(t *testing.T) {
 		},
 		{
 			name:    "viewer of all clusters does not read a machine in no cluster",
-			subject: authenticated(on(authz.ClusterViewer)),
+			subject: authenticated(on(authz.ClusterViewer, authz.AllClustersPattern)),
 			target:  authz.Target{Type: omni.MachineStatusType, Verb: state.Get},
 			code:    codes.PermissionDenied,
 		},
 		{
 			name:    "viewer of all clusters does not list the machines",
-			subject: authenticated(on(authz.ClusterViewer)),
+			subject: authenticated(on(authz.ClusterViewer, authz.AllClustersPattern)),
 			target:  authz.Target{Type: omni.MachineStatusType, Verb: state.List},
 			code:    codes.PermissionDenied,
+		},
+		{
+			name:    "viewer everywhere reads a machine in no cluster",
+			subject: authenticated(on(authz.ClusterViewer)),
+			target:  authz.Target{Type: omni.MachineStatusType, Verb: state.Get},
 		},
 		{
 			name:    "machine viewer reads a machine in no cluster",
@@ -150,12 +155,12 @@ func TestCheckResource(t *testing.T) {
 			target:  authz.Target{Type: omni.MachineStatusType, Verb: state.Get},
 		},
 		{
-			name:    "manager of all clusters changes a config patch of a cluster",
+			name:    "manager everywhere changes a config patch of a cluster",
 			subject: authenticated(on(authz.ClusterManager)),
 			target:  authz.Target{Type: omni.ConfigPatchType, Verb: state.Update, Cluster: "a"},
 		},
 		{
-			name:    "manager of all clusters does not change a config patch of a machine",
+			name:    "manager everywhere does not change a config patch of a machine",
 			subject: authenticated(on(authz.ClusterManager)),
 			target:  authz.Target{Type: omni.ConfigPatchType, Verb: state.Update},
 			code:    codes.PermissionDenied,
@@ -284,8 +289,8 @@ func TestCheckOperation(t *testing.T) {
 			subject: authenticated(on(authz.ClusterManager, "a")), target: authz.Target{Cluster: "b"}, code: codes.PermissionDenied,
 		},
 		{
-			name: "cluster manager of all clusters powers a machine in no cluster", operation: authz.MachinePower,
-			subject: authenticated(on(authz.ClusterManager)), code: codes.PermissionDenied,
+			name: "cluster manager of all clusters does not power a machine in no cluster", operation: authz.MachinePower,
+			subject: authenticated(on(authz.ClusterManager, authz.AllClustersPattern)), code: codes.PermissionDenied,
 		},
 		{
 			name: "machine manager powers a machine in no cluster", operation: authz.MachinePower,
@@ -354,8 +359,8 @@ func TestCheckResourceGroup(t *testing.T) {
 			subject: authenticated(on(authz.ClusterViewer)), target: authz.Target{Cluster: "a"},
 		},
 		{
-			name: "cluster viewer does not read the machines in no cluster", group: authz.Machines, verb: authz.Read,
-			subject: authenticated(on(authz.ClusterViewer)), code: codes.PermissionDenied,
+			name: "viewer of all clusters does not read the machines in no cluster", group: authz.Machines, verb: authz.Read,
+			subject: authenticated(on(authz.ClusterViewer, authz.AllClustersPattern)), code: codes.PermissionDenied,
 		},
 		{
 			name: "suspended, read", group: authz.Clusters, verb: authz.Read,
