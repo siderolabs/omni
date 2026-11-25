@@ -102,8 +102,10 @@ const (
 	MachineManagement ResourceGroup = "machine-management"
 	// Providers are the infra providers and their resources.
 	Providers ResourceGroup = "providers"
-	// AccessControl are the users, their identities and what grants access, and the credentials Omni stores.
+	// AccessControl are the users, their identities and what grants access.
 	AccessControl ResourceGroup = "access-control"
+	// Credentials are what Omni stores to log in to other systems, e.g., the S3 store of the etcd backups and the BMC of a machine.
+	Credentials ResourceGroup = "credentials"
 )
 
 // Access is what a caller needs before the grants are looked at.
@@ -196,7 +198,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.DiscoveryAffiliateDeleteTaskType:            {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.EtcdAuditResultType:                         {Cluster: ClusterByID},
 	omni.EtcdBackupOverallStatusType:                 {Verbs: Read, Group: Clusters},
-	omni.EtcdBackupS3ConfType:                        {Verbs: AllVerbs, Group: AccessControl},
+	omni.EtcdBackupS3ConfType:                        {Verbs: AllVerbs, Group: Credentials},
 	omni.EtcdBackupStatusType:                        {Cluster: ClusterByID, Verbs: Read, Group: Clusters},
 	omni.EtcdBackupStoreStatusType:                   {Verbs: Read, Group: Clusters},
 	omni.EtcdBackupType:                              {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
@@ -207,7 +209,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.ImagePullRequestType:                        {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ImagePullStatusType:                         {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.ImportedClusterSecretsType:                  {Cluster: ClusterByID, Verbs: Create | Destroy, Group: Clusters},
-	omni.InfraMachineBMCConfigType:                   {Verbs: AllVerbs, Group: AccessControl},
+	omni.InfraMachineBMCConfigType:                   {Verbs: AllVerbs, Group: Credentials},
 	omni.InfraMachineConfigType:                      {Verbs: AllVerbs, Group: MachineManagement},
 	omni.InfraProviderCombinedStatusType:             {Verbs: Read, Group: Providers},
 	omni.InstallationMediaConfigType:                 {Verbs: AllVerbs, Group: MachineManagement},

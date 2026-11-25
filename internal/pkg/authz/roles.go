@@ -91,7 +91,7 @@ var (
 		Name:        "access-manager",
 		Description: "Manage users, service accounts and their access, the infra providers and the credentials Omni stores.",
 		Rules: []Rule{
-			{Groups: []ResourceGroup{AccessControl, Providers}, Verbs: AllVerbs},
+			{Groups: []ResourceGroup{AccessControl, Credentials, Providers}, Verbs: AllVerbs},
 			{Operations: []Operation{BreakGlass}},
 		},
 	}
