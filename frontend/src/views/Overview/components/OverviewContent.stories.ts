@@ -7,6 +7,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import type { Resource } from '@/api/grpc'
 import type { ClusterSpec, KubernetesHealthCheckStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
+  DryRunStatusSpecOutcome,
   KubernetesHealthCheckStatusSpecState,
   KubernetesUpgradeStatusSpecPhase,
   OperationPauseReason,
@@ -14,7 +15,13 @@ import {
   SecretRotationSpecPhase,
   TalosUpgradeStatusSpecPhase,
 } from '@/api/omni/specs/omni.pb'
-import { ClusterLocked, LabelCluster } from '@/api/resources'
+import {
+  ClusterLocked,
+  LabelCluster,
+  LabelMachineSet,
+  MachineLocked,
+  UpdateLocked,
+} from '@/api/resources'
 
 import { CLUSTER_ID, createHandlers, defaultMachines, TALOS_VERSION } from './OverviewContent.mocks'
 import OverviewContent from './OverviewContent.vue'
@@ -208,6 +215,44 @@ export const ClusterIsLocked: Story = {
           last_upgrade_version: 'v1.8.4',
           current_upgrade_version: TALOS_VERSION,
         },
+      }),
+    )
+  },
+}
+
+export const ClusterIsLockedWithDryRunFailures: Story = {
+  args: ClusterIsLocked.args,
+  beforeEach({ msw }) {
+    const outcomes = [
+      { outcome: DryRunStatusSpecOutcome.FAILED, error: 'invalid CIDR address: 10.20.0.1/99' },
+      { outcome: DryRunStatusSpecOutcome.PASSED, reboot_required: true },
+      {
+        outcome: DryRunStatusSpecOutcome.FAILED,
+        error: '1 error occurred:\n\t* UserVolumeConfig/data-a: disk selector is required',
+      },
+    ]
+
+    msw.use(
+      ...createHandlers({
+        clusterAnnotations: { [ClusterLocked]: '' },
+        machines: defaultMachines.map((machine) => ({
+          ...machine,
+          metadata: {
+            ...machine.metadata,
+            annotations: { ...machine.metadata.annotations, [MachineLocked]: '' },
+            labels: { ...machine.metadata.labels, [UpdateLocked]: '' },
+          },
+        })),
+        dryRuns: defaultMachines.map((machine, i) => ({
+          metadata: {
+            id: machine.metadata.id,
+            labels: {
+              [LabelCluster]: CLUSTER_ID,
+              [LabelMachineSet]: machine.metadata.labels![LabelMachineSet],
+            },
+          },
+          spec: outcomes[i],
+        })),
       }),
     )
   },

@@ -50,6 +50,8 @@ import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showWarning } from '@/notification'
+import type { DryRunFailure } from '@/views/ClusterMachines/dryRunSummary'
+import DryRunUnlockModal from '@/views/ClusterMachines/DryRunUnlockModal.vue'
 import TClusterStatus from '@/views/Clusters/ClusterStatus.vue'
 import ExportClusterTemplateModal from '@/views/Overview/components/ExportClusterTemplateModal.vue'
 import DownloadSupportBundleModal from '@/views/Overview/components/OverviewRightPanel/DownloadSupportBundleModal.vue'
@@ -59,11 +61,17 @@ import OverviewRightPanelItem from '@/views/Overview/components/OverviewRightPan
 import UpdateKubernetesModal from '@/views/Overview/components/UpdateKubernetesModal.vue'
 import UpdateTalosModal from '@/views/Overview/components/UpdateTalosModal.vue'
 
-const { clusterId, kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
+const {
+  clusterId,
+  kubernetesUpgradeStatus,
+  talosUpgradeStatus,
+  failedDryRuns = [],
+} = defineProps<{
   clusterId: string
   kubernetesUpgradeStatus?: Resource<KubernetesUpgradeStatusSpec>
   talosUpgradeStatus?: Resource<TalosUpgradeStatusSpec>
   etcdBackups?: BackupsStatus
+  failedDryRuns?: DryRunFailure[]
 }>()
 
 const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
@@ -262,16 +270,35 @@ const locked = computed(() => {
   return clusterStatus.value?.metadata.annotations?.[ClusterLocked] !== undefined
 })
 
-const updateLock = async () => {
+const unlockModalOpen = ref(false)
+const updatingLock = ref(false)
+
+const updateLock = async (lock: boolean) => {
   if (!clusterStatus.value?.metadata.id) {
     return
   }
 
   try {
-    await updateClusterLock(clusterStatus.value.metadata.id, !locked.value)
+    updatingLock.value = true
+
+    await updateClusterLock(clusterStatus.value.metadata.id, lock)
+
+    unlockModalOpen.value = false
   } catch (e) {
     showError('Failed To Update Cluster Lock', e.message)
+  } finally {
+    updatingLock.value = false
   }
+}
+
+const onLockClick = () => {
+  if (locked.value && failedDryRuns.length) {
+    unlockModalOpen.value = true
+
+    return
+  }
+
+  updateLock(!locked.value)
 }
 
 const {
@@ -557,7 +584,7 @@ const exportClusterTemplateModalOpen = ref(false)
           variant="primary"
           :icon="locked ? 'locked' : 'unlocked'"
           icon-position="left"
-          @click="updateLock"
+          @click="onLockClick"
         >
           {{ locked ? 'Unlock Cluster' : 'Lock Cluster' }}
         </TButton>
@@ -579,6 +606,19 @@ const exportClusterTemplateModalOpen = ref(false)
             Destroy Cluster
           </TButton>
         </Tooltip>
+
+        <DryRunUnlockModal
+          v-model:open="unlockModalOpen"
+          :title="`Unlock cluster ${clusterId}?`"
+          action-label="Unlock cluster"
+          :cluster-id="clusterId"
+          :failures="failedDryRuns"
+          :loading="updatingLock"
+          @confirm="updateLock(false)"
+        >
+          Pending config would fail on {{ failedDryRuns.length }}
+          {{ failedDryRuns.length === 1 ? 'machine' : 'machines' }}. Unlocking applies it anyway.
+        </DryRunUnlockModal>
 
         <ClusterDestroy
           v-model:open="clusterDestroyModalOpen"

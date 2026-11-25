@@ -9,15 +9,21 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { MachinePendingUpdatesSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, MachinePendingUpdatesType } from '@/api/resources'
+import {
+  type DryRunStatusSpec,
+  DryRunStatusSpecOutcome,
+  type MachinePendingUpdatesSpec,
+} from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, DryRunStatusType, MachinePendingUpdatesType } from '@/api/resources'
 import DiffRenderer, { type DiffEntry } from '@/components/DiffRenderer'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import TAlert from '@/components/TAlert.vue'
 import { installImageDiff } from '@/methods/installimage'
 import { useTitle } from '@/methods/title'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { dryRunSummary } from '@/views/ClusterMachines/dryRunSummary'
 
 definePage({ name: 'NodePendingUpdates' })
 
@@ -33,6 +39,19 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
     id: machineId.value,
   },
 }))
+
+const { data: dryRun, loading: dryRunLoading } = useResourceWatch<DryRunStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: DryRunStatusType,
+    id: machineId.value,
+  },
+}))
+
+const dryRunFailed = computed(() => dryRun.value?.spec.outcome === DryRunStatusSpecOutcome.FAILED)
+
+const dryRunPassed = computed(() => dryRun.value?.spec.outcome === DryRunStatusSpecOutcome.PASSED)
 
 const diffEntries = computed<DiffEntry[]>(() => {
   const spec = data.value?.spec
@@ -69,12 +88,44 @@ useTitle('Pending Updates')
 
 <template>
   <PageContainer class="flex h-full flex-col gap-compact">
-    <template v-if="!loading">
-      <TAlert v-if="!diffEntries.length" type="info" title="No Records">
+    <template v-if="!loading && !dryRunLoading">
+      <TAlert v-if="dryRunFailed" type="warn" title="Pending config would fail">
+        Nothing has been applied. Fix the config patches before unlocking, or unlocking applies it
+        anyway.
+      </TAlert>
+
+      <p v-else-if="dryRunPassed" class="flex items-center gap-tight text-xs">
+        <StatusGlyph glyph="success" class="text-status-success-default" aria-hidden="true" />
+        Talos accepted this config in a dry run.
+        {{ dryRun?.spec.reboot_required ? 'The machine reboots when it is applied.' : '' }}
+        Nothing has been applied.
+      </p>
+
+      <p
+        v-else-if="dryRun?.spec.outcome === DryRunStatusSpecOutcome.NOT_CHECKED"
+        class="flex items-center gap-tight text-xs"
+      >
+        <StatusGlyph glyph="unknown" class="text-status-info-default" aria-hidden="true" />
+        {{ dryRunSummary(dryRun.spec) }}
+      </p>
+
+      <p
+        v-if="dryRun?.spec.error"
+        class="rounded border border-border-default bg-surface-card p-compact font-mono text-xs wrap-anywhere whitespace-pre-wrap"
+      >
+        {{ dryRun.spec.error }}
+      </p>
+
+      <TAlert v-if="!diffEntries.length && !dryRun?.spec.error" type="info" title="No Records">
         No pending updates found for this machine
       </TAlert>
 
-      <DiffRenderer v-else class="h-full" :diffs="diffEntries" with-search />
+      <DiffRenderer
+        v-else-if="diffEntries.length"
+        class="h-full"
+        :diffs="diffEntries"
+        with-search
+      />
     </template>
 
     <TSpinner v-else class="mx-auto my-section size-6" />

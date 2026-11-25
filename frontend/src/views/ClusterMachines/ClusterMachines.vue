@@ -24,6 +24,7 @@ import MachineSet from './MachineSet.vue'
 
 const { clusterID } = defineProps<{
   clusterID: string
+  clusterLocked?: boolean
   isSubgrid?: boolean
 }>()
 
@@ -87,6 +88,7 @@ watchEffect(() => {
       :key="id"
       :machine-set-id="id"
       :nodes-with-diagnostics="nodesWithDiagnostics"
+      :cluster-locked
       :is-subgrid
     />
   </AccordionRoot>

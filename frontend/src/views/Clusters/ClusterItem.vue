@@ -202,7 +202,7 @@ const { data: features } = useFeatures()
         />
       </div>
 
-      <ClusterMachines :cluster-i-d="item.metadata.id!" is-subgrid />
+      <ClusterMachines :cluster-i-d="item.metadata.id!" :cluster-locked="locked" is-subgrid />
     </CollapsibleContent>
 
     <ClusterDestroy v-model:open="clusterDestroyDialogOpen" :cluster-id="item.metadata.id!" />

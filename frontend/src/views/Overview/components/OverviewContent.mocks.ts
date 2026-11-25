@@ -13,6 +13,7 @@ import type {
   ClusterSecretsRotationStatusSpec,
   ClusterStatusSpec,
   ControlPlaneStatusSpec,
+  DryRunStatusSpec,
   EtcdBackupOverallStatusSpec,
   EtcdBackupStatusSpec,
   FeaturesConfigSpec,
@@ -20,6 +21,7 @@ import type {
   KubernetesStatusSpec,
   KubernetesUpgradeStatusSpec,
   KubernetesUsageSpec,
+  MachineSetNodeSpec,
   MachineSetSpec,
   MachineSetStatusSpec,
   TalosUpgradeStatusSpec,
@@ -39,6 +41,7 @@ import {
   ClusterStatusType,
   ControlPlaneStatusType,
   DefaultNamespace,
+  DryRunStatusType,
   EphemeralNamespace,
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
@@ -54,6 +57,7 @@ import {
   LabelHostname,
   LabelMachineSet,
   LabelWorkerRole,
+  MachineSetNodeType,
   MachineSetStatusType,
   MachineSetType,
   MachineStatusLabelConnected,
@@ -105,17 +109,21 @@ export const defaultMachines: Resource<ClusterMachineStatusSpec>[] = [
 
 export function createHandlers({
   clusterStatus,
+  clusterAnnotations,
   kubernetesUpgradeStatus,
   talosUpgradeStatus,
   secretRotationStatus,
   machines = defaultMachines,
+  dryRuns = [],
   healthChecks = [],
 }: {
   clusterStatus?: Partial<ClusterStatusSpec>
+  clusterAnnotations?: Record<string, string>
   kubernetesUpgradeStatus?: KubernetesUpgradeStatusSpec
   talosUpgradeStatus?: TalosUpgradeStatusSpec
   secretRotationStatus?: ClusterSecretsRotationStatusSpec
   machines?: Resource<ClusterMachineStatusSpec>[]
+  dryRuns?: Resource<DryRunStatusSpec>[]
   healthChecks?: Resource<KubernetesHealthCheckStatusSpec>[]
 } = {}) {
   return [
@@ -205,6 +213,7 @@ export function createHandlers({
             type: ClusterStatusType,
             id: CLUSTER_ID,
             created: new Date('2026-06-01T12:00:00Z').toISOString(),
+            annotations: clusterAnnotations,
           },
         },
       ],
@@ -292,6 +301,18 @@ export function createHandlers({
             ([key, value]) => machine.metadata.labels?.[key] === value,
           ),
         ),
+    }).handler,
+    createWatchStreamHandler<DryRunStatusSpec>({
+      expectedOptions: { namespace: DefaultNamespace, type: DryRunStatusType },
+      initialResources: ({ selectors = {} }) =>
+        dryRuns.filter((dryRun) =>
+          Object.entries(selectors).every(
+            ([key, value]) => dryRun.metadata.labels?.[key] === value,
+          ),
+        ),
+    }).handler,
+    createWatchStreamHandler<MachineSetNodeSpec>({
+      expectedOptions: { namespace: DefaultNamespace, type: MachineSetNodeType },
     }).handler,
     createWatchStreamHandler<KubernetesHealthCheckStatusSpec>({
       expectedOptions: {

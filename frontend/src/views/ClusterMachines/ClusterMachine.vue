@@ -5,11 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
-import type { ClusterMachineStatusSpec, MachineOperationStatusSpec } from '@/api/omni/specs/omni.pb'
+import {
+  type ClusterMachineStatusSpec,
+  type DryRunStatusSpec,
+  DryRunStatusSpecOutcome,
+  type MachineOperationStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   LabelCluster,
@@ -26,11 +31,16 @@ import { updateMachineLock } from '@/methods/machine'
 import { showError } from '@/notification'
 import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
+import ClusterMachineDryRunResult from './ClusterMachineDryRunResult.vue'
 import ClusterMachinePhase from './ClusterMachinePhase.vue'
+import DryRunUnlockModal from './DryRunUnlockModal.vue'
 
-const { machine } = defineProps<{
+const { machine, dryRun } = defineProps<{
   machine: Resource<ClusterMachineStatusSpec>
   operation?: MachineOperationStatusSpec
+  dryRun?: DryRunStatusSpec
+  clusterLocked?: boolean
+  lockedOnItsOwn?: boolean
   removeDisabled?: boolean
   hasDiagnosticInfo?: boolean
 }>()
@@ -62,6 +72,11 @@ const nodeName = computed(
 )
 const clusterName = computed(() => (machine.metadata?.labels || {})[LabelCluster])
 
+const pendingUpdatesRoute = computed(() => ({
+  name: 'NodePendingUpdates' as const,
+  params: { cluster: clusterName.value, machine: machine.metadata.id! },
+}))
+
 const openNodeInfo = async () => {
   router.push({
     name: 'NodeOverview',
@@ -73,16 +88,45 @@ const lockedUpdate = computed(() => {
   return machine.metadata.labels?.[UpdateLocked] !== undefined
 })
 
-const updateLock = async () => {
+const lockIcon = computed(() => {
+  if (!locked.value) {
+    return 'unlocked'
+  }
+
+  return lockedUpdate.value ? 'locked-toggle' : 'locked'
+})
+
+const dryRunFailed = computed(() => dryRun?.outcome === DryRunStatusSpecOutcome.FAILED)
+
+const unlockModalOpen = ref(false)
+const updatingLock = ref(false)
+
+const updateLock = async (lock: boolean) => {
   if (!machine.metadata.id) {
     return
   }
 
   try {
-    await updateMachineLock(machine.metadata.id, !locked.value)
+    updatingLock.value = true
+
+    await updateMachineLock(machine.metadata.id, lock)
+
+    unlockModalOpen.value = false
   } catch (e) {
     showError('Failed To Update Machine Lock', e.message)
+  } finally {
+    updatingLock.value = false
   }
+}
+
+const onLockClick = () => {
+  if (locked.value && dryRunFailed.value) {
+    unlockModalOpen.value = true
+
+    return
+  }
+
+  updateLock(!locked.value)
 }
 </script>
 
@@ -109,16 +153,19 @@ const updateLock = async () => {
       <ClusterMachinePhase :machine="machine" :operation="operation" />
       <RouterLink
         v-if="lockedUpdate"
-        :to="{
-          name: 'NodePendingUpdates',
-          params: { cluster: clusterName, machine: machine.metadata.id! },
-        }"
+        :to="pendingUpdatesRoute"
         class="flex items-center gap-micro truncate text-status-info-text hover:text-content-emphasis"
         @click.stop
       >
         <TIcon icon="time" class="size-4 min-w-max shrink-0" />
         <div class="flex-1 truncate">Pending Config Update</div>
       </RouterLink>
+      <ClusterMachineDryRunResult
+        v-if="dryRun && (lockedUpdate || dryRunFailed)"
+        :dry-run="dryRun"
+        :standalone="!lockedUpdate"
+        :to="pendingUpdatesRoute"
+      />
     </div>
 
     <div class="flex items-center justify-end">
@@ -140,13 +187,30 @@ const updateLock = async () => {
       </Tooltip>
 
       <Tooltip
-        v-if="lockable"
-        description="Lock machine config. Pause Kubernetes and Talos updates on the machine."
+        v-if="lockable && (!clusterLocked || lockedOnItsOwn)"
+        :description="
+          clusterLocked
+            ? 'The machine is locked on its own. Unlocking the cluster does not unlock it.'
+            : 'Lock machine config. Pause Kubernetes and Talos updates on the machine.'
+        "
       >
+        <!-- a disabled button gets no pointer events, so the wrapper opens the tooltip -->
+        <span
+          v-if="clusterLocked"
+          class="flex shrink-0 rounded"
+          tabindex="0"
+          role="img"
+          aria-label="Locked on its own"
+          @click.stop
+        >
+          <IconButton :icon="lockIcon" disabled data-testid="cluster-machine-lock" />
+        </span>
         <IconButton
+          v-else
           class="shrink-0"
-          :icon="locked ? (lockedUpdate ? 'locked-toggle' : 'locked') : 'unlocked'"
-          @click.stop="updateLock"
+          :icon="lockIcon"
+          data-testid="cluster-machine-lock"
+          @click.stop="onLockClick"
         />
       </Tooltip>
 
@@ -157,5 +221,17 @@ const updateLock = async () => {
         :remove-disabled="removeDisabled!"
       />
     </div>
+
+    <DryRunUnlockModal
+      v-model:open="unlockModalOpen"
+      :title="`Unlock machine ${nodeName}?`"
+      action-label="Unlock machine"
+      :cluster-id="clusterName ?? ''"
+      :failures="[{ id: machine.metadata.id!, name: nodeName ?? '', error: dryRun?.error }]"
+      :loading="updatingLock"
+      @confirm="updateLock(false)"
+    >
+      Its pending config would fail. Unlocking applies it anyway.
+    </DryRunUnlockModal>
   </div>
 </template>

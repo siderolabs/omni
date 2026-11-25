@@ -17,9 +17,12 @@ import {
   type ClusterSecretsRotationStatusSpec,
   type ClusterSpec,
   type ClusterStatusSpec,
+  type DryRunStatusSpec,
+  DryRunStatusSpecOutcome,
   type KubernetesUpgradeStatusSpec,
   KubernetesUpgradeStatusSpecPhase,
   type KubernetesUsageSpec,
+  type MachineSetNodeSpec,
   OperationPauseReason,
   SecretRotationSpecComponent,
   type TalosUpgradeStatusSpec,
@@ -29,13 +32,18 @@ import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import {
   ClusterLocked,
+  ClusterMachineStatusLabelNodeName,
   ClusterMachineStatusType,
   ClusterSecretsRotationStatusType,
   ClusterStatusType,
   DefaultNamespace,
+  DryRunStatusType,
   KubernetesUpgradeStatusType,
   KubernetesUsageType,
   LabelCluster,
+  LabelHostname,
+  MachineLocked,
+  MachineSetNodeType,
   TalosUpgradeStatusType,
   VersionContractType,
   VirtualNamespace,
@@ -57,6 +65,7 @@ import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
+import type { DryRunFailure } from '@/views/ClusterMachines/dryRunSummary'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
 import DiscoveryServiceSwitcher from '@/views/Clusters/DiscoveryServiceSwitcher.vue'
@@ -216,6 +225,79 @@ const machinesWithErrors = computed(() =>
   clusterMachineStatuses.value.filter((m) => !!m.spec.last_config_error),
 )
 
+const clusterLocked = computed(() => {
+  return currentCluster.metadata.annotations?.[ClusterLocked] !== undefined
+})
+
+const { data: dryRunStatuses } = useResourceWatch<DryRunStatusSpec>(() => ({
+  skip: !clusterLocked.value,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: DryRunStatusType,
+  },
+  selectors: [`${LabelCluster}=${clusterId.value}`],
+}))
+
+// the machine status reports the cluster lock as a machine lock, the node has only the machine's own
+const { data: machineSetNodes, loading: machineSetNodesLoading } =
+  useResourceWatch<MachineSetNodeSpec>(() => ({
+    skip: !clusterLocked.value,
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: MachineSetNodeType,
+    },
+    selectors: [`${LabelCluster}=${clusterId.value}`],
+  }))
+
+const failedDryRuns = computed<DryRunFailure[]>(() => {
+  if (machineSetNodesLoading.value) {
+    return []
+  }
+
+  const machines = new Map(clusterMachineStatuses.value.map((m) => [m.metadata.id!, m]))
+  const lockedOnTheirOwn = new Set(
+    machineSetNodes.value
+      .filter((n) => n.metadata.annotations?.[MachineLocked] !== undefined)
+      .map((n) => n.metadata.id!),
+  )
+
+  return (
+    dryRunStatuses.value
+      .filter((s) => s.spec.outcome === DryRunStatusSpecOutcome.FAILED)
+      // a machine locked on its own stays locked when the cluster is unlocked
+      .filter((s) => !lockedOnTheirOwn.has(s.metadata.id!))
+      .map((s) => {
+        const labels = machines.get(s.metadata.id!)?.metadata.labels
+
+        return {
+          id: s.metadata.id!,
+          name:
+            labels?.[ClusterMachineStatusLabelNodeName] ||
+            labels?.[LabelHostname] ||
+            s.metadata.id!,
+          error: s.spec.error,
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  )
+})
+
+const maxListedDryRunFailures = 5
+
+const listedDryRunFailures = computed(() => failedDryRuns.value.slice(0, maxListedDryRunFailures))
+
+const failureSeparator = (index: number) => {
+  if (index < listedDryRunFailures.value.length - 1) {
+    return ', '
+  }
+
+  const unlisted = failedDryRuns.value.length - listedDryRunFailures.value.length
+
+  return unlisted ? ` and ${unlisted} more.` : '.'
+}
+
 const { data: secretRotationStatus } = useResourceWatch<ClusterSecretsRotationStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
@@ -232,10 +314,6 @@ const getComponentInRotation = computed(() => {
     default:
       return ''
   }
-})
-
-const clusterLocked = computed(() => {
-  return currentCluster.metadata.annotations?.[ClusterLocked] !== undefined
 })
 
 // the zero value is omitted from the JSON, so an unset reason means not paused
@@ -255,8 +333,27 @@ const secretRotationPaused = computed(() => isPaused(secretRotationStatus.value?
   <div class="flex flex-col justify-start gap-base lg:flex-row lg:items-start">
     <div class="flex grow flex-col gap-base">
       <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-compact">
-        All operations on this cluster are currently disabled. Config patches can be created,
-        updated or deleted but these changes will not be applied while the cluster is locked.
+        <span class="block">
+          All operations on this cluster are currently disabled. Config patches can be created,
+          updated or deleted but these changes will not be applied while the cluster is locked.
+        </span>
+        <span v-if="failedDryRuns.length" class="mt-tight block">
+          Pending config would fail on {{ failedDryRuns.length }}
+          {{ failedDryRuns.length === 1 ? 'machine' : 'machines' }}:
+          <template v-for="(failure, index) in listedDryRunFailures" :key="failure.id">
+            <RouterLink
+              class="link-primary"
+              :to="{
+                name: 'NodePendingUpdates',
+                params: { cluster: clusterId, machine: failure.id },
+              }"
+            >
+              {{ failure.name }}
+            </RouterLink>
+            <span>{{ failureSeparator(index) }}</span>
+          </template>
+          Unlocking applies it anyway.
+        </span>
       </TAlert>
       <TAlert
         v-if="machinesWithErrors.length > 0"
@@ -516,7 +613,7 @@ const secretRotationPaused = computed(() => isPaused(secretRotationStatus.value?
           <span class="text-sm text-content-default">Machines</span>
         </div>
         <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-snug">
-          <ClusterMachines is-subgrid :cluster-i-d="clusterId" />
+          <ClusterMachines is-subgrid :cluster-i-d="clusterId" :cluster-locked />
         </div>
       </div>
     </div>
@@ -526,6 +623,7 @@ const secretRotationPaused = computed(() => isPaused(secretRotationStatus.value?
       :talos-upgrade-status="talosUpgradeStatus"
       :etcd-backups="backupStatus"
       :cluster-id="currentCluster.metadata.id!"
+      :failed-dry-runs="failedDryRuns"
     />
   </div>
 </template>

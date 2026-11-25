@@ -14,7 +14,9 @@ import type { Resource } from '@/api/grpc'
 import type {
   ClusterMachineRequestStatusSpec,
   ClusterMachineStatusSpec,
+  DryRunStatusSpec,
   MachineOperationStatusSpec,
+  MachineSetNodeSpec,
   MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { MachineSetSpecMachineAllocationType } from '@/api/omni/specs/omni.pb'
@@ -22,12 +24,15 @@ import {
   ClusterMachineRequestStatusType,
   ClusterMachineStatusType,
   DefaultNamespace,
+  DryRunStatusType,
   EphemeralNamespace,
   LabelCluster,
   LabelControlPlaneRole,
   LabelMachineRequestInUse,
   LabelMachineSet,
+  MachineLocked,
   MachineOperationStatusType,
+  MachineSetNodeType,
   MachineSetStatusType,
 } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
@@ -50,9 +55,10 @@ import MachineSetPhase from './MachineSetPhase.vue'
 
 const showMachinesCount = ref<number | undefined>(25)
 
-const { machineSetId } = defineProps<{
+const { machineSetId, clusterLocked } = defineProps<{
   machineSetId: string
   nodesWithDiagnostics: Set<string>
+  clusterLocked?: boolean
   isSubgrid?: boolean
 }>()
 
@@ -100,6 +106,41 @@ const { data: operationStatuses } = useResourceWatch<MachineOperationStatusSpec>
 
 const operations = computed(
   () => new Map(operationStatuses.value.map((s) => [s.metadata.id!, s.spec])),
+)
+
+const { data: dryRunStatuses } = useResourceWatch<DryRunStatusSpec>(() => ({
+  skip: !clusterID.value,
+  resource: {
+    namespace: DefaultNamespace,
+    type: DryRunStatusType,
+  },
+  runtime: Runtime.Omni,
+  selectors: [`${LabelCluster}=${clusterID.value}`, `${LabelMachineSet}=${machineSetId}`],
+}))
+
+const dryRuns = computed(() => new Map(dryRunStatuses.value.map((s) => [s.metadata.id!, s.spec])))
+
+// the machine status reports the cluster lock as a machine lock, the node has only the machine's own
+const { data: machineSetNodes } = useResourceWatch<MachineSetNodeSpec>(() => ({
+  skip:
+    !clusterID.value ||
+    !clusterLocked ||
+    machineSet.value?.metadata.labels?.[LabelControlPlaneRole] !== undefined,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineSetNodeType,
+  },
+  runtime: Runtime.Omni,
+  selectors: [`${LabelCluster}=${clusterID.value}`, `${LabelMachineSet}=${machineSetId}`],
+}))
+
+const machinesLockedOnTheirOwn = computed(
+  () =>
+    new Set(
+      machineSetNodes.value
+        .filter((n) => n.metadata.annotations?.[MachineLocked] !== undefined)
+        .map((n) => n.metadata.id!),
+    ),
 )
 
 const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() => ({
@@ -263,6 +304,9 @@ function isMachineSetScalable(
         :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
         :machine="machine"
         :operation="operations.get(machine.metadata.id!)"
+        :dry-run="dryRuns.get(machine.metadata.id!)"
+        :cluster-locked
+        :locked-on-its-own="machinesLockedOnTheirOwn.has(machine.metadata.id!)"
         :remove-disabled="!canRemoveMachine"
       />
 
