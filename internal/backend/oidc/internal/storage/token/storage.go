@@ -14,22 +14,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
-	"github.com/siderolabs/gen/maps"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 
-	"github.com/siderolabs/omni/client/pkg/access/role"
-	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/models"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
+	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 )
 
 // Lifetime of the token.
@@ -232,7 +225,7 @@ func (s *Storage) setResponse(ctx context.Context, ir *oidc.IntrospectionRespons
 		case strings.HasPrefix(currentScope, external.ScopeClusterPrefix):
 			cluster := currentScope[len(external.ScopeClusterPrefix):]
 
-			impersonateGroups, err := s.getImpersonateGroups(ctx, cluster, userID)
+			impersonateGroups, err := grants.KubernetesGroups(ctx, s.state, userID, cluster)
 			if err != nil {
 				return err
 			}
@@ -258,7 +251,7 @@ func (s *Storage) setUserInfo(ctx context.Context, userInfo *oidc.UserInfo, user
 		case strings.HasPrefix(currentScope, external.ScopeClusterPrefix):
 			cluster := currentScope[len(external.ScopeClusterPrefix):]
 
-			impersonateGroups, err := s.getImpersonateGroups(ctx, cluster, userID)
+			impersonateGroups, err := grants.KubernetesGroups(ctx, s.state, userID, cluster)
 			if err != nil {
 				return err
 			}
@@ -271,98 +264,6 @@ func (s *Storage) setUserInfo(ctx context.Context, userInfo *oidc.UserInfo, user
 	return nil
 }
 
-func (s *Storage) getImpersonateGroups(ctx context.Context, cluster, userID string) ([]string, error) {
-	groupSet := map[string]struct{}{}
-
-	userImpersonateGroups, err := s.impersonateGroupsFromUser(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, group := range userImpersonateGroups {
-		groupSet[group] = struct{}{}
-	}
-
-	accessPolicyImpersonateGroups, err := s.impersonateGroupsFromAccessPolicy(ctx, cluster, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, group := range accessPolicyImpersonateGroups {
-		groupSet[group] = struct{}{}
-	}
-
-	return maps.Keys(groupSet), nil
-}
-
-func (s *Storage) impersonateGroupsFromUser(ctx context.Context, userID string) ([]string, error) {
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	identity, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get identity: %w", err)
-	}
-
-	user, err := safe.StateGet[*auth.User](ctx, s.state, auth.NewUser(identity.TypedSpec().Value.GetUserId()).Metadata())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-
-	userRole, err := role.Parse(user.TypedSpec().Value.GetRole())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse user role: %w", err)
-	}
-
-	// if the user has the operator role, we assign the default access group (system:masters)
-	if err = userRole.Check(role.Operator); err == nil {
-		return []string{constants.DefaultAccessGroup}, nil
-	}
-
-	return nil, nil
-}
-
-func (s *Storage) impersonateGroupsFromAccessPolicy(ctx context.Context, cluster, userID string) ([]string, error) {
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	accessPolicy, err := safe.StateGet[*auth.AccessPolicy](ctx, s.state, auth.NewAccessPolicy().Metadata())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("failed to get access policy: %w", err)
-	}
-
-	clusterRes, err := safe.StateGet[*omni.Cluster](ctx, s.state, omni.NewCluster(cluster).Metadata())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			// the same answer as for a cluster the policy grants nothing on
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("failed to get cluster: %w", err)
-	}
-
-	identityRes, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get identity: %w", err)
-	}
-
-	checkResult, err := accesspolicy.Check(accessPolicy, clusterRes.Metadata(), identityRes.Metadata())
-	if err != nil {
-		return nil, fmt.Errorf("failed to check access policy: %w", err)
-	}
-
-	groups := checkResult.KubernetesImpersonateGroups
-
-	// if the ACL matches the operator role, we add the default access group (system:masters)
-	if checkResult.Role.Check(role.Operator) == nil {
-		groups = append(groups, constants.DefaultAccessGroup)
-	}
-
-	return groups, nil
-}
-
 // GetPrivateClaimsFromScopes implements the op.Storage interface.
 //
 // It will be called for the creation of a JWT access token to assert claims for custom scopes.
@@ -373,7 +274,7 @@ func (s *Storage) GetPrivateClaimsFromScopes(ctx context.Context, userID, _ stri
 		if strings.HasPrefix(scope, external.ScopeClusterPrefix) {
 			cluster := scope[len(external.ScopeClusterPrefix):]
 
-			impersonateGroups, err := s.getImpersonateGroups(ctx, cluster, userID)
+			impersonateGroups, err := grants.KubernetesGroups(ctx, s.state, userID, cluster)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get impersonate groups: %w", err)
 			}

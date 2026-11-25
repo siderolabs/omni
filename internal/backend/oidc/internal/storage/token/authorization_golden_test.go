@@ -15,10 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/storage/token"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/authz/authztest"
 )
 
@@ -45,11 +43,6 @@ func TestAuthorizationGolden(t *testing.T) {
 	st := state.WrapCore(inmem.NewState())
 
 	authztest.Seed(t, st, keys)
-
-	// the groups of the access policy are given only on a cluster which exists
-	for _, cluster := range []string{authztest.ClusterA, authztest.ClusterB} {
-		require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), omni.NewCluster(cluster)))
-	}
 
 	storage := token.NewStorage(st)
 

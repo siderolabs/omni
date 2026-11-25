@@ -15,4 +15,4 @@
 # so a subject on a suspended instance gets the same groups.
 cluster-a: system:masters
 cluster-b: system:masters
-a cluster which does not exist: no groups
+a cluster which does not exist: system:masters

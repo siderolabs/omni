@@ -21,7 +21,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/storage/token"
 )
@@ -75,14 +74,11 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	user := auth.NewUser(userID)
 	user.TypedSpec().Value.Role = string(role.None)
 
-	cluster := omni.NewCluster(clusterID)
-
 	st := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
 	require.NoError(t, st.Create(ctx, user))
-	require.NoError(t, st.Create(ctx, cluster))
 
 	s := token.NewStorage(st)
 
@@ -99,7 +95,8 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	}, claims)
 }
 
-// TestGetPrivateClaimsFromScopesClusterNotFound checks that a scope for a cluster that is not there contributes no groups.
+// TestGetPrivateClaimsFromScopesClusterNotFound checks that a scope for a cluster which does not exist is not an error,
+// and that it gets no groups when no rule of the access policy covers it.
 func TestGetPrivateClaimsFromScopesClusterNotFound(t *testing.T) {
 	ctx := t.Context()
 
@@ -131,8 +128,6 @@ func TestGetPrivateClaimsFromScopesClusterNotFound(t *testing.T) {
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
 	require.NoError(t, st.Create(ctx, user))
-
-	// the cluster resource is deliberately not created
 
 	s := token.NewStorage(st)
 
@@ -224,14 +219,11 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 	// will bring constants.DefaultAccessGroup scope
 	user.TypedSpec().Value.Role = string(role.Operator)
 
-	cluster := omni.NewCluster(clusterID)
-
 	st := state.WrapCore(inmem.NewState())
 
 	require.NoError(t, st.Create(ctx, accessPolicy))
 	require.NoError(t, st.Create(ctx, identity))
 	require.NoError(t, st.Create(ctx, user))
-	require.NoError(t, st.Create(ctx, cluster))
 
 	s := token.NewStorage(st)
 

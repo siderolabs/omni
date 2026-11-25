@@ -222,6 +222,38 @@ func TestPresetGrants(t *testing.T) {
 	}
 }
 
+// TestKubernetesGroupsOfUserWrittenRoles checks that the Kubernetes groups depend only on the rules of a role,
+// with roles which are not built-in.
+func TestKubernetesGroupsOfUserWrittenRoles(t *testing.T) {
+	t.Parallel()
+
+	developer := &authz.Role{
+		Name: "developer",
+		Rules: []authz.Rule{
+			{Groups: []authz.ResourceGroup{authz.Clusters}, Verbs: authz.Read},
+			{Operations: []authz.Operation{authz.KubernetesAccess}},
+		},
+	}
+
+	viewer := &authz.Role{
+		Name: "viewer",
+		Rules: []authz.Rule{
+			{Groups: []authz.ResourceGroup{authz.Clusters}, Verbs: authz.Read},
+		},
+	}
+
+	grants := []authz.Grant{
+		{Role: developer, Scope: authz.Scope{Clusters: []string{"cluster-a"}}, KubernetesGroups: []string{"developers", "deployers"}},
+		// the role does not allow the access to the Kubernetes API, so its groups do not count
+		{Role: viewer, Scope: authz.Scope{Clusters: []string{"cluster-a"}}, KubernetesGroups: []string{"viewers"}},
+		{Role: developer, Scope: authz.Scope{Clusters: []string{"cluster-b"}}, KubernetesGroups: []string{"developers"}},
+	}
+
+	assert.Equal(t, []string{"deployers", "developers"}, authz.KubernetesGroups(grants, "cluster-a"))
+	assert.Equal(t, []string{"developers"}, authz.KubernetesGroups(grants, "cluster-b"))
+	assert.Empty(t, authz.KubernetesGroups(grants, "cluster-c"))
+}
+
 func TestErrNoGrant(t *testing.T) {
 	t.Parallel()
 

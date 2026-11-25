@@ -9,11 +9,13 @@ package grants
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -132,6 +134,47 @@ func ClusterOfMachine(ctx context.Context, st state.State, machineID string) (st
 	cluster, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 
 	return cluster, nil
+}
+
+// KubernetesGroups returns the Kubernetes groups of the identity on the cluster.
+//
+// It is for the token which kubectl sends to Omni. Omni issues the token outside of a request of the user,
+// so the context has no preset. The preset is read from the User resource. The groups are the same on a suspended instance.
+func KubernetesGroups(ctx context.Context, st state.State, identityID, cluster string) ([]string, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	identity, err := safe.StateGetByID[*authres.Identity](ctx, st, identityID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get identity: %w", err)
+	}
+
+	user, err := safe.StateGetByID[*authres.User](ctx, st, identity.TypedSpec().Value.GetUserId())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	preset, err := role.Parse(user.TypedSpec().Value.GetRole())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse user role: %w", err)
+	}
+
+	grants := authz.PresetGrants(preset)
+
+	policy, err := safe.StateGetByID[*authres.AccessPolicy](ctx, st, authres.AccessPolicyID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return authz.KubernetesGroups(grants, cluster), nil
+		}
+
+		return nil, fmt.Errorf("failed to get access policy: %w", err)
+	}
+
+	policyGrants, err := FromAccessPolicy(policy.TypedSpec().Value, identity.Metadata())
+	if err != nil {
+		return nil, fmt.Errorf("failed to check access policy: %w", err)
+	}
+
+	return authz.KubernetesGroups(append(grants, policyGrants...), cluster), nil
 }
 
 // accessPolicyGrants returns what the access policy grants to the caller in the context.

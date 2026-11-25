@@ -22,6 +22,9 @@ const (
 	// MachineMaintenance is using the Talos API of a machine which is in no cluster, e.g., to install or upgrade Talos.
 	// The Talos API has no roles in maintenance mode, so this operation also covers reading.
 	MachineMaintenance Operation = "machine-maintenance"
+	// KubernetesAccess is using the Kubernetes API of a cluster through Omni, e.g., with kubectl.
+	// The Kubernetes groups of the caller come from the grant which allows it, see Grant.KubernetesGroups.
+	KubernetesAccess Operation = "kubernetes-access"
 )
 
 // readOnlyOperations are the operations which change nothing, so they stay allowed on a suspended instance.

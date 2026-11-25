@@ -8,6 +8,7 @@ package grants
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -21,10 +22,15 @@ import (
 // groupPrefix marks a reference to a user group or a cluster group in a rule of an access policy.
 const groupPrefix = "group/"
 
+// policyRoles are the roles which a rule of an access policy can give. They are the roles about clusters:
+// a rule gives no access to machines or to the instance.
+var policyRoles = []*authz.Role{authz.ClusterViewer, authz.ClusterManager, authz.WorkloadProxyUser, authz.KubernetesUser}
+
 // FromAccessPolicy returns what the access policy grants to the identity.
 //
-// Every rule which matches the identity becomes grants on the clusters of the rule: a rule with the preset Reader
-// gives cluster-viewer and workload-proxy-user, a rule with Operator or Admin adds cluster-manager.
+// Every rule which matches the identity becomes grants on the clusters of the rule:
+//   - The preset in the rule (Reader, Operator or Admin) gives those of its roles which are in policyRoles.
+//   - The Kubernetes groups in the rule become a kubernetes-user grant with these groups.
 func FromAccessPolicy(policy *specs.AccessPolicySpec, identity *resource.Metadata) ([]authz.Grant, error) {
 	var grants []authz.Grant
 
@@ -38,43 +44,29 @@ func FromAccessPolicy(policy *specs.AccessPolicySpec, identity *resource.Metadat
 			continue
 		}
 
-		roles, err := rolesOfRule(rule)
-		if err != nil {
-			return nil, err
-		}
-
 		scope := authz.Scope{Clusters: clusterPatterns(policy, rule)}
 
-		for _, r := range roles {
-			grants = append(grants, authz.Grant{Role: r, Scope: scope})
+		if rule.GetRole() != "" {
+			preset, err := role.Parse(rule.GetRole())
+			if err != nil {
+				return nil, err
+			}
+
+			for _, grant := range authz.PresetGrants(preset) {
+				if slices.Contains(policyRoles, grant.Role) {
+					grant.Scope = scope
+
+					grants = append(grants, grant)
+				}
+			}
+		}
+
+		if kubernetesGroups := rule.GetKubernetes().GetImpersonate().GetGroups(); len(kubernetesGroups) > 0 {
+			grants = append(grants, authz.Grant{Role: authz.KubernetesUser, Scope: scope, KubernetesGroups: kubernetesGroups})
 		}
 	}
 
 	return grants, nil
-}
-
-// rolesOfRule maps the preset in a rule of an access policy (Reader, Operator, Admin) to the built-in roles it stands for.
-//
-// It is the same idea as authz.PresetRoles, limited to what a preset means on a cluster: a rule gives no access
-// to machines or to the instance. A rule without a preset, or with one below Reader, gives no roles.
-func rolesOfRule(rule *specs.AccessPolicyRule) ([]*authz.Role, error) {
-	if rule.GetRole() == "" {
-		return nil, nil
-	}
-
-	ruleRole, err := role.Parse(rule.GetRole())
-	if err != nil {
-		return nil, err
-	}
-
-	switch {
-	case ruleRole.Check(role.Operator) == nil:
-		return []*authz.Role{authz.ClusterViewer, authz.WorkloadProxyUser, authz.ClusterManager}, nil
-	case ruleRole.Check(role.Reader) == nil:
-		return []*authz.Role{authz.ClusterViewer, authz.WorkloadProxyUser}, nil
-	default:
-		return nil, nil
-	}
 }
 
 // ruleMatchesIdentity reports whether a rule of an access policy is for the identity:

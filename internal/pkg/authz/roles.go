@@ -52,6 +52,9 @@ var (
 	KubernetesUser = &Role{
 		Name:        "kubernetes-user",
 		Description: "Access the Kubernetes API of clusters.",
+		Rules: []Rule{
+			{Operations: []Operation{KubernetesAccess}},
+		},
 	}
 
 	WorkloadProxyUser = &Role{

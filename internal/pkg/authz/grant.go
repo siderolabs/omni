@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // AllClustersPattern is the only cluster pattern which covers the requests not limited to a single cluster.
@@ -55,8 +57,11 @@ func (s Scope) covers(target Target) bool {
 
 // Grant is a role given to a caller in a scope.
 type Grant struct {
-	Role  *Role
-	Scope Scope
+	Role *Role
+	// KubernetesGroups are the Kubernetes groups which the grant gives on the clusters in its scope.
+	// They count only when the role allows the kubernetes-access operation.
+	KubernetesGroups []string
+	Scope            Scope
 }
 
 // PresetGrants returns the grants a preset stands for: each of its roles, everywhere.
@@ -65,8 +70,30 @@ func PresetGrants(preset Preset) []Grant {
 	grants := make([]Grant, 0, len(roles))
 
 	for _, r := range roles {
-		grants = append(grants, Grant{Role: r, Scope: Scope{Global: true}})
+		grant := Grant{Role: r, Scope: Scope{Global: true}}
+
+		// a preset which allows access to the Kubernetes API gives full access to it
+		if r.allowsOperation(KubernetesAccess) {
+			grant.KubernetesGroups = []string{constants.DefaultAccessGroup}
+		}
+
+		grants = append(grants, grant)
 	}
 
 	return grants
+}
+
+// KubernetesGroups returns the Kubernetes groups which the grants give on the cluster, sorted and without duplicates.
+func KubernetesGroups(grants []Grant, cluster string) []string {
+	var groups []string
+
+	for _, grant := range grants {
+		if grant.Scope.covers(Target{Cluster: cluster}) && grant.Role.allowsOperation(KubernetesAccess) {
+			groups = append(groups, grant.KubernetesGroups...)
+		}
+	}
+
+	slices.Sort(groups)
+
+	return slices.Compact(groups)
 }
