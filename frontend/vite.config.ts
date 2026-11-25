@@ -42,11 +42,14 @@ export default defineConfig(({ command }) => {
       entries: ['index.html', 'src/**/*.{vue,ts}', '!src/**/*.{spec,stories,mocks}.ts'],
     },
     resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      alias: [
+        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
         // The lightweight package can't get resolved in tests
-        ...(isTest && { 'openpgp/lightweight': 'openpgp' }),
-      },
+        ...(isTest ? [{ find: 'openpgp/lightweight', replacement: 'openpgp' }] : []),
+        // monaco-editor 0.56+ only exposes `monaco-editor/*` (mapped to `esm/vs/*`) through its exports map, but
+        // monaco-worker-manager (used by monaco-yaml's worker) still imports the old `monaco-editor/esm/vs/*` paths.
+        { find: /^monaco-editor\/esm\/vs\/(.*)$/, replacement: 'monaco-editor/$1' },
+      ],
     },
     test: {
       setupFiles: ['vitest.setup.ts'],

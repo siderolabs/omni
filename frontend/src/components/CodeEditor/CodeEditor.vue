@@ -5,7 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-import * as monaco from 'monaco-editor'
+// The `monaco-editor` entry point registers every language, and with them their language workers (TypeScript alone
+// is ~7 MB), which would all be emitted into the build. Only load the core editor, its features and YAML.
+import 'monaco-editor/features/register.all'
+import 'monaco-editor/languages/definitions/yaml/register'
+
+import type * as MonacoFull from 'monaco-editor'
+import * as monaco from 'monaco-editor/editor'
 import { configureMonacoYaml, type JSONSchema, type SchemasSettings } from 'monaco-yaml'
 
 import { createOmniMonacoTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
@@ -24,16 +30,36 @@ window.MonacoEnvironment = {
   },
 }
 
+// Options monaco-worker-manager (used by monaco-yaml) still passes to monaco.editor.createWebWorker.
+interface LegacyWebWorkerOptions {
+  label?: string
+  createData?: unknown
+}
+
 // Work around https://github.com/remcohaszing/monaco-yaml/issues/272.
+// monaco.editor.createWebWorker only accepts an already-created worker now, so translate the legacy options the same
+// way monaco's own (no longer exported) internal/common/workers.js createWebWorker does.
 const { createWebWorker: oldCreateWebWorker } = monaco.editor
-monaco.editor.createWebWorker = (
-  opts: monaco.IWebWorkerOptions | monaco.editor.IInternalWebWorkerOptions,
+monaco.editor.createWebWorker = <T extends object>(
+  opts: monaco.editor.IInternalWebWorkerOptions | LegacyWebWorkerOptions,
 ) => {
   if ('worker' in opts) {
-    return oldCreateWebWorker(opts)
+    return oldCreateWebWorker<T>(opts)
   }
 
-  return monaco.createWebWorker(opts)
+  const worker = window.MonacoEnvironment!.getWorker!(
+    'workerMain.js',
+    opts.label ?? 'monaco-editor-worker',
+  )
+
+  return oldCreateWebWorker<T>({
+    worker: Promise.resolve(worker).then((w) => {
+      // The first message boots the worker, the second carries the create data.
+      w.postMessage('ignore')
+      w.postMessage(opts.createData)
+      return w
+    }),
+  })
 }
 
 const configSchemaMap = Object.entries(configSchemas).map(
@@ -87,7 +113,8 @@ const versionedSchemas = configSchemaMap.map(([version, origSchema]) => {
   }
 })
 
-const monacoYaml = configureMonacoYaml(monaco, {
+// monaco-yaml is typed against the full `monaco-editor` module, but only uses `editor` and `languages`.
+const monacoYaml = configureMonacoYaml(monaco as typeof MonacoFull, {
   hover: true,
   completion: true,
   validate: true,
@@ -307,5 +334,10 @@ watch(editorOptions, (options) => instanceRef?.updateOptions(options))
 </script>
 
 <template>
-  <div ref="editor"></div>
+  <!--
+    With fixedOverflowWidgets, Monaco mounts the context menu's shadow root on this element, beside .monaco-editor rather
+    than inside it. Monaco only defines its theme variables (--vscode-menu-background etc.) on .monaco-editor and
+    .monaco-component, so without this class the menu has no colours and renders transparent.
+  -->
+  <div ref="editor" class="monaco-component"></div>
 </template>

@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type monaco from 'monaco-editor'
-import { MarkerSeverity, MarkerTag } from 'monaco-editor'
+import { MarkerSeverity, MarkerTag } from 'monaco-editor/editor'
 import { computed, ref, watch } from 'vue'
 import { type RouteLocationRaw, useRouter } from 'vue-router'
 

@@ -2,4 +2,4 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import 'monaco-editor/esm/vs/editor/editor.worker'
+import 'monaco-editor/editor/editor.worker'
