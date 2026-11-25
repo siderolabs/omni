@@ -20,6 +20,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"go.yaml.in/yaml/v4"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -241,8 +243,8 @@ func (t *Template) actualResources(ctx context.Context, st state.State, expected
 					omni.NewKernelArgs(node.Metadata().ID()).Metadata(),
 					omni.NewMachineInstallDiskConfig(node.Metadata().ID()).Metadata(),
 				} {
-					machineScopedResource, getErr := st.Get(ctx, *machineScoped)
-					if getErr != nil && !state.IsNotFoundError(getErr) {
+					machineScopedResource, getErr := findResource(ctx, st, *machineScoped)
+					if getErr != nil {
 						return nil, getErr
 					}
 
@@ -266,6 +268,14 @@ func (t *Template) actualResources(ctx context.Context, st state.State, expected
 			continue
 		}
 
+		// The resources with the cluster label were listed above. One which is not in that list does not exist, or belongs to
+		// another cluster, and then it must not be updated by this template.
+		if _, inCluster := expectedResource.Metadata().Labels().Get(omni.LabelCluster); inCluster {
+			continue
+		}
+
+		// What remains is the cluster itself and the settings of a machine, e.g., its kernel args. When the read of such a setting
+		// is refused, its write is refused as well, so the sync must fail here, before the machine is added to the cluster.
 		actual, getErr := st.Get(ctx, *expectedResource.Metadata())
 		if getErr != nil && !state.IsNotFoundError(getErr) {
 			return nil, getErr
@@ -552,8 +562,8 @@ func validateNoResourceConflictOnCreate(ctx context.Context, st state.State, exp
 		return nil
 	}
 
-	actualResource, err := st.Get(ctx, *expectedResource.Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
+	actualResource, err := findResource(ctx, st, *expectedResource.Metadata())
+	if err != nil {
 		return err
 	}
 
@@ -566,6 +576,20 @@ func validateNoResourceConflictOnCreate(ctx context.Context, st state.State, exp
 	clusterLabel, _ := actualResource.Metadata().Labels().Get(omni.LabelCluster)
 
 	return fmt.Errorf("resource %s already exists for cluster %q, cannot create a conflicting resource for a different cluster", resource.String(actualResource), clusterLabel)
+}
+
+// findResource returns the resource, or nil when it does not exist or the caller cannot read it.
+//
+// A caller with access to a single cluster cannot tell the two apart: Omni also refuses the read of a resource
+// which does not exist, as it cannot tell which cluster the resource would belong to.
+// The sync does not update or delete a resource which it cannot read, and creating one which exists fails.
+func findResource(ctx context.Context, st state.State, md resource.Metadata) (resource.Resource, error) {
+	res, err := st.Get(ctx, md)
+	if state.IsNotFoundError(err) || status.Code(err) == codes.PermissionDenied {
+		return nil, nil //nolint:nilnil
+	}
+
+	return res, err
 }
 
 func deduplicateDeletion(toDelete []resource.Resource) []resource.Resource {
