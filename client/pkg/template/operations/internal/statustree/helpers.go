@@ -205,6 +205,58 @@ func clusterMachineOperationString(operation *omni.MachineOperationStatus) strin
 	return result
 }
 
+// clusterMachineDryRunString uses its own color, as a dry run never changes the machine and must not read as a failed apply.
+func clusterMachineDryRunString(dryRun *omni.DryRunStatus) string {
+	spec := dryRun.TypedSpec().Value
+
+	// an outcome added by a newer Omni is shown as unknown
+	summary := "unknown"
+
+	switch spec.Outcome {
+	case specs.DryRunStatusSpec_PASSED:
+		summary = "passed"
+
+		if spec.RebootRequired {
+			summary += ", reboots on unlock"
+		}
+	case specs.DryRunStatusSpec_FAILED:
+		summary = "failed"
+	case specs.DryRunStatusSpec_NO_PENDING_CHANGES:
+		summary = "no pending changes"
+	case specs.DryRunStatusSpec_NOT_CHECKED:
+		summary = "not checked (" + dryRunNotCheckedReasonString(spec.NotCheckedReason) + ")"
+	case specs.DryRunStatusSpec_UNKNOWN:
+	}
+
+	result := color.MagentaString("Dry run: %s", summary)
+
+	// set only for a failed dry run and for a check error
+	if spec.Error != "" {
+		result += "\n" + safeout.String(spec.Error)
+	}
+
+	return result
+}
+
+func dryRunNotCheckedReasonString(reason specs.DryRunStatusSpec_NotCheckedReason) string {
+	switch reason {
+	case specs.DryRunStatusSpec_DISCONNECTED:
+		return "disconnected"
+	case specs.DryRunStatusSpec_TRY_IN_FLIGHT:
+		return "config try in flight"
+	case specs.DryRunStatusSpec_MAINTENANCE:
+		return "maintenance mode"
+	case specs.DryRunStatusSpec_NOT_RUNNING:
+		return "not running"
+	case specs.DryRunStatusSpec_CHECK_ERROR:
+		return "check failed"
+	case specs.DryRunStatusSpec_NONE:
+		return "unknown"
+	}
+
+	return "unknown"
+}
+
 func clusterMachineReadyString(clusterMachine *omni.ClusterMachineStatus) string {
 	if clusterMachine.TypedSpec().Value.Stage != specs.ClusterMachineStatusSpec_RUNNING {
 		return ""

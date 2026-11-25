@@ -79,6 +79,7 @@ func statusTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		resource.NewMetadata(resources.DefaultNamespace, omni.KubernetesUpgradeStatusType, "", resource.VersionUndefined),
 		resource.NewMetadata(resources.DefaultNamespace, omni.TalosUpgradeStatusType, "", resource.VersionUndefined),
 		resource.NewMetadata(resources.DefaultNamespace, omni.ClusterMachineStatusType, "", resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, omni.DryRunStatusType, "", resource.VersionUndefined),
 		resource.NewMetadata(resources.EphemeralNamespace, omni.MachineOperationStatusType, "", resource.VersionUndefined),
 	}
 
@@ -96,8 +97,9 @@ func statusTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		switch {
 		case err == nil:
 			pendingBootstraps++
-		case resourceKind.Type() == omni.MachineOperationStatusType && status.Code(err) == codes.PermissionDenied:
-			// refused by older Omni versions with the same API version, the status is shown without the operations
+		case (resourceKind.Type() == omni.MachineOperationStatusType || resourceKind.Type() == omni.DryRunStatusType) &&
+			status.Code(err) == codes.PermissionDenied:
+			// refused by older Omni versions with the same API version, the status is shown without them
 		default:
 			return err
 		}

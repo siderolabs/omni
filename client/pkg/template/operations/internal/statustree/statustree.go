@@ -73,6 +73,8 @@ func (t NodeWrapper) String() string {
 			clusterMachineConfigStatus(node),
 			clusterMachineOperationString(t.Operation),
 		)
+	case *omni.DryRunStatus:
+		return clusterMachineDryRunString(node)
 	case *omni.ControlPlaneStatus:
 		return fmt.Sprintf(
 			"%s %s",
@@ -112,6 +114,8 @@ func (t NodeWrapper) IsParentOf(r resource.Resource) bool {
 				Value: []string{node.Metadata().ID()},
 			},
 		)
+	case *omni.ClusterMachineStatus:
+		return r.Metadata().Type() == omni.DryRunStatusType && r.Metadata().ID() == node.Metadata().ID()
 	default:
 		return false
 	}
@@ -134,6 +138,8 @@ func resourceTypeOrder(resourceType resource.Type) int {
 		return 5
 	case omni.ClusterMachineStatusType:
 		return 6
+	case omni.DryRunStatusType:
+		return 7
 	default:
 		panic("unknown resource type " + resourceType)
 	}
