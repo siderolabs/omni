@@ -42,7 +42,7 @@ func check(ctx context.Context, st state.State, clusterID string, verb authz.Ver
 		// Reading from it and changing it are the same access, and both require managing machines.
 		err = grants.CheckOperation(ctx, st, authz.MachineMaintenance, authz.Target{})
 	} else {
-		err = grants.CheckResourceGroup(ctx, st, authz.Clusters, verb, authz.Target{Cluster: clusterID})
+		err = grants.CheckResourceGroup(ctx, st, authz.Talos, verb, authz.Target{Cluster: clusterID})
 	}
 
 	return hideTarget(err)

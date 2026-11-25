@@ -100,6 +100,10 @@ const (
 	Machines ResourceGroup = "machines"
 	// MachineManagement are the settings of the machines, and the resources to add machines to Omni: classes, requests and join tokens.
 	MachineManagement ResourceGroup = "machine-management"
+	// Talos is the Talos API of the machines in a cluster, which talosctl and the node pages of the UI use.
+	// No resource type of Omni is in it. Read allows reading through the Talos API.
+	// Update allows changing the machines through it, and it includes reading.
+	Talos ResourceGroup = "talos"
 	// Providers are the infra providers and their resources.
 	Providers ResourceGroup = "providers"
 	// AccessControl are the users, their identities and what grants access.

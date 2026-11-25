@@ -19,7 +19,8 @@ const (
 	ClusterDiagnostics Operation = "cluster-diagnostics"
 	// MachinePower is powering a machine on and off.
 	MachinePower Operation = "machine-power"
-	// MachineMaintenance is installing and upgrading Talos on a machine which is in no cluster.
+	// MachineMaintenance is using the Talos API of a machine which is in no cluster, e.g., to install or upgrade Talos.
+	// The Talos API has no roles in maintenance mode, so this operation also covers reading.
 	MachineMaintenance Operation = "machine-maintenance"
 )
 

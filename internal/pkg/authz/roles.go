@@ -32,18 +32,19 @@ type Role struct {
 var (
 	ClusterViewer = &Role{
 		Name:        "cluster-viewer",
-		Description: "Read clusters and the machines in them.",
+		Description: "Read clusters and the machines in them, also through the Talos API.",
 		Rules: []Rule{
-			{Groups: []ResourceGroup{Clusters, Machines}, Verbs: Read},
+			{Groups: []ResourceGroup{Clusters, Machines, Talos}, Verbs: Read},
 		},
 	}
 
 	ClusterManager = &Role{
 		Name:        "cluster-manager",
-		Description: "Create, change and delete clusters, and operate the machines in them.",
+		Description: "Create, change and delete clusters, and operate the machines in them, also through the Talos API.",
 		Rules: []Rule{
 			{Groups: []ResourceGroup{Clusters}, Verbs: AllVerbs},
 			{Groups: []ResourceGroup{Machines}, Verbs: Read},
+			{Groups: []ResourceGroup{Talos}, Verbs: Read | Update},
 			{Operations: []Operation{ClusterDiagnostics, MachinePower}},
 		},
 	}
