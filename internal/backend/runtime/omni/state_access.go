@@ -390,7 +390,7 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 		// So a query for a single machine on such a type asks for the settings of that machine, and not for the resources of all clusters.
 		machineID, err := labels.ExactValue(labelTerms, omni.LabelMachine)
 		isForSingleMachine := err == nil && machineID != ""
-		holdsMachineSettings := authz.LookupResourceType(kind.Type()).GroupWithoutCluster != ""
+		holdsMachineSettings := authz.LookupResourceType(kind.Type()).GroupWithoutCluster == authz.MachineManagement
 
 		if requireAll && isForSingleMachine && holdsMachineSettings {
 			requireAll = false

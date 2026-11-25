@@ -129,7 +129,8 @@ const (
 type ResourceType struct {
 	// Group is the resource group of the type. It is empty for the types which need no grant, and for the ones no caller can access.
 	Group ResourceGroup
-	// GroupWithoutCluster is the group of a resource of the type which belongs to no cluster, when it differs from Group.
+	// GroupWithoutCluster is the group of a resource of the type which belongs to no cluster.
+	// It is set on the types with a cluster label which also have resources without it, and can be the same as Group.
 	// For example, a config patch can be for a cluster or for a machine. The one for a machine is a setting of that machine.
 	GroupWithoutCluster ResourceGroup
 	Cluster             ClusterRelation
@@ -219,7 +220,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.InfraProviderCombinedStatusType:             {Verbs: Read, Group: Providers},
 	omni.InstallationMediaConfigType:                 {Verbs: AllVerbs, Group: MachineManagement},
 	omni.InstallationMediaType:                       {Verbs: Read, Access: RequiresAuthentication},
-	omni.KernelArgsStatusType:                        {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.KernelArgsStatusType:                        {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.KernelArgsType:                              {Verbs: AllVerbs, Group: MachineManagement},
 	omni.KubernetesHealthCheckStatusType:             {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.KubernetesHealthCheckType:                   {Cluster: ClusterByLabel, Verbs: AllVerbs, Group: Clusters},
@@ -235,12 +236,12 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.MachineConfigDiffType:                       {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.MachineConfigExtractionStatusType:           {Cluster: ClusterByMachine, Verbs: Read, Group: Machines},
 	omni.MachineConfigGenOptionsType:                 {Cluster: ClusterByMachine, Verbs: Read, Group: Machines},
-	omni.MachineExtensionsStatusType:                 {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.MachineExtensionsStatusType:                 {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.MachineExtensionsType:                       {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.MachineInstallDiskConfigType:                {Verbs: AllVerbs, Group: MachineManagement},
-	omni.MachineInstallDiskStatusType:                {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.MachineInstallDiskStatusType:                {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.MachineLabelsType:                           {Verbs: AllVerbs, Group: MachineManagement},
-	omni.MachineOperationStatusType:                  {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.MachineOperationStatusType:                  {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.MachinePendingUpdatesType:                   {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.MachineRequestSetType:                       {Verbs: AllVerbs, Group: MachineManagement},
 	omni.MachineSetDestroyStatusType:                 {Verbs: Read, Group: Clusters},
@@ -252,7 +253,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.MachineStatusSnapshotType:                   {Cluster: ClusterByMachine, Verbs: Read, Group: Machines},
 	omni.MachineStatusType:                           {Cluster: ClusterByMachine, Verbs: Read, Group: Machines},
 	omni.MachineType:                                 {Cluster: ClusterByMachine, Verbs: Read, Group: Machines, ProviderReadable: true},
-	omni.MachineUpgradeStatusType:                    {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.MachineUpgradeStatusType:                    {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.MaintenanceConfigStatusType:                 {Cluster: ClusterByMachine, Verbs: Read, Group: Machines},
 	omni.NodeForceDestroyRequestType:                 {Cluster: ClusterByLabel, Verbs: AllVerbs, Group: Clusters},
 	omni.NotificationType:                            {Verbs: Read, Access: RequiresAuthentication},
@@ -260,7 +261,7 @@ var resourceTypes = map[resource.Type]ResourceType{
 	omni.RedactedClusterMachineConfigType:            {Cluster: ClusterByLabel, Verbs: Read, Group: Clusters},
 	omni.RotateKubernetesCAType:                      {Cluster: ClusterByID, Verbs: AllVerbs, Group: Clusters},
 	omni.RotateTalosCAType:                           {Cluster: ClusterByID, Verbs: AllVerbs, Group: Clusters},
-	omni.SchematicConfigurationType:                  {Cluster: ClusterByLabel, Verbs: Read, Group: Machines},
+	omni.SchematicConfigurationType:                  {Cluster: ClusterByLabel, Verbs: Read, Group: Machines, GroupWithoutCluster: Machines},
 	omni.SecretRotationType:                          {Cluster: ClusterByID},
 	omni.TalosExtensionsType:                         {Verbs: Read, Access: RequiresAuthentication},
 	omni.TalosUpgradeStatusType:                      {Cluster: ClusterByID, Verbs: Read, Group: Clusters},

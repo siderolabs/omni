@@ -87,8 +87,8 @@ func CheckResource(subject Subject, target Target) error {
 		return status.Error(codes.PermissionDenied, "the instance is suspended, only read access is permitted")
 	}
 
-	// The resource group the role needs a rule for. A type has one group, with one exception: a type which has both
-	// resources of clusters and resources which belong to no cluster has a second group for the latter.
+	// The resource group the role needs a rule for. A type which has both resources of clusters and resources which belong
+	// to no cluster has a group for the latter, which can be a different one.
 	// For example, a config patch of a cluster is in "clusters", a config patch of a machine is in "machine-management".
 	group := resourceType.Group
 	if target.Cluster == "" && !target.AllClusters && resourceType.GroupWithoutCluster != "" {
@@ -100,7 +100,7 @@ func CheckResource(subject Subject, target Target) error {
 	}
 
 	// A list or a watch which is not limited to a single cluster also returns the resources which belong to no cluster.
-	// On a type with a second group these are in that group, so the subject needs it as well.
+	// On a type which has such resources, the subject needs their group as well, in a scope which is not limited to clusters.
 	if target.AllClusters && resourceType.GroupWithoutCluster != "" &&
 		!subject.grants(resourceType.GroupWithoutCluster, verbOf(target.Verb), Target{}) {
 		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verbOf(target.Verb), target.Type)}
