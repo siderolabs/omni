@@ -300,7 +300,7 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 
 	// a break-glass talosconfig connects to the machines directly, bypassing Omni
 	if request.BreakGlass || request.Raw {
-		if err := s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
+		if err := s.checkOperation(ctx, authz.BreakGlass, clusterName); err != nil {
 			return nil, err
 		}
 	}
@@ -521,7 +521,7 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 
 func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*management.KubeconfigResponse, error) {
 	// a break-glass kubeconfig connects to the Kubernetes API directly, bypassing Omni
-	if err := s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
+	if err := s.checkOperation(ctx, authz.BreakGlass, router.ExtractContext(ctx).GetName()); err != nil {
 		return nil, err
 	}
 
