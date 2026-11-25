@@ -7,8 +7,8 @@ import {
   createCreatedEvent,
   createDestroyedEvent,
   createUpdatedEvent,
-} from '@msw/helpers'
-import { createWatchStreamMock } from '@msw/server'
+} from '@mocks/helpers'
+import { createWatchStreamMock } from '@mocks/server'
 import { waitFor } from '@testing-library/vue'
 import { describe, expect, test } from 'vitest'
 import { effectScope, nextTick, ref } from 'vue'

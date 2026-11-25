@@ -2,7 +2,7 @@
   "extends": "./tsconfig.app.json",
   "include": [
     ".storybook/**/*",
-    "msw/**/*",
+    "mocks/**/*",
     "src/**/*.mocks.*",
     "src/**/*.stories.*",
     "src/types/**/*",
@@ -17,7 +17,7 @@
 
     "paths": {
       "@/*": ["./src/*"],
-      "@msw/*": ["./msw/*"]
+      "@mocks/*": ["./mocks/*"]
     }
   }
 }

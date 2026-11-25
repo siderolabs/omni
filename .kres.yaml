@@ -49,7 +49,7 @@ kind: auto.JS
 spec:
   extraDirectories:
     - e2e
-    - msw
+    - mocks
     - .storybook
 ---
 kind: js.Chromatic

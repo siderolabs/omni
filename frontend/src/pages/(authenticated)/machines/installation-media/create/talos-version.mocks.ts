@@ -7,7 +7,7 @@ import {
   createResourceGetHandler,
   createResourceListHandler,
   createWatchStreamHandler,
-} from '@msw/helpers'
+} from '@mocks/helpers'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'

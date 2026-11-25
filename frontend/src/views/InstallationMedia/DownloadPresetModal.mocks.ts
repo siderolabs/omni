@@ -7,7 +7,7 @@ import {
   createResourceGetHandler,
   createResourceListHandler,
   createWatchStreamHandler,
-} from '@msw/helpers'
+} from '@mocks/helpers'
 import { dump } from 'js-yaml'
 import { http, HttpResponse } from 'msw'
 

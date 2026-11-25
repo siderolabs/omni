@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import 'fake-indexeddb/auto'
 
-import { server } from '@msw/server'
+import { server } from '@mocks/server'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
 import { http, HttpResponse } from 'msw'

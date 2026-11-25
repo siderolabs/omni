@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
-import { server } from '@msw/server'
+import { server } from '@mocks/server'
 import { waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'

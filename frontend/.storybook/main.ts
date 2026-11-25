@@ -20,7 +20,7 @@ const config: StorybookConfig = {
     return mergeConfig(config, {
       resolve: {
         alias: {
-          '@msw': fileURLToPath(new URL('../msw', import.meta.url)),
+          '@mocks': fileURLToPath(new URL('../mocks', import.meta.url)),
         },
       },
     })

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createResourceListHandler } from '@msw/helpers'
+import { createResourceListHandler } from '@mocks/helpers'
 import { http, HttpResponse } from 'msw'
 import { compare } from 'semver'
 

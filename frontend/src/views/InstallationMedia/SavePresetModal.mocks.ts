@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createWatchStreamHandler } from '@mocks/helpers'
 import { delay, http, HttpResponse } from 'msw'
 
 import type { CreateRequest, CreateResponse } from '@/api/omni/resources/resources.pb'

@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createWatchStreamHandler } from '@mocks/helpers'
 
 import type { OngoingTaskSpec } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createBytesPayload, createWatchStreamHandler } from '@msw/helpers'
+import { createBytesPayload, createWatchStreamHandler } from '@mocks/helpers'
 import { dump } from 'js-yaml'
 import { delay, http, HttpResponse } from 'msw'
 

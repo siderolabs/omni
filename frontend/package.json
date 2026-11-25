@@ -103,7 +103,7 @@
     "jsdom": "^31.0.1",
     "json-diff-ts": "^5.1.2",
     "kubernetes-types": "^1.30.0",
-    "msw": "^2.15.0",
+    "msw": "^3.0.7",
     "msw-storybook-addon": "^3.0.3",
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
@@ -125,7 +125,7 @@
     "browser-tabs-lock@1.3.0": false,
     "core-js@3.49.0": false,
     "esbuild@0.28.1": true,
-    "msw@2.15.0": true,
+    "msw@3.0.7": true,
     "vue-demi@0.14.10": true,
     "fsevents@2.3.2": true,
     "fsevents@2.3.3": true

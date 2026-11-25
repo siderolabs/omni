@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createWatchStreamHandler } from '@mocks/helpers'
 
 import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
 import type { DefaultJoinTokenSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'

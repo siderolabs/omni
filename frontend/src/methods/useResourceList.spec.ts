@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { server } from '@msw/server'
+import { server } from '@mocks/server'
 import { waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, test, vi } from 'vitest'

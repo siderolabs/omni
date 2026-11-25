@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { createBytesPayload, createWatchStreamHandler } from '@msw/helpers'
+import { createBytesPayload, createWatchStreamHandler } from '@mocks/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 

@@ -7,7 +7,7 @@ import {
   createResourceGetHandler,
   createResourceListHandler,
   createWatchStreamHandler,
-} from '@msw/helpers'
+} from '@mocks/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 

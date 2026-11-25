@@ -37,7 +37,7 @@ export default defineConfig(({ command }) => {
     },
     // Pages are only reached through the vue-router/auto-routes virtual module, which the dependency scanner can't
     // follow. Scanning the sources finds their dependencies up front, rather than reloading mid-run on a cold cache.
-    // Tests, stories and mocks are skipped: they aren't part of the app and import @msw, which only they alias.
+    // Tests, stories and mocks are skipped: they aren't part of the app and import @mocks, which only they alias.
     optimizeDeps: {
       entries: ['index.html', 'src/**/*.{vue,ts}', '!src/**/*.{spec,stories,mocks}.ts'],
     },
@@ -57,7 +57,7 @@ export default defineConfig(({ command }) => {
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
       alias: {
-        '@msw': fileURLToPath(new URL('./msw', import.meta.url)),
+        '@mocks': fileURLToPath(new URL('./mocks', import.meta.url)),
       },
     },
     server: {

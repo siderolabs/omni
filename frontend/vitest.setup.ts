@@ -4,11 +4,11 @@
 // included in the LICENSE file.
 import '@testing-library/jest-dom/vitest'
 
-import { server } from '@msw/server'
+import { server } from '@mocks/server'
 import { cleanup } from '@testing-library/vue'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'bypass' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 

@@ -90,6 +90,9 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
         headers: {
           'content-type': 'application/json',
           'Grpc-metadata-content-type': 'application/grpc',
+          // Frame the body like the real gateway does, so erroring the stream reaches the
+          // client as a dropped connection. Unframed, msw/node ends it cleanly instead.
+          'transfer-encoding': 'chunked',
         },
       })
     },
