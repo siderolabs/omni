@@ -27,6 +27,12 @@ const (
 	// tsgen:LabelWorkerRole
 	LabelWorkerRole = SystemLabelPrefix + "role-worker"
 
+	// LabelKubernetes indicates that the machine runs Kubernetes.
+	//
+	// It is set on the ClusterMachine and copied to the ClusterMachineStatus.
+	// tsgen:LabelKubernetes
+	LabelKubernetes = SystemLabelPrefix + "kubernetes"
+
 	// LabelCluster defines the cluster relation label.
 	// tsgen:LabelCluster
 	LabelCluster = SystemLabelPrefix + LabelSuffixCluster

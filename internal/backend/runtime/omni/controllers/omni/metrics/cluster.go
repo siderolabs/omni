@@ -108,6 +108,7 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 		featureEmbeddedDiscoveryService      = "embedded_discovery_service"
 		featureEnableNodeAuditSkip           = "node_audit_skip"
 		featureDisablePublicDiscoveryService = "disable_public_discovery_service"
+		featureDisableKubernetes             = "disable_kubernetes"
 	)
 
 	featuresByCluster := map[string]uint32{
@@ -116,6 +117,7 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 		featureEmbeddedDiscoveryService:      0,
 		featureEnableNodeAuditSkip:           0,
 		featureDisablePublicDiscoveryService: 0,
+		featureDisableKubernetes:             0,
 	}
 
 	for cluster := range clusters {
@@ -137,6 +139,10 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 
 		if cluster.TypedSpec().Value.GetFeatures().GetDisablePublicDiscoveryService() {
 			featuresByCluster[featureDisablePublicDiscoveryService]++
+		}
+
+		if !omni.IsKubernetesEnabled(cluster) {
+			featuresByCluster[featureDisableKubernetes]++
 		}
 	}
 

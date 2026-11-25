@@ -20,6 +20,11 @@ import (
 
 func rotateSecretsValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(
+			func(ctx context.Context, res *omni.RotateKubernetesCA, _ ...state.CreateOption) error {
+				return validateClusterRunsKubernetes(ctx, st, res.Metadata().ID(), "Kubernetes CA rotation")
+			},
+		)),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _ *omni.RotateTalosCA, newRes *omni.RotateTalosCA, _ ...state.UpdateOption) error {
 				return validateRotateSecretModify(ctx, st, newRes)
@@ -27,6 +32,10 @@ func rotateSecretsValidationOptions(st state.State) []validated.StateOption {
 		)),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _ *omni.RotateKubernetesCA, newRes *omni.RotateKubernetesCA, _ ...state.UpdateOption) error {
+				if err := validateClusterRunsKubernetes(ctx, st, newRes.Metadata().ID(), "Kubernetes CA rotation"); err != nil {
+					return err
+				}
+
 				return validateRotateSecretModify(ctx, st, newRes)
 			},
 		)),

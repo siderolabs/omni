@@ -16,10 +16,14 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
-func etcdManualBackupValidationOptions() []validated.StateOption {
+func etcdManualBackupValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *omni.EtcdManualBackup, _ ...state.CreateOption) error {
-			return validateManualBackup(res.TypedSpec())
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.EtcdManualBackup, _ ...state.CreateOption) error {
+			if err := validateManualBackup(res.TypedSpec()); err != nil {
+				return err
+			}
+
+			return validateClusterRunsKubernetes(ctx, st, res.Metadata().ID(), "etcd backups")
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes *omni.EtcdManualBackup, newRes *omni.EtcdManualBackup, _ ...state.UpdateOption) error {
 			if oldRes == nil {

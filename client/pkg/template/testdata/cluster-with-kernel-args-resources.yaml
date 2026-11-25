@@ -18,6 +18,7 @@ spec:
         useembeddeddiscoveryservice: false
         enablenodeauditskip: false
         disablepublicdiscoveryservice: false
+        kubernetes: 0
     backupconfiguration: null
 ---
 metadata:
@@ -42,6 +43,7 @@ spec:
     machineallocation: null
     upgradestrategy: 0
     upgradestrategyconfig: null
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -56,7 +58,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
         omni.sidero.dev/role-controlplane:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -71,7 +74,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
         omni.sidero.dev/role-controlplane:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -102,7 +106,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
         omni.sidero.dev/role-controlplane:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -126,6 +131,7 @@ spec:
     machineallocation: null
     upgradestrategy: 0
     upgradestrategyconfig: null
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -140,7 +146,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-workers
         omni.sidero.dev/role-worker:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -155,7 +162,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-workers
         omni.sidero.dev/role-worker:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -179,6 +187,7 @@ spec:
     machineallocation: null
     upgradestrategy: 0
     upgradestrategyconfig: null
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -193,7 +202,8 @@ metadata:
         omni.sidero.dev/cluster: kernel-args-test-cluster
         omni.sidero.dev/machine-set: kernel-args-test-cluster-workers-2
         omni.sidero.dev/role-worker:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default

@@ -172,6 +172,7 @@ export const KubernetesVersionType = "KubernetesVersions.omni.sidero.dev";
 export const SystemLabelPrefix = "omni.sidero.dev/";
 export const LabelControlPlaneRole = "omni.sidero.dev/role-controlplane";
 export const LabelWorkerRole = "omni.sidero.dev/role-worker";
+export const LabelKubernetes = "omni.sidero.dev/kubernetes";
 export const LabelCluster = "omni.sidero.dev/cluster";
 export const LabelClusterUUID = "omni.sidero.dev/cluster-uuid";
 export const LabelHostname = "omni.sidero.dev/hostname";

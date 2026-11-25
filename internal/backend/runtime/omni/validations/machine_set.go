@@ -73,7 +73,12 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 			return fmt.Errorf("machine set must have either %q or %q label", omni.LabelControlPlaneRole, omni.LabelWorkerRole)
 		}
 
-		if isControlPlane && oldRes == nil { // creating a new control plane machine set
+		if err = validateMachineSetKubernetesFeature(ctx, st, cluster, oldRes, res); err != nil {
+			return err
+		}
+
+		// a cluster without Kubernetes has no etcd to bootstrap, so its control plane machine set can be added at any time
+		if isControlPlane && oldRes == nil && omni.IsKubernetesEnabled(cluster) { // creating a new control plane machine set
 			bootstrapped, err := clusterBootstrapped(ctx, st, clusterName)
 			if err != nil {
 				return err

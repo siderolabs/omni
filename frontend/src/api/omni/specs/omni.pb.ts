@@ -37,6 +37,12 @@ export enum MachineSetPhase {
   Upgrading = 7,
 }
 
+export enum FeatureState {
+  FEATURE_STATE_UNSPECIFIED = 0,
+  FEATURE_STATE_ENABLED = 1,
+  FEATURE_STATE_DISABLED = 2,
+}
+
 export enum OperationPauseReason {
   OPERATION_PAUSE_REASON_NONE = 0,
   OPERATION_PAUSE_REASON_CLUSTER_LOCKED = 1,
@@ -423,6 +429,7 @@ export type ClusterSpecFeatures = {
   use_embedded_discovery_service?: boolean
   enable_node_audit_skip?: boolean
   disable_public_discovery_service?: boolean
+  kubernetes?: FeatureState
 }
 
 export type ClusterSpec = {
@@ -732,6 +739,7 @@ export type MachineSetSpec = {
   machine_allocation?: MachineSetSpecMachineAllocation
   upgrade_strategy?: MachineSetSpecUpdateStrategy
   upgrade_strategy_config?: MachineSetSpecUpdateStrategyConfig
+  kubernetes?: FeatureState
 }
 
 export type TalosUpgradeStatusSpec = {
@@ -763,6 +771,7 @@ export type MachineSetConfigStatusSpec = {
 }
 
 export type MachineSetNodeSpec = {
+  kubernetes?: FeatureState
 }
 
 export type MachineLabelsSpec = {

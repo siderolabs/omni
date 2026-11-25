@@ -173,11 +173,15 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.Cluster, _ ...state.CreateOption) error {
 			var multiErr error
 
+			// a cluster without Kubernetes has no Kubernetes version, which validateClusterKubernetesFeature checks
+			kubernetesEnabled := omni.IsKubernetesEnabled(res)
+
 			validator := omni.ClusterValidator{
-				ID:                res.Metadata().ID(),
-				KubernetesVersion: res.TypedSpec().Value.KubernetesVersion,
-				TalosVersion:      res.TypedSpec().Value.TalosVersion,
-				EncryptionEnabled: omni.GetEncryptionEnabled(res),
+				ID:                         res.Metadata().ID(),
+				KubernetesVersion:          res.TypedSpec().Value.KubernetesVersion,
+				TalosVersion:               res.TypedSpec().Value.TalosVersion,
+				EncryptionEnabled:          omni.GetEncryptionEnabled(res),
+				SkipKubernetesVersionCheck: !kubernetesEnabled,
 			}
 
 			if err := validator.Validate(); err != nil {
@@ -192,12 +196,22 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
-			if err := validateVersions(ctx, nil, res, false, false); err != nil {
+			if err := validateVersions(ctx, nil, res, false, !kubernetesEnabled); err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}
 
 			if err := validateImportInitialVersions(res); err != nil {
 				multiErr = multierror.Append(multiErr, err)
+			}
+
+			if err := validateClusterKubernetesFeature(nil, res); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
+			if !kubernetesEnabled {
+				if err := validateNoResourcesRequireKubernetes(ctx, st, res.Metadata().ID()); err != nil {
+					multiErr = multierror.Append(multiErr, err)
+				}
 			}
 
 			return multiErr
@@ -225,7 +239,9 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			var multiErr error
 
 			skipTalosVersion := existingRes.TypedSpec().Value.TalosVersion == newRes.TypedSpec().Value.TalosVersion
-			skipKubernetesVersion := skipTalosVersion && existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion
+			// a cluster without Kubernetes has no Kubernetes version, which validateClusterKubernetesFeature checks
+			skipKubernetesVersion := (skipTalosVersion && existingRes.TypedSpec().Value.KubernetesVersion == newRes.TypedSpec().Value.KubernetesVersion) ||
+				!omni.IsKubernetesEnabled(newRes)
 			encryptionEnabled := omni.GetEncryptionEnabled(newRes)
 
 			validator := omni.ClusterValidator{
@@ -262,6 +278,10 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
+			if err := validateClusterKubernetesFeature(existingRes, newRes); err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+
 			return multiErr
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.Cluster, option ...state.DestroyOption) error {
@@ -295,7 +315,14 @@ func validateImportInitialVersions(res *omni.Cluster) error {
 		return nil
 	}
 
-	for _, annotation := range []string{omni.ClusterImportInitialTalosVersion, omni.ClusterImportInitialKubernetesVersion} {
+	annotations := []string{omni.ClusterImportInitialTalosVersion}
+
+	// a cluster without Kubernetes has no Kubernetes version
+	if omni.IsKubernetesEnabled(res) {
+		annotations = append(annotations, omni.ClusterImportInitialKubernetesVersion)
+	}
+
+	for _, annotation := range annotations {
 		if _, ok := omni.GetImportInitialVersion(res, annotation); !ok {
 			return fmt.Errorf("the %q annotation is required to import a cluster, make sure omnictl has the same version as Omni", annotation)
 		}

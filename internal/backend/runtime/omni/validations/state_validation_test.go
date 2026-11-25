@@ -1891,7 +1891,7 @@ func TestEtcdBackupValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(inmem.NewState())
 
-	st := validated.NewState(innerSt, validations.EtcdManualBackupValidationOptions()...)
+	st := validated.NewState(innerSt, validations.EtcdManualBackupValidationOptions(innerSt)...)
 
 	backup := omnires.NewEtcdManualBackup("test-etcd-manual-backup")
 	backup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(-time.Hour))
@@ -3881,7 +3881,7 @@ func TestKubernetesManifestValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(inmem.NewState())
-	st := validated.NewState(innerSt, validations.KubernetesManifestsValidationOptions()...)
+	st := validated.NewState(innerSt, validations.KubernetesManifestsValidationOptions(innerSt)...)
 
 	m := omnires.NewKubernetesManifestGroup("1")
 	m.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_ONE_TIME
@@ -3921,7 +3921,7 @@ func TestKubernetesHealthCheckValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(inmem.NewState())
-	st := validated.NewState(innerSt, validations.KubernetesHealthCheckValidationOptions()...)
+	st := validated.NewState(innerSt, validations.KubernetesHealthCheckValidationOptions(innerSt)...)
 
 	const jobManifest = "apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: check\n          image: alpine\n"
 

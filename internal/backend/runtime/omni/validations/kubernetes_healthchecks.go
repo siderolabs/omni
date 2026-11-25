@@ -23,7 +23,7 @@ import (
 // minKubernetesHealthCheckInterval is the minimum interval allowed for a healthcheck re-check.
 const minKubernetesHealthCheckInterval = 5 * time.Second
 
-func kubernetesHealthcheckValidationOptions() []validated.StateOption {
+func kubernetesHealthcheckValidationOptions(st state.State) []validated.StateOption {
 	validate := func(res *omni.KubernetesHealthCheck) error {
 		if len(res.TypedSpec().Value.GetJob()) == 0 {
 			return errors.New("healthcheck job manifest must be set")
@@ -50,11 +50,21 @@ func kubernetesHealthcheckValidationOptions() []validated.StateOption {
 	}
 
 	return []validated.StateOption{
-		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *omni.KubernetesHealthCheck, _ ...state.CreateOption) error {
-			return validate(res)
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.KubernetesHealthCheck, _ ...state.CreateOption) error {
+			if err := validate(res); err != nil {
+				return err
+			}
+
+			clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
+
+			return validateClusterRunsKubernetes(ctx, st, clusterName, "Kubernetes healthchecks")
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, _, newRes *omni.KubernetesHealthCheck, _ ...state.UpdateOption) error {
-			return validate(newRes)
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, oldRes, newRes *omni.KubernetesHealthCheck, _ ...state.UpdateOption) error {
+			if err := validate(newRes); err != nil {
+				return err
+			}
+
+			return validateClusterLabelRunsKubernetes(ctx, st, oldRes, newRes, "Kubernetes healthchecks")
 		})),
 	}
 }

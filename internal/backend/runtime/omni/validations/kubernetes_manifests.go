@@ -16,13 +16,23 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
-func kubernetesManifestsValidationOptions() []validated.StateOption {
+func kubernetesManifestsValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.KubernetesManifestGroup, _ ...state.CreateOption) error {
-			return validateKubernetesManifests(res)
+			if err := validateKubernetesManifests(res); err != nil {
+				return err
+			}
+
+			clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
+
+			return validateClusterRunsKubernetes(ctx, st, clusterName, "Kubernetes manifests")
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, _, res *omni.KubernetesManifestGroup, _ ...state.UpdateOption) error {
-			return validateKubernetesManifests(res)
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, oldRes, res *omni.KubernetesManifestGroup, _ ...state.UpdateOption) error {
+			if err := validateKubernetesManifests(res); err != nil {
+				return err
+			}
+
+			return validateClusterLabelRunsKubernetes(ctx, st, oldRes, res, "Kubernetes manifests")
 		})),
 	}
 }

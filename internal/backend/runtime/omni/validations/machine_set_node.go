@@ -155,6 +155,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				return err
 			}
 
+			if err = validateMachineSetNodeKubernetesFeature(ctx, st, cluster, machineSet, nil, res); err != nil {
+				return err
+			}
+
 			return validateNotControlplane(machineSet, res)
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, res *omni.MachineSetNode, newRes *omni.MachineSetNode, _ ...state.UpdateOption) error {
@@ -207,6 +211,10 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				if err = validateTalosVersion(ctx, res, cluster); err != nil {
 					return err
 				}
+			}
+
+			if err = validateMachineSetNodeKubernetesFeature(ctx, st, cluster, machineSet, res, newRes); err != nil {
+				return err
 			}
 
 			return validateNotControlplane(machineSet, newRes)
