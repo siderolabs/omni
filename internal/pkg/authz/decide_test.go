@@ -177,6 +177,17 @@ func TestCheckResource(t *testing.T) {
 			code:    codes.PermissionDenied,
 		},
 		{
+			name:    "manager of every cluster does not list all config patches",
+			subject: authenticated(on(authz.ClusterManager, authz.AllClustersPattern)),
+			target:  authz.Target{Type: omni.ConfigPatchType, Verb: state.List, AllClusters: true},
+			code:    codes.PermissionDenied,
+		},
+		{
+			name:    "manager of every cluster who also views the settings of machines lists all config patches",
+			subject: authenticated(on(authz.ClusterManager, authz.AllClustersPattern), on(authz.MachineViewer)),
+			target:  authz.Target{Type: omni.ConfigPatchType, Verb: state.List, AllClusters: true},
+		},
+		{
 			name:    "suspended instance allows reads",
 			subject: authz.Subject{Authenticated: true, Suspended: true, Grants: authz.PresetGrants(role.Admin)},
 			target:  authz.Target{Type: omni.ClusterType, Verb: state.Get, Cluster: "a"},

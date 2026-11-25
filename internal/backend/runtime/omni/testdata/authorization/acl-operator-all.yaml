@@ -339,12 +339,6 @@ resources:
 
   - types:
       - ConfigPatches.omni.sidero.dev
-      - ExtensionsConfigurations.omni.sidero.dev
-      - KubernetesHealthChecks.omni.sidero.dev
-      - KubernetesManifestGroups.omni.sidero.dev
-      - MachineSetNodes.omni.sidero.dev
-      - MachineSets.omni.sidero.dev
-      - NodeForceDestroyRequests.omni.sidero.dev
     cases:
       - case: a resource in cluster-a
         allowed: [get, watch, create, update, destroy]
@@ -359,7 +353,7 @@ resources:
       - case: a resource which does not exist
         denied: [get, watch, create, update, destroy]
       - case: all resources
-        allowed: [list, watch]
+        denied: [list, watch]
       - case: all resources in cluster-a
         allowed: [list, watch]
       - case: all resources in cluster-b
@@ -367,7 +361,7 @@ resources:
       - case: all resources in cluster-a or cluster-b
         allowed: [list, watch]
       - case: all resources not in cluster-a
-        allowed: [list, watch]
+        denied: [list, watch]
 
   - types:
       - CurrentUsers.omni.sidero.dev
@@ -412,6 +406,37 @@ resources:
       - case: all resources not in cluster-a
         unsupported: [watch]
         error: [list]
+
+  - types:
+      - ExtensionsConfigurations.omni.sidero.dev
+      - KubernetesHealthChecks.omni.sidero.dev
+      - KubernetesManifestGroups.omni.sidero.dev
+      - MachineSetNodes.omni.sidero.dev
+      - MachineSets.omni.sidero.dev
+      - NodeForceDestroyRequests.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource in cluster-b
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in no cluster
+        denied: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        allowed: [move]
+      - case: a resource which does not exist
+        denied: [get, watch, create, update, destroy]
+      - case: all resources
+        allowed: [list, watch]
+      - case: all resources in cluster-a
+        allowed: [list, watch]
+      - case: all resources in cluster-b
+        allowed: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        allowed: [list, watch]
+      - case: all resources not in cluster-a
+        allowed: [list, watch]
 
   - types:
       - ImportedClusterSecrets.omni.sidero.dev
