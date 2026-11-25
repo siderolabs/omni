@@ -432,6 +432,24 @@ func (w *AuditWrap) AuditTalosAccess(ctx context.Context, access auditlog.TalosA
 	return w.log.AuditTalosAccess(ctx, access)
 }
 
+// AuditKubeconfigIssuance logs a kubeconfig issuance event. It does nothing if the audit log is disabled.
+func (w *AuditWrap) AuditKubeconfigIssuance(ctx context.Context, access auditlog.KubeconfigIssuance) error {
+	if w.log == nil {
+		return nil
+	}
+
+	return w.log.AuditKubeconfigIssuance(ctx, access)
+}
+
+// AuditTalosconfigIssuance logs a talosconfig issuance event. It does nothing if the audit log is disabled.
+func (w *AuditWrap) AuditTalosconfigIssuance(ctx context.Context, issuance auditlog.TalosconfigIssuance) error {
+	if w.log == nil {
+		return nil
+	}
+
+	return w.log.AuditTalosconfigIssuance(ctx, issuance)
+}
+
 // AuditAuditLogAccess logs an audit log access event. It does nothing if the audit log is disabled.
 func (w *AuditWrap) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error {
 	if w.log == nil {

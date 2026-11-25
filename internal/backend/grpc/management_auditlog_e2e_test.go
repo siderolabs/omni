@@ -249,6 +249,14 @@ func (a *e2eAuditor) AuditTalosAccess(context.Context, auditlog.TalosAccess) err
 	return nil
 }
 
+func (a *e2eAuditor) AuditKubeconfigIssuance(context.Context, auditlog.KubeconfigIssuance) error {
+	return nil
+}
+
+func (a *e2eAuditor) AuditTalosconfigIssuance(context.Context, auditlog.TalosconfigIssuance) error {
+	return nil
+}
+
 func (a *e2eAuditor) AuditAuditLogAccess(context.Context, auditlog.ReadFilters) error { return nil }
 
 func (a *e2eAuditor) AuditAuditLogFollow(context.Context, int64, int64) error { return nil }

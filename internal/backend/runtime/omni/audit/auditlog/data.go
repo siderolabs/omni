@@ -21,21 +21,23 @@ const (
 
 // Data contains the audit data.
 type Data struct {
-	NewUser           *NewUser           `json:"new_user,omitempty"`
-	Machine           *Machine           `json:"machine,omitempty"`
-	MachineLabels     *MachineLabels     `json:"machine_labels,omitempty"`
-	AccessPolicy      *AccessPolicy      `json:"access_policy,omitempty"`
-	Cluster           *Cluster           `json:"cluster,omitempty"`
-	MachineSet        *MachineSet        `json:"machine_set,omitempty"`
-	MachineSetNode    *MachineSetNode    `json:"machine_set_node,omitempty"`
-	ConfigPatch       *ConfigPatch       `json:"config_patch,omitempty"`
-	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
-	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
-	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
-	AuditLogAccess    *AuditLogAccess    `json:"audit_log_access,omitempty"`
-	MigrationError    *MigrationError    `json:"migration_error,omitempty"`
-	EulaAcceptance    *EulaAcceptance    `json:"eula_acceptance,omitempty"`
-	Session           Session            `json:"session"`
+	NewUser             *NewUser             `json:"new_user,omitempty"`
+	Machine             *Machine             `json:"machine,omitempty"`
+	MachineLabels       *MachineLabels       `json:"machine_labels,omitempty"`
+	AccessPolicy        *AccessPolicy        `json:"access_policy,omitempty"`
+	Cluster             *Cluster             `json:"cluster,omitempty"`
+	MachineSet          *MachineSet          `json:"machine_set,omitempty"`
+	MachineSetNode      *MachineSetNode      `json:"machine_set_node,omitempty"`
+	ConfigPatch         *ConfigPatch         `json:"config_patch,omitempty"`
+	MachineConfigDiff   *MachineConfigDiff   `json:"machine_config_diff,omitempty"`
+	TalosAccess         *TalosAccess         `json:"talos_access,omitempty"`
+	K8SAccess           *K8SAccess           `json:"k8s_access,omitempty"`
+	AuditLogAccess      *AuditLogAccess      `json:"audit_log_access,omitempty"`
+	KubeconfigIssuance  *KubeconfigIssuance  `json:"kubeconfig_issuance,omitempty"`
+	TalosconfigIssuance *TalosconfigIssuance `json:"talosconfig_issuance,omitempty"`
+	MigrationError      *MigrationError      `json:"migration_error,omitempty"`
+	EulaAcceptance      *EulaAcceptance      `json:"eula_acceptance,omitempty"`
+	Session             Session              `json:"session"`
 }
 
 // MigrationError contains information about migration errors.
@@ -174,6 +176,43 @@ type AuditLogAccess struct {
 	ClientIP     string `json:"client_ip,omitempty"`
 	FromID       int64  `json:"from_id,omitempty"`
 	Follow       bool   `json:"follow,omitempty"`
+}
+
+// Kinds of kubeconfig recorded in [KubeconfigIssuance].
+const (
+	KubeconfigTypeOIDC           = "oidc"
+	KubeconfigTypeServiceAccount = "service_account"
+	KubeconfigTypeBreakGlass     = "break_glass"
+)
+
+// KubeconfigIssuance struct contains information about a kubeconfig issued for a cluster.
+type KubeconfigIssuance struct {
+	ClusterName string `json:"cluster_name,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Expiration  string `json:"expiration,omitempty"`
+	// SigningKeyID is the ID (kid) of the key which signed the service account token.
+	SigningKeyID         string   `json:"signing_key_id,omitempty"`
+	ServiceAccountUser   string   `json:"service_account_user,omitempty"`
+	ServiceAccountGroups []string `json:"service_account_groups,omitempty"`
+	// Denied is set when the request was refused, so no kubeconfig was issued.
+	Denied bool `json:"denied,omitempty"`
+}
+
+// Kinds of talosconfig recorded in [TalosconfigIssuance].
+const (
+	// TalosconfigTypeOmni is the regular talosconfig, which goes through the Omni Talos API proxy and carries no credentials.
+	TalosconfigTypeOmni       = "omni"
+	TalosconfigTypeBreakGlass = "break_glass"
+	TalosconfigTypeRaw        = "raw"
+)
+
+// TalosconfigIssuance struct contains information about a talosconfig issued for a cluster, or for the whole instance
+// when the cluster name is empty.
+type TalosconfigIssuance struct {
+	ClusterName string `json:"cluster_name,omitempty"`
+	Type        string `json:"type,omitempty"`
+	// Denied is set when the request was refused, so no talosconfig was issued.
+	Denied bool `json:"denied,omitempty"`
 }
 
 // K8SAccess struct contains information about the access to the Kubernetes cluster.

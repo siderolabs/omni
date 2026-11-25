@@ -908,6 +908,10 @@ func extractClusterID(d *auditlog.Data) string {
 		return d.K8SAccess.ClusterName
 	case d.TalosAccess != nil:
 		return d.TalosAccess.ClusterName
+	case d.KubeconfigIssuance != nil:
+		return d.KubeconfigIssuance.ClusterName
+	case d.TalosconfigIssuance != nil:
+		return d.TalosconfigIssuance.ClusterName
 	case d.AuditLogAccess != nil:
 		return d.AuditLogAccess.ClusterID
 	case d.MachineSet != nil:

@@ -210,16 +210,33 @@ func (s *managementServer) gateway(ctx context.Context, mux *gateway.ServeMux, a
 	return management.RegisterManagementServiceHandlerFromEndpoint(ctx, mux, address, opts)
 }
 
-func (s *managementServer) Kubeconfig(ctx context.Context, req *management.KubeconfigRequest) (*management.KubeconfigResponse, error) {
-	if req.BreakGlass {
-		return s.breakGlassKubeconfig(ctx)
+func (s *managementServer) Kubeconfig(ctx context.Context, req *management.KubeconfigRequest) (resp *management.KubeconfigResponse, err error) {
+	commonContext := router.ExtractContext(ctx)
+	clusterName := commonContext.GetName()
+
+	issuance := auditlog.KubeconfigIssuance{
+		ClusterName: clusterName,
+		Type:        auditlog.KubeconfigTypeOIDC,
 	}
 
-	commonContext := router.ExtractContext(ctx)
+	switch {
+	case req.GetBreakGlass():
+		issuance.Type = auditlog.KubeconfigTypeBreakGlass
+	case req.GetServiceAccount():
+		issuance.Type = auditlog.KubeconfigTypeServiceAccount
+		issuance.ServiceAccountUser = req.GetServiceAccountUser()
+		issuance.ServiceAccountGroups = req.GetServiceAccountGroups()
+	}
 
-	clusterName := ""
-	if commonContext != nil {
-		clusterName = commonContext.Name
+	// records the kubeconfig which is issued, and the request which is refused, on every return below
+	defer func() {
+		if err = s.auditKubeconfigIssuance(ctx, issuance, err); err != nil {
+			resp = nil
+		}
+	}()
+
+	if req.GetBreakGlass() {
+		return s.breakGlassKubeconfig(ctx)
 	}
 
 	// every user can get a kubeconfig: it contains no credentials, and access is checked when it is used
@@ -230,7 +247,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 
 	// handled before the cluster name is validated, so that a caller without access always gets the same error
 	if req.GetServiceAccount() {
-		return s.serviceAccountKubeconfig(ctx, req)
+		return s.serviceAccountKubeconfig(ctx, req, &issuance)
 	}
 
 	if clusterName == "" {
@@ -290,17 +307,31 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 	}, nil
 }
 
-func (s *managementServer) Talosconfig(ctx context.Context, request *management.TalosconfigRequest) (*management.TalosconfigResponse, error) {
-	routerContext := router.ExtractContext(ctx)
+func (s *managementServer) Talosconfig(ctx context.Context, request *management.TalosconfigRequest) (resp *management.TalosconfigResponse, err error) {
+	clusterName := router.ExtractContext(ctx).GetName()
 
-	clusterName := ""
-	if routerContext != nil {
-		clusterName = routerContext.Name
+	issuance := auditlog.TalosconfigIssuance{
+		ClusterName: clusterName,
+		Type:        auditlog.TalosconfigTypeOmni,
 	}
+
+	switch {
+	case request.Raw:
+		issuance.Type = auditlog.TalosconfigTypeRaw
+	case request.BreakGlass:
+		issuance.Type = auditlog.TalosconfigTypeBreakGlass
+	}
+
+	// records the talosconfig which is issued, and the request which is refused, on every return below
+	defer func() {
+		if err = s.auditTalosconfigIssuance(ctx, issuance, err); err != nil {
+			resp = nil
+		}
+	}()
 
 	// a break-glass talosconfig connects to the machines directly, bypassing Omni
 	if request.BreakGlass || request.Raw {
-		if err := s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
+		if err = s.checkOperation(ctx, authz.BreakGlass, ""); err != nil {
 			return nil, err
 		}
 	}
@@ -479,13 +510,10 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
-	routerContext := router.ExtractContext(ctx)
-
-	if routerContext == nil || routerContext.Name == "" {
+	clusterName := router.ExtractContext(ctx).GetName()
+	if clusterName == "" {
 		return nil, status.Error(codes.InvalidArgument, "cluster name is required")
 	}
-
-	clusterName := routerContext.Name
 
 	var (
 		data []byte
@@ -503,10 +531,6 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 			return nil, status.Errorf(codes.NotFound, "failed to get the Talos config of cluster %q: %s", clusterName, err)
 		}
 
-		return nil, err
-	}
-
-	if err = s.auditTalosAccess(ctx, management.ManagementService_Talosconfig_FullMethodName, clusterName, ""); err != nil {
 		return nil, err
 	}
 
@@ -529,13 +553,10 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
-	routerContext := router.ExtractContext(ctx)
-
-	if routerContext == nil || routerContext.Name == "" {
+	clusterName := router.ExtractContext(ctx).GetName()
+	if clusterName == "" {
 		return nil, status.Error(codes.InvalidArgument, "cluster name is required")
 	}
-
-	clusterName := routerContext.Name
 
 	data, err := s.kubernetesRuntime.BreakGlassKubeconfig(ctx, clusterName)
 	if err != nil {
@@ -1534,6 +1555,52 @@ func (s *managementServer) auditTalosAccess(ctx context.Context, fullMethodName,
 	return nil
 }
 
+// auditKubeconfigIssuance records the outcome of a kubeconfig request, and returns the error to give to the caller.
+//
+// A kubeconfig which was issued is recorded when requestErr is nil, and the request fails when the entry cannot be written.
+// A request refused for the lack of permissions is recorded as denied, and the caller gets the refusal even when the entry
+// cannot be written. A request which failed for another reason is not recorded.
+func (s *managementServer) auditKubeconfigIssuance(ctx context.Context, issuance auditlog.KubeconfigIssuance, requestErr error) error {
+	issuance.Denied = status.Code(requestErr) == codes.PermissionDenied
+
+	if s.auditor == nil || (requestErr != nil && !issuance.Denied) {
+		return requestErr
+	}
+
+	if err := s.auditor.AuditKubeconfigIssuance(ctx, issuance); err != nil {
+		if issuance.Denied {
+			s.logger.Warn("failed to audit denied kubeconfig request", zap.String("cluster", issuance.ClusterName), zap.Error(err))
+
+			return requestErr
+		}
+
+		return fmt.Errorf("failed to audit kubeconfig issuance: %w", err)
+	}
+
+	return requestErr
+}
+
+// auditTalosconfigIssuance records the outcome of a talosconfig request, the way auditKubeconfigIssuance does for a kubeconfig.
+func (s *managementServer) auditTalosconfigIssuance(ctx context.Context, issuance auditlog.TalosconfigIssuance, requestErr error) error {
+	issuance.Denied = status.Code(requestErr) == codes.PermissionDenied
+
+	if s.auditor == nil || (requestErr != nil && !issuance.Denied) {
+		return requestErr
+	}
+
+	if err := s.auditor.AuditTalosconfigIssuance(ctx, issuance); err != nil {
+		if issuance.Denied {
+			s.logger.Warn("failed to audit denied talosconfig request", zap.String("cluster", issuance.ClusterName), zap.Error(err))
+
+			return requestErr
+		}
+
+		return fmt.Errorf("failed to audit talosconfig issuance: %w", err)
+	}
+
+	return requestErr
+}
+
 func (s *managementServer) auditTalosAccessForNodes(ctx context.Context, fullMethodName, clusterID string, nodeIDs []string) error {
 	for _, nodeID := range nodeIDs {
 		if err := s.auditTalosAccess(ctx, fullMethodName, clusterID, nodeID); err != nil {
@@ -1729,6 +1796,8 @@ type AuditLogger interface {
 	FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error)
 	FollowSubscribe() (<-chan struct{}, func())
 	AuditTalosAccess(ctx context.Context, access auditlog.TalosAccess) error
+	AuditKubeconfigIssuance(ctx context.Context, access auditlog.KubeconfigIssuance) error
+	AuditTalosconfigIssuance(ctx context.Context, issuance auditlog.TalosconfigIssuance) error
 	AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error
 	AuditAuditLogFollow(ctx context.Context, fromID, startTsMs int64) error
 }
@@ -1789,6 +1858,10 @@ func auditLogEventType(e management.AuditLogEventType) auditlog.EventType {
 		return auditlog.EventTypeK8SAccess
 	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS:
 		return auditlog.EventTypeAuditLogAccess
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_KUBECONFIG_ISSUANCE:
+		return auditlog.EventTypeKubeconfigIssuance
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOSCONFIG_ISSUANCE:
+		return auditlog.EventTypeTalosconfigIssuance
 	}
 
 	return auditlog.EventTypeUnspecified
