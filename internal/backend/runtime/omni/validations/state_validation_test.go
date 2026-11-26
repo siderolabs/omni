@@ -3354,13 +3354,17 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	st := validated.NewState(innerSt, validations.NodeForceDestroyRequestValidationOptions(innerSt)...)
 
 	req := omnires.NewNodeForceDestroyRequest("test")
+	req.Metadata().Labels().Set(omnires.LabelCluster, "cluster")
 
 	err := st.Create(ctx, req)
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, `cannot create/update a NodeForceDestroyRequest for node "test", as there is no matching cluster machine`)
 
-	require.NoError(t, st.Create(ctx, omnires.NewClusterMachine("test"))) // create the matching cluster machine
-	require.NoError(t, st.Create(ctx, req))                               // assert that we can create the destroy request now
+	clusterMachine := omnires.NewClusterMachine("test")
+	clusterMachine.Metadata().Labels().Set(omnires.LabelCluster, "cluster")
+
+	require.NoError(t, st.Create(ctx, clusterMachine)) // create the matching cluster machine
+	require.NoError(t, st.Create(ctx, req))            // assert that we can create the destroy request now
 }
 
 func TestNodeForceDestroyRequestClusterLabel(t *testing.T) {
@@ -3392,9 +3396,12 @@ func TestNodeForceDestroyRequestClusterLabel(t *testing.T) {
 	// the node's own cluster is accepted
 	require.NoError(t, st.Create(ctx, withCluster("node-1", "beta")))
 
-	// no cluster label at all stays accepted, it is not scoped to a cluster
+	// a request without the cluster label is refused
 	require.NoError(t, st.Destroy(ctx, omnires.NewNodeForceDestroyRequest("node-1").Metadata()))
-	require.NoError(t, st.Create(ctx, omnires.NewNodeForceDestroyRequest("node-1")))
+
+	err = st.Create(ctx, omnires.NewNodeForceDestroyRequest("node-1"))
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, `label "omni.sidero.dev/cluster" is required`)
 }
 
 func TestJoinTokenValidation(t *testing.T) {

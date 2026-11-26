@@ -28,6 +28,11 @@ func nodeForceDestroyRequestValidationOptions(st state.State) []validated.StateO
 				return err
 			}
 
+			// The access checks find the cluster of the request from this label.
+			if _, ok := res.Metadata().Labels().Get(omni.LabelCluster); !ok {
+				return fmt.Errorf("label %q is required", omni.LabelCluster)
+			}
+
 			return validateClusterLabelMatches(res, clusterMachine)
 		})),
 	}

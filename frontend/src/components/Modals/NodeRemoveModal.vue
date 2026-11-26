@@ -132,32 +132,26 @@ async function onConfirm() {
     }
 
     if (forceEtcdLeave.value) {
-      // if this is a force-delete, MachineSetNode might already be gone, and it is ok
+      // The cluster label tells Omni which cluster the request belongs to. Without it, a user who has access
+      // only to this cluster cannot create the request.
       try {
-        await ResourceService.Get<Resource<NodeForceDestroyRequestSpec>>(
-          {
-            type: NodeForceDestroyRequestType,
-            namespace: DefaultNamespace,
-            id: machineId,
-          },
-          withRuntime(Runtime.Omni),
-        )
-      } catch (e) {
-        if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
-          throw e
-        }
-
         await ResourceService.Create<Resource<NodeForceDestroyRequestSpec>>(
           {
             metadata: {
               id: machineId,
               namespace: DefaultNamespace,
               type: NodeForceDestroyRequestType,
+              labels: { [LabelCluster]: clusterId },
             },
             spec: {},
           },
           withRuntime(Runtime.Omni),
         )
+      } catch (e) {
+        // the request was already created by an earlier attempt
+        if (!(e instanceof RequestError) || e.code !== Code.ALREADY_EXISTS) {
+          throw e
+        }
       }
     } else if (!forceDelete.value && !currentMachineSetNode.value) {
       // if this is not a force-delete, and the node is not found, it is an error
