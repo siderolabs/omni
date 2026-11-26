@@ -31,24 +31,24 @@ const needsAttention = computed(
 </script>
 
 <template>
-  <!-- An inline message is neutral text: the state's colour sits on the glyph alone -->
-  <span v-if="error" class="flex min-w-0 items-center gap-micro">
+  <!-- An inline message is neutral text, with the state's colour on the glyph alone. It wraps
+  rather than truncating: there's no tooltip, and a phone has no hover anyway. -->
+  <span v-if="error" class="flex items-start gap-micro">
     <StatusGlyph
       :glyph="needsAttention ? 'warning' : 'danger'"
       :tone="needsAttention ? 'warning' : 'danger'"
-      class="shrink-0"
+      class="mt-px shrink-0"
       aria-hidden="true"
     />
-    <span class="truncate font-mono">
-      <WordHighlighter
-        :query="search.trim()"
-        :text-to-highlight="error"
-        highlight-class="search-match"
-      />
-    </span>
+    <WordHighlighter
+      :query="search.trim()"
+      :text-to-highlight="error"
+      highlight-class="search-match"
+      class="font-mono wrap-anywhere"
+    />
   </span>
 
-  <span v-else-if="waiting" class="block truncate">
+  <span v-else-if="waiting" class="block wrap-anywhere">
     Waiting for
     <span class="font-mono">{{ waiting }}</span>
   </span>

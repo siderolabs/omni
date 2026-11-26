@@ -188,6 +188,12 @@ export const Default: Story = {
   },
 }
 
+/** A phone's width, where the rows stack */
+export const Narrow: Story = {
+  ...Default,
+  decorators: [() => ({ template: '<div style="max-width: 390px"><story /></div>' })],
+}
+
 export const NoContainers: Story = {}
 
 export const UnsupportedTalos: Story = {

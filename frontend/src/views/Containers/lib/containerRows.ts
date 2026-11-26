@@ -2,13 +2,17 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import pluralize from 'pluralize'
+import prettyBytes from 'pretty-bytes'
+
 import type { Resource } from '@/api/grpc'
 import type {
   ContainerImageStatusSpec,
   ContainerInstanceStatusSpec,
   ContainerStatusSpec,
 } from '@/api/talos/containers.pb'
-import { type ContainerMetrics, statsKey } from '@/views/Containers/lib/containerStats'
+import { type ContainerMetrics, formatCPU, statsKey } from '@/views/Containers/lib/containerStats'
+import { formatSince } from '@/views/Containers/lib/containerStatus'
 
 /** A container, with what Talos reports about its image and its newest instance. */
 export interface ContainerRow {
@@ -85,4 +89,19 @@ export function sinceTime({ status, instance }: Pick<ContainerRow, 'status' | 'i
   if (!time || time.startsWith('0001-')) return
 
   return new Date(time)
+}
+
+/**
+ * A row's numbers as one phrase, for a stacked row where they have no column headers: "1 restart,
+ * 42% CPU, 212 MiB memory, 3h 5m in this state". Readings Talos doesn't have yet are left out.
+ */
+export function rowSummary({ status, metrics, since }: ContainerRow, now: Date) {
+  return [
+    pluralize('restart', status.restartCount ?? 0, true),
+    metrics?.cpuPercent !== undefined && `${formatCPU(metrics.cpuPercent)} CPU`,
+    metrics?.memory !== undefined && `${prettyBytes(metrics.memory, { binary: true })} memory`,
+    since && `${formatSince(since, now)} in this state`,
+  ]
+    .filter(Boolean)
+    .join(', ')
 }

@@ -26,9 +26,8 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import StatusPill from '@/components/Status/StatusPill.vue'
+import ResponsiveTable from '@/components/Table/ResponsiveTable.vue'
 import TableCell from '@/components/Table/TableCell.vue'
-import TableRoot from '@/components/Table/TableRoot.vue'
-import TableRow from '@/components/Table/TableRow.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceSearch } from '@/methods/resource/useResourceSearch'
@@ -36,7 +35,7 @@ import { useResourceSort } from '@/methods/resource/useResourceSort'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ContainerDetailCell from '@/views/Containers/components/ContainerDetailCell.vue'
 import ContainerImage from '@/views/Containers/components/ContainerImage.vue'
-import { containerRows, imageRef } from '@/views/Containers/lib/containerRows'
+import { containerRows, imageRef, rowSummary } from '@/views/Containers/lib/containerRows'
 import { formatCPU } from '@/views/Containers/lib/containerStats'
 import { formatSince, stateAppearance, stateName } from '@/views/Containers/lib/containerStatus'
 import {
@@ -96,6 +95,11 @@ const {
   selectedValue: sortSelected,
 } = useResourceSort({ sortOptions: containerSortOptions })
 
+const logsRoute = (id: string) => ({
+  name: 'NodeLogs' as const,
+  params: { cluster: clusterId, machine: machineId, service: `${TalosContainersLogPrefix}${id}` },
+})
+
 const rows = computed(() =>
   containerRows(statuses.value, images.value, instances.value, metrics.value),
 )
@@ -150,87 +154,115 @@ const visibleRows = computed(() =>
         No containers match the filter and status.
       </TAlert>
 
-      <!-- The columns need more room than a narrow page has: the table scrolls, not the page -->
-      <div v-else class="overflow-x-auto">
-        <TableRoot class="w-full min-w-4xl table-fixed">
-          <template #head>
-            <TableRow>
-              <TableCell th class="w-72">Name</TableCell>
-              <TableCell th class="w-32">State</TableCell>
-              <TableCell th class="w-20">Restarts</TableCell>
-              <TableCell th class="w-20">CPU</TableCell>
-              <TableCell th class="w-24">Memory</TableCell>
-              <TableCell th class="w-20">Since</TableCell>
-              <TableCell th>Detail</TableCell>
-              <TableCell th class="w-20"><span class="sr-only">Actions</span></TableCell>
-            </TableRow>
-          </template>
+      <!-- 68rem: the fixed columns take 52rem, which leaves Detail 16rem, room for most errors on a
+      line or two -->
+      <ResponsiveTable v-else :rows="visibleRows" :row-key="(row) => row.id" :min-width-rem="68">
+        <template #head>
+          <TableCell th class="w-72">Name</TableCell>
+          <TableCell th class="w-32">State</TableCell>
+          <TableCell th class="w-20">Restarts</TableCell>
+          <TableCell th class="w-20">CPU</TableCell>
+          <TableCell th class="w-24">Memory</TableCell>
+          <TableCell th class="w-20">Since</TableCell>
+          <TableCell th>Detail</TableCell>
+          <TableCell th class="w-20"><span class="sr-only">Actions</span></TableCell>
+        </template>
 
-          <template #body>
-            <TableRow v-for="row in visibleRows" :key="row.id">
-              <!-- The name, with its image under it -->
-              <TableCell>
-                <WordHighlighter
-                  :query="search.trim()"
-                  :text-to-highlight="row.id"
-                  highlight-class="search-match"
-                  class="block wrap-anywhere text-content-emphasis"
-                />
-                <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" :search />
-              </TableCell>
+        <template #row="{ row }">
+          <!-- The name, with its image under it -->
+          <TableCell>
+            <WordHighlighter
+              :query="search.trim()"
+              :text-to-highlight="row.id"
+              highlight-class="search-match"
+              class="block wrap-anywhere text-content-emphasis"
+            />
+            <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" :search />
+          </TableCell>
 
-              <TableCell>
-                <StatusPill v-bind="stateAppearance(row.status.state, row.status.health)">
-                  {{ stateName(row.status.state) }}
-                </StatusPill>
-              </TableCell>
+          <TableCell>
+            <StatusPill v-bind="stateAppearance(row.status.state, row.status.health)">
+              {{ stateName(row.status.state) }}
+            </StatusPill>
+          </TableCell>
 
-              <TableCell class="font-mono">
-                {{ row.status.restartCount ?? 0 }}
-              </TableCell>
+          <TableCell class="font-mono">
+            {{ row.status.restartCount ?? 0 }}
+          </TableCell>
 
-              <TableCell class="font-mono">
-                {{ row.metrics?.cpuPercent !== undefined ? formatCPU(row.metrics.cpuPercent) : '' }}
-              </TableCell>
+          <TableCell class="font-mono">
+            {{ row.metrics?.cpuPercent !== undefined ? formatCPU(row.metrics.cpuPercent) : '' }}
+          </TableCell>
 
-              <TableCell class="font-mono">
-                {{
-                  row.metrics?.memory !== undefined
-                    ? prettyBytes(row.metrics.memory, { binary: true })
-                    : ''
-                }}
-              </TableCell>
+          <TableCell class="font-mono">
+            {{
+              row.metrics?.memory !== undefined
+                ? prettyBytes(row.metrics.memory, { binary: true })
+                : ''
+            }}
+          </TableCell>
 
-              <TableCell class="font-mono" :title="row.since?.toLocaleString()">
-                {{ row.since && formatSince(row.since, now) }}
-              </TableCell>
+          <TableCell class="font-mono" :title="row.since?.toLocaleString()">
+            {{ row.since && formatSince(row.since, now) }}
+          </TableCell>
 
-              <TableCell>
-                <ContainerDetailCell :row :search />
-              </TableCell>
+          <TableCell>
+            <ContainerDetailCell :row :search />
+          </TableCell>
 
-              <TableCell>
-                <TButton
-                  is="router-link"
-                  variant="secondary"
-                  size="sm"
-                  :to="{
-                    name: 'NodeLogs',
-                    params: {
-                      cluster: clusterId,
-                      machine: machineId,
-                      service: `${TalosContainersLogPrefix}${row.id}`,
-                    },
-                  }"
-                  :aria-label="`Logs of ${row.id}`"
-                >
-                  Logs
-                </TButton>
-              </TableCell>
-            </TableRow>
-          </template>
-        </TableRoot>
-      </div>
+          <TableCell>
+            <TButton
+              is="router-link"
+              variant="secondary"
+              size="sm"
+              :to="logsRoute(row.id)"
+              :aria-label="`Logs of ${row.id}`"
+            >
+              Logs
+            </TButton>
+          </TableCell>
+        </template>
+
+        <!-- Stacked: the name and state, the image, the detail if there is one, then the numbers
+        as one phrase beside Logs -->
+        <template #stacked="{ row }">
+          <div class="flex flex-col gap-tight">
+            <div class="flex items-start justify-between gap-tight">
+              <WordHighlighter
+                :query="search.trim()"
+                :text-to-highlight="row.id"
+                highlight-class="search-match"
+                class="wrap-anywhere text-content-emphasis"
+              />
+
+              <StatusPill
+                v-bind="stateAppearance(row.status.state, row.status.health)"
+                class="shrink-0"
+              >
+                {{ stateName(row.status.state) }}
+              </StatusPill>
+            </div>
+
+            <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" :search />
+            <ContainerDetailCell :row :search />
+
+            <div class="flex items-center justify-between gap-tight">
+              <p class="text-content-secondary">{{ rowSummary(row, now) }}</p>
+
+              <TButton
+                is="router-link"
+                variant="secondary"
+                size="sm"
+                class="shrink-0"
+                :to="logsRoute(row.id)"
+                :aria-label="`Logs of ${row.id}`"
+              >
+                Logs
+              </TButton>
+            </div>
+          </div>
+        </template>
+      </ResponsiveTable>
     </template>
   </PageContainer>
 </template>

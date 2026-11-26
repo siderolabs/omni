@@ -6,7 +6,7 @@ import { describe, expect, test } from 'vitest'
 
 import type { ContainerStatusSpec } from '@/api/talos/containers.pb'
 
-import { type ContainerRow, containerRows, imageRef, sinceTime } from './containerRows'
+import { type ContainerRow, containerRows, imageRef, rowSummary, sinceTime } from './containerRows'
 
 describe('containerRows', () => {
   const rows = containerRows(
@@ -78,4 +78,26 @@ test.each<[ContainerRow, string | undefined]>([
   [{ id: 'x', status: { state: 'running' } }, undefined],
 ])('sinceTime(%j)', (r, expected) => {
   expect(sinceTime(r)?.toISOString()).toBe(expected)
+})
+
+describe('rowSummary', () => {
+  const now = new Date('2026-11-26T12:00:00Z')
+
+  test('says every reading there is', () => {
+    expect(
+      rowSummary(
+        {
+          id: 'web',
+          status: { restartCount: 1 },
+          metrics: { cpuPercent: 42, memory: 212 * 2 ** 20 },
+          since: new Date(now.getTime() - (3 * 3600 + 5 * 60) * 1000),
+        },
+        now,
+      ),
+    ).toBe('1 restart, 42% CPU, 212 MiB memory, 3h 5m in this state')
+  })
+
+  test('leaves out readings Talos does not have yet', () => {
+    expect(rowSummary({ id: 'waiting', status: {} }, now)).toBe('0 restarts')
+  })
 })
