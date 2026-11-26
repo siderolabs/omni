@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-import type { StatusGlyphType } from '@/components/Status/StatusGlyph.vue'
+import type { StatusGlyphType, StatusTone } from '@/components/Status/StatusGlyph.vue'
 
-export type StatusTone = 'success' | 'warning' | 'danger' | 'info'
+export type { StatusTone }
 
 /** How a state is drawn as a pill. */
 export interface StatusAppearance {
@@ -43,14 +43,6 @@ const statusPillClass: Record<StatusTone, string> = {
   danger: 'bg-status-danger-subtle text-status-danger-text ring-status-danger-subtle-border',
   info: 'bg-status-info-subtle text-status-info-text ring-status-info-subtle-border',
 }
-
-/** The glyph is a graphic: it takes the state's `default`, which holds 3:1 on the chip's pastel as well as on a surface. */
-const statusGlyphClass: Record<StatusTone, string> = {
-  success: 'text-status-success-default',
-  warning: 'text-status-warning-default',
-  danger: 'text-status-danger-default',
-  info: 'text-status-info-default',
-}
 </script>
 
 <template>
@@ -72,8 +64,8 @@ const statusGlyphClass: Record<StatusTone, string> = {
     <StatusGlyph
       v-else
       :glyph="glyph ?? glyphFromTone[tone]"
+      :tone
       class="shrink-0"
-      :class="statusGlyphClass[tone]"
       aria-hidden="true"
     />
     <slot />

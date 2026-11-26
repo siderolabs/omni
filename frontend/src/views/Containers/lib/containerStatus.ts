@@ -65,6 +65,41 @@ export function stateAppearance(state?: string, health?: string): StatusAppearan
   }
 }
 
+/** The name shown for a container's health rollup. */
+export function healthName(health?: string) {
+  switch (health) {
+    case 'healthy':
+      return 'Healthy'
+    case 'degraded':
+      return 'Degraded'
+    case 'pending':
+      return 'Pending'
+    case 'pulling':
+      return 'Pulling'
+    case undefined:
+    case '':
+      return 'Unknown'
+    // a health newer than this list reads as Talos says it
+    default:
+      return health
+  }
+}
+
+/** The glyph and tone of a health rollup, matching the pills: degraded needs a look, pending and pulling are in progress. */
+export function healthAppearance(health?: string): StatusAppearance {
+  switch (health) {
+    case 'healthy':
+      return { tone: 'success', glyph: 'success' }
+    case 'degraded':
+      return { tone: 'warning', glyph: 'warning' }
+    case 'pending':
+    case 'pulling':
+      return { tone: 'info', glyph: 'progress' }
+    default:
+      return { tone: 'info', glyph: 'unknown' }
+  }
+}
+
 /** The first unmet gate of a waiting container, counting the rest: "path: /run/x +2". */
 export function waitingText(waitingFor?: string[]) {
   if (!waitingFor?.length) return

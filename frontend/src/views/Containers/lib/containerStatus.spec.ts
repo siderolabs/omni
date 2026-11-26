@@ -4,7 +4,15 @@
 // included in the LICENSE file.
 import { describe, expect, test } from 'vitest'
 
-import { formatSince, splitImage, stateAppearance, stateName, waitingText } from './containerStatus'
+import {
+  formatSince,
+  healthAppearance,
+  healthName,
+  splitImage,
+  stateAppearance,
+  stateName,
+  waitingText,
+} from './containerStatus'
 
 describe('stateAppearance', () => {
   test.each([
@@ -64,4 +72,23 @@ test.each([
   const now = new Date('2026-11-19T12:00:00Z')
 
   expect(formatSince(new Date(now.getTime() - seconds * 1000), now)).toBe(expected)
+})
+
+test.each([
+  ['healthy', 'Healthy'],
+  ['degraded', 'Degraded'],
+  ['something-new', 'something-new'],
+  [undefined, 'Unknown'],
+])('healthName(%s)', (health, expected) => {
+  expect(healthName(health)).toBe(expected)
+})
+
+test.each([
+  ['healthy', { tone: 'success', glyph: 'success' }],
+  ['degraded', { tone: 'warning', glyph: 'warning' }],
+  ['pending', { tone: 'info', glyph: 'progress' }],
+  ['pulling', { tone: 'info', glyph: 'progress' }],
+  ['something-new', { tone: 'info', glyph: 'unknown' }],
+])('healthAppearance(%s)', (health, expected) => {
+  expect(healthAppearance(health)).toEqual(expected)
 })

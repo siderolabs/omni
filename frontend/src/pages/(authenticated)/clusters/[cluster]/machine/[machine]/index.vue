@@ -41,6 +41,7 @@ import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
@@ -53,6 +54,9 @@ import { useTitle } from '@/methods/title'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
+import { healthAppearance, healthName } from '@/views/Containers/lib/containerStatus'
+import { blockedContainers, healthCounts } from '@/views/Containers/lib/containerSummary'
+import { injectMachineContainers } from '@/views/Containers/lib/machineContainers'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import NodeConditions from '@/views/Nodes/components/NodeConditions.vue'
 import NodeDiagnosticWarnings from '@/views/Nodes/NodeDiagnosticWarnings.vue'
@@ -65,6 +69,12 @@ const { clusterMachine } = defineProps<{
 }>()
 
 const route = useRoute()
+
+// The machine page watches its containers for the Containers tab; the card sums them up
+const { data: containers } = injectMachineContainers()
+const containerHealthCounts = computed(() => healthCounts(containers.value))
+const blocked = computed(() => blockedContainers(containers.value))
+
 const context = computed(() => ({
   cluster: route.params.cluster,
   node: route.params.machine,
@@ -366,6 +376,49 @@ useTitle('Overview')
             </p>
           </div>
         </template>
+      </li>
+      <li v-if="containers.length" class="overview-data-item">
+        <div class="overview-data-heading flex items-center justify-between gap-tight">
+          <h4>Containers</h4>
+          <RouterLink
+            :to="{
+              name: 'NodeContainers',
+              params: { cluster: route.params.cluster, machine: route.params.machine },
+            }"
+            class="text-sm font-medium text-content-default hover:text-accent-text hover:underline"
+          >
+            View all {{ containers.length }}
+          </RouterLink>
+        </div>
+
+        <!-- A status count: the glyph on the label, the number neutral and in emphasis -->
+        <div
+          v-for="{ health, count } in containerHealthCounts"
+          :key="health"
+          class="overview-data-row"
+        >
+          <p class="overview-data-name flex items-center gap-micro">
+            <StatusGlyph v-bind="healthAppearance(health)" aria-hidden="true" />
+            {{ healthName(health) }}
+          </p>
+          <p class="text-xs text-content-emphasis tabular-nums">{{ count }}</p>
+        </div>
+
+        <ul v-if="blocked.length" class="flex flex-col gap-micro px-compact pt-tight pb-compact">
+          <li
+            v-for="{ id, gate, more } in blocked.slice(0, 3)"
+            :key="id"
+            class="text-xs text-content-secondary"
+          >
+            <span class="font-mono text-content-default">{{ id }}</span>
+            is waiting for
+            <span class="font-mono text-content-default">{{ gate }}</span>
+            <template v-if="more">and {{ more }} more</template>
+          </li>
+          <li v-if="blocked.length > 3" class="text-xs text-content-secondary">
+            and {{ blocked.length - 3 }} more waiting
+          </li>
+        </ul>
       </li>
     </ul>
 

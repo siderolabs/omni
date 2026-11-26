@@ -32,8 +32,8 @@ const needsAttention = computed(
   <span v-if="error" class="flex min-w-0 items-center gap-micro">
     <StatusGlyph
       :glyph="needsAttention ? 'warning' : 'danger'"
+      :tone="needsAttention ? 'warning' : 'danger'"
       class="shrink-0"
-      :class="needsAttention ? 'text-status-warning-default' : 'text-status-danger-default'"
       aria-hidden="true"
     />
     <span class="truncate font-mono">{{ error }}</span>
