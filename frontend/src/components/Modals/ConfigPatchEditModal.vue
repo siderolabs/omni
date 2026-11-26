@@ -11,7 +11,7 @@ import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/Button/TButton.vue'
-import CodeEditor from '@/components/CodeEditor'
+import CodeEditor, { preloadCodeEditor } from '@/components/CodeEditor'
 import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
 import { showError } from '@/notification'
@@ -22,13 +22,16 @@ interface Props {
   talosVersion?: string
 }
 
-const { id, config } = defineProps<Props>()
+const { id, config, talosVersion } = defineProps<Props>()
 
 const emit = defineEmits<{
   save: [config: string]
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
+
+// The modal is mounted closed, so get the editor ready in the background rather than while it animates open.
+watchEffect(() => preloadCodeEditor(talosVersion))
 
 const configChanges = ref('')
 const isSaving = ref(false)

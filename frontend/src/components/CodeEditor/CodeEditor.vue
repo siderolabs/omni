@@ -13,9 +13,11 @@ import 'monaco-editor/languages/definitions/yaml/register'
 import type * as MonacoFull from 'monaco-editor'
 import * as monaco from 'monaco-editor/editor'
 import { configureMonacoYaml, type JSONSchema, type SchemasSettings } from 'monaco-yaml'
+import { coerce, compare, gt, lt, parse } from 'semver'
 
+import { DefaultTalosVersion } from '@/api/resources'
 import { createOmniMonacoTheme, OMNI_CODE_THEME } from '@/lib/code-theme'
-import { getDocsLink } from '@/methods'
+import { getDocsLink, majorMinorVersion } from '@/methods'
 import { useTheme } from '@/methods/theme'
 import configSchemas from '@/schemas'
 
@@ -72,9 +74,11 @@ monaco.editor.createWebWorker = <T extends object>(
   })
 }
 
-const configSchemaMap = Object.entries(configSchemas).map(
-  ([path, schema]) =>
-    [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), schema] as const,
+const configSchemaLoaders = new Map(
+  Object.entries(configSchemas).map(
+    ([path, load]) =>
+      [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), load] as const,
+  ),
 )
 
 function withPatchDelete(node: boolean | JSONSchema, version: string): boolean | JSONSchema {
@@ -106,22 +110,59 @@ function withPatchDelete(node: boolean | JSONSchema, version: string): boolean |
   return node
 }
 
-const versionedSchemas = configSchemaMap.map(([version, origSchema]) => {
-  const schema: typeof origSchema = JSON.parse(JSON.stringify(origSchema))
+/** The schema version to validate a Talos version's config against, clamped to the versions there are schemas for. */
+function schemaVersionFor(talosVersion: string) {
+  const versions = [...configSchemaLoaders.keys()]
+    .map((version) => parse(`${version}.0`, false, true))
+    .sort(compare)
 
-  for (const name in schema.$defs) {
-    schema.$defs[name] = withPatchDelete(schema.$defs[name], version) as JSONSchema
+  const minVersion = versions.at(0)
+  const maxVersion = versions.at(-1)
+  let version = coerce(talosVersion) ?? parse(DefaultTalosVersion, false, true)
+
+  if (minVersion && lt(version, minVersion)) version = minVersion
+  if (maxVersion && gt(version, maxVersion)) version = maxVersion
+
+  return majorMinorVersion(version.format())
+}
+
+const schemaSettings = new Map<string, Promise<SchemasSettings>>()
+
+/** Loads and prepares a version's schema the first time an editor uses it. */
+function getSchemaSettings(version: string, load: (typeof configSchemas)[string]) {
+  let settings = schemaSettings.get(version)
+
+  if (!settings) {
+    settings = load().then(
+      (origSchema) => {
+        const schema: typeof origSchema = JSON.parse(JSON.stringify(origSchema))
+
+        for (const name in schema.$defs) {
+          schema.$defs[name] = withPatchDelete(schema.$defs[name], version) as JSONSchema
+        }
+
+        return { uri: schema.$id!, fileMatch: [], schema } satisfies SchemasSettings
+      },
+      (error) => {
+        // Let the next editor that needs it try again, e.g. after a network blip.
+        schemaSettings.delete(version)
+        throw error
+      },
+    )
+
+    schemaSettings.set(version, settings)
   }
 
-  return {
-    version,
-    settings: {
-      uri: schema.$id!,
-      fileMatch: [],
-      schema,
-    } satisfies SchemasSettings,
-  }
-})
+  return settings
+}
+
+/** Loads and prepares the schema an editor for this Talos version will use, before it is shown. */
+export async function preloadConfigSchema(talosVersion = DefaultTalosVersion) {
+  const version = schemaVersionFor(talosVersion)
+  const load = configSchemaLoaders.get(version)
+
+  if (load) await getSchemaSettings(version, load)
+}
 
 // monaco-yaml is typed against the full `monaco-editor` module, but only uses `editor` and `languages`.
 const monacoYaml = configureMonacoYaml(monaco as typeof MonacoFull, {
@@ -135,21 +176,37 @@ const monacoYaml = configureMonacoYaml(monaco as typeof MonacoFull, {
 })
 
 const modelSchemas = new Map<string, string>()
+let schemaUpdate = 0
 
-function setModelSchema(modelId: string, schema: string | null) {
-  if (typeof schema === 'string') {
-    modelSchemas.set(modelId, schema)
+async function setModelSchema(modelId: string, version: string | null) {
+  if (typeof version === 'string') {
+    modelSchemas.set(modelId, version)
   } else {
     modelSchemas.delete(modelId)
   }
 
-  return monacoYaml.update({
+  // Only register the versions some editor is using, so the rest are never downloaded.
+  const update = ++schemaUpdate
+  const versions = [...new Set(modelSchemas.values())].flatMap((version) => {
+    const load = configSchemaLoaders.get(version)
+
+    return load ? [{ version, load }] : []
+  })
+
+  const settings = await Promise.all(
+    versions.map(({ version, load }) => getSchemaSettings(version, load)),
+  )
+
+  // A later call has the newer assignments, so let it apply them.
+  if (update !== schemaUpdate) return
+
+  await monacoYaml.update({
     ...monacoYaml.getOptions(),
-    schemas: versionedSchemas.map(({ version, settings }) => ({
-      ...settings,
+    schemas: settings.map((setting, i) => ({
+      ...setting,
       fileMatch: [...modelSchemas]
-        .filter(([, assigned]) => assigned === version)
-        .map(([modelId]) => `*${modelId}.yaml`),
+        .filter(([, assigned]) => assigned === versions[i].version)
+        .map(([id]) => `*${id}.yaml`),
     })),
   })
 }
@@ -172,11 +229,7 @@ watch(
 </script>
 
 <script setup lang="ts">
-import { coerce, compare, gt, lt, parse } from 'semver'
 import { computed, onWatcherCleanup, ref, useId, useTemplateRef, watch } from 'vue'
-
-import { DefaultTalosVersion } from '@/api/resources'
-import { majorMinorVersion } from '@/methods'
 
 type Props = {
   options?: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions
@@ -208,22 +261,7 @@ watch(modelValue, (val) => {
 })
 
 const modelId = useId()
-const schemaVersion = computed(() => {
-  const versions = configSchemaMap
-    .map(([version]) => parse(`${version}.0`, false, true))
-    .sort(compare)
-
-  const minVersion = versions.at(0)
-  const maxVersion = versions.at(-1)
-  const version = coerce(talosVersion)
-
-  if (!version) return parse(DefaultTalosVersion, false, true)
-
-  if (minVersion && lt(version, minVersion)) return minVersion
-  if (maxVersion && gt(version, maxVersion)) return maxVersion
-
-  return version
-})
+const schemaVersion = computed(() => schemaVersionFor(talosVersion))
 
 const wordWrap = ref<'on' | 'off'>('off')
 
@@ -326,7 +364,7 @@ watch(editor, (editor) => {
 watch(
   [schemaVersion, () => disableConfigValidation],
   ([version, disableConfigValidation]) => {
-    setModelSchema(modelId, disableConfigValidation ? null : majorMinorVersion(version.format()))
+    setModelSchema(modelId, disableConfigValidation ? null : version)
 
     onWatcherCleanup(() => {
       setModelSchema(modelId, null)

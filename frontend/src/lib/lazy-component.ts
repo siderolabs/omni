@@ -58,3 +58,17 @@ export function defineLazyComponent<T extends Component>(
     delay: 0,
   })
 }
+
+/**
+ * Runs `task` once the browser is idle, e.g. to download a lazy component's code before UI that isn't showing it yet
+ * (a closed modal) needs it. Failures are ignored: the component loads and reports errors itself when it renders.
+ */
+export function runWhenIdle(task: () => Promise<unknown>) {
+  const run = () => void task().catch(() => {})
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(run, { timeout: 5000 })
+  } else {
+    setTimeout(run)
+  }
+}

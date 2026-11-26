@@ -7,9 +7,9 @@ import type { JSONSchema } from 'monaco-yaml'
 // We use $defs, not definitions
 type Schema = Omit<JSONSchema, 'definitions'> & { $defs?: Record<string, JSONSchema> }
 
-const schemas = import.meta.glob<true, string, Schema>('./*.schema.json', {
+// Lazy, so each Talos version's schema (~300 kB) is only downloaded once an editor uses it.
+const schemas = import.meta.glob<false, string, Schema>('./*.schema.json', {
   import: 'default',
-  eager: true,
 })
 
 export default schemas
