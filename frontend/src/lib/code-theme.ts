@@ -34,6 +34,12 @@ const ROLES = {
   activeLineNumber: '--color-content-secondary',
 } as const
 
+/**
+ * The Monaco editor's background, as a CSS colour. It is what fills the editor's whole area, so it lets a placeholder
+ * look like the editor before Monaco has loaded.
+ */
+export const MONACO_BACKGROUND = `var(${ROLES.canvas})`
+
 type Palette = Record<keyof typeof ROLES, string>
 
 function palette(read: (property: string) => string) {

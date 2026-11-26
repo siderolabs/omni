@@ -2,9 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { defineAsyncComponent, h } from 'vue'
-
-import TSpinner from '@/components/Spinner/TSpinner.vue'
+import { defineLazyComponent } from '@/lib/lazy-component'
 
 export type { DiffEntry } from './DiffRenderer.vue'
 
@@ -12,8 +10,4 @@ export type { DiffEntry } from './DiffRenderer.vue'
  * `@pierre/diffs` and Shiki are ~168 kB gzipped.
  * Loading it async to not block the whole page till it downloads.
  */
-export default defineAsyncComponent({
-  loader: () => import('./DiffRenderer.vue'),
-  loadingComponent: () => h(TSpinner, { class: 'mx-auto my-section size-6' }),
-  delay: 200,
-})
+export default defineLazyComponent(() => import('./DiffRenderer.vue'))

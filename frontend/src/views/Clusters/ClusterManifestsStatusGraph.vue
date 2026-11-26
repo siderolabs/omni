@@ -18,7 +18,7 @@ import type {
 } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, KubernetesManifestGroupType } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
-import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
+import CodeEditor from '@/components/CodeEditor'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceGet } from '@/methods/useResourceGet'

@@ -7,10 +7,6 @@ type Maybe<T> = T | undefined
 type MaybeArray<T> = T | T[]
 type MaybePromise<T> = Promise<T> | T
 
-interface Window {
-  monacoConfigured?: boolean
-}
-
 /** Design token colours per theme. Set by vite-plugins/theme-init.ts. */
 declare const __THEME_COLORS__: Record<
   import('@/methods/theme-core').Theme,

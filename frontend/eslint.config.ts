@@ -16,6 +16,19 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import storybook from 'eslint-plugin-storybook'
 import pluginVue from 'eslint-plugin-vue'
 
+const restrictedImportPatterns = [
+  {
+    group: ['@/components/icons/*', '**/icons/*'],
+    message: 'Use <TIcon icon="..." /> instead; icons are registered in icons.ts.',
+  },
+  {
+    // Only a component next to a primitives/ folder may import from it, as ./primitives/
+    group: ['**/primitives/*', '!./primitives/*'],
+    message:
+      'Primitives are building blocks for the components beside them; import one of those components instead.',
+  },
+]
+
 export default withVueTs(
   includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
   globalIgnores(['src/api/resources.ts']),
@@ -108,25 +121,35 @@ export default withVueTs(
 
   {
     files: ['**/*.{ts,vue}'],
-    ignores: ['src/components/Icon/icons.ts'],
+    ignores: ['src/components/Icon/icons.ts', 'src/components/CodeEditor/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
+            ...restrictedImportPatterns,
             {
-              group: ['@/components/icons/*', '**/icons/*'],
-              message: 'Use <TIcon icon="..." /> instead; icons are registered in icons.ts.',
+              group: ['**/CodeEditor/CodeEditor.vue'],
+              message:
+                "Import CodeEditor from '@/components/CodeEditor', which loads Monaco lazily.",
             },
             {
-              // Only a component next to a primitives/ folder may import from it, as ./primitives/
-              group: ['**/primitives/*', '!./primitives/*'],
+              group: ['monaco-editor', 'monaco-editor/*', 'monaco-yaml', 'monaco-yaml/*'],
+              allowTypeImports: true,
               message:
-                'Primitives are building blocks for the components beside them; import one of those components instead.',
+                'Monaco is several MB and only loaded lazily by CodeEditor; import types only, and use the monaco API CodeEditor passes to validators.',
             },
           ],
         },
       ],
+    },
+  },
+
+  {
+    // CodeEditor owns Monaco and its lazy-loading entry point
+    files: ['src/components/CodeEditor/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: restrictedImportPatterns }],
     },
   },
 

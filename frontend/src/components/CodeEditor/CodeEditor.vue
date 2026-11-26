@@ -19,6 +19,16 @@ import { getDocsLink } from '@/methods'
 import { useTheme } from '@/methods/theme'
 import configSchemas from '@/schemas'
 
+/**
+ * Adds markers to the editor's model. Monaco is passed in so callers don't import it themselves, which would pull it into
+ * their chunk and defeat the lazy loading in ./index.ts.
+ */
+export type CodeEditorValidator = (
+  model: monaco.editor.ITextModel,
+  tokens: monaco.Token[],
+  api: typeof monaco,
+) => monaco.editor.IMarkerData[]
+
 // Monaco's internal workers (tokenization, folding, etc.) go through this path.
 window.MonacoEnvironment = {
   getWorker(_, label) {
@@ -170,10 +180,7 @@ import { majorMinorVersion } from '@/methods'
 
 type Props = {
   options?: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions
-  validators?: ((
-    model: monaco.editor.ITextModel,
-    tokens: monaco.Token[],
-  ) => monaco.editor.IMarkerData[])[]
+  validators?: CodeEditorValidator[]
   talosVersion?: string
   disableConfigValidation?: boolean
 }
@@ -284,7 +291,7 @@ watch(editor, (editor) => {
     if (!validators?.length) return
 
     const tokens = monaco.editor.tokenize(model.getValue(), 'yaml')
-    const markers = validators.flatMap((validator) => validator(model, tokens.flat()))
+    const markers = validators.flatMap((validator) => validator(model, tokens.flat(), monaco))
 
     monaco.editor.setModelMarkers(model, 'sanityCheck', markers)
   }

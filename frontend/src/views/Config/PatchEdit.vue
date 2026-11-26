@@ -5,8 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type monaco from 'monaco-editor'
-import { MarkerSeverity, MarkerTag } from 'monaco-editor/editor'
 import { computed, ref, watch } from 'vue'
 import { type RouteLocationRaw, useRouter } from 'vue-router'
 
@@ -40,7 +38,7 @@ import {
   MachineStatusType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
-import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
+import CodeEditor, { type CodeEditorValidator } from '@/components/CodeEditor'
 import TIcon from '@/components/Icon/TIcon.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -121,8 +119,8 @@ const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   runtime: Runtime.Omni,
 }))
 
-const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]) => {
-  const markers: monaco.editor.IMarkerData[] = []
+const checkEncryption: CodeEditorValidator = (model, tokens, { MarkerSeverity, MarkerTag }) => {
+  const markers: ReturnType<CodeEditorValidator> = []
   if (!cluster.value?.spec?.features?.disk_encryption) {
     return markers
   }

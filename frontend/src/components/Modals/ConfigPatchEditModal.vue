@@ -11,7 +11,7 @@ import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/Button/TButton.vue'
-import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
+import CodeEditor from '@/components/CodeEditor'
 import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
 import { showError } from '@/notification'
@@ -98,11 +98,7 @@ const saveAndClose = async () => {
         </TButton>
       </div>
 
-      <CodeEditor
-        v-model="configChanges"
-        :talos-version="talosVersion"
-        class="h-80 w-full bg-surface-card"
-      />
+      <CodeEditor v-model="configChanges" :talos-version="talosVersion" class="h-80 w-full" />
     </div>
   </Modal>
 </template>
