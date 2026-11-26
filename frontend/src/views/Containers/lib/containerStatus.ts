@@ -109,13 +109,6 @@ export function waitingText(waitingFor?: string[]) {
   return extra ? `${waitingFor[0]} +${extra}` : waitingFor[0]
 }
 
-/** Splits an image reference so the registry path can be cut first: the name and tag stay visible. */
-export function splitImage(image: string) {
-  const slash = image.lastIndexOf('/', image.includes('@') ? image.indexOf('@') : undefined)
-
-  return { path: image.slice(0, slash + 1), name: image.slice(slash + 1) }
-}
-
 /** Time in a state, in at most two units: "12d 6h", "3h 5m", "3m", "41s". */
 export function formatSince(from: Date, now: Date) {
   const seconds = Math.max(0, Math.floor((now.getTime() - from.getTime()) / 1000))

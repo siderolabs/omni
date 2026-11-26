@@ -6,25 +6,32 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import WordHighlighter from 'vue-word-highlighter'
 
-import { splitImage } from '@/views/Containers/lib/containerStatus'
-
-const { image, digest } = defineProps<{
+const {
+  image,
+  digest,
+  search = '',
+} = defineProps<{
   image?: string
   digest?: string
+  /** Highlights where the image matches the search. */
+  search?: string
 }>()
 
-const parts = computed(() => (image ? splitImage(image) : undefined))
 const tooltip = computed(() =>
   [image, digest !== image ? digest : undefined].filter(Boolean).join('\n'),
 )
 </script>
 
 <template>
-  <!-- The registry path gives way first, so the name and tag stay visible -->
-  <span v-if="parts" class="flex min-w-0 font-mono" :title="tooltip">
-    <span class="truncate text-content-secondary">{{ parts.path }}</span>
-    <span class="shrink-0">{{ parts.name }}</span>
-  </span>
+  <WordHighlighter
+    v-if="image"
+    :query="search.trim()"
+    :text-to-highlight="image"
+    highlight-class="search-match"
+    class="block font-mono wrap-anywhere text-content-secondary"
+    :title="tooltip"
+  />
   <span v-else>—</span>
 </template>

@@ -7,7 +7,7 @@ import { expect, test } from 'vitest'
 import type { ContainerStatusSpec } from '@/api/talos/containers.pb'
 
 import type { ContainerRow } from './containerRows'
-import { type ContainerSort, filterContainers } from './filterContainers'
+import { filterContainers } from './filterContainers'
 
 const row = (
   id: string,
@@ -43,16 +43,18 @@ const rows = [
 
 const ids = (list: ContainerRow[]) => list.map((r) => r.id)
 
-test.each<[ContainerSort, string[]]>([
-  ['name', ['crashloop', 'tailscale', 'waiting', 'web']],
-  ['-name', ['web', 'waiting', 'tailscale', 'crashloop']],
-  ['-restarts', ['crashloop', 'web', 'waiting', 'tailscale']],
-  ['restarts', ['tailscale', 'waiting', 'web', 'crashloop']],
+test.each<[string, boolean, string[]]>([
+  ['name', false, ['crashloop', 'tailscale', 'waiting', 'web']],
+  ['name', true, ['web', 'waiting', 'tailscale', 'crashloop']],
+  ['restarts', true, ['crashloop', 'web', 'waiting', 'tailscale']],
+  ['restarts', false, ['tailscale', 'waiting', 'web', 'crashloop']],
   // no reading sorts last, by name
-  ['-cpu', ['tailscale', 'web', 'crashloop', 'waiting']],
-  ['-memory', ['web', 'tailscale', 'crashloop', 'waiting']],
-])('sorts by %s', (sort, expected) => {
-  expect(ids(filterContainers(rows, { sort }))).toEqual(expected)
+  ['cpu', true, ['tailscale', 'web', 'crashloop', 'waiting']],
+  ['memory', true, ['web', 'tailscale', 'crashloop', 'waiting']],
+  // a field from a hand-edited URL
+  ['nonsense', false, ['crashloop', 'tailscale', 'waiting', 'web']],
+])('sorts by %s, descending %s', (sortByField, sortDescending, expected) => {
+  expect(ids(filterContainers(rows, { sortByField, sortDescending }))).toEqual(expected)
 })
 
 test.each([

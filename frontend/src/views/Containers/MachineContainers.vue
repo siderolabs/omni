@@ -31,6 +31,8 @@ import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useResourceSearch } from '@/methods/resource/useResourceSearch'
+import { useResourceSort } from '@/methods/resource/useResourceSort'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ContainerDetailCell from '@/views/Containers/components/ContainerDetailCell.vue'
 import ContainerImage from '@/views/Containers/components/ContainerImage.vue'
@@ -39,7 +41,6 @@ import { formatCPU } from '@/views/Containers/lib/containerStats'
 import { formatSince, stateAppearance, stateName } from '@/views/Containers/lib/containerStatus'
 import {
   containerHealthFilterOptions,
-  type ContainerSort,
   containerSortOptions,
   filterContainers,
 } from '@/views/Containers/lib/filterContainers'
@@ -82,9 +83,18 @@ const { metrics } = useContainerStats(
 // Since counts in seconds, so a tick a second is enough
 const now = useNow({ scheduler: (cb) => useIntervalFn(cb, 1000) })
 
+// The search and status filter live in the URL, as on other lists. The search matches the raw text:
+// `searchQuery` would drop "name:value" words as label selectors, and images are full of them
 const search = ref('')
-const healthFilter = ref<string>()
-const sort = ref<ContainerSort>('name')
+const { selectedFilterOption: healthFilter } = useResourceSearch({
+  filterValue: search,
+  filterOptions: containerHealthFilterOptions,
+})
+const {
+  watchOptions: sort,
+  selectValues: sortValues,
+  selectedValue: sortSelected,
+} = useResourceSort({ sortOptions: containerSortOptions })
 
 const rows = computed(() =>
   containerRows(statuses.value, images.value, instances.value, metrics.value),
@@ -94,7 +104,7 @@ const visibleRows = computed(() =>
   filterContainers(rows.value, {
     search: search.value,
     health: healthFilter.value,
-    sort: sort.value,
+    ...sort.value,
   }),
 )
 </script>
@@ -129,10 +139,10 @@ const visibleRows = computed(() =>
 
         <TSelectList v-model="healthFilter" title="Status" :values="containerHealthFilterOptions" />
         <TSelectList
-          v-model="sort"
+          v-model="sortSelected"
           title="Sort by"
           hide-selected-small-screens
-          :values="[...containerSortOptions]"
+          :values="sortValues"
         />
       </div>
 
@@ -160,14 +170,13 @@ const visibleRows = computed(() =>
             <TableRow v-for="row in visibleRows" :key="row.id">
               <!-- The name, with its image under it -->
               <TableCell>
-                <div class="truncate text-content-emphasis" :title="row.id">
-                  <WordHighlighter
-                    :query="search.trim()"
-                    :text-to-highlight="row.id"
-                    highlight-class="search-match"
-                  />
-                </div>
-                <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" />
+                <WordHighlighter
+                  :query="search.trim()"
+                  :text-to-highlight="row.id"
+                  highlight-class="search-match"
+                  class="block wrap-anywhere text-content-emphasis"
+                />
+                <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" :search />
               </TableCell>
 
               <TableCell>
@@ -197,7 +206,7 @@ const visibleRows = computed(() =>
               </TableCell>
 
               <TableCell>
-                <ContainerDetailCell :row />
+                <ContainerDetailCell :row :search />
               </TableCell>
 
               <TableCell>

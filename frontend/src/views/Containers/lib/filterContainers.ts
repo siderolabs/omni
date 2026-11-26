@@ -2,18 +2,17 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import type { ResourceSortOption } from '@/methods/resource/useResourceSort'
 import { type ContainerRow, imageRef } from '@/views/Containers/lib/containerRows'
 
-export const containerSortOptions = [
-  { label: 'Name ⬆', value: 'name' },
-  { label: 'Name ⬇', value: '-name' },
-  { label: 'Restarts ⬇', value: '-restarts' },
-  { label: 'Restarts ⬆', value: 'restarts' },
-  { label: 'CPU ⬇', value: '-cpu' },
-  { label: 'Memory ⬇', value: '-memory' },
-] as const
-
-export type ContainerSort = (typeof containerSortOptions)[number]['value']
+export const containerSortOptions: ResourceSortOption[] = [
+  { id: 'name', desc: 'Name ⬆' },
+  { id: 'name', desc: 'Name ⬇', descending: true },
+  { id: 'restarts', desc: 'Restarts ⬇', descending: true },
+  { id: 'restarts', desc: 'Restarts ⬆' },
+  { id: 'cpu', desc: 'CPU ⬇', descending: true },
+  { id: 'memory', desc: 'Memory ⬇', descending: true },
+]
 
 export const containerHealthFilterOptions = [
   { label: 'All' },
@@ -37,19 +36,20 @@ const compare: Record<string, (a: ContainerRow, b: ContainerRow) => number> = {
 
 /**
  * Filters and sorts the containers. The search matches a substring of the name, image, state or
- * error, ignoring case.
+ * error, ignoring case. A sort field it doesn't know, such as one edited into the URL, sorts by
+ * name.
  */
 export function filterContainers(
   rows: ContainerRow[],
   {
     search = '',
     health,
-    sort = 'name',
-  }: { search?: string; health?: string; sort?: ContainerSort },
+    sortByField = 'name',
+    sortDescending = false,
+  }: { search?: string; health?: string; sortByField?: string; sortDescending?: boolean },
 ) {
   const query = search.trim().toLowerCase()
-  const descending = sort.startsWith('-')
-  const cmp = compare[descending ? sort.slice(1) : sort]
+  const cmp = compare[sortByField] ?? byName
 
   return rows
     .filter((r) => !health || r.status.health === health)
@@ -60,5 +60,5 @@ export function filterContainers(
           field?.toLowerCase().includes(query),
         ),
     )
-    .sort((a, b) => (descending ? cmp(b, a) : cmp(a, b)))
+    .sort((a, b) => (sortDescending ? cmp(b, a) : cmp(a, b)))
 }

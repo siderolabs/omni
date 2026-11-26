@@ -8,7 +8,6 @@ import {
   formatSince,
   healthAppearance,
   healthName,
-  splitImage,
   stateAppearance,
   stateName,
   waitingText,
@@ -50,15 +49,6 @@ test.each([
   [['path: /run/x', 'volume: data', 'network'], 'path: /run/x +2'],
 ])('waitingText(%j)', (waitingFor, expected) => {
   expect(waitingText(waitingFor)).toBe(expected)
-})
-
-test.each([
-  ['quay.io/prometheus/node-exporter:v1.10.2', 'quay.io/prometheus/', 'node-exporter:v1.10.2'],
-  ['nginx:1.27', '', 'nginx:1.27'],
-  ['docker.io/library/nginx@sha256:abc/def', 'docker.io/library/', 'nginx@sha256:abc/def'],
-  ['localhost:5000/app:1', 'localhost:5000/', 'app:1'],
-])('splitImage(%s)', (image, path, name) => {
-  expect(splitImage(image)).toEqual({ path, name })
 })
 
 test.each([

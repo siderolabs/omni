@@ -6,13 +6,16 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import WordHighlighter from 'vue-word-highlighter'
 
 import StatusGlyph from '@/components/Status/StatusGlyph.vue'
 import type { ContainerRow } from '@/views/Containers/lib/containerRows'
 import { stateAppearance, waitingText } from '@/views/Containers/lib/containerStatus'
 
-const { row } = defineProps<{
+const { row, search = '' } = defineProps<{
   row: ContainerRow
+  /** Highlights where the error matches the search. */
+  search?: string
 }>()
 
 const error = computed(
@@ -36,7 +39,13 @@ const needsAttention = computed(
       class="shrink-0"
       aria-hidden="true"
     />
-    <span class="truncate font-mono">{{ error }}</span>
+    <span class="truncate font-mono">
+      <WordHighlighter
+        :query="search.trim()"
+        :text-to-highlight="error"
+        highlight-class="search-match"
+      />
+    </span>
   </span>
 
   <span v-else-if="waiting" class="block truncate">
