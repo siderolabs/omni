@@ -13,6 +13,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/fatih/color"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -124,7 +126,30 @@ func syncUpdate(ctx context.Context, p template.UpdateChange, out io.Writer, st 
 		return nil
 	}
 
-	return st.Update(ctx, p.New)
+	err := st.Update(ctx, p.New)
+	if err != nil && isRefused(err) && releasesFromTemplate(p) {
+		// The sync does not change the resource here, it only stops marking it as managed by the template.
+		// A user who manages the cluster, but not the settings of its machines, cannot do that, and it must not fail the sync.
+		color.New(color.FgYellow).Fprintf(out, "* skipped %s: no access, it stays marked as managed by cluster templates\n", color.New(color.Bold).Sprint(utils.Describe(p.New))) //nolint:errcheck
+
+		return nil
+	}
+
+	return err
+}
+
+// releasesFromTemplate reports whether the update removes the mark of the resources managed by cluster templates.
+func releasesFromTemplate(p template.UpdateChange) bool {
+	_, wasManaged := p.Old.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+	_, isManaged := p.New.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+
+	return wasManaged && !isManaged
+}
+
+// isRefused reports whether Omni refused the write because the caller has no access.
+// The state client of omnictl returns such a refusal as an owner conflict.
+func isRefused(err error) bool {
+	return status.Code(err) == codes.PermissionDenied || state.IsOwnerConflictError(err)
 }
 
 func splitClusterLockChanges(updates []template.UpdateChange) (lockChanges, rest []template.UpdateChange) {
@@ -160,6 +185,40 @@ func syncDelete(ctx context.Context, syncResult *template.SyncResult, out io.Wri
 	return nil
 }
 
+// watchTeardown starts the watches which follow the teardown of the resources.
+//
+// A user who has access to a single cluster cannot watch all resources of a type. So the resources of a cluster are watched
+// using the cluster label, and a resource without the label (the cluster itself, a setting of a machine) is watched by its ID.
+func watchTeardown(ctx context.Context, st state.State, toDelete []resource.Resource, events chan<- state.Event) error {
+	watched := map[resource.Type]struct{}{}
+
+	for _, r := range toDelete {
+		cluster, ok := r.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			if err := st.Watch(ctx, r.Metadata(), events); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		if _, ok = watched[r.Metadata().Type()]; ok {
+			continue
+		}
+
+		watched[r.Metadata().Type()] = struct{}{}
+
+		if err := st.WatchKind(
+			ctx, resource.NewMetadata(resources.DefaultNamespace, r.Metadata().Type(), "", resource.VersionUndefined), events,
+			state.WithBootstrapContents(true), state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)),
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 //nolint:gocognit,gocyclo,cyclop
 func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out io.Writer, st state.State, syncOptions SyncOptions) error {
 	ctx, cancel := context.WithCancel(ctx)
@@ -174,16 +233,9 @@ func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out 
 	}
 
 	teardownWatch := make(chan state.Event)
-	tearingDownResourceTypes := map[resource.Type]struct{}{}
 
-	for _, r := range toDelete {
-		tearingDownResourceTypes[r.Metadata().Type()] = struct{}{}
-	}
-
-	for resourceType := range tearingDownResourceTypes {
-		if err := st.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, resourceType, "", resource.VersionUndefined), teardownWatch, state.WithBootstrapContents(true)); err != nil {
-			return err
-		}
+	if err := watchTeardown(ctx, st, toDelete, teardownWatch); err != nil {
+		return err
 	}
 
 	tearingDownResources := map[string]struct{}{}

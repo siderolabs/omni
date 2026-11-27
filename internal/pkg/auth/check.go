@@ -30,7 +30,6 @@ var (
 // CheckOptions are the options for the checks.
 type CheckOptions struct {
 	Role           role.Role
-	ExactRoles     []role.Role
 	VerifiedEmail  bool
 	ValidSignature bool
 }
@@ -65,15 +64,6 @@ type CheckOption func(*CheckOptions)
 func WithRole(role role.Role) CheckOption {
 	return func(opts *CheckOptions) {
 		opts.Role = role
-	}
-}
-
-// WithExactRoles checks the context to have exactly one of the given roles.
-//
-// If specified, WithRole is ignored and the role is checked against the given set of roles.
-func WithExactRoles(roles ...role.Role) CheckOption {
-	return func(opts *CheckOptions) {
-		opts.ExactRoles = roles
 	}
 }
 
@@ -118,7 +108,7 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	}
 
 	// If the required role is other than role.None, we always check the signature.
-	if opts.Role != role.None || len(opts.ExactRoles) > 0 {
+	if opts.Role != role.None {
 		opts.ValidSignature = true
 	}
 
@@ -148,15 +138,7 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 		return CheckResult{}, fmt.Errorf("%w: missing valid signature", ErrUnauthenticated)
 	}
 
-	if len(opts.ExactRoles) > 0 {
-		found := slices.Contains(opts.ExactRoles, ctxRole)
-
-		if !found {
-			// deliberately not phrased as an insufficient role: an exact-role check can reject an actor
-			// that outranks every allowed role, which is the point of using one.
-			return CheckResult{}, fmt.Errorf("%w: role %q is not one of the allowed roles %v", ErrUnauthorized, ctxRole, opts.ExactRoles)
-		}
-	} else if opts.Role != role.None {
+	if opts.Role != role.None {
 		err := ctxRole.Check(opts.Role)
 		if err != nil {
 			return CheckResult{}, fmt.Errorf("%w: %v", ErrUnauthorized, err) //nolint:errorlint

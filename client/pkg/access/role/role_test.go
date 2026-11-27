@@ -60,45 +60,10 @@ func TestAuditorIsNotWriter(t *testing.T) {
 
 // TestOperatorOutranksAuditor documents why audit log access cannot be a threshold check. Operator sits
 // above Auditor in the ordering, so a Check-based gate would hand the audit log to every Operator. The
-// audit log is therefore gated by exact role at its call sites.
+// audit log is therefore never checked using the ordering.
 func TestOperatorOutranksAuditor(t *testing.T) {
 	assert.NoError(t, role.Operator.Check(role.Auditor))
 	assert.NoError(t, role.Admin.Check(role.Auditor))
-}
-
-func TestCanReadAuditLog(t *testing.T) {
-	for _, r := range all {
-		want := r == role.Auditor || r == role.Admin
-		assert.Equal(t, want, role.CanReadAuditLog(r), "CanReadAuditLog(%q)", r)
-	}
-
-	assert.False(t, role.CanReadAuditLog(role.Operator),
-		"Operator outranks Auditor but must never read the audit log")
-}
-
-// TestMinDoesNotSynthesizeAuditAccess is the regression for a privilege inversion. Auditor sits below
-// Operator, so capping by rank alone made Min(Operator, Auditor) return Auditor. An Operator could then
-// register a public key as Auditor, or keep an old Auditor key after being changed to Operator, and read
-// the audit log with an effective role neither input legitimately held.
-func TestMinDoesNotSynthesizeAuditAccess(t *testing.T) {
-	for _, other := range []role.Role{role.None, role.InfraProvider, role.Reader, role.Operator} {
-		got, err := role.Min(role.Auditor, other)
-		require.NoError(t, err)
-		assert.False(t, role.CanReadAuditLog(got),
-			"Min(Auditor, %q) = %q must not be able to read the audit log", other, got)
-
-		got, err = role.Min(other, role.Auditor)
-		require.NoError(t, err)
-		assert.False(t, role.CanReadAuditLog(got),
-			"Min(%q, Auditor) = %q must not be able to read the audit log", other, got)
-	}
-
-	// audit access survives only when every input has it.
-	for _, pair := range [][2]role.Role{{role.Auditor, role.Auditor}, {role.Auditor, role.Admin}, {role.Admin, role.Auditor}} {
-		got, err := role.Min(pair[0], pair[1])
-		require.NoError(t, err)
-		assert.Equal(t, role.Auditor, got, "Min(%q, %q)", pair[0], pair[1])
-	}
 }
 
 // TestPrevious pins the ordering as seen by Previous, which the integration auth matrix uses to derive
@@ -123,21 +88,16 @@ func TestPrevious(t *testing.T) {
 	assert.Error(t, err, "the lowest role has no predecessor")
 }
 
-func TestMinMax(t *testing.T) {
+func TestMax(t *testing.T) {
 	for _, tt := range []struct {
-		a, b, min, max role.Role
+		a, b, max role.Role
 	}{
-		{role.Reader, role.Admin, role.Reader, role.Admin},
-		{role.Auditor, role.Admin, role.Auditor, role.Admin},
-		{role.Auditor, role.Reader, role.Reader, role.Auditor},
-		// not Auditor: mixing with a role that cannot read the audit log drops that access.
-		{role.Auditor, role.Operator, role.Reader, role.Operator},
-		{role.None, role.Auditor, role.None, role.Auditor},
+		{role.Reader, role.Admin, role.Admin},
+		{role.Auditor, role.Admin, role.Admin},
+		{role.Auditor, role.Reader, role.Auditor},
+		{role.Auditor, role.Operator, role.Operator},
+		{role.None, role.Auditor, role.Auditor},
 	} {
-		minRole, err := role.Min(tt.a, tt.b)
-		require.NoError(t, err)
-		assert.Equal(t, tt.min, minRole, "Min(%q, %q)", tt.a, tt.b)
-
 		maxRole, err := role.Max(tt.a, tt.b)
 		require.NoError(t, err)
 		assert.Equal(t, tt.max, maxRole, "Max(%q, %q)", tt.a, tt.b)

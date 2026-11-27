@@ -246,18 +246,12 @@ resources:
       - ExposedServices.omni.sidero.dev
       - ImagePullRequests.omni.sidero.dev
       - ImagePullStatuses.omni.sidero.dev
-      - KernelArgsStatuses.omni.sidero.dev
       - KubernetesHealthCheckStatuses.omni.sidero.dev
       - MachineConfigDiffs.omni.sidero.dev
       - MachineExtensions.omni.sidero.dev
-      - MachineExtensionsStatuses.omni.sidero.dev
-      - MachineInstallDiskStatuses.omni.sidero.dev
-      - MachineOperationStatuses.omni.sidero.dev
       - MachinePendingUpdates.omni.sidero.dev
       - MachineSetStatuses.omni.sidero.dev
-      - MachineUpgradeStatuses.omni.sidero.dev
       - RedactedClusterMachineConfigs.omni.sidero.dev
-      - SchematicConfigurations.omni.sidero.dev
     cases:
       - case: a resource in cluster-a
         allowed: [get, watch]
@@ -339,12 +333,6 @@ resources:
 
   - types:
       - ConfigPatches.omni.sidero.dev
-      - ExtensionsConfigurations.omni.sidero.dev
-      - KubernetesHealthChecks.omni.sidero.dev
-      - KubernetesManifestGroups.omni.sidero.dev
-      - MachineSetNodes.omni.sidero.dev
-      - MachineSets.omni.sidero.dev
-      - NodeForceDestroyRequests.omni.sidero.dev
     cases:
       - case: a resource in cluster-a
         allowed: [get, watch, create, update, destroy]
@@ -359,7 +347,7 @@ resources:
       - case: a resource which does not exist
         denied: [get, watch, create, update, destroy]
       - case: all resources
-        allowed: [list, watch]
+        denied: [list, watch]
       - case: all resources in cluster-a
         allowed: [list, watch]
       - case: all resources in cluster-b
@@ -367,7 +355,7 @@ resources:
       - case: all resources in cluster-a or cluster-b
         allowed: [list, watch]
       - case: all resources not in cluster-a
-        allowed: [list, watch]
+        denied: [list, watch]
 
   - types:
       - CurrentUsers.omni.sidero.dev
@@ -414,6 +402,37 @@ resources:
         error: [list]
 
   - types:
+      - ExtensionsConfigurations.omni.sidero.dev
+      - KubernetesHealthChecks.omni.sidero.dev
+      - KubernetesManifestGroups.omni.sidero.dev
+      - MachineSetNodes.omni.sidero.dev
+      - MachineSets.omni.sidero.dev
+      - NodeForceDestroyRequests.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource in cluster-b
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        allowed: [get, watch, create, update, destroy]
+      - case: a resource of a machine in no cluster
+        denied: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        allowed: [move]
+      - case: a resource which does not exist
+        denied: [get, watch, create, update, destroy]
+      - case: all resources
+        allowed: [list, watch]
+      - case: all resources in cluster-a
+        allowed: [list, watch]
+      - case: all resources in cluster-b
+        allowed: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        allowed: [list, watch]
+      - case: all resources not in cluster-a
+        allowed: [list, watch]
+
+  - types:
       - ImportedClusterSecrets.omni.sidero.dev
     cases:
       - case: a resource in cluster-a
@@ -442,6 +461,40 @@ resources:
         denied: [list, watch]
       - case: all resources in cluster-a or cluster-b
         denied: [list, watch]
+      - case: all resources not in cluster-a
+        denied: [list, watch]
+
+  - types:
+      - KernelArgsStatuses.omni.sidero.dev
+      - MachineExtensionsStatuses.omni.sidero.dev
+      - MachineInstallDiskStatuses.omni.sidero.dev
+      - MachineOperationStatuses.omni.sidero.dev
+      - MachineUpgradeStatuses.omni.sidero.dev
+      - SchematicConfigurations.omni.sidero.dev
+    cases:
+      - case: a resource in cluster-a
+        allowed: [get, watch]
+        denied: [create, update, destroy]
+      - case: a resource in cluster-b
+        allowed: [get, watch]
+        denied: [create, update, destroy]
+      - case: a resource of a machine in cluster-a
+        allowed: [get, watch]
+        denied: [create, update, destroy]
+      - case: a resource of a machine in no cluster
+        denied: [get, watch, create, update, destroy]
+      - case: moving a resource from cluster-a to cluster-b
+        denied: [move]
+      - case: a resource which does not exist
+        denied: [get, watch, create, update, destroy]
+      - case: all resources
+        denied: [list, watch]
+      - case: all resources in cluster-a
+        allowed: [list, watch]
+      - case: all resources in cluster-b
+        allowed: [list, watch]
+      - case: all resources in cluster-a or cluster-b
+        allowed: [list, watch]
       - case: all resources not in cluster-a
         denied: [list, watch]
 

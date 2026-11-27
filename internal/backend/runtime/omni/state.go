@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -38,6 +39,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/version"
@@ -488,6 +490,15 @@ func NewTestState(logger *zap.Logger) (*State, error) {
 // NewAuthorizedState is for tests. It returns the production composition of the namespaced state over in-memory storage, with only the
 // authorization checks on top. The second state is the same composition without the authorization checks.
 func NewAuthorizedState(apiURL string) (authorized, unauthorized state.State, err error) {
+	return newTestState(apiURL, false)
+}
+
+// NewValidatedState is for tests. It is NewAuthorizedState with all validations of the resource API on top, the same ones as in production.
+func NewValidatedState(apiURL string) (validatedState, unauthorized state.State, err error) {
+	return newTestState(apiURL, true)
+}
+
+func newTestState(apiURL string, allValidations bool) (checked, unauthorized state.State, err error) {
 	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	if err != nil {
 		return nil, nil, err
@@ -498,5 +509,10 @@ func NewAuthorizedState(apiURL string) (authorized, unauthorized state.State, er
 
 	unauthorized = state.WrapCore(newNamespacedState(defaultCoreState, inmem.NewState(), virtualState, zap.NewNop(), storeFactory))
 
-	return state.WrapCore(validated.NewState(unauthorized, authorizationValidationOptions(unauthorized)...)), unauthorized, nil
+	options := authorizationValidationOptions(unauthorized)
+	if allValidations {
+		options = slices.Concat(options, validations.Options(unauthorized, storeFactory, config.Default()))
+	}
+
+	return state.WrapCore(validated.NewState(unauthorized, options...)), unauthorized, nil
 }
