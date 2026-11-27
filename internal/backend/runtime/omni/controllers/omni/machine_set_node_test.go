@@ -89,7 +89,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	defer cancel()
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetNodeController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 	suite.Require().NoError(suite.runtime.RegisterQController(destroy.NewController[*omni.MachineSetNode](optional.Some[uint](4))))
 

@@ -162,6 +162,8 @@ func init() {
 		if machineSetNode != nil {
 			clusterName, ok := machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
 			if ok {
+				res.TypedSpec().Value.Cluster = clusterName
+
 				cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
@@ -487,7 +489,7 @@ func init() {
 	})
 
 	setOwner[*omni.ClusterStatus](omnictrl.NewClusterStatusController(false).ControllerName)
-	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController().ControllerName)
+	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)
 	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil, false).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
@@ -495,7 +497,7 @@ func init() {
 	setOwner[*omni.MachineInstallDiskStatus](installdisk.NewStatusController().ControllerName)
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
-	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
+	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController(nil).ControllerName)
 	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineTalosVersion](talosupgrade.NewStatusController(nil).ControllerName)
