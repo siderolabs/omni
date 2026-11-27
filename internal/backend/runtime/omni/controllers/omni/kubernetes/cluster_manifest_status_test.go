@@ -6,7 +6,12 @@
 package kubernetes //nolint:testpackage // exercises unexported manifestGroupForObject.
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
+	"time"
+	"unicode/utf8"
 
 	fluxobject "github.com/fluxcd/cli-utils/pkg/object"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +21,26 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 )
+
+func TestManifestApplyWaitTimeout(t *testing.T) {
+	assert.Equal(t, 60*time.Second, manifestApplyWaitTimeout)
+	assert.Greater(t, manifestApplyWaitTimeout, 5*time.Second)
+}
+
+func TestRetryableManifestLastError(t *testing.T) {
+	assert.Equal(t, "retryable error occurred while applying manifests: context deadline exceeded", retryableManifestLastError(context.DeadlineExceeded))
+
+	message := retryableManifestLastError(errors.Join(context.DeadlineExceeded, errors.New(strings.Repeat("x", 512))))
+	assert.LessOrEqual(t, len(message), 512)
+	assert.True(t, strings.HasPrefix(message, "retryable error occurred while applying manifests: context deadline exceeded"))
+	assert.True(t, strings.HasSuffix(message, "..."))
+
+	// A cut through a multi-byte rune still yields valid UTF-8 inside the cap.
+	multibyte := retryableManifestLastError(errors.New(strings.Repeat("é", 512)))
+	assert.LessOrEqual(t, len(multibyte), 512)
+	assert.True(t, utf8.ValidString(multibyte))
+	assert.True(t, strings.HasSuffix(multibyte, "..."))
+}
 
 func TestManifestGroupForClusterScopedObjectWithNamespace(t *testing.T) {
 	manifest := &unstructured.Unstructured{}
