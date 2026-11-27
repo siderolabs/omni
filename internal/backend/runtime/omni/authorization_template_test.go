@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -22,6 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -250,6 +253,43 @@ func TestTemplateOperationsWithClusterAccess(t *testing.T) {
 
 			err = sync(ctx, clusterTemplate{cluster: otherCluster, kubernetes: "v1.33.0", talos: "v1.10.0", controlPlane: templateOtherMachine, maxMapCount: "262144"})
 			assert.Equal(t, codes.PermissionDenied, status.Code(err), "sync a cluster outside of the access policy rule: %v", err)
+		})
+	}
+
+	// The example templates of the client module, synced by an Admin: the access checks and the validations accept what they generate.
+	// The one which restores a cluster from an etcd backup is not here, as it needs a backup store.
+	examples := filepath.Join("..", "..", "..", "..", "client", "pkg", "template", "testdata")
+
+	root, err := os.OpenRoot(examples)
+	require.NoError(t, err)
+
+	for _, name := range []string{
+		"cluster1.yaml", "cluster2.yaml", "cluster3.yaml", "cluster-with-kernel-args.yaml",
+		"cluster-with-manifests.yaml", "cluster-with-healthchecks.yaml", "cluster-inline-bytes.yaml",
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := newValidatedWorld(t, authztest.GenerateKeys(t))
+
+			for _, version := range []string{"1.3.1", "1.5.0", "1.7.0", "1.11.5"} {
+				talosVersion := omni.NewTalosVersion(version)
+				talosVersion.TypedSpec().Value.Version = version
+				talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.18.2", "1.30.0", "1.34.2"}
+
+				extensions := omni.NewTalosExtensions(version)
+				for _, extension := range []string{"my-custom-extension", "hello-world-service", "some-extension"} {
+					extensions.TypedSpec().Value.Items = append(extensions.TypedSpec().Value.Items, &specs.TalosExtensionsSpec_Info{Name: "siderolabs/" + extension})
+				}
+
+				require.NoError(t, w.unauthorized.Create(t.Context(), talosVersion))
+				require.NoError(t, w.unauthorized.Create(t.Context(), extensions))
+			}
+
+			require.NoError(t, w.unauthorized.Create(t.Context(), omni.NewMachineClass("test")))
+
+			template, err := root.Open(name)
+			require.NoError(t, err)
+
+			require.NoError(t, operations.SyncTemplate(w.subjectContext(t, "admin"), template, io.Discard, w.authorized, operations.SyncOptions{}, root))
 		})
 	}
 }
