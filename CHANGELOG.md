@@ -1,3 +1,32 @@
+## [Omni 1.14.1](https://github.com/siderolabs/omni/releases/tag/v1.14.1) (2026-11-27)
+
+Welcome to the v1.14.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Matt Van Horn
+* Utku Ozdemir
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`d7da87d5d`](https://github.com/siderolabs/omni/commit/d7da87d5da874744a59ab89424dddcf5698c97d7) fix: raise cluster manifest readiness wait and surface truncated apply errors
+* [`066ab0a6f`](https://github.com/siderolabs/omni/commit/066ab0a6fb60da8f3c8e98e13a64ffa079aa0904) fix: do not allow API callers to set the owner of a resource
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.14.0](https://github.com/siderolabs/omni/releases/tag/v1.14.0)
+
 ## [Omni 1.14.0](https://github.com/siderolabs/omni/releases/tag/v1.14.0) (2026-11-23)
 
 Welcome to the v1.14.0 release of Omni!
