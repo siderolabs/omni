@@ -628,7 +628,7 @@ resources:
 flags:
   Permissions.omni.sidero.dev:
     can_read_clusters: true
-    can_create_clusters: true
+    can_create_clusters: false
     can_manage_users: false
     can_read_machines: true
     can_remove_machines: false
@@ -661,7 +661,7 @@ flags:
     can_read_kernel_args: true
     can_manage_kernel_args: false
     can_read_machine_pending_updates: true
-    can_read_kubernetes_manifests: false
+    can_read_kubernetes_manifests: true
   ClusterPermissions.omni.sidero.dev of cluster-b:
     can_add_machines: false
     can_remove_machines: false
@@ -680,4 +680,4 @@ flags:
     can_read_kernel_args: true
     can_manage_kernel_args: false
     can_read_machine_pending_updates: true
-    can_read_kubernetes_manifests: false
+    can_read_kubernetes_manifests: true

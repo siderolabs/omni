@@ -411,6 +411,45 @@ func TestCheckResourceGroup(t *testing.T) {
 	}
 }
 
+func TestCheckResourceGroupInAnyScope(t *testing.T) {
+	t.Parallel()
+
+	// a role written by a user, which can only create clusters
+	clusterCreator := &authz.Role{Name: "cluster-creator", Rules: []authz.Rule{{Groups: []authz.ResourceGroup{authz.Clusters}, Verbs: authz.Create}}}
+
+	for _, tt := range []struct {
+		name    string
+		subject authz.Subject
+		verb    authz.Verbs
+		code    codes.Code
+	}{
+		{name: "not signed in", verb: authz.Create, code: codes.Unauthenticated},
+		{name: "omni itself", verb: authz.Create, subject: authz.Subject{Internal: true}},
+		{name: "infra provider", verb: authz.Create, subject: authz.Subject{Authenticated: true, Provider: true}, code: codes.PermissionDenied},
+		{name: "no grants", verb: authz.Create, subject: authenticated(), code: codes.PermissionDenied},
+		{name: "everywhere", verb: authz.Create, subject: authenticated(on(authz.ClusterManager))},
+		{name: "on some clusters", verb: authz.Create, subject: authenticated(on(authz.ClusterManager, "team-a-*"))},
+		{name: "role written by a user, on some clusters", verb: authz.Create, subject: authenticated(on(clusterCreator, "team-a-*"))},
+		{name: "role written by a user, another verb", verb: authz.Update, subject: authenticated(on(clusterCreator, "team-a-*")), code: codes.PermissionDenied},
+		{name: "role without the verb", verb: authz.Create, subject: authenticated(on(authz.ClusterViewer, "team-a-*")), code: codes.PermissionDenied},
+		{name: "role about another group", verb: authz.Create, subject: authenticated(on(authz.MachineManager)), code: codes.PermissionDenied},
+		{
+			name: "suspended, write", verb: authz.Create,
+			subject: authz.Subject{Authenticated: true, Suspended: true, Grants: authz.PresetGrants(role.Admin)}, code: codes.PermissionDenied,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := authz.CheckResourceGroupInAnyScope(tt.subject, authz.Clusters, tt.verb)
+
+			assert.Equal(t, tt.code, status.Code(err))
+		})
+	}
+
+	assert.ErrorIs(t, authz.CheckResourceGroupInAnyScope(authenticated(), authz.Clusters, authz.Create), authz.ErrNoGrant)
+}
+
 func TestCheckInstallDiskConfig(t *testing.T) {
 	t.Parallel()
 

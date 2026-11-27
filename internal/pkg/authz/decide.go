@@ -107,6 +107,21 @@ func CheckResource(subject Subject, target Target) error {
 // It is for the requests which are about a resource group as a whole and not about a resource of some type,
 // like the RPCs of the management API. The type and the verb of the target are ignored.
 func CheckResourceGroup(subject Subject, group ResourceGroup, verb Verbs, target Target) error {
+	return checkResourceGroup(subject, group, verb, func(scope Scope) bool { return scope.covers(target) })
+}
+
+// CheckResourceGroupInAnyScope checks whether the subject has the verb on the resource group in at least one scope,
+// and returns an error when it has not.
+//
+// It is for a question which has no cluster yet, e.g., whether the UI lets the caller create a cluster:
+// the name of the new cluster is not known, and the grants of the caller can be limited to some cluster names.
+// It never decides a request. The request itself is checked with its real target.
+func CheckResourceGroupInAnyScope(subject Subject, group ResourceGroup, verb Verbs) error {
+	return checkResourceGroup(subject, group, verb, func(scope Scope) bool { return scope.Global || len(scope.Clusters) > 0 })
+}
+
+// checkResourceGroup checks whether a grant of the subject, in a scope which inScope accepts, allows the verb on the resource group.
+func checkResourceGroup(subject Subject, group ResourceGroup, verb Verbs, inScope func(Scope) bool) error {
 	switch {
 	case subject.Internal:
 		return nil
@@ -116,11 +131,15 @@ func CheckResourceGroup(subject Subject, group ResourceGroup, verb Verbs, target
 		return status.Error(codes.PermissionDenied, "infra providers have no access")
 	case subject.Suspended && verb != Read:
 		return status.Error(codes.PermissionDenied, "the instance is suspended, only read access is permitted")
-	case !subject.grants(group, verb, target):
-		return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verb, group)}
 	}
 
-	return nil
+	for _, grant := range subject.Grants {
+		if inScope(grant.Scope) && grant.Role.allows(group, verb) {
+			return nil
+		}
+	}
+
+	return noGrantError{status.Errorf(codes.PermissionDenied, "no role grants %s access to %s", verb, group)}
 }
 
 // CheckOperation checks whether the subject can do the operation on the target, and returns an error when it cannot.
