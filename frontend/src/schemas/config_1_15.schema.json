@@ -332,7 +332,7 @@
         "apiVersion",
         "kind"
       ],
-      "description": "ExistingVolumeConfig is an existing volume configuration document.\\nExisting volumes allow to mount partitions (or whole disks) that were created\\noutside of Talos. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe name must not be taken by a user or external volume.\\n"
+      "description": "ExistingVolumeConfig is an existing volume configuration document.\\nExisting volumes allow to mount partitions (or whole disks) that were created\\noutside of Talos. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe name must not be taken by a user, external or inline data volume.\\n"
     },
     "block.ExternalMountSpec": {
       "properties": {
@@ -427,7 +427,7 @@
         "apiVersion",
         "kind"
       ],
-      "description": "ExternalVolumeConfig is an external disk mount configuration document.\\nExternal volumes allow to mount volumes that were created outside of Talos,\\nover the network or API. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe name must not be taken by a user or existing volume.\\n"
+      "description": "ExternalVolumeConfig is an external disk mount configuration document.\\nExternal volumes allow to mount volumes that were created outside of Talos,\\nover the network or API. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe name must not be taken by a user, existing or inline data volume.\\n"
     },
     "block.FilesystemScrubConfigV1Alpha1": {
       "properties": {
@@ -556,6 +556,84 @@
         "kind"
       ],
       "description": "FilesystemTrimConfig is a filesystem trim (fstrim) configuration document.\\nFilesystem trim (the equivalent of the `fstrim` command) periodically discards unused blocks\\nof mounted filesystems which support trimming.\\n\\nWhen this document is present, Talos builds a stable per-node, per-volume schedule and trims\\neligible volumes at the configured interval. If the document is absent, no automatic trimming\\nis performed (unless enabled explicitly on a per-volume basis).\\n"
+    },
+    "block.InlineDataVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "InlineDataVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the volume.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume.\u003c/p\u003e\n\n\u003cp\u003eName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "secret": {
+          "type": "boolean",
+          "title": "secret",
+          "description": "Redacts file paths and contents when the machine configuration is redacted.\nFiles are still rendered in full.\n\nDefaults to false.\n",
+          "markdownDescription": "Redacts file paths and contents when the machine configuration is redacted.\nFiles are still rendered in full.\n\nDefaults to `false`.",
+          "x-intellij-html-description": "\u003cp\u003eRedacts file paths and contents when the machine configuration is redacted.\nFiles are still rendered in full.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003efalse\u003c/code\u003e.\u003c/p\u003e\n"
+        },
+        "files": {
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/$defs/block.InlineDataVolumeFileV1Alpha1"
+            }
+          },
+          "type": "object",
+          "title": "files",
+          "description": "Files of the volume, keyed by the path relative to the volume root.\n\nPaths may contain subdirectories, which are created automatically.\nPath components must not start with .., and must be at most 255 bytes long.\nPaths must be at most 1024 bytes long.\nThere may be at most 256 files in at most 256 distinct directories,\nand their total size, each rounded up to 4 KiB, must not exceed 1 MiB.\n",
+          "markdownDescription": "Files of the volume, keyed by the path relative to the volume root.\n\nPaths may contain subdirectories, which are created automatically.\nPath components must not start with `..`, and must be at most 255 bytes long.\nPaths must be at most 1024 bytes long.\nThere may be at most 256 files in at most 256 distinct directories,\nand their total size, each rounded up to 4 KiB, must not exceed 1 MiB.",
+          "x-intellij-html-description": "\u003cp\u003eFiles of the volume, keyed by the path relative to the volume root.\u003c/p\u003e\n\n\u003cp\u003ePaths may contain subdirectories, which are created automatically.\nPath components must not start with \u003ccode\u003e..\u003c/code\u003e, and must be at most 255 bytes long.\nPaths must be at most 1024 bytes long.\nThere may be at most 256 files in at most 256 distinct directories,\nand their total size, each rounded up to 4 KiB, must not exceed 1 MiB.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "files",
+        "kind",
+        "name"
+      ],
+      "description": "InlineDataVolumeConfig is an inline data volume configuration document.\\nInline data volume is a set of files defined inline, similar to a Kubernetes ConfigMap.\\nThe files are kept in memory (`tmpfs`), which only Talos can write to.\\nContainers mount it read-only with a `volume` mount in `ContainerConfig`.\\nThe name must not be taken by a user, existing or external volume.\\n\\nChanges to the files are applied in place, without restarting containers:\\nthe files are replaced atomically as a whole, by swapping the `..data` symbolic link\\nto a directory holding the new set of files.\\nEach top-level entry of the volume is a symbolic link into `..data`.\\n"
+    },
+    "block.InlineDataVolumeFileV1Alpha1": {
+      "properties": {
+        "mode": {
+          "type": "integer",
+          "title": "mode",
+          "description": "The file’s permissions in octal.\n\nDefaults to 0o644.\n",
+          "markdownDescription": "The file's permissions in octal.\n\nDefaults to `0o644`.",
+          "x-intellij-html-description": "\u003cp\u003eThe file\u0026rsquo;s permissions in octal.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003e0o644\u003c/code\u003e.\u003c/p\u003e\n"
+        },
+        "contents": {
+          "type": "string",
+          "title": "contents",
+          "description": "The contents of the file.\n",
+          "markdownDescription": "The contents of the file.",
+          "x-intellij-html-description": "\u003cp\u003eThe contents of the file.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "InlineDataVolumeFileV1Alpha1 describes a single file of an inline data volume."
     },
     "block.MountSpec": {
       "properties": {
@@ -952,6 +1030,33 @@
           "description": "Enable secure mount options (nosuid, nodev, noexec).\n\nDefaults to true for better security.\n",
           "markdownDescription": "Enable secure mount options (nosuid, nodev, noexec).\n\nDefaults to true for better security.",
           "x-intellij-html-description": "\u003cp\u003eEnable secure mount options (nosuid, nodev, noexec).\u003c/p\u003e\n\n\u003cp\u003eDefaults to true for better security.\u003c/p\u003e\n"
+        },
+        "owner": {
+          "type": "integer",
+          "maximum": 4294967294,
+          "minimum": 0,
+          "title": "owner",
+          "description": "The user ID owning the mount point of the volume (/var/mnt/\u0026lt;name\u0026gt;).\n\nOnly the mount point itself is changed, not the files and directories under it.\nContainers running as different users can share the volume through a common group.\n\nDefaults to 0 (root).\n",
+          "markdownDescription": "The user ID owning the mount point of the volume (`/var/mnt/\u003cname\u003e`).\n\nOnly the mount point itself is changed, not the files and directories under it.\nContainers running as different users can share the volume through a common `group`.\n\nDefaults to `0` (root).",
+          "x-intellij-html-description": "\u003cp\u003eThe user ID owning the mount point of the volume (\u003ccode\u003e/var/mnt/\u0026lt;name\u0026gt;\u003c/code\u003e).\u003c/p\u003e\n\n\u003cp\u003eOnly the mount point itself is changed, not the files and directories under it.\nContainers running as different users can share the volume through a common \u003ccode\u003egroup\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003e0\u003c/code\u003e (root).\u003c/p\u003e\n"
+        },
+        "group": {
+          "type": "integer",
+          "maximum": 4294967294,
+          "minimum": 0,
+          "title": "group",
+          "description": "The group ID owning the mount point of the volume (/var/mnt/\u0026lt;name\u0026gt;).\n\nOnly the mount point itself is changed, not the files and directories under it.\n\nDefaults to 0 (root).\n",
+          "markdownDescription": "The group ID owning the mount point of the volume (`/var/mnt/\u003cname\u003e`).\n\nOnly the mount point itself is changed, not the files and directories under it.\n\nDefaults to `0` (root).",
+          "x-intellij-html-description": "\u003cp\u003eThe group ID owning the mount point of the volume (\u003ccode\u003e/var/mnt/\u0026lt;name\u0026gt;\u003c/code\u003e).\u003c/p\u003e\n\n\u003cp\u003eOnly the mount point itself is changed, not the files and directories under it.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003e0\u003c/code\u003e (root).\u003c/p\u003e\n"
+        },
+        "mode": {
+          "type": "integer",
+          "maximum": 4095,
+          "minimum": 0,
+          "title": "mode",
+          "description": "The permissions of the mount point of the volume (/var/mnt/\u0026lt;name\u0026gt;) in octal.\n\nThe value must be written in octal notation (0o2770 or 02770): an unprefixed\nnumber such as 2770 is rejected, as YAML would read it as decimal.\n\nThe setuid (0o4000), setgid (0o2000) and sticky (0o1000) bits may be set:\nwith setgid, files created in the volume inherit the group of the mount point.\n\nDefaults to 0o755.\n",
+          "markdownDescription": "The permissions of the mount point of the volume (`/var/mnt/\u003cname\u003e`) in octal.\n\nThe value must be written in octal notation (`0o2770` or `02770`): an unprefixed\nnumber such as `2770` is rejected, as YAML would read it as decimal.\n\nThe setuid (`0o4000`), setgid (`0o2000`) and sticky (`0o1000`) bits may be set:\nwith setgid, files created in the volume inherit the group of the mount point.\n\nDefaults to `0o755`.",
+          "x-intellij-html-description": "\u003cp\u003eThe permissions of the mount point of the volume (\u003ccode\u003e/var/mnt/\u0026lt;name\u0026gt;\u003c/code\u003e) in octal.\u003c/p\u003e\n\n\u003cp\u003eThe value must be written in octal notation (\u003ccode\u003e0o2770\u003c/code\u003e or \u003ccode\u003e02770\u003c/code\u003e): an unprefixed\nnumber such as \u003ccode\u003e2770\u003c/code\u003e is rejected, as YAML would read it as decimal.\u003c/p\u003e\n\n\u003cp\u003eThe setuid (\u003ccode\u003e0o4000\u003c/code\u003e), setgid (\u003ccode\u003e0o2000\u003c/code\u003e) and sticky (\u003ccode\u003e0o1000\u003c/code\u003e) bits may be set:\nwith setgid, files created in the volume inherit the group of the mount point.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003e0o755\u003c/code\u003e.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -989,7 +1094,8 @@
           "enum": [
             "directory",
             "disk",
-            "partition"
+            "partition",
+            "tmpfs"
           ],
           "title": "volumeType",
           "description": "Volume type.\n",
@@ -1045,7 +1151,7 @@
         "apiVersion",
         "kind"
       ],
-      "description": "UserVolumeConfig is a user volume configuration document.\\nUser volume is automatically allocated as a partition on the specified disk\\nand mounted under `/var/mnt/\u003cname\u003e`.\\nThe partition label is automatically generated as `u-\u003cname\u003e`.\\nThe name must not be taken by an existing or external volume.\\n"
+      "description": "UserVolumeConfig is a user volume configuration document.\\nUser volume is automatically allocated as a partition on the specified disk\\nand mounted under `/var/mnt/\u003cname\u003e`.\\nThe partition label is automatically generated as `u-\u003cname\u003e`.\\nThe name must not be taken by an existing, external or inline data volume.\\nA `tmpfs` user volume is backed by memory, its size is set with `provisioning.maxSize`\\n(in bytes, or in percents of the memory), and its content is lost on unmount.\\n"
     },
     "block.VirtiofsMountSpec": {
       "properties": {
@@ -1757,9 +1863,9 @@
         "volume": {
           "$ref": "#/$defs/container.VolumeMount",
           "title": "volume",
-          "description": "Mount a user, existing or external volume by name.\n\nThe name is that of a UserVolumeConfig, ExistingVolumeConfig or\nExternalVolumeConfig document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\n\nThe volume is mounted from /var/mnt/\u0026lt;name\u0026gt; on the host. Declaring this mount also\nmakes the container wait for the volume to be mounted before it starts.\n",
-          "markdownDescription": "Mount a user, existing or external volume by name.\n\nThe name is that of a `UserVolumeConfig`, `ExistingVolumeConfig` or\n`ExternalVolumeConfig` document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\n\nThe volume is mounted from `/var/mnt/\u003cname\u003e` on the host. Declaring this mount also\nmakes the container wait for the volume to be mounted before it starts.",
-          "x-intellij-html-description": "\u003cp\u003eMount a user, existing or external volume by name.\u003c/p\u003e\n\n\u003cp\u003eThe name is that of a \u003ccode\u003eUserVolumeConfig\u003c/code\u003e, \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e or\n\u003ccode\u003eExternalVolumeConfig\u003c/code\u003e document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\u003c/p\u003e\n\n\u003cp\u003eThe volume is mounted from \u003ccode\u003e/var/mnt/\u0026lt;name\u0026gt;\u003c/code\u003e on the host. Declaring this mount also\nmakes the container wait for the volume to be mounted before it starts.\u003c/p\u003e\n"
+          "description": "Mount a user, existing, external or inline data volume by name.\n\nThe name is that of a UserVolumeConfig, ExistingVolumeConfig, ExternalVolumeConfig\nor InlineDataVolumeConfig document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\n\nThe volume is mounted from /var/mnt/\u0026lt;name\u0026gt; on the host; an inline data volume is a read-only bind\nunder /run/inline-data-volumes, which picks up file updates live. The container waits for the\nvolume to be ready before it starts.\n",
+          "markdownDescription": "Mount a user, existing, external or inline data volume by name.\n\nThe name is that of a `UserVolumeConfig`, `ExistingVolumeConfig`, `ExternalVolumeConfig`\nor `InlineDataVolumeConfig` document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\n\nThe volume is mounted from `/var/mnt/\u003cname\u003e` on the host; an inline data volume is a read-only bind\nunder `/run/inline-data-volumes`, which picks up file updates live. The container waits for the\nvolume to be ready before it starts.",
+          "x-intellij-html-description": "\u003cp\u003eMount a user, existing, external or inline data volume by name.\u003c/p\u003e\n\n\u003cp\u003eThe name is that of a \u003ccode\u003eUserVolumeConfig\u003c/code\u003e, \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e, \u003ccode\u003eExternalVolumeConfig\u003c/code\u003e\nor \u003ccode\u003eInlineDataVolumeConfig\u003c/code\u003e document. Volume names are unique across those kinds, so the\nname resolves to one volume. The volume must be declared in the same configuration.\u003c/p\u003e\n\n\u003cp\u003eThe volume is mounted from \u003ccode\u003e/var/mnt/\u0026lt;name\u0026gt;\u003c/code\u003e on the host; an inline data volume is a read-only bind\nunder \u003ccode\u003e/run/inline-data-volumes\u003c/code\u003e, which picks up file updates live. The container waits for the\nvolume to be ready before it starts.\u003c/p\u003e\n"
         },
         "tmpfs": {
           "$ref": "#/$defs/container.TmpfsMount",
@@ -1877,6 +1983,8 @@
       "properties": {
         "uid": {
           "type": "integer",
+          "maximum": 4294967294,
+          "minimum": 0,
           "title": "uid",
           "description": "UID to run the container’s entrypoint as.\n\nUnset means use the image’s own USER. There are no user namespaces, so uid 0 is host\nroot.\n\nRequired when the image’s USER names its user rather than giving a numeric uid\n(e.g. app or app:app): Talos does not read the image’s /etc/passwd, and rejects\nsuch a container instead of running it as root.\n",
           "markdownDescription": "UID to run the container's entrypoint as.\n\nUnset means use the image's own USER. There are no user namespaces, so uid 0 is host\nroot.\n\nRequired when the image's USER names its user rather than giving a numeric uid\n(e.g. `app` or `app:app`): Talos does not read the image's /etc/passwd, and rejects\nsuch a container instead of running it as root.",
@@ -1884,6 +1992,8 @@
         },
         "gid": {
           "type": "integer",
+          "maximum": 4294967294,
+          "minimum": 0,
           "title": "gid",
           "description": "GID to run the container’s entrypoint as.\n\nUnset means use the image’s own USER.\n\nRequired when the image’s USER names its group (e.g. app:app), or names only a user\n(e.g. app), whose primary group would come from the image’s /etc/passwd: Talos does\nnot read it, and rejects such a container instead of running it as root.\n",
           "markdownDescription": "GID to run the container's entrypoint as.\n\nUnset means use the image's own USER.\n\nRequired when the image's USER names its group (e.g. `app:app`), or names only a user\n(e.g. `app`), whose primary group would come from the image's /etc/passwd: Talos does\nnot read it, and rejects such a container instead of running it as root.",
@@ -1920,9 +2030,9 @@
         "profile": {
           "type": "string",
           "title": "profile",
-          "description": "Security profile.\n\nrestricted drops all capabilities, allows no device access, and mounts the rootfs\nand sysfs read-only. privileged grants all grantable capabilities and all devices,\nand mounts sysfs read-write.\n",
-          "markdownDescription": "Security profile.\n\n`restricted` drops all capabilities, allows no device access, and mounts the rootfs\nand sysfs read-only. `privileged` grants all grantable capabilities and all devices,\nand mounts sysfs read-write.",
-          "x-intellij-html-description": "\u003cp\u003eSecurity profile.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003erestricted\u003c/code\u003e drops all capabilities, allows no device access, and mounts the rootfs\nand sysfs read-only. \u003ccode\u003eprivileged\u003c/code\u003e grants all grantable capabilities and all devices,\nand mounts sysfs read-write.\u003c/p\u003e\n"
+          "description": "Security profile.\n\nrestricted drops all capabilities, allows no device access, and mounts sysfs\nread-only. privileged grants all grantable capabilities and all devices, and mounts\nsysfs read-write.\n\nThe profile also sets the default of readOnlyRootFS.\n",
+          "markdownDescription": "Security profile.\n\n`restricted` drops all capabilities, allows no device access, and mounts sysfs\nread-only. `privileged` grants all grantable capabilities and all devices, and mounts\nsysfs read-write.\n\nThe profile also sets the default of `readOnlyRootFS`.",
+          "x-intellij-html-description": "\u003cp\u003eSecurity profile.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003erestricted\u003c/code\u003e drops all capabilities, allows no device access, and mounts sysfs\nread-only. \u003ccode\u003eprivileged\u003c/code\u003e grants all grantable capabilities and all devices, and mounts\nsysfs read-write.\u003c/p\u003e\n\n\u003cp\u003eThe profile also sets the default of \u003ccode\u003ereadOnlyRootFS\u003c/code\u003e.\u003c/p\u003e\n"
         },
         "capabilities": {
           "$ref": "#/$defs/container.ContainerCapabilities",
@@ -1955,6 +2065,13 @@
           "description": "Seccomp profile applied to the container.\n\nUnset means the containerd default seccomp profile, independently of the security\nprofile: even a privileged container is filtered by it.\n",
           "markdownDescription": "Seccomp profile applied to the container.\n\nUnset means the containerd default seccomp profile, independently of the security\nprofile: even a `privileged` container is filtered by it.",
           "x-intellij-html-description": "\u003cp\u003eSeccomp profile applied to the container.\u003c/p\u003e\n\n\u003cp\u003eUnset means the containerd default seccomp profile, independently of the security\nprofile: even a \u003ccode\u003eprivileged\u003c/code\u003e container is filtered by it.\u003c/p\u003e\n"
+        },
+        "readOnlyRootFS": {
+          "type": "boolean",
+          "title": "readOnlyRootFS",
+          "description": "Mounts the container’s root filesystem read-only.\n\nDefaults to true with profile: restricted, and to false with profile: privileged.\nPaths the workload writes to need a tmpfs or volume mount when the root filesystem is\nread-only.\n\nThis only affects the root filesystem: sysfs stays read-only unless profile is\nprivileged, regardless of this setting.\n",
+          "markdownDescription": "Mounts the container's root filesystem read-only.\n\nDefaults to `true` with `profile: restricted`, and to `false` with `profile: privileged`.\nPaths the workload writes to need a `tmpfs` or volume mount when the root filesystem is\nread-only.\n\nThis only affects the root filesystem: sysfs stays read-only unless `profile` is\n`privileged`, regardless of this setting.",
+          "x-intellij-html-description": "\u003cp\u003eMounts the container\u0026rsquo;s root filesystem read-only.\u003c/p\u003e\n\n\u003cp\u003eDefaults to \u003ccode\u003etrue\u003c/code\u003e with \u003ccode\u003eprofile: restricted\u003c/code\u003e, and to \u003ccode\u003efalse\u003c/code\u003e with \u003ccode\u003eprofile: privileged\u003c/code\u003e.\nPaths the workload writes to need a \u003ccode\u003etmpfs\u003c/code\u003e or volume mount when the root filesystem is\nread-only.\u003c/p\u003e\n\n\u003cp\u003eThis only affects the root filesystem: sysfs stays read-only unless \u003ccode\u003eprofile\u003c/code\u003e is\n\u003ccode\u003eprivileged\u003c/code\u003e, regardless of this setting.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2063,9 +2180,9 @@
         "name": {
           "type": "string",
           "title": "name",
-          "description": "Name of the volume to mount.\n\nThe name of a UserVolumeConfig, ExistingVolumeConfig or ExternalVolumeConfig document.\n",
-          "markdownDescription": "Name of the volume to mount.\n\nThe name of a `UserVolumeConfig`, `ExistingVolumeConfig` or `ExternalVolumeConfig` document.",
-          "x-intellij-html-description": "\u003cp\u003eName of the volume to mount.\u003c/p\u003e\n\n\u003cp\u003eThe name of a \u003ccode\u003eUserVolumeConfig\u003c/code\u003e, \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e or \u003ccode\u003eExternalVolumeConfig\u003c/code\u003e document.\u003c/p\u003e\n"
+          "description": "Name of the volume to mount.\n\nThe name of a UserVolumeConfig, ExistingVolumeConfig, ExternalVolumeConfig or InlineDataVolumeConfig document.\n\nOwnership of a user volume is set by its mount.owner, mount.group and mount.mode.\nWith SELinux categories enabled, files written by one restricted container can’t be read by another.\n",
+          "markdownDescription": "Name of the volume to mount.\n\nThe name of a `UserVolumeConfig`, `ExistingVolumeConfig`, `ExternalVolumeConfig` or `InlineDataVolumeConfig` document.\n\nOwnership of a user volume is set by its `mount.owner`, `mount.group` and `mount.mode`.\nWith SELinux categories enabled, files written by one `restricted` container can't be read by another.",
+          "x-intellij-html-description": "\u003cp\u003eName of the volume to mount.\u003c/p\u003e\n\n\u003cp\u003eThe name of a \u003ccode\u003eUserVolumeConfig\u003c/code\u003e, \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e, \u003ccode\u003eExternalVolumeConfig\u003c/code\u003e or \u003ccode\u003eInlineDataVolumeConfig\u003c/code\u003e document.\u003c/p\u003e\n\n\u003cp\u003eOwnership of a user volume is set by its \u003ccode\u003emount.owner\u003c/code\u003e, \u003ccode\u003emount.group\u003c/code\u003e and \u003ccode\u003emount.mode\u003c/code\u003e.\nWith SELinux categories enabled, files written by one \u003ccode\u003erestricted\u003c/code\u003e container can\u0026rsquo;t be read by another.\u003c/p\u003e\n"
         },
         "destination": {
           "type": "string",
@@ -2086,9 +2203,9 @@
             "rshared"
           ],
           "title": "options",
-          "description": "Mount options. Volume mounts are writable by default (rw).\n\nA volume whose ExistingVolumeConfig or ExternalVolumeConfig declares it\nread-only must be mounted with ro.\n",
-          "markdownDescription": "Mount options. Volume mounts are writable by default (`rw`).\n\nA volume whose `ExistingVolumeConfig` or `ExternalVolumeConfig` declares it\nread-only must be mounted with `ro`.",
-          "x-intellij-html-description": "\u003cp\u003eMount options. Volume mounts are writable by default (\u003ccode\u003erw\u003c/code\u003e).\u003c/p\u003e\n\n\u003cp\u003eA volume whose \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e or \u003ccode\u003eExternalVolumeConfig\u003c/code\u003e declares it\nread-only must be mounted with \u003ccode\u003ero\u003c/code\u003e.\u003c/p\u003e\n"
+          "description": "Mount options. Volume mounts are writable by default (rw).\n\nA volume whose ExistingVolumeConfig or ExternalVolumeConfig declares it\nread-only must be mounted with ro.\n\nAn inline data volume is always mounted ro, nosuid, nodev, noexec and rprivate,\nso ro may be omitted, and rw and rshared are rejected.\n",
+          "markdownDescription": "Mount options. Volume mounts are writable by default (`rw`).\n\nA volume whose `ExistingVolumeConfig` or `ExternalVolumeConfig` declares it\nread-only must be mounted with `ro`.\n\nAn inline data volume is always mounted `ro`, `nosuid`, `nodev`, `noexec` and `rprivate`,\nso `ro` may be omitted, and `rw` and `rshared` are rejected.",
+          "x-intellij-html-description": "\u003cp\u003eMount options. Volume mounts are writable by default (\u003ccode\u003erw\u003c/code\u003e).\u003c/p\u003e\n\n\u003cp\u003eA volume whose \u003ccode\u003eExistingVolumeConfig\u003c/code\u003e or \u003ccode\u003eExternalVolumeConfig\u003c/code\u003e declares it\nread-only must be mounted with \u003ccode\u003ero\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eAn inline data volume is always mounted \u003ccode\u003ero\u003c/code\u003e, \u003ccode\u003enosuid\u003c/code\u003e, \u003ccode\u003enodev\u003c/code\u003e, \u003ccode\u003enoexec\u003c/code\u003e and \u003ccode\u003erprivate\u003c/code\u003e,\nso \u003ccode\u003ero\u003c/code\u003e may be omitted, and \u003ccode\u003erw\u003c/code\u003e and \u003ccode\u003ershared\u003c/code\u003e are rejected.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -2480,6 +2597,138 @@
         "profile"
       ],
       "description": "SeccompProfileConfig declares a named seccomp profile.\\nSeccompProfileConfig declares a seccomp profile which can be referenced by name.\\n\\nEvery profile is written to `/var/lib/kubelet/seccomp/profiles/\u003cname\u003e`, so Kubernetes pods\\ncan use it with `securityContext.seccompProfile.type: Localhost` and\\n`localhostProfile: profiles/\u003cname\u003e`.\\n\\nThis document replaces the deprecated `.machine.seccompProfiles` field.\\n"
+    },
+    "etcd.EtcdCAConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "EtcdCAConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "issuingCA": {
+          "properties": {
+            "cert": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "title": "issuingCA",
+          "description": "The issuing certificate authority for etcd.\n\nThe value contains a private key and a certificate, PEM encoded.\n",
+          "markdownDescription": "The issuing certificate authority for etcd.\n\nThe value contains a private key and a certificate, PEM encoded.",
+          "x-intellij-html-description": "\u003cp\u003eThe issuing certificate authority for etcd.\u003c/p\u003e\n\n\u003cp\u003eThe value contains a private key and a certificate, PEM encoded.\u003c/p\u003e\n"
+        },
+        "acceptedCAs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "acceptedCAs",
+          "description": "The list of additional accepted CA certificates for etcd.\n\nThe value should be a PEM encoded certificate.\nThe issuing CA certificate is automatically added to the list of accepted CAs.\n",
+          "markdownDescription": "The list of additional accepted CA certificates for etcd.\n\nThe value should be a PEM encoded certificate.\nThe issuing CA certificate is automatically added to the list of accepted CAs.",
+          "x-intellij-html-description": "\u003cp\u003eThe list of additional accepted CA certificates for etcd.\u003c/p\u003e\n\n\u003cp\u003eThe value should be a PEM encoded certificate.\nThe issuing CA certificate is automatically added to the list of accepted CAs.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "issuingCA",
+        "kind"
+      ],
+      "description": "EtcdCAConfig configures etcd PKI (certificate authority).\\nThe etcd CA is used to issue the certificates for the etcd members (server and peer),\\nand the etcd clients (e.g. kube-apiserver, Talos itself).\\n\\nThe accepted CAs are trusted by the etcd members (for client and peer connections),\\nand by the etcd clients (for server connections), in addition to the issuing CA.\\n\\nThis document should only be present on the controlplane machines.\\n"
+    },
+    "etcd.EtcdMemberConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "EtcdMemberConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "image": {
+          "type": "string",
+          "title": "image",
+          "description": "The container image used to run etcd.\n\nIf not set, the default etcd image for the Talos version is used.\n",
+          "markdownDescription": "The container image used to run etcd.\n\nIf not set, the default etcd image for the Talos version is used.",
+          "x-intellij-html-description": "\u003cp\u003eThe container image used to run etcd.\u003c/p\u003e\n\n\u003cp\u003eIf not set, the default etcd image for the Talos version is used.\u003c/p\u003e\n"
+        },
+        "extraArgs": {
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "type": "object",
+          "title": "extraArgs",
+          "description": "Extra arguments to supply to etcd.\n\nNote that the following args are not allowed:\n\n\nname\ndata-dir\ninitial-cluster-state\nlisten-peer-urls\nlisten-client-urls\ncert-file\nkey-file\ntrusted-ca-file\npeer-client-cert-auth\npeer-cert-file\npeer-trusted-ca-file\npeer-key-file\n\n",
+          "markdownDescription": "Extra arguments to supply to etcd.\n\nNote that the following args are not allowed:\n\n- `name`\n- `data-dir`\n- `initial-cluster-state`\n- `listen-peer-urls`\n- `listen-client-urls`\n- `cert-file`\n- `key-file`\n- `trusted-ca-file`\n- `peer-client-cert-auth`\n- `peer-cert-file`\n- `peer-trusted-ca-file`\n- `peer-key-file`",
+          "x-intellij-html-description": "\u003cp\u003eExtra arguments to supply to etcd.\u003c/p\u003e\n\n\u003cp\u003eNote that the following args are not allowed:\u003c/p\u003e\n\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003ename\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003edata-dir\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003einitial-cluster-state\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003elisten-peer-urls\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003elisten-client-urls\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecert-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ekey-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003etrusted-ca-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-client-cert-auth\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-cert-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-trusted-ca-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-key-file\u003c/code\u003e\u003c/li\u003e\n\u003c/ul\u003e\n"
+        },
+        "advertisedSubnets": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "advertisedSubnets",
+          "description": "The advertisedSubnets field configures the networks to pick etcd advertised IP from.\n\nIPs can be excluded from the list by using negative match with !, e.g !10.0.0.0/8.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\n",
+          "markdownDescription": "The `advertisedSubnets` field configures the networks to pick etcd advertised IP from.\n\nIPs can be excluded from the list by using negative match with `!`, e.g `!10.0.0.0/8`.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.",
+          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003eadvertisedSubnets\u003c/code\u003e field configures the networks to pick etcd advertised IP from.\u003c/p\u003e\n\n\u003cp\u003eIPs can be excluded from the list by using negative match with \u003ccode\u003e!\u003c/code\u003e, e.g \u003ccode\u003e!10.0.0.0/8\u003c/code\u003e.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\u003c/p\u003e\n"
+        },
+        "listenSubnets": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "listenSubnets",
+          "description": "The listenSubnets field configures the networks for the etcd to listen for peer and client connections.\n\nIf listenSubnets is not set, but advertisedSubnets is set, listenSubnets defaults to\nadvertisedSubnets.\n\nIf neither advertisedSubnets nor listenSubnets is set, listenSubnets defaults to listen on all addresses.\n\nIPs can be excluded from the list by using negative match with !, e.g !10.0.0.0/8.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\n",
+          "markdownDescription": "The `listenSubnets` field configures the networks for the etcd to listen for peer and client connections.\n\nIf `listenSubnets` is not set, but `advertisedSubnets` is set, `listenSubnets` defaults to\n`advertisedSubnets`.\n\nIf neither `advertisedSubnets` nor `listenSubnets` is set, `listenSubnets` defaults to listen on all addresses.\n\nIPs can be excluded from the list by using negative match with `!`, e.g `!10.0.0.0/8`.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.",
+          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003elistenSubnets\u003c/code\u003e field configures the networks for the etcd to listen for peer and client connections.\u003c/p\u003e\n\n\u003cp\u003eIf \u003ccode\u003elistenSubnets\u003c/code\u003e is not set, but \u003ccode\u003eadvertisedSubnets\u003c/code\u003e is set, \u003ccode\u003elistenSubnets\u003c/code\u003e defaults to\n\u003ccode\u003eadvertisedSubnets\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eIf neither \u003ccode\u003eadvertisedSubnets\u003c/code\u003e nor \u003ccode\u003elistenSubnets\u003c/code\u003e is set, \u003ccode\u003elistenSubnets\u003c/code\u003e defaults to listen on all addresses.\u003c/p\u003e\n\n\u003cp\u003eIPs can be excluded from the list by using negative match with \u003ccode\u003e!\u003c/code\u003e, e.g \u003ccode\u003e!10.0.0.0/8\u003c/code\u003e.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "EtcdMemberConfig configures the etcd member running on the machine.\\nThe presence of this document enables the etcd member on the machine.\\nThis document requires the `EtcdCAConfig` document to be present as well.\\n\\nThis document should only be present on the controlplane machines.\\n"
     },
     "extensions.ConfigFile": {
       "properties": {
@@ -3055,16 +3304,16 @@
         "pool": {
           "type": "string",
           "title": "pool",
-          "description": "Name of the StoragePoolConfig document this disk’s volume lives in.\n\nThe pool is declared separately and is not provisioned by this document, but it must be\ndeclared: a disk naming a pool no StoragePoolConfig document declares is a configuration\nerror.\n\nThe volume is named after this virtual machine and this disk, so a volume of that name\nalready in the pool is adopted with its existing contents. Removing the disk from the\nconfiguration never deletes the volume, so re-declaring the same virtual machine and disk\nnames in the same pool reattaches the same data.\n\nRequired for both disk and cdrom. CD-ROM media is copied from the content library\ninto an independent volume in this pool, not attached directly from the library.\n",
-          "markdownDescription": "Name of the `StoragePoolConfig` document this disk's volume lives in.\n\nThe pool is declared separately and is not provisioned by this document, but it must be\ndeclared: a disk naming a pool no `StoragePoolConfig` document declares is a configuration\nerror.\n\nThe volume is named after this virtual machine and this disk, so a volume of that name\nalready in the pool is adopted with its existing contents. Removing the disk from the\nconfiguration never deletes the volume, so re-declaring the same virtual machine and disk\nnames in the same pool reattaches the same data.\n\nRequired for both `disk` and `cdrom`. CD-ROM media is copied from the content library\ninto an independent volume in this pool, not attached directly from the library.",
-          "x-intellij-html-description": "\u003cp\u003eName of the \u003ccode\u003eStoragePoolConfig\u003c/code\u003e document this disk\u0026rsquo;s volume lives in.\u003c/p\u003e\n\n\u003cp\u003eThe pool is declared separately and is not provisioned by this document, but it must be\ndeclared: a disk naming a pool no \u003ccode\u003eStoragePoolConfig\u003c/code\u003e document declares is a configuration\nerror.\u003c/p\u003e\n\n\u003cp\u003eThe volume is named after this virtual machine and this disk, so a volume of that name\nalready in the pool is adopted with its existing contents. Removing the disk from the\nconfiguration never deletes the volume, so re-declaring the same virtual machine and disk\nnames in the same pool reattaches the same data.\u003c/p\u003e\n\n\u003cp\u003eRequired for both \u003ccode\u003edisk\u003c/code\u003e and \u003ccode\u003ecdrom\u003c/code\u003e. CD-ROM media is copied from the content library\ninto an independent volume in this pool, not attached directly from the library.\u003c/p\u003e\n"
+          "description": "Name of the StoragePoolConfig document this disk’s volume lives in.\n\nThe pool must be declared by a StoragePoolConfig document. The volume is named after\nthe virtual machine and the disk, so an existing volume of that name is adopted, and\nremoving the disk never deletes it.\n\nRequired, except on an empty cdrom, where it is not allowed.\n",
+          "markdownDescription": "Name of the `StoragePoolConfig` document this disk's volume lives in.\n\nThe pool must be declared by a `StoragePoolConfig` document. The volume is named after\nthe virtual machine and the disk, so an existing volume of that name is adopted, and\nremoving the disk never deletes it.\n\nRequired, except on an empty `cdrom`, where it is not allowed.",
+          "x-intellij-html-description": "\u003cp\u003eName of the \u003ccode\u003eStoragePoolConfig\u003c/code\u003e document this disk\u0026rsquo;s volume lives in.\u003c/p\u003e\n\n\u003cp\u003eThe pool must be declared by a \u003ccode\u003eStoragePoolConfig\u003c/code\u003e document. The volume is named after\nthe virtual machine and the disk, so an existing volume of that name is adopted, and\nremoving the disk never deletes it.\u003c/p\u003e\n\n\u003cp\u003eRequired, except on an empty \u003ccode\u003ecdrom\u003c/code\u003e, where it is not allowed.\u003c/p\u003e\n"
         },
         "size": {
           "type": "string",
           "title": "size",
-          "description": "Size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\n\nRequired for a disk, and not allowed on a cdrom, whose size is that of its image.\n",
-          "markdownDescription": "Size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\n\nRequired for a `disk`, and not allowed on a `cdrom`, whose size is that of its image.",
-          "x-intellij-html-description": "\u003cp\u003eSize of the volume.\u003c/p\u003e\n\n\u003cp\u003eSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\u003c/p\u003e\n\n\u003cp\u003eRequired for a \u003ccode\u003edisk\u003c/code\u003e, and not allowed on a \u003ccode\u003ecdrom\u003c/code\u003e, whose size is that of its image.\u003c/p\u003e\n"
+          "description": "Size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\n\nRequired for a disk, and not allowed on a cdrom.\n",
+          "markdownDescription": "Size of the volume.\n\nSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\n\nRequired for a `disk`, and not allowed on a `cdrom`.",
+          "x-intellij-html-description": "\u003cp\u003eSize of the volume.\u003c/p\u003e\n\n\u003cp\u003eSize is specified in bytes, but can be expressed in human readable format, e.g. 20GiB.\u003c/p\u003e\n\n\u003cp\u003eRequired for a \u003ccode\u003edisk\u003c/code\u003e, and not allowed on a \u003ccode\u003ecdrom\u003c/code\u003e.\u003c/p\u003e\n"
         },
         "format": {
           "enum": [
@@ -3072,9 +3321,9 @@
             "qcow2"
           ],
           "title": "format",
-          "description": "On-disk format of a blank volume.\n\nChoose raw or qcow2 for a writable disk provisioned with blank. The format is not\ninferred from a content library image. Writable image-derived disks are not supported.\n\nOptional; defaults to qcow2 on a writable disk. Not allowed on a cdrom, whose\ncopied ISO volume uses raw.\n",
-          "markdownDescription": "On-disk format of a blank volume.\n\nChoose `raw` or `qcow2` for a writable disk provisioned with `blank`. The format is not\ninferred from a content library image. Writable image-derived disks are not supported.\n\nOptional; defaults to `qcow2` on a writable disk. Not allowed on a `cdrom`, whose\ncopied ISO volume uses `raw`.",
-          "x-intellij-html-description": "\u003cp\u003eOn-disk format of a blank volume.\u003c/p\u003e\n\n\u003cp\u003eChoose \u003ccode\u003eraw\u003c/code\u003e or \u003ccode\u003eqcow2\u003c/code\u003e for a writable disk provisioned with \u003ccode\u003eblank\u003c/code\u003e. The format is not\ninferred from a content library image. Writable image-derived disks are not supported.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003eqcow2\u003c/code\u003e on a writable disk. Not allowed on a \u003ccode\u003ecdrom\u003c/code\u003e, whose\ncopied ISO volume uses \u003ccode\u003eraw\u003c/code\u003e.\u003c/p\u003e\n"
+          "description": "On-disk format of a writable volume.\n\nChoose raw or qcow2. The destination format is independent of a content library\nimage’s format. Writable disks default to qcow2.\n\nOptional; defaults to qcow2 on a writable disk. Not allowed on a cdrom, whose\ncopied ISO volume uses raw.\n",
+          "markdownDescription": "On-disk format of a writable volume.\n\nChoose `raw` or `qcow2`. The destination format is independent of a content library\nimage's format. Writable disks default to qcow2.\n\nOptional; defaults to `qcow2` on a writable disk. Not allowed on a `cdrom`, whose\ncopied ISO volume uses `raw`.",
+          "x-intellij-html-description": "\u003cp\u003eOn-disk format of a writable volume.\u003c/p\u003e\n\n\u003cp\u003eChoose \u003ccode\u003eraw\u003c/code\u003e or \u003ccode\u003eqcow2\u003c/code\u003e. The destination format is independent of a content library\nimage\u0026rsquo;s format. Writable disks default to qcow2.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003eqcow2\u003c/code\u003e on a writable disk. Not allowed on a \u003ccode\u003ecdrom\u003c/code\u003e, whose\ncopied ISO volume uses \u003ccode\u003eraw\u003c/code\u003e.\u003c/p\u003e\n"
         },
         "bus": {
           "enum": [
@@ -3083,9 +3332,9 @@
             "sata"
           ],
           "title": "bus",
-          "description": "Controller the disk is attached to.\n\nvirtio for anything modern; sata for guests without virtio drivers at install time.\n\nOptional; defaults to virtio on a disk and to sata on a cdrom. A cdrom cannot\nbe attached to virtio, which presents no ejectable media.\n",
-          "markdownDescription": "Controller the disk is attached to.\n\n`virtio` for anything modern; `sata` for guests without virtio drivers at install time.\n\nOptional; defaults to `virtio` on a `disk` and to `sata` on a `cdrom`. A `cdrom` cannot\nbe attached to `virtio`, which presents no ejectable media.",
-          "x-intellij-html-description": "\u003cp\u003eController the disk is attached to.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003evirtio\u003c/code\u003e for anything modern; \u003ccode\u003esata\u003c/code\u003e for guests without virtio drivers at install time.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003evirtio\u003c/code\u003e on a \u003ccode\u003edisk\u003c/code\u003e and to \u003ccode\u003esata\u003c/code\u003e on a \u003ccode\u003ecdrom\u003c/code\u003e. A \u003ccode\u003ecdrom\u003c/code\u003e cannot\nbe attached to \u003ccode\u003evirtio\u003c/code\u003e, which presents no ejectable media.\u003c/p\u003e\n"
+          "description": "Controller the disk is attached to.\n\nvirtio for anything modern; sata for guests without virtio drivers at install time.\n\nOptional; defaults to virtio on a disk. A cdrom defaults to sata on\namd64 and scsi on arm64, where the bundled UEFI firmware supports virtio-scsi\nbut not SATA.\nA cdrom cannot be attached to virtio, which presents no ejectable media.\n",
+          "markdownDescription": "Controller the disk is attached to.\n\n`virtio` for anything modern; `sata` for guests without virtio drivers at install time.\n\nOptional; defaults to `virtio` on a `disk`. A `cdrom` defaults to `sata` on\namd64 and `scsi` on arm64, where the bundled UEFI firmware supports virtio-scsi\nbut not SATA.\nA `cdrom` cannot be attached to `virtio`, which presents no ejectable media.",
+          "x-intellij-html-description": "\u003cp\u003eController the disk is attached to.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003evirtio\u003c/code\u003e for anything modern; \u003ccode\u003esata\u003c/code\u003e for guests without virtio drivers at install time.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003evirtio\u003c/code\u003e on a \u003ccode\u003edisk\u003c/code\u003e. A \u003ccode\u003ecdrom\u003c/code\u003e defaults to \u003ccode\u003esata\u003c/code\u003e on\namd64 and \u003ccode\u003escsi\u003c/code\u003e on arm64, where the bundled UEFI firmware supports virtio-scsi\nbut not SATA.\nA \u003ccode\u003ecdrom\u003c/code\u003e cannot be attached to \u003ccode\u003evirtio\u003c/code\u003e, which presents no ejectable media.\u003c/p\u003e\n"
         },
         "type": {
           "enum": [
@@ -3093,9 +3342,9 @@
             "cdrom"
           ],
           "title": "type",
-          "description": "Kind of device the disk is presented as.\n\nA cdrom is read-only – QEMU emulates no CD burner – so its contents are required and\nit has no size and no format of its own.\n\nOptional; defaults to disk.\n",
-          "markdownDescription": "Kind of device the disk is presented as.\n\nA `cdrom` is read-only -- QEMU emulates no CD burner -- so its contents are required and\nit has no size and no format of its own.\n\nOptional; defaults to `disk`.",
-          "x-intellij-html-description": "\u003cp\u003eKind of device the disk is presented as.\u003c/p\u003e\n\n\u003cp\u003eA \u003ccode\u003ecdrom\u003c/code\u003e is read-only \u0026ndash; QEMU emulates no CD burner \u0026ndash; so its contents are required and\nit has no size and no format of its own.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003edisk\u003c/code\u003e.\u003c/p\u003e\n"
+          "description": "Kind of device the disk is presented as.\n\nA cdrom is read-only and has no size or format of its own.\n\nOptional; defaults to disk.\n",
+          "markdownDescription": "Kind of device the disk is presented as.\n\nA `cdrom` is read-only and has no size or format of its own.\n\nOptional; defaults to `disk`.",
+          "x-intellij-html-description": "\u003cp\u003eKind of device the disk is presented as.\u003c/p\u003e\n\n\u003cp\u003eA \u003ccode\u003ecdrom\u003c/code\u003e is read-only and has no size or format of its own.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003edisk\u003c/code\u003e.\u003c/p\u003e\n"
         },
         "bootOrder": {
           "type": "integer",
@@ -3124,7 +3373,7 @@
       "properties": {},
       "additionalProperties": false,
       "type": "object",
-      "description": "VirtualMachineDiskBlank provisions an empty volume."
+      "description": "VirtualMachineDiskBlank provisions an empty volume, or an empty cdrom drive."
     },
     "hypervisor.VirtualMachineDiskFromImage": {
       "properties": {
@@ -3148,16 +3397,6 @@
           "description": "Integrity check of the library file, verified before media is copied.\n\nWritten as \u0026lt;algorithm\u0026gt;:\u0026lt;hex\u0026gt;, under either sha256 or sha512.\n\nOptional; the file is copied without a digest check when this is unset.\n",
           "markdownDescription": "Integrity check of the library file, verified before media is copied.\n\nWritten as `\u003calgorithm\u003e:\u003chex\u003e`, under either `sha256` or `sha512`.\n\nOptional; the file is copied without a digest check when this is unset.",
           "x-intellij-html-description": "\u003cp\u003eIntegrity check of the library file, verified before media is copied.\u003c/p\u003e\n\n\u003cp\u003eWritten as \u003ccode\u003e\u0026lt;algorithm\u0026gt;:\u0026lt;hex\u0026gt;\u003c/code\u003e, under either \u003ccode\u003esha256\u003c/code\u003e or \u003ccode\u003esha512\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eOptional; the file is copied without a digest check when this is unset.\u003c/p\u003e\n"
-        },
-        "mode": {
-          "enum": [
-            "copy",
-            "linked"
-          ],
-          "title": "mode",
-          "description": "Mode for copying CD-ROM media from a content library.\n\nOn a cdrom, omitted mode defaults to copy; explicit copy is also accepted.\nlinked is not supported because CD-ROM media must be an independent copy.\nWritable image-derived disks (copy or linked) are not supported; use\nprovision.blank for a writable disk.\n",
-          "markdownDescription": "Mode for copying CD-ROM media from a content library.\n\nOn a `cdrom`, omitted mode defaults to `copy`; explicit `copy` is also accepted.\n`linked` is not supported because CD-ROM media must be an independent copy.\nWritable image-derived disks (copy or linked) are not supported; use\n`provision.blank` for a writable disk.",
-          "x-intellij-html-description": "\u003cp\u003eMode for copying CD-ROM media from a content library.\u003c/p\u003e\n\n\u003cp\u003eOn a \u003ccode\u003ecdrom\u003c/code\u003e, omitted mode defaults to \u003ccode\u003ecopy\u003c/code\u003e; explicit \u003ccode\u003ecopy\u003c/code\u003e is also accepted.\n\u003ccode\u003elinked\u003c/code\u003e is not supported because CD-ROM media must be an independent copy.\nWritable image-derived disks (copy or linked) are not supported; use\n\u003ccode\u003eprovision.blank\u003c/code\u003e for a writable disk.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -3166,23 +3405,23 @@
         "file",
         "library"
       ],
-      "description": "VirtualMachineDiskFromImage references media in a content library."
+      "description": "VirtualMachineDiskFromImage initializes an independent copy of media in a content library.\\nSources with external backing or data files are unsupported.\\n"
     },
     "hypervisor.VirtualMachineDiskProvision": {
       "properties": {
         "blank": {
           "$ref": "#/$defs/hypervisor.VirtualMachineDiskBlank",
           "title": "blank",
-          "description": "Create an empty volume, formatted per format.\n\nNot allowed on a cdrom, which has no meaningful empty contents.\n",
-          "markdownDescription": "Create an empty volume, formatted per `format`.\n\nNot allowed on a `cdrom`, which has no meaningful empty contents.",
-          "x-intellij-html-description": "\u003cp\u003eCreate an empty volume, formatted per \u003ccode\u003eformat\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eNot allowed on a \u003ccode\u003ecdrom\u003c/code\u003e, which has no meaningful empty contents.\u003c/p\u003e\n"
+          "description": "Create an empty volume, or an empty drive on a cdrom.\n\nA disk volume is formatted per format. An empty cdrom has no volume; omit pool.\n",
+          "markdownDescription": "Create an empty volume, or an empty drive on a `cdrom`.\n\nA `disk` volume is formatted per `format`. An empty `cdrom` has no volume; omit `pool`.",
+          "x-intellij-html-description": "\u003cp\u003eCreate an empty volume, or an empty drive on a \u003ccode\u003ecdrom\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eA \u003ccode\u003edisk\u003c/code\u003e volume is formatted per \u003ccode\u003eformat\u003c/code\u003e. An empty \u003ccode\u003ecdrom\u003c/code\u003e has no volume; omit \u003ccode\u003epool\u003c/code\u003e.\u003c/p\u003e\n"
         },
         "fromImage": {
           "$ref": "#/$defs/hypervisor.VirtualMachineDiskFromImage",
           "title": "fromImage",
-          "description": "Attach read-only CD-ROM media from a content library.\n\nSet type: cdrom, pool to a declared storage pool, and library and file here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\nsize and format; mode: copy may be explicit or omitted. Writable image-derived\ndisks are not supported. Use provision.blank for a writable disk and install from\nCD-ROM media.\n",
-          "markdownDescription": "Attach read-only CD-ROM media from a content library.\n\nSet `type: cdrom`, `pool` to a declared storage pool, and `library` and `file` here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\n`size` and `format`; `mode: copy` may be explicit or omitted. Writable image-derived\ndisks are not supported. Use `provision.blank` for a writable disk and install from\nCD-ROM media.",
-          "x-intellij-html-description": "\u003cp\u003eAttach read-only CD-ROM media from a content library.\u003c/p\u003e\n\n\u003cp\u003eSet \u003ccode\u003etype: cdrom\u003c/code\u003e, \u003ccode\u003epool\u003c/code\u003e to a declared storage pool, and \u003ccode\u003elibrary\u003c/code\u003e and \u003ccode\u003efile\u003c/code\u003e here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\n\u003ccode\u003esize\u003c/code\u003e and \u003ccode\u003eformat\u003c/code\u003e; \u003ccode\u003emode: copy\u003c/code\u003e may be explicit or omitted. Writable image-derived\ndisks are not supported. Use \u003ccode\u003eprovision.blank\u003c/code\u003e for a writable disk and install from\nCD-ROM media.\u003c/p\u003e\n"
+          "description": "Initialize an independent volume from a content library image.\n\nSet type: cdrom, pool to a declared storage pool, and library and file here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\nsize and format.\nFor a writable disk, set size and pool. The source must be a self-contained,\nuncompressed raw or qcow2 image (no backing or external data files); it can\ninitialize a raw or qcow2 disk (default qcow2). A file without the qcow2 signature\nis copied byte for byte as raw, so decompress .zst/.xz/.gz images and convert\nVMDK, VHDX or VDI images first; common compressed and foreign formats are rejected.\n\nsize must be at least the source virtual size; qcow2 disks are rounded up to a\nmultiple of 512 bytes. The pool filesystem must support user.* extended attributes,\nwhich record which image a disk was created from.\n\nExisting disks only grow and are never reimaged when the source selector or alias\nchanges. Guest data survives source deletion and configuration removal. Deleting\nthe disk file from the pool triggers a fresh import from the source. Expanding the\nguest filesystem is the guest’s responsibility.\n",
+          "markdownDescription": "Initialize an independent volume from a content library image.\n\nSet `type: cdrom`, `pool` to a declared storage pool, and `library` and `file` here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\n`size` and `format`.\nFor a writable `disk`, set `size` and `pool`. The source must be a self-contained,\nuncompressed raw or qcow2 image (no backing or external data files); it can\ninitialize a raw or qcow2 disk (default qcow2). A file without the qcow2 signature\nis copied byte for byte as raw, so decompress `.zst`/`.xz`/`.gz` images and convert\nVMDK, VHDX or VDI images first; common compressed and foreign formats are rejected.\n\n`size` must be at least the source virtual size; qcow2 disks are rounded up to a\nmultiple of 512 bytes. The pool filesystem must support `user.*` extended attributes,\nwhich record which image a disk was created from.\n\nExisting disks only grow and are never reimaged when the source selector or alias\nchanges. Guest data survives source deletion and configuration removal. Deleting\nthe disk file from the pool triggers a fresh import from the source. Expanding the\nguest filesystem is the guest's responsibility.",
+          "x-intellij-html-description": "\u003cp\u003eInitialize an independent volume from a content library image.\u003c/p\u003e\n\n\u003cp\u003eSet \u003ccode\u003etype: cdrom\u003c/code\u003e, \u003ccode\u003epool\u003c/code\u003e to a declared storage pool, and \u003ccode\u003elibrary\u003c/code\u003e and \u003ccode\u003efile\u003c/code\u003e here.\nTalos copies the image into an independent read-only CD-ROM volume in the pool. Omit\n\u003ccode\u003esize\u003c/code\u003e and \u003ccode\u003eformat\u003c/code\u003e.\nFor a writable \u003ccode\u003edisk\u003c/code\u003e, set \u003ccode\u003esize\u003c/code\u003e and \u003ccode\u003epool\u003c/code\u003e. The source must be a self-contained,\nuncompressed raw or qcow2 image (no backing or external data files); it can\ninitialize a raw or qcow2 disk (default qcow2). A file without the qcow2 signature\nis copied byte for byte as raw, so decompress \u003ccode\u003e.zst\u003c/code\u003e/\u003ccode\u003e.xz\u003c/code\u003e/\u003ccode\u003e.gz\u003c/code\u003e images and convert\nVMDK, VHDX or VDI images first; common compressed and foreign formats are rejected.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003esize\u003c/code\u003e must be at least the source virtual size; qcow2 disks are rounded up to a\nmultiple of 512 bytes. The pool filesystem must support \u003ccode\u003euser.*\u003c/code\u003e extended attributes,\nwhich record which image a disk was created from.\u003c/p\u003e\n\n\u003cp\u003eExisting disks only grow and are never reimaged when the source selector or alias\nchanges. Guest data survives source deletion and configuration removal. Deleting\nthe disk file from the pool triggers a fresh import from the source. Expanding the\nguest filesystem is the guest\u0026rsquo;s responsibility.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -3274,6 +3513,23 @@
           "description": "Hardware (MAC) address presented to the guest.\n\nDefaults to an address derived from the virtual machine and interface names, which is\nstable for as long as both keep their names. Set it to pin the address a DHCP server\nreserves against, or to keep one across a rename.\n\nIt must be a unicast address, and is not allowed to be all zeroes.\n",
           "markdownDescription": "Hardware (MAC) address presented to the guest.\n\nDefaults to an address derived from the virtual machine and interface names, which is\nstable for as long as both keep their names. Set it to pin the address a DHCP server\nreserves against, or to keep one across a rename.\n\nIt must be a unicast address, and is not allowed to be all zeroes.",
           "x-intellij-html-description": "\u003cp\u003eHardware (MAC) address presented to the guest.\u003c/p\u003e\n\n\u003cp\u003eDefaults to an address derived from the virtual machine and interface names, which is\nstable for as long as both keep their names. Set it to pin the address a DHCP server\nreserves against, or to keep one across a rename.\u003c/p\u003e\n\n\u003cp\u003eIt must be a unicast address, and is not allowed to be all zeroes.\u003c/p\u003e\n"
+        },
+        "trustGuestRxFilters": {
+          "type": "boolean",
+          "title": "trustGuestRxFilters",
+          "description": "Apply the guest’s receive filter updates to the host-side macvtap device. Without\nthem the macvtap passes only broadcast and the guest’s own unicast, so IPv6\nneighbor discovery, router advertisements and DHCPv6 never reach the guest.\n\nThis trusts the guest with the macvtap device: it can change the device’s MAC to\nany address, and so impersonate other hosts on the segment, and it can turn on\npromiscuous or all-multicast mode, which also propagates to the host link. The\nrisk is shared by every guest and the host on that link.\n\nOptional; defaults to disabled.\n",
+          "markdownDescription": "Apply the guest's receive filter updates to the host-side macvtap device. Without\nthem the macvtap passes only broadcast and the guest's own unicast, so IPv6\nneighbor discovery, router advertisements and DHCPv6 never reach the guest.\n\nThis trusts the guest with the macvtap device: it can change the device's MAC to\nany address, and so impersonate other hosts on the segment, and it can turn on\npromiscuous or all-multicast mode, which also propagates to the host link. The\nrisk is shared by every guest and the host on that link.\n\nOptional; defaults to disabled.",
+          "x-intellij-html-description": "\u003cp\u003eApply the guest\u0026rsquo;s receive filter updates to the host-side macvtap device. Without\nthem the macvtap passes only broadcast and the guest\u0026rsquo;s own unicast, so IPv6\nneighbor discovery, router advertisements and DHCPv6 never reach the guest.\u003c/p\u003e\n\n\u003cp\u003eThis trusts the guest with the macvtap device: it can change the device\u0026rsquo;s MAC to\nany address, and so impersonate other hosts on the segment, and it can turn on\npromiscuous or all-multicast mode, which also propagates to the host link. The\nrisk is shared by every guest and the host on that link.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to disabled.\u003c/p\u003e\n"
+        },
+        "attachment": {
+          "enum": [
+            "macvtap",
+            "bridge"
+          ],
+          "title": "attachment",
+          "description": "How the interface is attached to the host link.\n\nmacvtap puts a macvtap device in bridge mode on top of link. Guests on the same link\ncan reach each other, but the host cannot reach the guest through the link’s own\naddresses. link must not be a port of a bridge or a bond.\n\nbridge adds a tap device to link as a bridge port, so the guest shares the bridge’s\nlayer 2 segment with the host and the bridge’s other ports. link must be a bridge.\nTalos enables bridge-nf-call-iptables and bridge-nf-call-ip6tables, so bridged guest\ntraffic passes the host’s ingress firewall: with NetworkRuleConfig ingress filtering\nand a block default action, guest traffic arriving on the bridge ports is dropped.\n\nOptional; defaults to macvtap.\n",
+          "markdownDescription": "How the interface is attached to the host link.\n\n`macvtap` puts a macvtap device in bridge mode on top of `link`. Guests on the same link\ncan reach each other, but the host cannot reach the guest through the link's own\naddresses. `link` must not be a port of a bridge or a bond.\n\n`bridge` adds a tap device to `link` as a bridge port, so the guest shares the bridge's\nlayer 2 segment with the host and the bridge's other ports. `link` must be a bridge.\nTalos enables `bridge-nf-call-iptables` and `bridge-nf-call-ip6tables`, so bridged guest\ntraffic passes the host's ingress firewall: with `NetworkRuleConfig` ingress filtering\nand a `block` default action, guest traffic arriving on the bridge ports is dropped.\n\nOptional; defaults to `macvtap`.",
+          "x-intellij-html-description": "\u003cp\u003eHow the interface is attached to the host link.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003emacvtap\u003c/code\u003e puts a macvtap device in bridge mode on top of \u003ccode\u003elink\u003c/code\u003e. Guests on the same link\ncan reach each other, but the host cannot reach the guest through the link\u0026rsquo;s own\naddresses. \u003ccode\u003elink\u003c/code\u003e must not be a port of a bridge or a bond.\u003c/p\u003e\n\n\u003cp\u003e\u003ccode\u003ebridge\u003c/code\u003e adds a tap device to \u003ccode\u003elink\u003c/code\u003e as a bridge port, so the guest shares the bridge\u0026rsquo;s\nlayer 2 segment with the host and the bridge\u0026rsquo;s other ports. \u003ccode\u003elink\u003c/code\u003e must be a bridge.\nTalos enables \u003ccode\u003ebridge-nf-call-iptables\u003c/code\u003e and \u003ccode\u003ebridge-nf-call-ip6tables\u003c/code\u003e, so bridged guest\ntraffic passes the host\u0026rsquo;s ingress firewall: with \u003ccode\u003eNetworkRuleConfig\u003c/code\u003e ingress filtering\nand a \u003ccode\u003eblock\u003c/code\u003e default action, guest traffic arriving on the bridge ports is dropped.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to \u003ccode\u003emacvtap\u003c/code\u003e.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -3466,9 +3722,9 @@
         "machine": {
           "type": "string",
           "title": "machine",
-          "description": "q35 or i440fx machine family, preferably a versioned type.\n",
-          "markdownDescription": "q35 or i440fx machine family, preferably a versioned type.",
-          "x-intellij-html-description": "\u003cp\u003eq35 or i440fx machine family, preferably a versioned type.\u003c/p\u003e\n"
+          "description": "q35 or i440fx machine family on amd64, virt on arm64, preferably a versioned type.\n",
+          "markdownDescription": "q35 or i440fx machine family on amd64, virt on arm64, preferably a versioned type.",
+          "x-intellij-html-description": "\u003cp\u003eq35 or i440fx machine family on amd64, virt on arm64, preferably a versioned type.\u003c/p\u003e\n"
         },
         "cpu": {
           "$ref": "#/$defs/hypervisor.VirtualMachineProfileCPU",
@@ -3476,6 +3732,13 @@
           "description": "Guest CPU model and feature policy.\n",
           "markdownDescription": "Guest CPU model and feature policy.",
           "x-intellij-html-description": "\u003cp\u003eGuest CPU model and feature policy.\u003c/p\u003e\n"
+        },
+        "timers": {
+          "$ref": "#/$defs/hypervisor.VirtualMachineProfileTimers",
+          "title": "timers",
+          "description": "Platform timers presented to the guest.\n\nOptional; omitting it hides the HPET, the RTC catches up on missed ticks and the PIT delays them.\nThese are x86 timers: arm64 guests get none of them, and enabling the HPET is rejected there.\n",
+          "markdownDescription": "Platform timers presented to the guest.\n\nOptional; omitting it hides the HPET, the RTC catches up on missed ticks and the PIT delays them.\nThese are x86 timers: arm64 guests get none of them, and enabling the HPET is rejected there.",
+          "x-intellij-html-description": "\u003cp\u003ePlatform timers presented to the guest.\u003c/p\u003e\n\n\u003cp\u003eOptional; omitting it hides the HPET, the RTC catches up on missed ticks and the PIT delays them.\nThese are x86 timers: arm64 guests get none of them, and enabling the HPET is rejected there.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -3487,7 +3750,83 @@
         "machine",
         "name"
       ],
-      "description": "VirtualMachineProfileConfig declares a named amd64 guest ABI.\\nProfiles bundle the guest machine type and CPU model. Use a versioned machine\\ntype and a CPU baseline tested on every host for migration. Aliases drift as QEMU\\nchanges. A named CPU model is not a migration guarantee across arbitrary hosts.\\n"
+      "description": "VirtualMachineProfileConfig declares a named guest ABI.\\nProfiles bundle the guest machine type, CPU model and platform timers. Use a versioned machine\\ntype and a CPU baseline tested on every host for migration. Aliases drift as QEMU\\nchanges. A named CPU model is not a migration guarantee across arbitrary hosts.\\n"
+    },
+    "hypervisor.VirtualMachineProfileHPET": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "enabled",
+          "description": "Present an emulated HPET to the guest.\n\nDisabled by default: modern guests use kvm-clock and the local APIC timer, and the\nemulated HPET keeps QEMU’s main thread waking at the guest’s tick rate even after the\nguest has stopped using it. Enable it only for guests that require an HPET.\n\nOptional; defaults to disabled.\n",
+          "markdownDescription": "Present an emulated HPET to the guest.\n\nDisabled by default: modern guests use kvm-clock and the local APIC timer, and the\nemulated HPET keeps QEMU's main thread waking at the guest's tick rate even after the\nguest has stopped using it. Enable it only for guests that require an HPET.\n\nOptional; defaults to disabled.",
+          "x-intellij-html-description": "\u003cp\u003ePresent an emulated HPET to the guest.\u003c/p\u003e\n\n\u003cp\u003eDisabled by default: modern guests use kvm-clock and the local APIC timer, and the\nemulated HPET keeps QEMU\u0026rsquo;s main thread waking at the guest\u0026rsquo;s tick rate even after the\nguest has stopped using it. Enable it only for guests that require an HPET.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to disabled.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VirtualMachineProfileHPET describes the emulated High Precision Event Timer."
+    },
+    "hypervisor.VirtualMachineProfilePIT": {
+      "properties": {
+        "tickPolicy": {
+          "enum": [
+            "delay",
+            "discard"
+          ],
+          "title": "tickPolicy",
+          "description": "How the in-kernel PIT delivers ticks the guest missed while it was descheduled.\n\ndelay delivers missed ticks at the normal rate. discard drops them.\n\nOptional; defaults to delay.\n",
+          "markdownDescription": "How the in-kernel PIT delivers ticks the guest missed while it was descheduled.\n\ndelay delivers missed ticks at the normal rate. discard drops them.\n\nOptional; defaults to delay.",
+          "x-intellij-html-description": "\u003cp\u003eHow the in-kernel PIT delivers ticks the guest missed while it was descheduled.\u003c/p\u003e\n\n\u003cp\u003edelay delivers missed ticks at the normal rate. discard drops them.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to delay.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VirtualMachineProfilePIT describes the emulated programmable interval timer."
+    },
+    "hypervisor.VirtualMachineProfileRTC": {
+      "properties": {
+        "tickPolicy": {
+          "enum": [
+            "catchup",
+            "delay"
+          ],
+          "title": "tickPolicy",
+          "description": "How the RTC delivers ticks the guest missed while it was descheduled.\n\ncatchup delivers missed ticks at a higher rate until the guest catches up (QEMU driftfix=slew).\nGuests without an HPET, such as Windows, keep time from the RTC and drift without it.\ndelay delivers missed ticks at the normal rate, so guest time falls behind.\n\nOptional; defaults to catchup.\n",
+          "markdownDescription": "How the RTC delivers ticks the guest missed while it was descheduled.\n\ncatchup delivers missed ticks at a higher rate until the guest catches up (QEMU driftfix=slew).\nGuests without an HPET, such as Windows, keep time from the RTC and drift without it.\ndelay delivers missed ticks at the normal rate, so guest time falls behind.\n\nOptional; defaults to catchup.",
+          "x-intellij-html-description": "\u003cp\u003eHow the RTC delivers ticks the guest missed while it was descheduled.\u003c/p\u003e\n\n\u003cp\u003ecatchup delivers missed ticks at a higher rate until the guest catches up (QEMU driftfix=slew).\nGuests without an HPET, such as Windows, keep time from the RTC and drift without it.\ndelay delivers missed ticks at the normal rate, so guest time falls behind.\u003c/p\u003e\n\n\u003cp\u003eOptional; defaults to catchup.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VirtualMachineProfileRTC describes the emulated real-time clock."
+    },
+    "hypervisor.VirtualMachineProfileTimers": {
+      "properties": {
+        "hpet": {
+          "$ref": "#/$defs/hypervisor.VirtualMachineProfileHPET",
+          "title": "hpet",
+          "description": "Emulated HPET settings.\n\nOptional; the HPET is hidden from the guest when this section is omitted.\n",
+          "markdownDescription": "Emulated HPET settings.\n\nOptional; the HPET is hidden from the guest when this section is omitted.",
+          "x-intellij-html-description": "\u003cp\u003eEmulated HPET settings.\u003c/p\u003e\n\n\u003cp\u003eOptional; the HPET is hidden from the guest when this section is omitted.\u003c/p\u003e\n"
+        },
+        "rtc": {
+          "$ref": "#/$defs/hypervisor.VirtualMachineProfileRTC",
+          "title": "rtc",
+          "description": "Emulated RTC settings.\n\nOptional; the RTC catches up on missed ticks when this section is omitted.\n",
+          "markdownDescription": "Emulated RTC settings.\n\nOptional; the RTC catches up on missed ticks when this section is omitted.",
+          "x-intellij-html-description": "\u003cp\u003eEmulated RTC settings.\u003c/p\u003e\n\n\u003cp\u003eOptional; the RTC catches up on missed ticks when this section is omitted.\u003c/p\u003e\n"
+        },
+        "pit": {
+          "$ref": "#/$defs/hypervisor.VirtualMachineProfilePIT",
+          "title": "pit",
+          "description": "Emulated PIT settings.\n\nOptional; the PIT delays missed ticks when this section is omitted.\n",
+          "markdownDescription": "Emulated PIT settings.\n\nOptional; the PIT delays missed ticks when this section is omitted.",
+          "x-intellij-html-description": "\u003cp\u003eEmulated PIT settings.\u003c/p\u003e\n\n\u003cp\u003eOptional; the PIT delays missed ticks when this section is omitted.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VirtualMachineProfileTimers selects the guest-visible platform timers."
     },
     "hypervisor.VirtualMachineSerial": {
       "properties": {
@@ -5185,6 +5524,17 @@
           "description": "Configure the route priority (metric) for routes created for this address.\n\nIf not specified, the system default route priority will be used.\n",
           "markdownDescription": "Configure the route priority (metric) for routes created for this address.\n\nIf not specified, the system default route priority will be used.",
           "x-intellij-html-description": "\u003cp\u003eConfigure the route priority (metric) for routes created for this address.\u003c/p\u003e\n\n\u003cp\u003eIf not specified, the system default route priority will be used.\u003c/p\u003e\n"
+        },
+        "scope": {
+          "enum": [
+            "global",
+            "link",
+            "host"
+          ],
+          "title": "scope",
+          "description": "Scope of the address.\n\nAddresses with link or host scope are not used by the kernel as a source address\nfor traffic leaving the host, while local connections to them still work.\nThis is useful for helper addresses which are only used for local communication.\n\nNon-global scope is only supported for IPv4 addresses, as the kernel derives\nthe scope of IPv6 addresses from the address itself.\n\nIf not specified, the address gets global scope.\n",
+          "markdownDescription": "Scope of the address.\n\nAddresses with `link` or `host` scope are not used by the kernel as a source address\nfor traffic leaving the host, while local connections to them still work.\nThis is useful for helper addresses which are only used for local communication.\n\nNon-global scope is only supported for IPv4 addresses, as the kernel derives\nthe scope of IPv6 addresses from the address itself.\n\nIf not specified, the address gets `global` scope.",
+          "x-intellij-html-description": "\u003cp\u003eScope of the address.\u003c/p\u003e\n\n\u003cp\u003eAddresses with \u003ccode\u003elink\u003c/code\u003e or \u003ccode\u003ehost\u003c/code\u003e scope are not used by the kernel as a source address\nfor traffic leaving the host, while local connections to them still work.\nThis is useful for helper addresses which are only used for local communication.\u003c/p\u003e\n\n\u003cp\u003eNon-global scope is only supported for IPv4 addresses, as the kernel derives\nthe scope of IPv6 addresses from the address itself.\u003c/p\u003e\n\n\u003cp\u003eIf not specified, the address gets \u003ccode\u003eglobal\u003c/code\u003e scope.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -5223,6 +5573,27 @@
       "additionalProperties": false,
       "type": "object",
       "description": "BGPBFDConfig configures BFD for a BGP neighbor."
+    },
+    "network.BGPGracefulRestartConfig": {
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "enabled",
+          "description": "Enable graceful restart helper mode for this neighbor.\n",
+          "markdownDescription": "Enable graceful restart helper mode for this neighbor.",
+          "x-intellij-html-description": "\u003cp\u003eEnable graceful restart helper mode for this neighbor.\u003c/p\u003e\n"
+        },
+        "notification": {
+          "type": "boolean",
+          "title": "notification",
+          "description": "Also retain routes when the session ends with a BGP NOTIFICATION message other than a hard reset (RFC 8538).\nIt takes effect only when the neighbor supports it as well. Without it, routes are retained only when the\nTCP connection fails or the hold timer expires.\nA session torn down by BFD never triggers graceful restart, and routes are withdrawn immediately.\nDefaults to true.\n",
+          "markdownDescription": "Also retain routes when the session ends with a BGP NOTIFICATION message other than a hard reset (RFC 8538).\nIt takes effect only when the neighbor supports it as well. Without it, routes are retained only when the\nTCP connection fails or the hold timer expires.\nA session torn down by BFD never triggers graceful restart, and routes are withdrawn immediately.\nDefaults to true.",
+          "x-intellij-html-description": "\u003cp\u003eAlso retain routes when the session ends with a BGP NOTIFICATION message other than a hard reset (RFC 8538).\nIt takes effect only when the neighbor supports it as well. Without it, routes are retained only when the\nTCP connection fails or the hold timer expires.\nA session torn down by BFD never triggers graceful restart, and routes are withdrawn immediately.\nDefaults to true.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "BGPGracefulRestartConfig configures BGP graceful restart helper mode for a BGP neighbor."
     },
     "network.BGPImportRoute": {
       "properties": {
@@ -5298,9 +5669,9 @@
         "routerID": {
           "type": "string",
           "title": "routerID",
-          "description": "BGP router-id. If not set, it is derived from the first advertised address.\n",
-          "markdownDescription": "BGP router-id. If not set, it is derived from the first advertised address.",
-          "x-intellij-html-description": "\u003cp\u003eBGP router-id. If not set, it is derived from the first advertised address.\u003c/p\u003e\n"
+          "description": "BGP router-id. If not set, it is derived from the lowest IPv4 address on the advertised links.\nA derived router-id is kept while a neighbor session is established or opening, as changing it resets all sessions.\nIt switches to the newly derived address once no session is up, when its address leaves the advertised links, or when the instance is restarted for another change.\n",
+          "markdownDescription": "BGP router-id. If not set, it is derived from the lowest IPv4 address on the advertised links.\nA derived router-id is kept while a neighbor session is established or opening, as changing it resets all sessions.\nIt switches to the newly derived address once no session is up, when its address leaves the advertised links, or when the instance is restarted for another change.",
+          "x-intellij-html-description": "\u003cp\u003eBGP router-id. If not set, it is derived from the lowest IPv4 address on the advertised links.\nA derived router-id is kept while a neighbor session is established or opening, as changing it resets all sessions.\nIt switches to the newly derived address once no session is up, when its address leaves the advertised links, or when the instance is restarted for another change.\u003c/p\u003e\n"
         },
         "routeSource": {
           "type": "string",
@@ -5329,9 +5700,9 @@
         "maxPaths": {
           "type": "integer",
           "title": "maxPaths",
-          "description": "Maximum number of ECMP next-hops to install. Zero uses the implementation default.\n",
-          "markdownDescription": "Maximum number of ECMP next-hops to install. Zero uses the implementation default.",
-          "x-intellij-html-description": "\u003cp\u003eMaximum number of ECMP next-hops to install. Zero uses the implementation default.\u003c/p\u003e\n"
+          "description": "Maximum number of ECMP next-hops to install. Zero installs all best paths.\n",
+          "markdownDescription": "Maximum number of ECMP next-hops to install. Zero installs all best paths.",
+          "x-intellij-html-description": "\u003cp\u003eMaximum number of ECMP next-hops to install. Zero installs all best paths.\u003c/p\u003e\n"
         },
         "installRoutes": {
           "type": "boolean",
@@ -5346,9 +5717,9 @@
           },
           "type": "array",
           "title": "importRoutes",
-          "description": "Selected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.\n",
-          "markdownDescription": "Selected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.",
-          "x-intellij-html-description": "\u003cp\u003eSelected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.\u003c/p\u003e\n"
+          "description": "Selected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported, so\nimports do not chain: importing from an instance gives only the routes it learned from its own neighbors.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.\n",
+          "markdownDescription": "Selected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported, so\nimports do not chain: importing from an instance gives only the routes it learned from its own neighbors.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.",
+          "x-intellij-html-description": "\u003cp\u003eSelected routes to import from other BGP instances. Imports are one-way: matching best paths\nlearned from each source instance are preserved and advertised by this instance with its own\nnext hop. Locally originated and previously imported paths are not recursively imported, so\nimports do not chain: importing from an instance gives only the routes it learned from its own neighbors.\nSelectors in a single target instance must not overlap, giving each imported prefix one source.\u003c/p\u003e\n"
         },
         "neighbors": {
           "items": {
@@ -5412,9 +5783,9 @@
           "type": "string",
           "pattern": "^[-+]?(((\\d+(\\.\\d*)?|\\.\\d+|\\d+)([nuµm]?s|m|h))|0)+$",
           "title": "holdTime",
-          "description": "BGP hold time for this neighbor. Zero uses the implementation default.\n",
-          "markdownDescription": "BGP hold time for this neighbor. Zero uses the implementation default.",
-          "x-intellij-html-description": "\u003cp\u003eBGP hold time for this neighbor. Zero uses the implementation default.\u003c/p\u003e\n"
+          "description": "BGP hold time for this neighbor. Zero uses the implementation default.\nThe hold time is negotiated when the session is established: a change applies to the next session.\n",
+          "markdownDescription": "BGP hold time for this neighbor. Zero uses the implementation default.\nThe hold time is negotiated when the session is established: a change applies to the next session.",
+          "x-intellij-html-description": "\u003cp\u003eBGP hold time for this neighbor. Zero uses the implementation default.\nThe hold time is negotiated when the session is established: a change applies to the next session.\u003c/p\u003e\n"
         },
         "bfd": {
           "$ref": "#/$defs/network.BGPBFDConfig",
@@ -5436,6 +5807,13 @@
           "description": "TTL To be set on BGP packet for eBGPMultiHop feature.\nValue must be between 2 and 255.\n",
           "markdownDescription": "TTL To be set on BGP packet for eBGPMultiHop feature.\nValue must be between 2 and 255.",
           "x-intellij-html-description": "\u003cp\u003eTTL To be set on BGP packet for eBGPMultiHop feature.\nValue must be between 2 and 255.\u003c/p\u003e\n"
+        },
+        "gracefulRestart": {
+          "$ref": "#/$defs/network.BGPGracefulRestartConfig",
+          "title": "gracefulRestart",
+          "description": "BGP graceful restart (RFC 4724) settings for this neighbor.\nTalos acts as a helper only: when the session with a neighbor that advertised graceful restart ends\nwithout a hard reset, routes learned from it are retained as stale (they stay installed and imported into\nother instances) until the neighbor re-establishes the session and sends End-of-RIB, or until the restart time\nadvertised by the neighbor expires.\nTalos does not ask its neighbors to retain its own routes when it restarts (restarting speaker mode).\nThe neighbor must enable graceful restart too, and only the address families it lists are retained.\nChanging these settings resets the session with the neighbor.\n",
+          "markdownDescription": "BGP graceful restart (RFC 4724) settings for this neighbor.\nTalos acts as a helper only: when the session with a neighbor that advertised graceful restart ends\nwithout a hard reset, routes learned from it are retained as stale (they stay installed and imported into\nother instances) until the neighbor re-establishes the session and sends End-of-RIB, or until the restart time\nadvertised by the neighbor expires.\nTalos does not ask its neighbors to retain its own routes when it restarts (restarting speaker mode).\nThe neighbor must enable graceful restart too, and only the address families it lists are retained.\nChanging these settings resets the session with the neighbor.",
+          "x-intellij-html-description": "\u003cp\u003eBGP graceful restart (RFC 4724) settings for this neighbor.\nTalos acts as a helper only: when the session with a neighbor that advertised graceful restart ends\nwithout a hard reset, routes learned from it are retained as stale (they stay installed and imported into\nother instances) until the neighbor re-establishes the session and sends End-of-RIB, or until the restart time\nadvertised by the neighbor expires.\nTalos does not ask its neighbors to retain its own routes when it restarts (restarting speaker mode).\nThe neighbor must enable graceful restart too, and only the address families it lists are retained.\nChanging these settings resets the session with the neighbor.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -6370,9 +6748,16 @@
         "name": {
           "type": "string",
           "title": "name",
-          "description": "Name of the link (interface).\n",
-          "markdownDescription": "Name of the link (interface).",
-          "x-intellij-html-description": "\u003cp\u003eName of the link (interface).\u003c/p\u003e\n"
+          "description": "Name or alias of the link to configure.\n\nIf selector is set, a descriptive name of the config instead.\n",
+          "markdownDescription": "Name or alias of the link to configure.\n\nIf `selector` is set, a descriptive name of the config instead.",
+          "x-intellij-html-description": "\u003cp\u003eName or alias of the link to configure.\u003c/p\u003e\n\n\u003cp\u003eIf \u003ccode\u003eselector\u003c/code\u003e is set, a descriptive name of the config instead.\u003c/p\u003e\n"
+        },
+        "selector": {
+          "$ref": "#/$defs/network.LinkSelector",
+          "title": "selector",
+          "description": "Selector to match the links to configure.\nIf omitted, the link is matched by name.\n\nOnly physical links are matched.\nIf several configs match the same link, their settings are merged in this order, later ones overriding earlier ones:\nconfigs matching by a selector, then by link alias, then by exact link name.\n",
+          "markdownDescription": "Selector to match the links to configure.\nIf omitted, the link is matched by `name`.\n\nOnly physical links are matched.\nIf several configs match the same link, their settings are merged in this order, later ones overriding earlier ones:\nconfigs matching by a selector, then by link alias, then by exact link name.",
+          "x-intellij-html-description": "\u003cp\u003eSelector to match the links to configure.\nIf omitted, the link is matched by \u003ccode\u003ename\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eOnly physical links are matched.\nIf several configs match the same link, their settings are merged in this order, later ones overriding earlier ones:\nconfigs matching by a selector, then by link alias, then by exact link name.\u003c/p\u003e\n"
         },
         "features": {
           "patternProperties": {
@@ -6674,6 +7059,18 @@
           "description": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\n",
           "markdownDescription": "Resolve member hostnames using the host DNS resolver.\n\nWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.",
           "x-intellij-html-description": "\u003cp\u003eResolve member hostnames using the host DNS resolver.\u003c/p\u003e\n\n\u003cp\u003eWhen enabled, cluster member hostnames and node names are resolved using the host DNS resolver.\nThis requires service discovery to be enabled.\u003c/p\u003e\n"
+        },
+        "logLevel": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "title": "logLevel",
+          "description": "Log level for the host DNS resolver.\n\nThe default log level is debug, which logs every DNS request and response.\nRaise the log level to reduce the verbosity of the host DNS resolver logs.\n",
+          "markdownDescription": "Log level for the host DNS resolver.\n\nThe default log level is `debug`, which logs every DNS request and response.\nRaise the log level to reduce the verbosity of the host DNS resolver logs.",
+          "x-intellij-html-description": "\u003cp\u003eLog level for the host DNS resolver.\u003c/p\u003e\n\n\u003cp\u003eThe default log level is \u003ccode\u003edebug\u003c/code\u003e, which logs every DNS request and response.\nRaise the log level to reduce the verbosity of the host DNS resolver logs.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -7123,7 +7520,7 @@
       },
       "additionalProperties": false,
       "type": "object",
-      "description": "LinkSelector selects a link to alias."
+      "description": "LinkSelector selects links using a CEL expression."
     },
     "network.MacVLANConfigV1Alpha1": {
       "properties": {
@@ -7332,9 +7729,9 @@
           },
           "type": "array",
           "title": "nameservers",
-          "description": "A list of nameservers (DNS servers) to use for resolving domain names.\n\nNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\n\nThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1 and 8.8.8.8 as nameservers.\n",
-          "markdownDescription": "A list of nameservers (DNS servers) to use for resolving domain names.\n\nNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\n\nThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1 and 8.8.8.8 as nameservers.",
-          "x-intellij-html-description": "\u003cp\u003eA list of nameservers (DNS servers) to use for resolving domain names.\u003c/p\u003e\n\n\u003cp\u003eNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\u003c/p\u003e\n\n\u003cp\u003eThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1 and 8.8.8.8 as nameservers.\u003c/p\u003e\n"
+          "description": "A list of nameservers (DNS servers) to use for resolving domain names.\n\nNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\n\nThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1, 8.8.8.8 (IPv4), and their IPv6\ncounterparts 2606:4700:4700::1111, 2001:4860:4860::8888 as nameservers.\n",
+          "markdownDescription": "A list of nameservers (DNS servers) to use for resolving domain names.\n\nNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\n\nThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1, 8.8.8.8 (IPv4), and their IPv6\ncounterparts 2606:4700:4700::1111, 2001:4860:4860::8888 as nameservers.",
+          "x-intellij-html-description": "\u003cp\u003eA list of nameservers (DNS servers) to use for resolving domain names.\u003c/p\u003e\n\n\u003cp\u003eNameservers are used to resolve domain names on the host, and they are also\npropagated to Kubernetes DNS (CoreDNS) for use by pods running on the cluster.\u003c/p\u003e\n\n\u003cp\u003eThis overrides any nameservers obtained via DHCP or platform configuration.\nDefault configuration is to use 1.1.1.1, 8.8.8.8 (IPv4), and their IPv6\ncounterparts 2606:4700:4700::1111, 2001:4860:4860::8888 as nameservers.\u003c/p\u003e\n"
         },
         "searchDomains": {
           "$ref": "#/$defs/network.SearchDomainsConfig",
@@ -9193,9 +9590,9 @@
         "limit": {
           "type": "string",
           "title": "limit",
-          "description": "Aggregate memory ceiling of the root, in bytes.\n\nThe value can be expressed in human readable format, e.g. 16GiB, and must be positive.\n",
-          "markdownDescription": "Aggregate memory ceiling of the root, in bytes.\n\nThe value can be expressed in human readable format, e.g. 16GiB, and must be positive.",
-          "x-intellij-html-description": "\u003cp\u003eAggregate memory ceiling of the root, in bytes.\u003c/p\u003e\n\n\u003cp\u003eThe value can be expressed in human readable format, e.g. 16GiB, and must be positive.\u003c/p\u003e\n"
+          "description": "Aggregate memory ceiling of the root: a whole percentage of the host memory\nminus reserved.memory, or an absolute size. It must be positive.\n",
+          "markdownDescription": "Aggregate memory ceiling of the root: a whole percentage of the host memory\nminus `reserved.memory`, or an absolute size. It must be positive.",
+          "x-intellij-html-description": "\u003cp\u003eAggregate memory ceiling of the root: a whole percentage of the host memory\nminus \u003ccode\u003ereserved.memory\u003c/code\u003e, or an absolute size. It must be positive.\u003c/p\u003e\n"
         }
       },
       "additionalProperties": false,
@@ -9204,6 +9601,20 @@
         "limit"
       ],
       "description": "WorkloadMemoryResource bounds the memory of one workload root."
+    },
+    "runtime.WorkloadReserved": {
+      "properties": {
+        "memory": {
+          "type": "string",
+          "title": "memory",
+          "description": "Host memory left out of the split. Defaults to the kubelet’s default\nsystemReserved.memory: 512Mi on control plane nodes, 384Mi on workers.\n\nIt is not written to any cgroup: it is the room left for the host processes\nand the kernel. Talos passes it to the kubelet as systemReserved.memory\nunless kubepods sets a limit.\n",
+          "markdownDescription": "Host memory left out of the split. Defaults to the kubelet's default\n`systemReserved.memory`: 512Mi on control plane nodes, 384Mi on workers.\n\nIt is not written to any cgroup: it is the room left for the host processes\nand the kernel. Talos passes it to the kubelet as `systemReserved.memory`\nunless `kubepods` sets a limit.",
+          "x-intellij-html-description": "\u003cp\u003eHost memory left out of the split. Defaults to the kubelet\u0026rsquo;s default\n\u003ccode\u003esystemReserved.memory\u003c/code\u003e: 512Mi on control plane nodes, 384Mi on workers.\u003c/p\u003e\n\n\u003cp\u003eIt is not written to any cgroup: it is the room left for the host processes\nand the kernel. Talos passes it to the kubelet as \u003ccode\u003esystemReserved.memory\u003c/code\u003e\nunless \u003ccode\u003ekubepods\u003c/code\u003e sets a limit.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "WorkloadReserved holds the resources left for the host."
     },
     "runtime.WorkloadResourceConfigV1Alpha1": {
       "properties": {
@@ -9224,6 +9635,13 @@
           "description": "kind is the kind of the resource.\n",
           "markdownDescription": "kind is the kind of the resource.",
           "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "reserved": {
+          "$ref": "#/$defs/runtime.WorkloadReserved",
+          "title": "reserved",
+          "description": "Resources left out of the split for the host.\n",
+          "markdownDescription": "Resources left out of the split for the host.",
+          "x-intellij-html-description": "\u003cp\u003eResources left out of the split for the host.\u003c/p\u003e\n"
         },
         "kubepods": {
           "$ref": "#/$defs/runtime.WorkloadResourceRoot",
@@ -9253,7 +9671,7 @@
         "apiVersion",
         "kind"
       ],
-      "description": "WorkloadResourceConfig is a workload resource config document.\\nWorkloadResourceConfig declares an aggregate memory ceiling for each Talos workload root.\\n\\nThe roots are `kubepods`, `taloscontainers` and `virtualMachines`; every root is optional\\nand independent of the others. Omitting a root removes its aggregate cap; individual child\\nlimits still apply.\\nA limit must be positive; it is rounded down to the host page size before it is applied,\\nand bounds RAM only (including page cache charged to the root): swap and hugepages are\\nnot limited by it.\\n\\nTalos exclusively owns `memory.max` on `/taloscontainers` and `/virtualmachines.partition`,\\neven without this document. An omitted limit (zero internally) means an unlimited aggregate cap.\\nKubelet reserved-memory enforcement on these roots is rejected; CPU-only or compressible\\nenforcement is allowed. Static validation cannot inspect external kubelet drop-in files;\\ndrop-in directories are rejected while any workload cap is active.\\nLowering a limit below current usage makes the kernel reclaim and OOM-kill within that root,\\nwhich can terminate containers or virtual machines.\\n\\nThe `kubepods` limit is applied by the kubelet, which stays the only writer of its cgroup:\\nTalos derives `systemReserved.memory` from the limit, so changing it restarts the kubelet,\\nand a limit below the memory used by pods (control plane static pods included) causes\\nOOM kills. The schedulable Node Allocatable is the limit minus the hard eviction\\nthreshold and any hugepage capacity, so it is lower than the limit. Setting\\n`systemReserved.memory`, the equivalent kubelet command line flags or the `Static` memory\\nmanager policy together with the limit is rejected. The limit is inactive while Kubernetes\\nis not configured on the machine; the other roots are enforced regardless.\\n\\nIn container mode the document is validated but declares no policy.\\n"
+      "description": "WorkloadResourceConfig is a workload resource config document.\\nWorkloadResourceConfig splits the host memory between the Talos workload roots.\\n\\n`reserved.memory` stays with the host (`/init`, `/system`, `/podruntime` and the kernel); each\\nroot gets an aggregate memory ceiling of a whole percentage of the rest, or of an absolute\\nsize. The roots are `kubepods`, `taloscontainers` and `virtualMachines`; every root is\\noptional, and the percentages must not add up to more than 100%.\\nPercentages are resolved against the host memory at runtime and follow memory hotplug. Limits are\\nrounded down to the host page size before they are applied, and bound RAM only (including\\npage cache charged to the root): swap and hugepages are not limited by them.\\n\\nTalos exclusively owns `memory.max` on `/taloscontainers` and `/virtualmachines.partition`,\\neven without this document. An omitted root, `kubepods` included, is capped at the host memory\\nminus `reserved.memory`, which defaults to the kubelet's default `systemReserved.memory`\\n(512Mi on control plane nodes, 384Mi on workers). Individual child limits still apply.\\nWith this document, kubelet `system-reserved` and `kube-reserved` enforcement on these roots\\nand on `/system/extensions`, whose `pids.max` Talos also owns, is rejected, compressible\\nincluded; without it, only enforcing a memory reservation on these roots is rejected.\\nStatic validation cannot inspect external kubelet drop-in files;\\ndrop-in directories are rejected while this document sets any limit.\\nLowering a limit below current usage makes the kernel reclaim and OOM-kill within that root,\\nwhich can terminate containers or virtual machines.\\n\\nThe `kubepods` cap is applied by the kubelet, which stays the only writer of its cgroup:\\nTalos sets `systemReserved.memory` to `reserved.memory`, or derives it from the `kubepods`\\nlimit. A limit makes `systemReserved.memory` depend on the host memory, so a memory hotplug\\nrestarts the kubelet; without a limit it does not. Changing either value restarts the kubelet,\\nand a limit below the memory used by pods (control plane static pods included) causes\\nOOM kills. The schedulable Node Allocatable is the limit minus the hard eviction\\nthreshold and any hugepage capacity, so it is lower than the limit. With the limit,\\n`systemReserved.memory`, `kubeReserved.memory`, the equivalent kubelet command line flags,\\ndrop-in directories and the `Static` memory manager policy are rejected. Without it, an\\nexplicit `systemReserved.memory`, the `--system-reserved` flag or a drop-in file overrides\\n`reserved.memory` for the kubelet, and keeping them consistent is the user's responsibility.\\nThe limit is inactive while Kubernetes is not configured on the machine; the other roots are\\nenforced regardless.\\n\\nIn container mode the cgroups are nested, so the limits are not applied; `reserved.memory`\\nstill sets the kubelet `systemReserved.memory`.\\n"
     },
     "runtime.WorkloadResourceRoot": {
       "properties": {
@@ -9694,13 +10112,6 @@
           "markdownDescription": "The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster.",
           "x-intellij-html-description": "\u003cp\u003eThe \u003ca href=\"https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/\" target=\"_blank\"\u003ebootstrap token\u003c/a\u003e used to join the cluster.\u003c/p\u003e\n"
         },
-        "etcd": {
-          "$ref": "#/$defs/v1alpha1.EtcdConfig",
-          "title": "etcd",
-          "description": "Etcd specific configuration options.\n",
-          "markdownDescription": "Etcd specific configuration options.",
-          "x-intellij-html-description": "\u003cp\u003eEtcd specific configuration options.\u003c/p\u003e\n"
-        },
         "externalCloudProvider": {
           "$ref": "#/$defs/v1alpha1.ExternalCloudProviderConfig",
           "title": "externalCloudProvider",
@@ -9762,76 +10173,6 @@
       "additionalProperties": false,
       "type": "object",
       "description": "Endpoint represents the endpoint URL parsed out of the machine config."
-    },
-    "v1alpha1.EtcdConfig": {
-      "properties": {
-        "image": {
-          "type": "string",
-          "title": "image",
-          "description": "The container image used to create the etcd service.\n",
-          "markdownDescription": "The container image used to create the etcd service.",
-          "x-intellij-html-description": "\u003cp\u003eThe container image used to create the etcd service.\u003c/p\u003e\n"
-        },
-        "ca": {
-          "properties": {
-            "crt": {
-              "type": "string"
-            },
-            "key": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "type": "object",
-          "title": "ca",
-          "description": "The ca is the root certificate authority of the PKI.\nIt is composed of a base64 encoded crt and key.\n",
-          "markdownDescription": "The `ca` is the root certificate authority of the PKI.\nIt is composed of a base64 encoded `crt` and `key`.",
-          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003eca\u003c/code\u003e is the root certificate authority of the PKI.\nIt is composed of a base64 encoded \u003ccode\u003ecrt\u003c/code\u003e and \u003ccode\u003ekey\u003c/code\u003e.\u003c/p\u003e\n"
-        },
-        "extraArgs": {
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            ]
-          },
-          "type": "object",
-          "title": "extraArgs",
-          "description": "Extra arguments to supply to etcd.\nNote that the following args are not allowed:\n\n\nname\ndata-dir\ninitial-cluster-state\nlisten-peer-urls\nlisten-client-urls\ncert-file\nkey-file\ntrusted-ca-file\npeer-client-cert-auth\npeer-cert-file\npeer-trusted-ca-file\npeer-key-file\n\n",
-          "markdownDescription": "Extra arguments to supply to etcd.\nNote that the following args are not allowed:\n\n- `name`\n- `data-dir`\n- `initial-cluster-state`\n- `listen-peer-urls`\n- `listen-client-urls`\n- `cert-file`\n- `key-file`\n- `trusted-ca-file`\n- `peer-client-cert-auth`\n- `peer-cert-file`\n- `peer-trusted-ca-file`\n- `peer-key-file`",
-          "x-intellij-html-description": "\u003cp\u003eExtra arguments to supply to etcd.\nNote that the following args are not allowed:\u003c/p\u003e\n\n\u003cul\u003e\n\u003cli\u003e\u003ccode\u003ename\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003edata-dir\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003einitial-cluster-state\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003elisten-peer-urls\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003elisten-client-urls\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ecert-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003ekey-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003etrusted-ca-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-client-cert-auth\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-cert-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-trusted-ca-file\u003c/code\u003e\u003c/li\u003e\n\u003cli\u003e\u003ccode\u003epeer-key-file\u003c/code\u003e\u003c/li\u003e\n\u003c/ul\u003e\n"
-        },
-        "advertisedSubnets": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array",
-          "title": "advertisedSubnets",
-          "description": "The advertisedSubnets field configures the networks to pick etcd advertised IP from.\n\nIPs can be excluded from the list by using negative match with !, e.g !10.0.0.0/8.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\n",
-          "markdownDescription": "The `advertisedSubnets` field configures the networks to pick etcd advertised IP from.\n\nIPs can be excluded from the list by using negative match with `!`, e.g `!10.0.0.0/8`.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.",
-          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003eadvertisedSubnets\u003c/code\u003e field configures the networks to pick etcd advertised IP from.\u003c/p\u003e\n\n\u003cp\u003eIPs can be excluded from the list by using negative match with \u003ccode\u003e!\u003c/code\u003e, e.g \u003ccode\u003e!10.0.0.0/8\u003c/code\u003e.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\u003c/p\u003e\n"
-        },
-        "listenSubnets": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array",
-          "title": "listenSubnets",
-          "description": "The listenSubnets field configures the networks for the etcd to listen for peer and client connections.\n\nIf listenSubnets is not set, but advertisedSubnets is set, listenSubnets defaults to\nadvertisedSubnets.\n\nIf neither advertisedSubnets nor listenSubnets is set, listenSubnets defaults to listen on all addresses.\n\nIPs can be excluded from the list by using negative match with !, e.g !10.0.0.0/8.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\n",
-          "markdownDescription": "The `listenSubnets` field configures the networks for the etcd to listen for peer and client connections.\n\nIf `listenSubnets` is not set, but `advertisedSubnets` is set, `listenSubnets` defaults to\n`advertisedSubnets`.\n\nIf neither `advertisedSubnets` nor `listenSubnets` is set, `listenSubnets` defaults to listen on all addresses.\n\nIPs can be excluded from the list by using negative match with `!`, e.g `!10.0.0.0/8`.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.",
-          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003elistenSubnets\u003c/code\u003e field configures the networks for the etcd to listen for peer and client connections.\u003c/p\u003e\n\n\u003cp\u003eIf \u003ccode\u003elistenSubnets\u003c/code\u003e is not set, but \u003ccode\u003eadvertisedSubnets\u003c/code\u003e is set, \u003ccode\u003elistenSubnets\u003c/code\u003e defaults to\n\u003ccode\u003eadvertisedSubnets\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eIf neither \u003ccode\u003eadvertisedSubnets\u003c/code\u003e nor \u003ccode\u003elistenSubnets\u003c/code\u003e is set, \u003ccode\u003elistenSubnets\u003c/code\u003e defaults to listen on all addresses.\u003c/p\u003e\n\n\u003cp\u003eIPs can be excluded from the list by using negative match with \u003ccode\u003e!\u003c/code\u003e, e.g \u003ccode\u003e!10.0.0.0/8\u003c/code\u003e.\nNegative subnet matches should be specified last to filter out IPs picked by positive matches.\nIf not specified, advertised IP is selected as the first routable address of the node.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "EtcdConfig represents the etcd configuration options."
     },
     "v1alpha1.ExternalCloudProviderConfig": {
       "properties": {
@@ -10032,6 +10373,9 @@
       "$ref": "#/$defs/block.FilesystemScrubConfigV1Alpha1"
     },
     {
+      "$ref": "#/$defs/block.InlineDataVolumeConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/block.RawVolumeConfigV1Alpha1"
     },
     {
@@ -10078,6 +10422,12 @@
     },
     {
       "$ref": "#/$defs/cri.SeccompProfileConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/etcd.EtcdCAConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/etcd.EtcdMemberConfigV1Alpha1"
     },
     {
       "$ref": "#/$defs/extensions.ServiceConfigV1Alpha1"

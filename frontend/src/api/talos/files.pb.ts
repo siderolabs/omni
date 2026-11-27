@@ -13,6 +13,18 @@ export type EtcFileStatusSpec = {
   specVersion?: string
 }
 
+export type InlineDataVolumeMountRequestSpec = {
+  volumeName?: string
+  requester?: string
+}
+
+export type InlineDataVolumeMountStatusSpec = {
+  volumeName?: string
+  target?: string
+  contentsHash?: string
+  device?: number
+}
+
 export type InlineDataVolumeStatusSpec = {
   volumeID?: string
   contentsHash?: string

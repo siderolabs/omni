@@ -36,6 +36,10 @@ export type BGPBFDConfigSpec = {
   detectMultiplier?: number
 }
 
+export type BGPGracefulRestartConfigSpec = {
+  notification?: boolean
+}
+
 export type BGPNeighborConfigSpec = {
   address?: string
   link?: string
@@ -46,6 +50,7 @@ export type BGPNeighborConfigSpec = {
   passive?: boolean
   authPassword?: string
   eBgpMultiHop?: number
+  gracefulRestart?: BGPGracefulRestartConfigSpec
 }
 
 export type BGPImportRouteSpec = {
@@ -79,6 +84,8 @@ export type BGPPeerStatusSpec = {
   accepted?: number
   bfdState?: string
   instance?: string
+  gracefulRestart?: boolean
+  peerRestarting?: boolean
 }
 
 export type DNSResolveCacheSpec = {
@@ -117,6 +124,8 @@ export type EthernetSpecSpec = {
   channels?: EthernetChannelsSpec
   wakeOnLan?: string[]
   flowControl?: EthernetFlowControlSpec
+  linkName?: string
+  fromSelector?: boolean
 }
 
 export type EthernetRingsStatus = {

@@ -32,7 +32,7 @@ require (
 	github.com/siderolabs/image-factory v1.8.0
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.18
-	github.com/siderolabs/talos/pkg/machinery v1.15.0-beta.0.0.20261124082224-853a716d06e2
+	github.com/siderolabs/talos/pkg/machinery v1.15.0-beta.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xlab/treeprint v1.2.0

@@ -87,6 +87,10 @@ export type VirtualMachineDomainStatusSpec = {
   interfaces?: VirtualMachineGuestInterfaceSpec[]
 }
 
+export type VirtualMachineLifecycleSpec = {
+  shutdownDeadline?: string
+}
+
 export type VirtualMachinePowerOverrideSpec = {
   powerState?: string
   stopRequest?: string

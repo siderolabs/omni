@@ -148,6 +148,7 @@ export type MDArrayStatusSpec = {
   arrayState?: string
   syncAction?: string
   unmanaged?: boolean
+  inSyncMembers?: string[]
 }
 
 export type MDRefreshRequestSpec = {
