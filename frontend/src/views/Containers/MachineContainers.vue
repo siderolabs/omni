@@ -8,13 +8,13 @@ included in the LICENSE file.
 import { useIntervalFn, useNow } from '@vueuse/core'
 import prettyBytes from 'pretty-bytes'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
   TalosContainerImageStatusType,
   TalosContainerInstanceStatusType,
-  TalosContainersLogPrefix,
   TalosContainersNamespace,
 } from '@/api/resources'
 import type {
@@ -35,6 +35,7 @@ import { useResourceSort } from '@/methods/resource/useResourceSort'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ContainerDetailCell from '@/views/Containers/components/ContainerDetailCell.vue'
 import ContainerImage from '@/views/Containers/components/ContainerImage.vue'
+import { containerLogsRoute, containerRoute } from '@/views/Containers/lib/containerRoutes'
 import { containerRows, imageRef, rowSummary } from '@/views/Containers/lib/containerRows'
 import { formatCPU } from '@/views/Containers/lib/containerStats'
 import { formatSince, stateAppearance, stateName } from '@/views/Containers/lib/containerStatus'
@@ -95,10 +96,10 @@ const {
   selectedValue: sortSelected,
 } = useResourceSort({ sortOptions: containerSortOptions })
 
-const logsRoute = (id: string) => ({
-  name: 'NodeLogs' as const,
-  params: { cluster: clusterId, machine: machineId, service: `${TalosContainersLogPrefix}${id}` },
-})
+// A container's page keeps this list's query, so its way back lands on the same search and sort
+const route = useRoute()
+const detailRoute = (id: string) => containerRoute(clusterId, machineId, id, route.query)
+const logsRoute = (id: string) => containerLogsRoute(clusterId, machineId, id)
 
 const rows = computed(() =>
   containerRows(statuses.value, images.value, instances.value, metrics.value),
@@ -171,12 +172,13 @@ const visibleRows = computed(() =>
         <template #row="{ row }">
           <!-- The name, with its image under it -->
           <TableCell>
-            <WordHighlighter
-              :query="search.trim()"
-              :text-to-highlight="row.id"
-              highlight-class="search-match"
-              class="block wrap-anywhere text-content-emphasis"
-            />
+            <RouterLink :to="detailRoute(row.id)" class="list-item-link block wrap-anywhere">
+              <WordHighlighter
+                :query="search.trim()"
+                :text-to-highlight="row.id"
+                highlight-class="search-match"
+              />
+            </RouterLink>
             <ContainerImage :image="imageRef(row)" :digest="row.image?.digest" :search />
           </TableCell>
 
@@ -228,12 +230,13 @@ const visibleRows = computed(() =>
         <template #stacked="{ row }">
           <div class="flex flex-col gap-tight">
             <div class="flex items-start justify-between gap-tight">
-              <WordHighlighter
-                :query="search.trim()"
-                :text-to-highlight="row.id"
-                highlight-class="search-match"
-                class="wrap-anywhere text-content-emphasis"
-              />
+              <RouterLink :to="detailRoute(row.id)" class="list-item-link wrap-anywhere">
+                <WordHighlighter
+                  :query="search.trim()"
+                  :text-to-highlight="row.id"
+                  highlight-class="search-match"
+                />
+              </RouterLink>
 
               <StatusPill
                 v-bind="stateAppearance(row.status.state, row.status.health)"

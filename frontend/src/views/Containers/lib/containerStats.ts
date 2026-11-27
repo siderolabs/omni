@@ -21,12 +21,6 @@ export interface StatsSample {
   memory: Map<string, number>
 }
 
-/**
- * The containerd ID Talos runs a container's instance under, which is what Stats is keyed by.
- * Every restart runs under a new generation, so a new ID.
- */
-export const statsKey = (id: string, generation = 0) => `${id}-${generation}`
-
 export function statsSample(stats: Stat[], at: number): StatsSample {
   const cpu = new Map<string, bigint>()
   const memory = new Map<string, number>()

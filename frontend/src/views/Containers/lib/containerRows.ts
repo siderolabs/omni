@@ -11,8 +11,14 @@ import type {
   ContainerInstanceStatusSpec,
   ContainerStatusSpec,
 } from '@/api/talos/containers.pb'
-import { type ContainerMetrics, formatCPU, statsKey } from '@/views/Containers/lib/containerStats'
+import { type ContainerMetrics, formatCPU } from '@/views/Containers/lib/containerStats'
 import { formatSince } from '@/views/Containers/lib/containerStatus'
+
+/**
+ * The ID of a container's instance, as Talos's `containers.InstanceID` makes it: the containerd ID it
+ * runs under, and the ID of its health status. Every restart is a new generation, so a new ID.
+ */
+export const instanceId = (id: string, generation = 0) => `${id}-${generation}`
 
 /** A container, with what Talos reports about its image and its newest instance. */
 export interface ContainerRow {
@@ -56,7 +62,7 @@ export function containerRows(
       image: imageById.get(id),
       instance,
       since: sinceTime({ status, instance }),
-      metrics: metrics.get(statsKey(id, status.generation)),
+      metrics: metrics.get(instanceId(id, status.generation)),
     }
   })
 }

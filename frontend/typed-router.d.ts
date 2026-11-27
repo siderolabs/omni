@@ -92,6 +92,7 @@ declare module 'vue-router/auto-routes' {
       | 'MachinesPending'
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainer'
       | 'NodeContainers'
       | 'NodeDetails'
       | 'NodeDevices'
@@ -140,6 +141,7 @@ declare module 'vue-router/auto-routes' {
       | 'KubernetesManifestSync'
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainer'
       | 'NodeContainers'
       | 'NodeDetails'
       | 'NodeDevices'
@@ -176,6 +178,7 @@ declare module 'vue-router/auto-routes' {
       { cluster: ParamValue<false>, machine: ParamValue<false> },
       | 'NodeConfig'
       | 'NodeConfigDiffs'
+      | 'NodeContainer'
       | 'NodeContainers'
       | 'NodeDevices'
       | 'NodeDisks'
@@ -214,6 +217,13 @@ declare module 'vue-router/auto-routes' {
       '/clusters/:cluster/machine/:machine/containers',
       { cluster: ParamValue<true>, machine: ParamValue<true> },
       { cluster: ParamValue<false>, machine: ParamValue<false> },
+      | never
+    >,
+    'NodeContainer': RouteRecordInfo<
+      'NodeContainer',
+      '/clusters/:cluster/machine/:machine/containers/:container',
+      { cluster: ParamValue<true>, container: ParamValue<true>, machine: ParamValue<true> },
+      { cluster: ParamValue<false>, container: ParamValue<false>, machine: ParamValue<false> },
       | never
     >,
     'NodeDevices': RouteRecordInfo<
@@ -801,6 +811,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesPending'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainer'
         | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
@@ -882,6 +893,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesPending'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainer'
         | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
@@ -934,6 +946,7 @@ declare module 'vue-router/auto-routes' {
         | 'KubernetesManifestSync'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainer'
         | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
@@ -973,6 +986,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'NodeConfig'
         | 'NodeConfigDiffs'
+        | 'NodeContainer'
         | 'NodeContainers'
         | 'NodeDetails'
         | 'NodeDevices'
@@ -1014,13 +1028,21 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | never
     }
-    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/containers.vue': {
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/containers/index.vue': {
       routes:
         | 'NodeContainers'
       views:
         | never
       pathParamNames:
         | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/containers/[container].vue': {
+      routes:
+        | 'NodeContainer'
+      views:
+        | never
+      pathParamNames:
+        | 'container'
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/devices.vue': {
       routes:

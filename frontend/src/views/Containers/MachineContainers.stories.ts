@@ -191,7 +191,7 @@ export const Default: Story = {
 /** A phone's width, where the rows stack */
 export const Narrow: Story = {
   ...Default,
-  decorators: [() => ({ template: '<div style="max-width: 390px"><story /></div>' })],
+  globals: { viewport: { value: 'mobile2', isRotated: false } },
 }
 
 export const NoContainers: Story = {}

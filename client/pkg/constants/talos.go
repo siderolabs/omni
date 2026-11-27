@@ -75,6 +75,14 @@ const (
 	_ = containers.ContainerImageStatusType
 	// tsgen:TalosContainerInstanceStatusType
 	_ = containers.ContainerInstanceStatusType
+	// tsgen:TalosContainerSpecType
+	_ = containers.ContainerSpecType
+	// tsgen:TalosContainerRunStatusType
+	_ = containers.ContainerRunStatusType
+	// tsgen:TalosContainerMountStatusType
+	_ = containers.ContainerMountStatusType
+	// tsgen:TalosContainerHealthStatusType
+	_ = containers.ContainerHealthStatusType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
