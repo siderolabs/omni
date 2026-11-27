@@ -68,12 +68,12 @@ const { data: containers } = provideMachineContainers(
 
 // Containers shows only when the machine has some, or when its page is open by URL
 const containersTab = computed<MachinePageTab[]>(() =>
-  containers.value.length || route.name === 'NodeContainers'
+  containers.value.length || route.name === 'NodeContainers' || route.name === 'NodeContainer'
     ? [
         {
           name: 'Containers',
           count: containers.value.length || undefined,
-          pages: [{ name: 'Containers', route: 'NodeContainers' }],
+          pages: [{ name: 'Containers', route: 'NodeContainers', alsoOn: ['NodeContainer'] }],
         },
       ]
     : [],

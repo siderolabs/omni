@@ -54,6 +54,7 @@ import { useTitle } from '@/methods/title'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
+import { containerRoute, containersRoute } from '@/views/Containers/lib/containerRoutes'
 import { healthAppearance, healthName } from '@/views/Containers/lib/containerStatus'
 import { blockedContainers, healthCounts } from '@/views/Containers/lib/containerSummary'
 import { injectMachineContainers } from '@/views/Containers/lib/machineContainers'
@@ -381,10 +382,7 @@ useTitle('Overview')
         <div class="overview-data-heading flex items-center justify-between gap-tight">
           <h4>Containers</h4>
           <RouterLink
-            :to="{
-              name: 'NodeContainers',
-              params: { cluster: route.params.cluster, machine: route.params.machine },
-            }"
+            :to="containersRoute(route.params.cluster, route.params.machine)"
             class="text-sm font-medium text-content-default hover:text-accent-text hover:underline"
           >
             View all {{ containers.length }}
@@ -410,7 +408,12 @@ useTitle('Overview')
             :key="id"
             class="text-xs text-content-secondary"
           >
-            <span class="font-mono text-content-default">{{ id }}</span>
+            <RouterLink
+              :to="containerRoute(route.params.cluster, route.params.machine, id)"
+              class="font-mono text-content-default hover:text-accent-text hover:underline"
+            >
+              {{ id }}
+            </RouterLink>
             is waiting for
             <span class="font-mono text-content-default">{{ gate }}</span>
             <template v-if="more">and {{ more }} more</template>

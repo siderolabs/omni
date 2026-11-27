@@ -108,5 +108,5 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {}
 
 export const Stacked: Story = {
-  decorators: [() => ({ template: '<div style="max-width: 390px"><story /></div>' })],
+  globals: { viewport: { value: 'mobile2', isRotated: false } },
 }

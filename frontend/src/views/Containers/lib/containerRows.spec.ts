@@ -6,7 +6,14 @@ import { describe, expect, test } from 'vitest'
 
 import type { ContainerStatusSpec } from '@/api/talos/containers.pb'
 
-import { type ContainerRow, containerRows, imageRef, rowSummary, sinceTime } from './containerRows'
+import {
+  type ContainerRow,
+  containerRows,
+  imageRef,
+  instanceId,
+  rowSummary,
+  sinceTime,
+} from './containerRows'
 
 describe('containerRows', () => {
   const rows = containerRows(
@@ -100,4 +107,9 @@ describe('rowSummary', () => {
   test('leaves out readings Talos does not have yet', () => {
     expect(rowSummary({ id: 'waiting', status: {} }, now)).toBe('0 restarts')
   })
+})
+
+test('instanceId', () => {
+  expect(instanceId('web', 3)).toBe('web-3')
+  expect(instanceId('web')).toBe('web-0')
 })

@@ -4,12 +4,7 @@
 // included in the LICENSE file.
 import { expect, test } from 'vitest'
 
-import { containerMetrics, formatCPU, statsKey, statsSample } from './containerStats'
-
-test('statsKey', () => {
-  expect(statsKey('web', 3)).toBe('web-3')
-  expect(statsKey('web')).toBe('web-0')
-})
+import { containerMetrics, formatCPU, statsSample } from './containerStats'
 
 test('statsSample skips stats without an ID and keeps what is reported', () => {
   const sample = statsSample(
