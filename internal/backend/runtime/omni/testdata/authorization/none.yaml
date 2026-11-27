@@ -578,7 +578,7 @@ resources:
 flags:
   Permissions.omni.sidero.dev:
     can_read_clusters: false
-    can_create_clusters: true
+    can_create_clusters: false
     can_manage_users: false
     can_read_machines: false
     can_remove_machines: false

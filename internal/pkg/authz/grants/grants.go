@@ -89,6 +89,23 @@ func check(ctx context.Context, st state.State, checkSubject func(authz.Subject)
 	return checkSubject(subject)
 }
 
+// SubjectWithAllGrants returns the caller in the context with all of its grants: the ones of its preset and the ones of the access policy.
+//
+// It is for a caller which asks many questions about the same subject, like the permission flags of the UI.
+// The access policy is read once here, and the checks of the authz package are then called with the subject.
+func SubjectWithAllGrants(ctx context.Context, st state.State) (authz.Subject, error) {
+	subject := Subject(ctx)
+
+	policyGrants, err := accessPolicyGrants(ctx, st)
+	if err != nil {
+		return authz.Subject{}, err
+	}
+
+	subject.Grants = append(subject.Grants, policyGrants...)
+
+	return subject, nil
+}
+
 // Subject returns the caller in the context, with the grants its preset stands for.
 func Subject(ctx context.Context) authz.Subject {
 	if actor.ContextIsInternalActor(ctx) {

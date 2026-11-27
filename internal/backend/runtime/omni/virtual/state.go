@@ -32,7 +32,6 @@ import (
 	stateerrors "github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/errors"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/authz"
 	"github.com/siderolabs/omni/internal/pkg/authz/grants"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -276,49 +275,53 @@ func (v *State) currentUser(ctx context.Context) (*virtual.CurrentUser, error) {
 	return user, nil
 }
 
+// permissions returns what the UI can offer to the caller outside of a single cluster.
+//
+// Each flag is the answer of the access check which the action behind it goes through.
+// A flag of a page which lists everything asks for everything: the list is refused to a caller with access to some clusters only.
 func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
-	userRole := role.None
+	subject, err := grants.SubjectWithAllGrants(ctx, v.PrimaryState)
+	if err != nil {
+		return nil, err
+	}
 
-	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
-		userRole = val.Role
+	// on the machines in no cluster and on the resources of the instance
+	can := func(group authz.ResourceGroup, verb authz.Verbs) bool {
+		return authz.CheckResourceGroup(subject, group, verb, authz.Target{}) == nil
+	}
+
+	// a flag about managing something is for the pages which create, change and delete it
+	canManage := func(group authz.ResourceGroup) bool {
+		return can(group, authz.Create) && can(group, authz.Update) && can(group, authz.Destroy)
 	}
 
 	permissions := virtual.NewPermissions()
+	spec := permissions.TypedSpec().Value
 
-	isReader := userRole.Check(role.Reader) == nil
-	permissions.TypedSpec().Value.CanReadMachineConfigPatches = isReader
-	permissions.TypedSpec().Value.CanReadMachineLogs = isReader
-	permissions.TypedSpec().Value.CanReadClusters = isReader
-	permissions.TypedSpec().Value.CanReadMachines = isReader
-	permissions.TypedSpec().Value.CanReadJoinTokens = isReader
-	permissions.TypedSpec().Value.CanReadInstallationMedia = isReader
+	spec.CanReadClusters = authz.CheckResourceGroup(subject, authz.Clusters, authz.Read, authz.Target{AllClusters: true}) == nil
+	// the name of a new cluster is not known here, so access to create a cluster with some name is enough
+	spec.CanCreateClusters = authz.CheckResourceGroupInAnyScope(subject, authz.Clusters, authz.Create) == nil
 
-	isOperator := userRole.Check(role.Operator) == nil
-	permissions.TypedSpec().Value.CanRemoveMachines = isOperator
-	permissions.TypedSpec().Value.CanCreateClusters = isOperator
-	permissions.TypedSpec().Value.CanManageMachineConfigPatches = isOperator
-	permissions.TypedSpec().Value.CanAccessMaintenanceNodes = isOperator
-	permissions.TypedSpec().Value.CanManageInstallationMedia = isOperator
+	spec.CanReadMachines = can(authz.Machines, authz.Read)
+	spec.CanReadMachineLogs = can(authz.Machines, authz.Read)
+	spec.CanRemoveMachines = can(authz.Machines, authz.Destroy)
+	spec.CanAccessMaintenanceNodes = authz.CheckOperation(subject, authz.MachineMaintenance, authz.Target{}) == nil
 
-	// the same check as the CreateJoinToken RPC
-	permissions.TypedSpec().Value.CanManageJoinTokens = grants.CheckResourceGroup(ctx, v.PrimaryState, authz.MachineManagement, authz.Create, authz.Target{}) == nil
+	spec.CanReadMachineConfigPatches = can(authz.MachineManagement, authz.Read)
+	spec.CanManageMachineConfigPatches = canManage(authz.MachineManagement)
+	spec.CanReadJoinTokens = can(authz.MachineManagement, authz.Read)
+	spec.CanManageJoinTokens = canManage(authz.MachineManagement)
+	spec.CanReadInstallationMedia = can(authz.MachineManagement, authz.Read)
+	spec.CanManageInstallationMedia = canManage(authz.MachineManagement)
 
-	isAdmin := userRole.Check(role.Admin) == nil
-	permissions.TypedSpec().Value.CanManageUsers = isAdmin
-	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
-	permissions.TypedSpec().Value.CanAccessInternals = isAdmin
-
+	spec.CanManageUsers = canManage(authz.AccessControl)
+	spec.CanManageBackupStore = canManage(authz.Credentials)
 	// the same check as the ReadAuditLog RPC
-	permissions.TypedSpec().Value.CanReadAuditLog = grants.CheckOperation(ctx, v.PrimaryState, authz.AuditLog, authz.Target{}) == nil
+	spec.CanReadAuditLog = authz.CheckOperation(subject, authz.AuditLog, authz.Target{}) == nil
 
-	if !permissions.TypedSpec().Value.CanCreateClusters {
-		_, err := safe.StateGet[*authres.AccessPolicy](ctx, v.PrimaryState, authres.NewAccessPolicy().Metadata())
-		if err == nil {
-			// if there is an access policy, we assume user can create clusters - we do the actual check on creation time by id, selectors, etc.
-			permissions.TypedSpec().Value.CanCreateClusters = true
-		} else if !state.IsNotFoundError(err) {
-			return nil, err
-		}
+	// the Controllers and DependencyGraph RPCs still check the preset of the user
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		spec.CanAccessInternals = val.Role.Check(role.Admin) == nil
 	}
 
 	version, err := resource.ParseVersion("1")
@@ -331,49 +334,56 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 	return permissions, nil
 }
 
+// clusterPermissions returns what the UI can offer to the caller on a cluster, see permissions.
 func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*virtual.ClusterPermissions, error) {
-	userRole, _, err := accesspolicy.RoleForCluster(ctx, ptr.ID(), v.PrimaryState)
+	subject, err := grants.SubjectWithAllGrants(ctx, v.PrimaryState)
 	if err != nil {
 		return nil, err
 	}
 
+	cluster := authz.Target{Cluster: ptr.ID()}
+
+	can := func(group authz.ResourceGroup, verb authz.Verbs) bool {
+		return authz.CheckResourceGroup(subject, group, verb, cluster) == nil
+	}
+
 	clusterPermissions := virtual.NewClusterPermissions(ptr.ID())
+	spec := clusterPermissions.TypedSpec().Value
 
 	// the same check as the Kubeconfig and Talosconfig RPCs: the configs contain no credentials, so every user can get them
-	if subject := grants.Subject(ctx); subject.Authenticated && !subject.Provider {
-		clusterPermissions.TypedSpec().Value.CanDownloadKubeconfig = true
-		clusterPermissions.TypedSpec().Value.CanDownloadTalosconfig = true
-	}
+	spec.CanDownloadKubeconfig = subject.Authenticated && !subject.Provider
+	spec.CanDownloadTalosconfig = subject.Authenticated && !subject.Provider
 
-	if userRole.Check(role.Reader) == nil {
-		clusterPermissions.TypedSpec().Value.CanReadConfigPatches = true
-		clusterPermissions.TypedSpec().Value.CanReadMachineConfig = true
-		clusterPermissions.TypedSpec().Value.CanReadKernelArgs = true
-		clusterPermissions.TypedSpec().Value.CanReadMachinePendingUpdates = true
-	}
+	spec.CanReadConfigPatches = can(authz.Clusters, authz.Read)
+	spec.CanReadMachineConfig = can(authz.Clusters, authz.Read)
+	spec.CanReadMachinePendingUpdates = can(authz.Clusters, authz.Read)
+	spec.CanReadKubernetesManifests = can(authz.Clusters, authz.Read)
 
-	isOperator := userRole.Check(role.Operator) == nil
+	spec.CanAddMachines = can(authz.Clusters, authz.Create)
+	spec.CanRemoveMachines = can(authz.Clusters, authz.Destroy)
+	spec.CanUpdateKubernetes = can(authz.Clusters, authz.Update)
+	spec.CanUpdateTalos = can(authz.Clusters, authz.Update)
+	// the page creates, changes and deletes config patches
+	spec.CanManageConfigPatches = can(authz.Clusters, authz.Create) && can(authz.Clusters, authz.Update) && can(authz.Clusters, authz.Destroy)
+	spec.CanManageClusterFeatures = can(authz.Clusters, authz.Update)
+	spec.CanManageMachineConfig = can(authz.Clusters, authz.Update)
+	// the same check as the KubernetesSyncManifests RPC
+	spec.CanSyncKubernetesManifests = can(authz.Clusters, authz.Update)
 
-	clusterPermissions.TypedSpec().Value.CanReadKubernetesManifests = isOperator
+	// The flag is for three buttons: a reboot goes through the Talos API, a shutdown and a power on through the machine power RPCs.
+	spec.CanRebootMachines = can(authz.Talos, authz.Update) && authz.CheckOperation(subject, authz.MachinePower, cluster) == nil
 
 	// the same check as the GetSupportBundle RPC
-	clusterPermissions.TypedSpec().Value.CanDownloadSupportBundle = grants.CheckOperation(ctx, v.PrimaryState, authz.ClusterDiagnostics, authz.Target{Cluster: ptr.ID()}) == nil
+	spec.CanDownloadSupportBundle = authz.CheckOperation(subject, authz.ClusterDiagnostics, cluster) == nil
 
-	// a suspended instance is read-only, also when the access policy grants more on the cluster
-	_, suspended := ctxstore.Value[auth.SuspendedContextKey](ctx)
-
-	if isOperator && !suspended {
-		clusterPermissions.TypedSpec().Value.CanRebootMachines = true
-		clusterPermissions.TypedSpec().Value.CanAddMachines = true
-		clusterPermissions.TypedSpec().Value.CanRemoveMachines = true
-		clusterPermissions.TypedSpec().Value.CanUpdateKubernetes = true
-		clusterPermissions.TypedSpec().Value.CanUpdateTalos = true
-		clusterPermissions.TypedSpec().Value.CanManageConfigPatches = true
-		clusterPermissions.TypedSpec().Value.CanSyncKubernetesManifests = true
-		clusterPermissions.TypedSpec().Value.CanManageClusterFeatures = true
-		clusterPermissions.TypedSpec().Value.CanManageMachineConfig = true
-		clusterPermissions.TypedSpec().Value.CanManageKernelArgs = true
+	// The kernel args are a setting of the machine, which stays with it when it leaves the cluster.
+	// So access to the cluster is not enough for them.
+	canMachineSettings := func(verb authz.Verbs) bool {
+		return authz.CheckResourceGroup(subject, authz.MachineManagement, verb, authz.Target{}) == nil
 	}
+
+	spec.CanReadKernelArgs = canMachineSettings(authz.Read)
+	spec.CanManageKernelArgs = canMachineSettings(authz.Create) && canMachineSettings(authz.Update) && canMachineSettings(authz.Destroy)
 
 	version, err := resource.ParseVersion("1")
 	if err != nil {
