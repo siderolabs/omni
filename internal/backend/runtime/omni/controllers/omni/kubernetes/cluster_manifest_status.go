@@ -51,6 +51,8 @@ import (
 	omniconsts "github.com/siderolabs/omni/internal/pkg/constants"
 )
 
+const manifestApplyWaitTimeout = 60 * time.Second
+
 // KubernetesRuntime provides kubernetes cluster access capabilities.
 type KubernetesRuntime interface {
 	GetKubeconfig(ctx context.Context, cluster *common.Context) (*rest.Config, error)
@@ -323,8 +325,8 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 
 			errs = nil
 		} else {
-			// we do not put the concrete error message in the status to avoid blowing up resource writes if the error changes on every failure
-			lastError = "retryable error occurred while applying manifests"
+			// Bounded single-line detail: the raw apply error must not grow the status write.
+			lastError = retryableManifestLastError(errs)
 		}
 	}
 
@@ -569,7 +571,7 @@ func (ctrl *ClusterManifestsStatusController) sync(
 
 	applyOpts := ssa.ApplyOptions{
 		InventoryPolicy: ssa.InventoryPolicyAdoptIfNoInventory,
-		WaitTimeout:     10 * time.Second,
+		WaitTimeout:     manifestApplyWaitTimeout,
 		WaitInterval:    5 * time.Second,
 		NoPrune:         inv == omniconsts.SSAOmniOneTimeSyncInventory,
 	}
@@ -731,6 +733,17 @@ func validationError(err error) bool {
 
 func namespaceError(err error) bool {
 	return strings.Contains(err.Error(), "namespace not specified")
+}
+
+func retryableManifestLastError(err error) string {
+	const maxLen = 512
+
+	msg := fmt.Sprintf("retryable error occurred while applying manifests: %v", err)
+	if len(msg) > maxLen {
+		msg = strings.ToValidUTF8(msg[:maxLen-3], "") + "..."
+	}
+
+	return msg
 }
 
 func isFatalError(err error) bool {
