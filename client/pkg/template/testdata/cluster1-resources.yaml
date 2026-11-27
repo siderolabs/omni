@@ -18,6 +18,7 @@ spec:
         useembeddeddiscoveryservice: false
         enablenodeauditskip: false
         disablepublicdiscoveryservice: false
+        kubernetes: 0
     backupconfiguration: null
 ---
 metadata:
@@ -87,6 +88,7 @@ spec:
     machineallocation: null
     upgradestrategy: 0
     upgradestrategyconfig: null
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -101,7 +103,8 @@ metadata:
         omni.sidero.dev/cluster: my-first-cluster
         omni.sidero.dev/machine-set: my-first-cluster-control-planes
         omni.sidero.dev/role-controlplane:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -116,7 +119,8 @@ metadata:
         omni.sidero.dev/cluster: my-first-cluster
         omni.sidero.dev/machine-set: my-first-cluster-control-planes
         omni.sidero.dev/role-controlplane:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -185,6 +189,7 @@ spec:
     machineallocation: null
     upgradestrategy: 0
     upgradestrategyconfig: null
+    kubernetes: 0
 ---
 metadata:
     namespace: default
@@ -201,7 +206,8 @@ metadata:
         omni.sidero.dev/role-worker:
     annotations:
         omni.sidero.dev/locked:
-spec: {}
+spec:
+    kubernetes: 0
 ---
 metadata:
     namespace: default

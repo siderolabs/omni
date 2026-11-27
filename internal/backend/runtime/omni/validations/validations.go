@@ -34,7 +34,7 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		accountLimitsValidationOptions(st, cfg.Auth.Limits),
 		exposedServiceValidationOptions(),
 		configPatchValidationOptions(st),
-		etcdManualBackupValidationOptions(),
+		etcdManualBackupValidationOptions(st),
 		identityLabelRuleValidationOptions(),
 		s3ConfigValidationOptions(),
 		machineRequestSetValidationOptions(st),
@@ -46,10 +46,10 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		infraProviderValidationOptions(st),
 		installationMediaConfigValidationOptions(st),
 		rotateSecretsValidationOptions(st),
-		kubernetesManifestsValidationOptions(),
+		kubernetesManifestsValidationOptions(st),
 		kernelArgsValidationOptions(),
 		machineInstallDiskConfigValidationOptions(),
-		kubernetesHealthcheckValidationOptions(),
+		kubernetesHealthcheckValidationOptions(st),
 		extensionsConfigurationValidationOptions(st),
 	)
 }

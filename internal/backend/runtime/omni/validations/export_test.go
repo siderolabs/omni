@@ -45,8 +45,8 @@ func ConfigPatchValidationOptions(st state.State) []validated.StateOption {
 	return configPatchValidationOptions(st)
 }
 
-func EtcdManualBackupValidationOptions() []validated.StateOption {
-	return etcdManualBackupValidationOptions()
+func EtcdManualBackupValidationOptions(st state.State) []validated.StateOption {
+	return etcdManualBackupValidationOptions(st)
 }
 
 func IdentityLabelRuleValidationOptions() []validated.StateOption {
@@ -97,8 +97,8 @@ func AccountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 	return accountLimitsValidationOptions(st, limits)
 }
 
-func KubernetesManifestsValidationOptions() []validated.StateOption {
-	return kubernetesManifestsValidationOptions()
+func KubernetesManifestsValidationOptions(st state.State) []validated.StateOption {
+	return kubernetesManifestsValidationOptions(st)
 }
 
 func KernelArgsValidationOptions() []validated.StateOption {
@@ -109,8 +109,8 @@ func MetadataValidationOptions() []validated.StateOption {
 	return metadataValidationOptions()
 }
 
-func KubernetesHealthCheckValidationOptions() []validated.StateOption {
-	return kubernetesHealthcheckValidationOptions()
+func KubernetesHealthCheckValidationOptions(st state.State) []validated.StateOption {
+	return kubernetesHealthcheckValidationOptions(st)
 }
 
 func ExtensionsConfigurationValidationOptions(st state.State) []validated.StateOption {

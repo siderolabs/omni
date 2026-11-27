@@ -465,6 +465,7 @@ func (m *ClusterSpec_Features) CloneVT() *ClusterSpec_Features {
 	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
 	r.EnableNodeAuditSkip = m.EnableNodeAuditSkip
 	r.DisablePublicDiscoveryService = m.DisablePublicDiscoveryService
+	r.Kubernetes = m.Kubernetes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1465,6 +1466,7 @@ func (m *MachineSetSpec) CloneVT() *MachineSetSpec {
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	r.UpgradeStrategy = m.UpgradeStrategy
 	r.UpgradeStrategyConfig = m.UpgradeStrategyConfig.CloneVT()
+	r.Kubernetes = m.Kubernetes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1552,6 +1554,7 @@ func (m *MachineSetNodeSpec) CloneVT() *MachineSetNodeSpec {
 		return (*MachineSetNodeSpec)(nil)
 	}
 	r := new(MachineSetNodeSpec)
+	r.Kubernetes = m.Kubernetes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4266,6 +4269,9 @@ func (this *ClusterSpec_Features) EqualVT(that *ClusterSpec_Features) bool {
 	if this.DisablePublicDiscoveryService != that.DisablePublicDiscoveryService {
 		return false
 	}
+	if this.Kubernetes != that.Kubernetes {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5570,6 +5576,9 @@ func (this *MachineSetSpec) EqualVT(that *MachineSetSpec) bool {
 	if !this.UpgradeStrategyConfig.EqualVT(that.UpgradeStrategyConfig) {
 		return false
 	}
+	if this.Kubernetes != that.Kubernetes {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5695,6 +5704,9 @@ func (this *MachineSetNodeSpec) EqualVT(that *MachineSetNodeSpec) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kubernetes != that.Kubernetes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9892,6 +9904,11 @@ func (m *ClusterSpec_Features) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Kubernetes != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Kubernetes))
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.DisablePublicDiscoveryService {
 		i--
 		if m.DisablePublicDiscoveryService {
@@ -12711,6 +12728,11 @@ func (m *MachineSetSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Kubernetes != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Kubernetes))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.UpgradeStrategyConfig != nil {
 		size, err := m.UpgradeStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13060,6 +13082,11 @@ func (m *MachineSetNodeSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Kubernetes != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Kubernetes))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -18942,6 +18969,9 @@ func (m *ClusterSpec_Features) SizeVT() (n int) {
 	if m.DisablePublicDiscoveryService {
 		n += 2
 	}
+	if m.Kubernetes != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Kubernetes))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20055,6 +20085,9 @@ func (m *MachineSetSpec) SizeVT() (n int) {
 		l = m.UpgradeStrategyConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Kubernetes != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Kubernetes))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20165,6 +20198,9 @@ func (m *MachineSetNodeSpec) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Kubernetes != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Kubernetes))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -26213,6 +26249,25 @@ func (m *ClusterSpec_Features) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.DisablePublicDiscoveryService = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kubernetes", wireType)
+			}
+			m.Kubernetes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Kubernetes |= FeatureState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -33553,6 +33608,25 @@ func (m *MachineSetSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kubernetes", wireType)
+			}
+			m.Kubernetes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Kubernetes |= FeatureState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -34276,6 +34350,25 @@ func (m *MachineSetNodeSpec) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: MachineSetNodeSpec: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kubernetes", wireType)
+			}
+			m.Kubernetes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Kubernetes |= FeatureState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

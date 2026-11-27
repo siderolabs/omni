@@ -332,6 +332,10 @@ message ClusterSpec {
     // Public discovery is on by default, so this is an opt-out. It is an independent toggle and can
     // only be configured for clusters created with Talos 1.14+.
     bool disable_public_discovery_service = 5;
+    // Kubernetes controls whether the cluster runs Kubernetes.
+    //
+    // FEATURE_STATE_UNSPECIFIED means enabled. Disabling it also disables etcd, requires Talos 1.15+ and can't be changed after creation.
+    FeatureState kubernetes = 6;
   }
 
   reserved 1;
@@ -1033,6 +1037,21 @@ message MachineSetSpec {
 
   // UpgradeStrategyConfig defines the upgrade strategy configuration.
   UpdateStrategyConfig upgrade_strategy_config = 9;
+
+  // Kubernetes overrides the cluster Kubernetes feature for the machines of the machine set.
+  //
+  // FEATURE_STATE_UNSPECIFIED inherits the cluster setting. It can't be changed after creation.
+  FeatureState kubernetes = 10;
+}
+
+// FeatureState is the state of an optional feature which can be set on several levels.
+enum FeatureState {
+  // The feature inherits the state of the parent level.
+  FEATURE_STATE_UNSPECIFIED = 0;
+  // The feature is enabled.
+  FEATURE_STATE_ENABLED = 1;
+  // The feature is disabled.
+  FEATURE_STATE_DISABLED = 2;
 }
 
 // OperationPauseReason is the reason a cluster-wide operation (an upgrade or a secret rotation) is paused.
@@ -1121,7 +1140,12 @@ message MachineSetConfigStatusSpec {
 }
 
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.
-message MachineSetNodeSpec {}
+message MachineSetNodeSpec {
+  // Kubernetes overrides the machine set Kubernetes feature for the machine.
+  //
+  // FEATURE_STATE_UNSPECIFIED inherits the machine set setting. It can't be changed after creation.
+  FeatureState kubernetes = 1;
+}
 
 // MachineLabelsSpec is the resource that adds user defined labels to the MachineStatus.
 message MachineLabelsSpec {}
