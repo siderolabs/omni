@@ -20,7 +20,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/siderolabs/go-api-signature/api/auth"
 	"github.com/siderolabs/go-api-signature/pkg/message"
@@ -28,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
+	googlegrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -37,6 +37,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/grpc"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	omniauth "github.com/siderolabs/omni/internal/pkg/auth"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
@@ -46,9 +47,9 @@ import (
 )
 
 func TestRegisterPublicKey(t *testing.T) {
-	st := state.WrapCore(inmem.NewState())
+	serverState, _ := newAuthServerState(t)
 
-	authServer, err := grpc.NewAuthServer(st, config.Services{
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
 		Api: config.Service{
 			AdvertisedURL: new("http://localhost:8099"),
 		},
@@ -168,9 +169,9 @@ LwfQb9Oa7fBNdyIiS2GPVzSFQtcIYbxBYBzvEY8RZjteEf7e/c/WWznGTQ==
 
 // TestRevokePublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
 func TestRevokePublicKeyDenials(t *testing.T) {
-	st := state.WrapCore(inmem.NewState())
+	serverState, st := newAuthServerState(t)
 
-	authServer, err := grpc.NewAuthServer(st, config.Services{
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
 		Api: config.Service{
 			AdvertisedURL: new("http://localhost:8099"),
 		},
@@ -194,11 +195,37 @@ func TestRevokePublicKeyDenials(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(othersErr))
 }
 
+func TestRevokePublicKey(t *testing.T) {
+	serverState, st := newAuthServerState(t)
+
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
+		Api: config.Service{
+			AdvertisedURL: new("http://localhost:8099"),
+		},
+	}, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	ctx := ctxstore.WithValue(t.Context(), omniauth.RoleContextKey{Role: role.Admin})
+	ctx = ctxstore.WithValue(ctx, omniauth.IdentityContextKey{Identity: "caller@a.com"})
+	ctx = googlegrpc.NewContextWithServerTransportStream(ctx, noopTransportStream{})
+
+	ownKey := authres.NewPublicKey("aa9e26dbdc5b4e5d9fa5ed21d0f3a2e1")
+	ownKey.TypedSpec().Value.Identity = &specs.Identity{Email: "caller@a.com"}
+
+	require.NoError(t, st.Create(ctx, ownKey, state.WithCreateOwner(new(omnictrl.KeyPrunerController{}).Name())))
+
+	_, err = authServer.RevokePublicKey(ctx, &auth.RevokePublicKeyRequest{PublicKeyId: ownKey.Metadata().ID()})
+	require.NoError(t, err)
+
+	_, err = st.Get(ctx, ownKey.Metadata())
+	require.True(t, state.IsNotFoundError(err), "the key is destroyed: %v", err)
+}
+
 // TestConfirmPublicKeyDenials checks that a missing key and a key owned by someone else are answered the same way.
 func TestConfirmPublicKeyDenials(t *testing.T) {
-	st := state.WrapCore(inmem.NewState())
+	serverState, st := newAuthServerState(t)
 
-	authServer, err := grpc.NewAuthServer(st, config.Services{
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
 		Api: config.Service{
 			AdvertisedURL: new("http://localhost:8099"),
 		},
@@ -229,9 +256,9 @@ func TestConfirmPublicKeyDenials(t *testing.T) {
 // TestPublicKeyRegisterConfirm checks that a registered key is stored only once it is confirmed, and that a wait for an
 // unknown key takes as long as a wait for a registered one. Overlapping confirmations of one key all succeed.
 func TestPublicKeyRegisterConfirm(t *testing.T) {
-	st := state.WrapCore(inmem.NewState())
+	serverState, st := newAuthServerState(t)
 
-	authServer, err := grpc.NewAuthServer(st, config.Services{
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
 		Api: config.Service{
 			AdvertisedURL: new("http://localhost:8099"),
 		},
@@ -395,9 +422,9 @@ e3jZVPlrk+078y8/+99sKfmGskU+ynBsKNglG/uy2LO1yl8WGXhJtXJF+w==
 
 // TestRegisterPublicKeyLimited checks that registrations from one address are limited, and other addresses are not affected.
 func TestRegisterPublicKeyLimited(t *testing.T) {
-	st := state.WrapCore(inmem.NewState())
+	serverState, _ := newAuthServerState(t)
 
-	authServer, err := grpc.NewAuthServer(st, config.Services{
+	authServer, err := grpc.NewAuthServer(serverState, config.Services{
 		Api: config.Service{
 			AdvertisedURL: new("http://localhost:8099"),
 		},
@@ -458,11 +485,11 @@ func TestConfirmPublicKeySyncsOIDCUser(t *testing.T) {
 	verifier, err := oidcauth.NewIDTokenVerifier(t.Context(), provider, "omni", false)
 	require.NoError(t, err)
 
-	st := state.WrapCore(inmem.NewState())
+	serverState, st := newAuthServerState(t)
 	require.NoError(t, user.Ensure(t.Context(), st, "admin@example.com", role.Admin, false))
 
-	authServer, err := grpc.NewOIDCAuthServer(st, config.Services{Api: config.Service{AdvertisedURL: new("http://localhost:8099")}},
-		verifier, user.NewSyncer(st, zaptest.NewLogger(t), "", true), zaptest.NewLogger(t))
+	authServer, err := grpc.NewOIDCAuthServer(serverState, config.Services{Api: config.Service{AdvertisedURL: new("http://localhost:8099")}},
+		verifier, user.NewSyncer(serverState, zaptest.NewLogger(t), "", true), zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	// login confirms a key with an ID token carrying the given groups, the user is synced before the key is looked up
@@ -503,3 +530,21 @@ func TestConfirmPublicKeySyncsOIDCUser(t *testing.T) {
 		authres.OIDCLabelPrefix + "groups/ops": "",
 	}, identity.Metadata().Labels().Raw())
 }
+
+// newAuthServerState returns a state with the access checks for the auth server, and the same state without them for the setup of the test.
+func newAuthServerState(t *testing.T) (state.State, state.State) {
+	t.Helper()
+
+	authorized, unauthorized, err := omniruntime.NewAuthorizedState("https://omni.example.org")
+	require.NoError(t, err)
+
+	return authorized, unauthorized
+}
+
+// noopTransportStream accepts the headers a handler sets, as there is no real gRPC stream in the test.
+type noopTransportStream struct{}
+
+func (noopTransportStream) Method() string               { return "" }
+func (noopTransportStream) SetHeader(metadata.MD) error  { return nil }
+func (noopTransportStream) SendHeader(metadata.MD) error { return nil }
+func (noopTransportStream) SetTrailer(metadata.MD) error { return nil }

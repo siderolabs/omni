@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -47,7 +46,6 @@ type ServiceServer interface {
 
 // MakeServiceServers creates a list of service servers.
 func MakeServiceServers(
-	state state.State,
 	omniRuntime *omni.Runtime,
 	logHandler *siderolink.LogHandler,
 	oidcProvider OIDCProvider,
@@ -77,7 +75,7 @@ func MakeServiceServers(
 	}
 
 	auth, err := newAuthServer(
-		state,
+		omniRuntime.ValidatedState(),
 		cfg.Services,
 		oidcVerifier,
 		oidcSyncer,
