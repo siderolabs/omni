@@ -62,6 +62,10 @@ var adminMethodSet = xslices.ToSet([]string{
 
 	machine.DebugService_ContainerRun_FullMethodName,
 
+	// Talos accepts the virtual machine console streams only from os:admin.
+	machine.HypervisorService_ConsoleStream_FullMethodName,
+	machine.HypervisorService_VNCStream_FullMethodName,
+
 	machine.ImageService_Remove_FullMethodName,
 })
 
