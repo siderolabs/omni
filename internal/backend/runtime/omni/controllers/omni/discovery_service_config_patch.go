@@ -87,13 +87,13 @@ func (ctrl *DiscoveryServiceConfigPatchController) reconcile(_ context.Context, 
 		return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("cluster uses the default public discovery service")
 	}
 
-	initialTalosVersion := cluster.TypedSpec().Value.InitialTalosVersion
-	if initialTalosVersion == "" {
+	configVersionContract := cluster.TypedSpec().Value.ConfigVersionContract
+	if configVersionContract == "" {
 		// not resolved yet, the ClusterStatus update re-triggers reconcile once it is set
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster initial Talos version is not set yet")
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster config version contract is not set yet")
 	}
 
-	vc, err := config.ParseContractFromVersion(initialTalosVersion)
+	vc, err := config.ParseContractFromVersion(configVersionContract)
 	if err != nil {
 		return fmt.Errorf("failed to parse Talos version contract: %w", err)
 	}

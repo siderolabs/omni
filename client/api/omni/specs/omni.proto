@@ -655,6 +655,9 @@ message ClusterStatusSpec {
 
   // InitialTalosVersion is the Talos version the cluster was created with.
   string initial_talos_version = 12;
+
+  // ConfigVersionContract is the version contract (a Talos minor) the configs of the cluster are generated with.
+  string config_version_contract = 13;
 }
 
 // ClusterUUID keeps the UUID of the cluster.

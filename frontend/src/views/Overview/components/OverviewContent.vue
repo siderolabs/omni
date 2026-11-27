@@ -148,16 +148,16 @@ const isEmbeddedDiscoveryServiceAvailable = computed(
 )
 
 // Keeping the public service alongside the embedded one needs the multi-doc DiscoveryServiceConfig, which Talos
-// uses only for clusters created with 1.14+. ClusterStatus carries that creation version as initialTalosVersion,
-// and the VersionContract virtual resource reports whether that version supports the multi-doc config.
+// uses only on version contract 1.14+. The VersionContract virtual resource reports whether the cluster's
+// contract supports the multi-doc config.
 const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: VirtualNamespace,
     type: VersionContractType,
-    id: clusterStatus.value?.spec.initial_talos_version ?? '',
+    id: clusterStatus.value?.spec.config_version_contract ?? '',
   },
-  skip: !clusterStatus.value?.spec.initial_talos_version,
+  skip: !clusterStatus.value?.spec.config_version_contract,
 }))
 
 const supportsPublicDiscovery = computed(

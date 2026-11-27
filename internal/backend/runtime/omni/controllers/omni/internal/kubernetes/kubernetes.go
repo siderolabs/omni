@@ -6,7 +6,11 @@
 // Package kubernetes provides helpers for controller Kubernetes operations.
 package kubernetes
 
-import "github.com/siderolabs/talos/pkg/machinery/config"
+import (
+	"slices"
+
+	"github.com/siderolabs/talos/pkg/machinery/config"
+)
 
 // Component is an enumeration of Kubernetes components.
 type Component string
@@ -50,6 +54,27 @@ func (c Component) Patch(vc *config.VersionContract, version string) (Patcher, e
 	default:
 		panic("unknown component")
 	}
+}
+
+// MachinePatch builds the patch that sets every Kubernetes component of a machine to the given version.
+func MachinePatch(vc *config.VersionContract, version string, controlPlane bool) (Patcher, error) {
+	components := []Component{Kubelet}
+	if controlPlane {
+		components = slices.Concat(AllControlPlaneComponents, components)
+	}
+
+	patchers := make([]Patcher, 0, len(components))
+
+	for _, component := range components {
+		patcher, err := component.Patch(vc, version)
+		if err != nil {
+			return Patcher{}, err
+		}
+
+		patchers = append(patchers, patcher)
+	}
+
+	return MultiPatcher(patchers...)
 }
 
 // Valid returns true if the component is valid.

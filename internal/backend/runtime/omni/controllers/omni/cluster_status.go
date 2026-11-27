@@ -80,21 +80,43 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 //nolint:gocognit,gocyclo,cyclop,maintidx
 func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
+	clusterConfigVersion, err := safe.ReaderGetByID[*omni.ClusterConfigVersion](ctx, r, cluster.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	var configVersion string
+
+	if clusterConfigVersion != nil {
+		configVersion = clusterConfigVersion.TypedSpec().Value.Version
+	}
+
 	// InitialTalosVersion is the creation version, pinned once and never changed.
 	initialTalosVersion := clusterStatus.TypedSpec().Value.GetInitialTalosVersion()
 	if initialTalosVersion == "" {
-		clusterConfigVersion, err := safe.ReaderGetByID[*omni.ClusterConfigVersion](ctx, r, cluster.Metadata().ID())
-		if err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-
-		if clusterConfigVersion != nil {
-			initialTalosVersion = strings.TrimPrefix(clusterConfigVersion.TypedSpec().Value.Version, "v")
-		}
+		initialTalosVersion = strings.TrimPrefix(configVersion, "v")
 	}
 
-	if initialTalosVersion == "" && cluster.Metadata().Phase() == resource.PhaseRunning {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("initial talos version is not set yet")
+	if configVersion == "" && cluster.Metadata().Phase() == resource.PhaseRunning {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("config version is not set yet")
+	}
+
+	// ClusterConfigVersion is destroyed early in a cluster teardown, the last known contract is kept then
+	if configVersion == "" {
+		configVersion = clusterStatus.TypedSpec().Value.GetConfigVersionContract()
+	}
+
+	var (
+		vc                    *config.VersionContract
+		configVersionContract string
+	)
+
+	if configVersion != "" {
+		if vc, err = config.ParseContractFromVersion(configVersion); err != nil {
+			return fmt.Errorf("failed to parse Talos version contract: %w", err)
+		}
+
+		configVersionContract = fmt.Sprintf("%d.%d", vc.Major, vc.Minor)
 	}
 
 	list, err := safe.ReaderListAll[*omni.MachineSetStatus](
@@ -226,7 +248,7 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 		phase = specs.ClusterStatusSpec_RUNNING
 	}
 
-	useEmbeddedDiscoveryService, disablePublicDiscoveryService, err := ctrl.resolveDiscoveryServices(cluster, initialTalosVersion)
+	useEmbeddedDiscoveryService, disablePublicDiscoveryService, err := ctrl.resolveDiscoveryServices(cluster, vc)
 	if err != nil {
 		return fmt.Errorf("failed to determine which discovery services should be used: %w", err)
 	}
@@ -244,6 +266,7 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 		TalosVersion:                  cluster.TypedSpec().Value.GetTalosVersion(),
 		KubernetesVersion:             cluster.TypedSpec().Value.GetKubernetesVersion(),
 		InitialTalosVersion:           initialTalosVersion,
+		ConfigVersionContract:         configVersionContract,
 	}
 
 	helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
@@ -271,7 +294,7 @@ func (ctrl *ClusterStatusController) reconcile(ctx context.Context, r controller
 
 // resolveDiscoveryServices computes the final discovery decision from the feature toggles, the cluster Talos version
 // and the Omni instance configuration.
-func (ctrl *ClusterStatusController) resolveDiscoveryServices(cluster *omni.Cluster, initialTalosVersion string) (useEmbedded, disablePublic bool, err error) {
+func (ctrl *ClusterStatusController) resolveDiscoveryServices(cluster *omni.Cluster, vc *config.VersionContract) (useEmbedded, disablePublic bool, err error) {
 	features := cluster.TypedSpec().Value.GetFeatures()
 
 	useEmbedded = features.GetUseEmbeddedDiscoveryService() && ctrl.embeddedDiscoveryServiceEnabled
@@ -286,16 +309,8 @@ func (ctrl *ClusterStatusController) resolveDiscoveryServices(cluster *omni.Clus
 		}
 	}
 
-	multidoc := false
-
-	if initialTalosVersion != "" {
-		vc, vcErr := config.ParseContractFromVersion(initialTalosVersion)
-		if vcErr != nil {
-			return false, false, fmt.Errorf("failed to parse Talos version contract: %w", vcErr)
-		}
-
-		multidoc = vc.DiscoveryServiceMultidocConfig()
-	}
+	// a nil contract means "current" to the machinery, so it is checked here
+	multidoc := vc != nil && vc.DiscoveryServiceMultidocConfig()
 
 	// The public service is only turned off alongside a resolved embedded one. The pair is validated when the
 	// cluster is written, but the instance-wide embedded toggle can be turned off later without any cluster write

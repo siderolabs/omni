@@ -205,6 +205,7 @@ export function createHandlers({
             kubernetesAPIReady: true,
             talos_version: TALOS_VERSION,
             initial_talos_version: TALOS_VERSION,
+            config_version_contract: '1.9',
             machines: { total: 3, healthy: 3, connected: 3 },
             ...clusterStatus,
           },

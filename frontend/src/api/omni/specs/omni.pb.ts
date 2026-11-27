@@ -568,6 +568,7 @@ export type ClusterStatusSpec = {
   kubernetes_version?: string
   disable_public_discovery_service?: boolean
   initial_talos_version?: string
+  config_version_contract?: string
 }
 
 export type ClusterUUID = {

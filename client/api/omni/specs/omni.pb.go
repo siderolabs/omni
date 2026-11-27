@@ -3739,8 +3739,10 @@ type ClusterStatusSpec struct {
 	DisablePublicDiscoveryService bool `protobuf:"varint,11,opt,name=disable_public_discovery_service,json=disablePublicDiscoveryService,proto3" json:"disable_public_discovery_service,omitempty"`
 	// InitialTalosVersion is the Talos version the cluster was created with.
 	InitialTalosVersion string `protobuf:"bytes,12,opt,name=initial_talos_version,json=initialTalosVersion,proto3" json:"initial_talos_version,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// ConfigVersionContract is the version contract (a Talos minor) the configs of the cluster are generated with.
+	ConfigVersionContract string `protobuf:"bytes,13,opt,name=config_version_contract,json=configVersionContract,proto3" json:"config_version_contract,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ClusterStatusSpec) Reset() {
@@ -3853,6 +3855,13 @@ func (x *ClusterStatusSpec) GetDisablePublicDiscoveryService() bool {
 func (x *ClusterStatusSpec) GetInitialTalosVersion() string {
 	if x != nil {
 		return x.InitialTalosVersion
+	}
+	return ""
+}
+
+func (x *ClusterStatusSpec) GetConfigVersionContract() string {
+	if x != nil {
+		return x.ConfigVersionContract
 	}
 	return ""
 }
@@ -13069,7 +13078,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05total\x18\x01 \x01(\rR\x05total\x12\x18\n" +
 	"\ahealthy\x18\x02 \x01(\rR\ahealthy\x12\x1c\n" +
 	"\tconnected\x18\x03 \x01(\rR\tconnected\x12\x1c\n" +
-	"\trequested\x18\x04 \x01(\rR\trequested\"\xb4\x05\n" +
+	"\trequested\x18\x04 \x01(\rR\trequested\"\xec\x05\n" +
 	"\x11ClusterStatusSpec\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12+\n" +
 	"\bmachines\x18\x02 \x01(\v2\x0f.specs.MachinesR\bmachines\x124\n" +
@@ -13083,7 +13092,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x12kubernetes_version\x18\n" +
 	" \x01(\tR\x11kubernetesVersion\x12G\n" +
 	" disable_public_discovery_service\x18\v \x01(\bR\x1ddisablePublicDiscoveryService\x122\n" +
-	"\x15initial_talos_version\x18\f \x01(\tR\x13initialTalosVersion\"S\n" +
+	"\x15initial_talos_version\x18\f \x01(\tR\x13initialTalosVersion\x126\n" +
+	"\x17config_version_contract\x18\r \x01(\tR\x15configVersionContract\"S\n" +
 	"\x05Phase\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0e\n" +
 	"\n" +

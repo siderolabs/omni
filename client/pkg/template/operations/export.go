@@ -48,7 +48,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 		return nil, err
 	}
 
-	var initialTalosVersion string
+	var configVersionContract string
 
 	clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, clusterID)
 	if err != nil && !state.IsNotFoundError(err) {
@@ -56,10 +56,10 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 	}
 
 	if clusterStatus != nil {
-		initialTalosVersion = clusterStatus.TypedSpec().Value.GetInitialTalosVersion()
+		configVersionContract = clusterStatus.TypedSpec().Value.GetConfigVersionContract()
 	}
 
-	clusterModel, err := transformClusterToModel(resources.cluster, resources.patches.cluster, initialTalosVersion)
+	clusterModel, err := transformClusterToModel(resources.cluster, resources.patches.cluster, configVersionContract)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +372,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 	}, nil
 }
 
-func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch, initialTalosVersion string) (models.Cluster, error) {
+func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch, configVersionContract string) (models.Cluster, error) {
 	spec := cluster.TypedSpec().Value
 	backupIntervalDuration := time.Duration(0)
 
@@ -395,10 +395,10 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch,
 		},
 	}
 
-	// The public discovery service is only a settable option on clusters created with Talos 1.14+, so emit its
+	// The public discovery service is only a settable option on clusters on version contract 1.14+, so emit its
 	// actual value there and omit it otherwise.
-	if initialTalosVersion != "" {
-		if vc, vcErr := config.ParseContractFromVersion(initialTalosVersion); vcErr == nil && vc.DiscoveryServiceMultidocConfig() {
+	if configVersionContract != "" {
+		if vc, vcErr := config.ParseContractFromVersion(configVersionContract); vcErr == nil && vc.DiscoveryServiceMultidocConfig() {
 			disabled := spec.GetFeatures().GetDisablePublicDiscoveryService()
 			features.DisablePublicDiscoveryService = &disabled
 		}

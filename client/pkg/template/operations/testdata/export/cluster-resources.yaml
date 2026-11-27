@@ -37,7 +37,7 @@ spec:
 
 
 
-################################ ClusterStatus - carries the initial (creation) Talos version
+################################ ClusterStatus - carries the version contract of the cluster
 metadata:
   namespace: default
   type: ClusterStatuses.omni.sidero.dev
@@ -48,7 +48,8 @@ metadata:
   created: 2023-12-07T13:36:21Z
   updated: 2023-12-08T15:43:10Z
 spec:
-  initialtalosversion: 1.14.0
+  initialtalosversion: 1.13.0
+  configversioncontract: "1.14"
 ---
 
 

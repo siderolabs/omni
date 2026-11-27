@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -377,7 +378,7 @@ func TestClusterStatusDiscoveryServices(t *testing.T) {
 	for _, tt := range []struct { //nolint:govet
 		name                     string
 		talosVersion             string
-		configVersion            string // pinned ClusterConfigVersion (creation version); defaults to talosVersion when empty
+		configVersion            string // ClusterConfigVersion, defaults to talosVersion when empty
 		embeddedDisabledInstance bool   // the embedded discovery service is turned off for the whole Omni instance
 		features                 *specs.ClusterSpec_Features
 		wantEmbedded             bool
@@ -424,7 +425,7 @@ func TestClusterStatusDiscoveryServices(t *testing.T) {
 			wantPublic:               true,
 		},
 		{
-			// created at 1.13 (legacy base): the public opt-out has no effect, public stays on
+			// contract 1.13 (legacy base): the public opt-out has no effect, public stays on
 			name:          "disable public ignored on legacy base",
 			talosVersion:  "1.14.0",
 			configVersion: "v1.13.0",
@@ -476,7 +477,6 @@ func TestClusterStatusDiscoveryServices(t *testing.T) {
 						}),
 					)
 
-					// model the pinned config-generation version separately from the current running version
 					configVersion := tt.configVersion
 					if configVersion == "" {
 						configVersion = "v" + tt.talosVersion
@@ -495,6 +495,58 @@ func TestClusterStatusDiscoveryServices(t *testing.T) {
 			)
 		})
 	}
+}
+
+func TestClusterStatusConfigVersionContract(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	testutils.WithRuntime(
+		ctx,
+		t,
+		testutils.TestOptions{},
+		func(_ context.Context, testContext testutils.TestContext) {
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterStatusController(true)))
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
+			cluster := rmock.Mock[*omni.Cluster](
+				ctx, t, testContext.State,
+				options.Modify(func(res *omni.Cluster) error {
+					res.TypedSpec().Value.TalosVersion = "1.14.0"
+					res.TypedSpec().Value.Features = &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true, DisablePublicDiscoveryService: true}
+
+					return nil
+				}),
+			)
+
+			clusterConfigVersion := omni.NewClusterConfigVersion(cluster.Metadata().ID())
+			clusterConfigVersion.TypedSpec().Value.Version = "v1.13.5"
+			require.NoError(t, testContext.State.Create(ctx, clusterConfigVersion))
+
+			rtestutils.AssertResources(ctx, t, testContext.State, []resource.ID{cluster.Metadata().ID()},
+				func(status *omni.ClusterStatus, a *assert.Assertions) {
+					a.Equal("1.13", status.TypedSpec().Value.ConfigVersionContract)
+					a.Equal("1.13.5", status.TypedSpec().Value.InitialTalosVersion)
+					a.False(status.TypedSpec().Value.DisablePublicDiscoveryService)
+				})
+
+			_, err := safe.StateUpdateWithConflicts(ctx, testContext.State, clusterConfigVersion.Metadata(), func(res *omni.ClusterConfigVersion) error {
+				res.TypedSpec().Value.Version = "v1.14.0"
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			rtestutils.AssertResources(ctx, t, testContext.State, []resource.ID{cluster.Metadata().ID()},
+				func(status *omni.ClusterStatus, a *assert.Assertions) {
+					a.Equal("1.14", status.TypedSpec().Value.ConfigVersionContract)
+					a.Equal("1.13.5", status.TypedSpec().Value.InitialTalosVersion)
+					a.True(status.TypedSpec().Value.DisablePublicDiscoveryService)
+				})
+		},
+	)
 }
 
 func TestClusterStatusImportedTaint(t *testing.T) {

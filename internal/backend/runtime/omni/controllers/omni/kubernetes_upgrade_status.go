@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // KubernetesUpgradeStatusController manages KubernetesUpgradeStatus performing a Kubernetes upgrade.
@@ -47,6 +48,25 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 				return omni.NewCluster(upgradeStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.KubernetesUpgradeStatus) error {
+				clusterConfigVersion, err := safe.ReaderGet[*omni.ClusterConfigVersion](ctx, r, omni.NewClusterConfigVersion(cluster.Metadata().ID()).Metadata())
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+					}
+
+					return err
+				}
+
+				vc, err := config.ParseContractFromVersion(clusterConfigVersion.TypedSpec().Value.Version)
+				if err != nil {
+					return fmt.Errorf("failed to parse version contract: %w", err)
+				}
+
+				// before the lock check, so the dry runs of a locked cluster see the patches after a contract bump
+				if err = rebuildUpgradePatches(ctx, r, cluster, vc, upgradeStatus.TypedSpec().Value.LastUpgradeVersion); err != nil {
+					return err
+				}
+
 				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
 					logger.Warn("cluster is locked, skip reconcile", zap.String("cluster", cluster.Metadata().ID()))
 
@@ -112,20 +132,6 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return fmt.Errorf("failed to build nodename to machine map: %w", err)
 				}
 
-				clusterConfigVersion, err := safe.ReaderGet[*omni.ClusterConfigVersion](ctx, r, omni.NewClusterConfigVersion(cluster.Metadata().ID()).Metadata())
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
-					}
-
-					return err
-				}
-
-				vc, err := config.ParseContractFromVersion(clusterConfigVersion.TypedSpec().Value.Version)
-				if err != nil {
-					return fmt.Errorf("failed to parse version contract: %w", err)
-				}
-
 				// check if all Kubernetes components are ready
 				upgradePath, err := kubernetes.CalculateUpgradePath(nodenameToMachineMap, kubernetesStatus, cluster.TypedSpec().Value.KubernetesVersion, vc)
 				if err != nil {
@@ -147,7 +153,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					// reverting an upgrade (?)
 					var applied bool
 
-					applied, err = applyUpgradePatches(ctx, r, cluster, upgradePath.Steps...)
+					applied, err = applyUpgradePatches(ctx, r, cluster, vc, upgradePath.Steps...)
 					if err != nil {
 						return err
 					}
@@ -203,7 +209,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					upgradeStatus.TypedSpec().Value.Status = "waiting for a restart"
 					upgradeStatus.TypedSpec().Value.Error = ""
 
-					if _, err = applyUpgradePatches(ctx, r, cluster, patch); err != nil {
+					if _, err = applyUpgradePatches(ctx, r, cluster, vc, patch); err != nil {
 						return err
 					}
 				case !upgradePath.AllComponentsReady:
@@ -358,7 +364,100 @@ func updateImagePullRequest(ctx context.Context, r controller.ReaderWriter, upgr
 	return sts, done, nil
 }
 
-func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni.Cluster, patches ...kubernetes.UpgradeStep) (bool, error) {
+// rebuildUpgradePatches regenerates the upgrade patches that were generated with another version contract, setting every
+// component to the last completed upgrade version.
+func rebuildUpgradePatches(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster, vc *config.VersionContract, lastUpgradeVersion string) error {
+	configPatches, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
+	))
+	if err != nil {
+		return err
+	}
+
+	for configPatch := range configPatches.All() {
+		if configPatch.Metadata().Owner() != KubernetesUpgradeStatusControllerName {
+			continue
+		}
+
+		if patchContract, _ := configPatch.Metadata().Annotations().Get(omni.VersionContract); patchContract == vc.String() {
+			continue
+		}
+
+		if err = rebuildUpgradePatch(ctx, r, configPatch.Metadata().ID(), vc, lastUpgradeVersion); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func rebuildUpgradePatch(ctx context.Context, r controller.ReaderWriter, id resource.ID, vc *config.VersionContract, lastUpgradeVersion string) error {
+	configPatch, err := safe.ReaderGetByID[*omni.ConfigPatch](ctx, uncached.Reader(r), id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	patchContract, hasContract := configPatch.Metadata().Annotations().Get(omni.VersionContract)
+	if patchContract == vc.String() || configPatch.Metadata().Phase() == resource.PhaseTearingDown {
+		return nil
+	}
+
+	var data []byte
+
+	// a patch without the annotation was created before this change with the current contract, so it only gets the annotation
+	if hasContract {
+		// a contract bump is refused during an upgrade, so every component runs the last completed upgrade version
+		if lastUpgradeVersion == "" {
+			return nil
+		}
+
+		machineID, _ := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine)
+
+		var (
+			clusterMachineStatus *omni.ClusterMachineStatus
+			patch                kubernetes.Patcher
+		)
+
+		clusterMachineStatus, err = safe.ReaderGetByID[*omni.ClusterMachineStatus](ctx, r, machineID)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				return nil
+			}
+
+			return err
+		}
+
+		_, controlPlane := clusterMachineStatus.Metadata().Labels().Get(omni.LabelControlPlaneRole)
+
+		patch, err = kubernetes.MachinePatch(vc, lastUpgradeVersion, controlPlane)
+		if err != nil {
+			return fmt.Errorf("failed to build kubernetes upgrade patch for machine %q: %w", machineID, err)
+		}
+
+		data = patch.Patch
+	}
+
+	configPatch.Metadata().Annotations().Set(omni.VersionContract, vc.String())
+
+	if data != nil {
+		if err = configPatch.TypedSpec().Value.SetUncompressedData(data); err != nil {
+			return err
+		}
+	}
+
+	// an update, not a modify, so a patch destroyed meanwhile is not created again
+	if err = r.Update(ctx, configPatch); err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	return nil
+}
+
+func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni.Cluster, vc *config.VersionContract, patches ...kubernetes.UpgradeStep) (bool, error) {
 	anyPatchApplied := false
 
 	for _, patch := range patches {
@@ -385,6 +484,7 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 				configPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 				configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, patch.MachineID)
 				configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
+				configPatch.Metadata().Annotations().Set(omni.VersionContract, vc.String())
 
 				if err = configPatch.TypedSpec().Value.SetUncompressedData(merged); err != nil {
 					return err

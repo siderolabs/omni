@@ -49,6 +49,9 @@ const (
 	// tsgen:ClusterLocked
 	ClusterLocked = SystemLabelPrefix + "cluster-locked"
 
+	// VersionContract is set on the config patches Omni generates, and records the version contract they were generated with.
+	VersionContract = SystemLabelPrefix + "version-contract"
+
 	// ClusterImportIsInProgress indicates that the cluster import process is in progress.
 	// This annotation is temporarily set on the cluster during initial import to allow resource creation that's normally blocked by ClusterLocked.
 	// tsgen:ClusterImportIsInProgress
